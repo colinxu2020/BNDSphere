@@ -55,6 +55,7 @@ dependencies = [
     { name = "fastapi", extra = ["standard"] },
     { name = "mariadb" },
     { name = "pydantic" },
+    { name = "python-dotenv" },
     { name = "sqlalchemy" },
     { name = "uvicorn", extra = ["standard"] },
 ]
@@ -65,6 +66,7 @@ requires-dist = [
     { name = "fastapi", extras = ["standard"], specifier = ">=0.135.1" },
     { name = "mariadb", specifier = ">=1.1.14" },
     { name = "pydantic", specifier = ">=2.12.5" },
+    { name = "python-dotenv", specifier = ">=1.2.2" },
     { name = "sqlalchemy", specifier = ">=2.0.48" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.42.0" },
 ]

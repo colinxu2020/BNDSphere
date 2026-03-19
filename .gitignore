@@ -1,5 +1,8 @@
-# Created by https://www.toptal.com/developers/gitignore/api/vue,vuejs,python,pycharm+all,visualstudiocode,git
-# Edit at https://www.toptal.com/developers/gitignore?templates=vue,vuejs,python,pycharm+all,visualstudiocode,git
+# Created by https://www.toptal.com/developers/gitignore/api/vue,vuejs,python,pycharm+all,visualstudiocode,git,dotenv
+# Edit at https://www.toptal.com/developers/gitignore?templates=vue,vuejs,python,pycharm+all,visualstudiocode,git,dotenv
+
+### dotenv ###
+.env
 
 ### Git ###
 # Created by git for backups. To disable backups in Git:
@@ -227,7 +230,6 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-.env
 .venv
 env/
 venv/
@@ -313,4 +315,4 @@ node_modules/
 npm-debug.log
 yarn-error.log
 
-# End of https://www.toptal.com/developers/gitignore/api/vue,vuejs,python,pycharm+all,visualstudiocode,git
+# End of https://www.toptal.com/developers/gitignore/api/vue,vuejs,python,pycharm+all,visualstudiocode,git,dotenv
