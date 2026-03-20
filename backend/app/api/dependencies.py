@@ -9,7 +9,7 @@ from app.core.database import SessionLocal
 from app.core.security import verify_password, verify_access_token
 from app.models.user import User, RoleEnum
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl='/api/v1/auth/login')
+oauth2_schema = OAuth2PasswordBearer(tokenUrl='/api/v1/users/login')
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
@@ -21,7 +21,7 @@ async def get_current_user(
 ) -> User:
     exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Password or username incorrent.",
+        detail="Token is invalid or expired",
         headers={"WWW-Authenticate": "Bearer"},
     )
     try:

@@ -3,7 +3,7 @@ import datetime
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.core.security import get_password_hash
+from app.core.security import get_password_hash, verify_password
 from app.models.user import User, RoleEnum
 from app.schemas.user import UserCreate
 
@@ -25,3 +25,10 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
 async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     result = await db.execute(select(User).where(User.username == username))
     return result.scalars().first()
+
+async def authenticate(db: AsyncSession, username: str, password: str) -> User | None:
+    stmt = await db.execute(select(User).where(User.username == username))
+    result = stmt.scalars().first()
+    if not result or not verify_password(password, result.hashed_password):
+        return
+    return result
