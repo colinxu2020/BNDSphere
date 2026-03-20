@@ -9,8 +9,10 @@ from app.models.user import RoleEnum
 class UserBase(BaseModel):
     username: str = Field(..., max_length=settings.max_username_length)
 
+
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
+
 
 class UserInfo(UserBase):
     email: str | None = Field(..., max_length=settings.max_email_length)
@@ -19,7 +21,7 @@ class UserInfo(UserBase):
     role: RoleEnum
     created_at: datetime
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str
-

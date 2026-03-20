@@ -16,3 +16,10 @@ dependencies = [
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.42.0",
 ]
+
+[dependency-groups]
+dev = [
+    "black>=26.3.1",
+    "mypy>=1.19.1",
+    "types-passlib>=1.7.7.20260211",
+]

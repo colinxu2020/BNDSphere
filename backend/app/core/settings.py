@@ -11,10 +11,8 @@ class Settings(BaseSettings):
     max_description_length: int
     echo_sql: bool
 
-    model_config = SettingsConfigDict(
-        env_file = '.env',
-        env_file_encoding = 'utf-8'
-    )
+    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+
 
 # noinspection PyArgumentList
 settings = Settings()  # type: ignore

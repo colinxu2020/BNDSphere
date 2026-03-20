@@ -9,15 +9,17 @@ from app.core.database import SessionLocal
 from app.core.security import verify_password, verify_access_token
 from app.models.user import User, RoleEnum
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl='/api/v1/users/login')
+oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
+
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with SessionLocal() as session:
         yield session
 
+
 async def get_current_user(
-        token: Annotated[str, Depends(oauth2_schema)],
-        db: Annotated[AsyncSession, Depends(get_db)]
+    token: Annotated[str, Depends(oauth2_schema)],
+    db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
     exc = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -26,24 +28,25 @@ async def get_current_user(
     )
     try:
         payload = verify_access_token(token)
-        if 'sub' not in payload:
+        if "sub" not in payload:
             raise exc
     except ValueError:
         raise exc
 
-    user = await db.get(User, int(payload['sub']))
+    user = await db.get(User, int(payload["sub"]))
     if user is None:
         raise exc
 
     return user
 
-class RoleChecker():
+
+class RoleChecker:
     def __init__(self, allowed_roles: list[RoleEnum]):
         self.allowed_roles = allowed_roles
 
     async def __call__(self, user: Annotated[User, Depends(get_current_user)]) -> User:
         if user.role not in self.allowed_roles and user.role != RoleEnum.dev:
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail='Permission denied')
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied"
+            )
         return user
-
-
