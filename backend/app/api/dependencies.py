@@ -6,7 +6,7 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import SessionLocal
-from app.core.security import verify_password, verify_access_token
+from app.core.security import verify_access_token
 from app.models.user import User, RoleEnum
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
@@ -37,6 +37,7 @@ async def get_current_user(
     if user is None:
         raise exc
 
+    # noinspection PyTypeChecker
     return user
 
 
