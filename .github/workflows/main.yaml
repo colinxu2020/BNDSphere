@@ -16,5 +16,5 @@ jobs:
         run: |
           git clone --mirror https://oauth2:${{ secrets.GITEE_PAT }}@gitee.com/bjbnds/BNDSphere.git repo-mirror
           cd repo-mirror
-          git remote set-url --push origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git remote set-url --push origin https://${{ github.actor }}:${{ secrets.GH_PAT }}@github.com/${{ github.repository }}.git
           git push --mirror
