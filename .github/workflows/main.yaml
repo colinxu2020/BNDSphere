@@ -1,0 +1,16 @@
+name: Sync from Gitee
+on:
+  repository_dispatch:
+    types: [gitee_push_event]
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror Repository from Gitee
+        run: |
+          git clone --mirror https://oauth2:${{ secrets.GITEE_PAT }}@gitee.com/bjbnds/BNDSphere.git repo-mirror
+          cd repo-mirror
+          git remote set-url --push origin https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git
+          git push --mirror
