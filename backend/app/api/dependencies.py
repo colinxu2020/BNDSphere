@@ -9,7 +9,7 @@ from app.core.database import SessionLocal
 from app.core.security import verify_access_token
 from app.models.user import User, RoleEnum
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
+oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
