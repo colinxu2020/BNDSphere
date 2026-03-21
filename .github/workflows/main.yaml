@@ -4,6 +4,10 @@ on:
     types: [gitee_push_event]
   workflow_dispatch:
 
+permissions:
+  contents: write    # 允许读取和写入代码库内容（git push 必需）
+  actions: write     # 允许对 GitHub Actions 的写权限
+
 jobs:
   sync:
     runs-on: ubuntu-latest
