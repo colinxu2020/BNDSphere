@@ -1,6 +1,6 @@
-from typing import Final
+from typing import Final, Any
 
-TOKEN_INVALID_RESPONSE: Final[dict] = {
+TOKEN_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     401: {
         "description": "Unauthorized",
         "content": {

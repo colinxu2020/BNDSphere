@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
     AsyncSession,
 )
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, DeclarativeBase
 
 from .settings import settings
 
@@ -17,4 +17,7 @@ SessionLocal: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
     bind=engine,
     expire_on_commit=False,
 )
-Base: Final[type] = declarative_base()
+
+
+class Base(DeclarativeBase):
+    pass

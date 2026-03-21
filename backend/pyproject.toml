@@ -23,3 +23,6 @@ dev = [
     "mypy>=1.19.1",
     "types-passlib>=1.7.7.20260211",
 ]
+
+[tool.mypy]
+strict = true

@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import get_db, get_current_user
 from app.core.security import create_access_token
+from app.models.user import User
 from app.schemas.user import UserInfo, UserCreate, Token
 from app.services.user import get_user_by_username, create_user, authenticate
 
@@ -28,7 +29,7 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
         }
     },
 )
-async def register(user: UserCreate, db: SessionDep) -> UserInfo:
+async def register(user: UserCreate, db: SessionDep) -> User:
     if await get_user_by_username(db, user.username):
         raise HTTPException(status_code=400, detail="Username already exists")
 
