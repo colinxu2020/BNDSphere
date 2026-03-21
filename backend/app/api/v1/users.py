@@ -74,4 +74,4 @@ async def login(
         )
     return Token(
         access_token=create_access_token({"sub": str(user.id)}), token_type="bearer"
-    )
+    )  # nosec: B106

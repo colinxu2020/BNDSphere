@@ -14,3 +14,11 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
+        
+      - id: bandit check
+        name: Type check with Mypy
+        entry: uv --directory backend run bandit app -li -ii
+        language: system
+        types: [python]
+        pass_filenames: false
+        
