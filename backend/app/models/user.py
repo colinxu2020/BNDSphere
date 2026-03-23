@@ -21,14 +21,14 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     username: Mapped[str] = mapped_column(
-        String(settings.max_username_length), unique=True, index=True
+        String(settings.user_max_username_length), unique=True, index=True
     )
     email: Mapped[str | None] = mapped_column(
-        String(settings.max_email_length), unique=True
+        String(settings.user_max_email_length), unique=True
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
     avatar_uri: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(String(settings.max_description_length))
+    description: Mapped[str] = mapped_column(String(settings.user_max_description_length))
     real_name: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[RoleEnum] = mapped_column()
     wecom_userid: Mapped[str | None] = mapped_column(
