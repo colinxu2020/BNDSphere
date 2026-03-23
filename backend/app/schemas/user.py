@@ -7,6 +7,7 @@ from app.models.user import RoleEnum
 
 
 class UserBase(BaseModel):
+    id: int
     username: str = Field(..., max_length=settings.user_max_username_length)
 
 

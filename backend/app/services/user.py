@@ -26,6 +26,10 @@ async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     return result.scalars().first()
 
 
+async def get_user_by_user_id(db: AsyncSession, id: int) -> User | None:
+    return await db.get(User, id)
+
+
 async def authenticate(db: AsyncSession, username: str, password: str) -> User | None:
     stmt = await db.execute(select(User).where(User.username == username))
     result = stmt.scalars().first()

@@ -9,27 +9,17 @@ from app.models.club import Club
 router = APIRouter()
 
 
-@router.post(
-    "/info",
+@router.get(
+    "/info/{club_id}",
     response_model=ClubInfo,
     status_code=status.HTTP_200_OK,
     responses=TOKEN_INVALID_RESPONSE,
 )
-async def get_club_info(
-    club_id: int,
-    db: AsyncSession = Depends(get_db)
-) -> ClubInfo:
-    try:
-        club = await db.get(Club, club_id)
-        if club is None:
-            raise ValueError("Club not found")
-        return ClubInfo(
-            name=club.name,
-            description=club.description,
-            logo_uri=club.logo_uri,
-            created_at=club.created_at,
-            status=club.status,
-            star_level=club.star_level
+async def get_club_info(club_id: int, db: AsyncSession = Depends(get_db)) -> Club:
+    club = await db.get(Club, club_id)
+    if club is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Club with id {club_id} not found",
         )
-    except ValueError as e:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+    return club

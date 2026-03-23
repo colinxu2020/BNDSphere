@@ -28,7 +28,9 @@ class User(Base):
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
     avatar_uri: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(String(settings.user_max_description_length))
+    description: Mapped[str] = mapped_column(
+        String(settings.user_max_description_length)
+    )
     real_name: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[RoleEnum] = mapped_column()
     wecom_userid: Mapped[str | None] = mapped_column(
