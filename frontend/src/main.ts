@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import PrimeVue from 'primevue/config'
 import Aura from '@primevue/themes/aura'
 import App from './App.vue'
+import router from './router'
 import './assets/main.css' // 确保在这里引入
 
 const app = createApp(App)
@@ -19,5 +20,7 @@ app.use(PrimeVue, {
         }
     }
 })
+
+app.use(router)
 
 app.mount('#app')
