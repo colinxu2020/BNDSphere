@@ -2,7 +2,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash, verify_password
-from app.models.user import User, RoleEnum
+from app.models.user import RoleEnum, User
 from app.schemas.user import UserCreate, UserUpdate
 
 
@@ -12,7 +12,7 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
         hashed_password=get_password_hash(user.password),
         email=None,
         avatar_uri="https://files.seeusercontent.com/2026/03/20/S0pl/Text-2.png",
-        description="这位用户还没有设置简介！",
+        description="这位用户还没有设置简介！",  # noqa: RUF001
         role=RoleEnum.user,
     )
     db.add(db_user)
@@ -40,8 +40,8 @@ async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
     return result.scalars().first()
 
 
-async def get_user_by_user_id(db: AsyncSession, id: int) -> User | None:
-    return await db.get(User, id)
+async def get_user_by_user_id(db: AsyncSession, user_id: int) -> User | None:
+    return await db.get(User, user_id)
 
 
 async def authenticate(db: AsyncSession, username: str, password: str) -> User | None:

@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, Field
 
 from app.core.settings import settings
-from app.models.club import ClubStatusEnum, ClubStarLevelEnum
+from app.models.club import ClubStarLevelEnum, ClubStatusEnum
 
 
 class ClubBase(BaseModel):

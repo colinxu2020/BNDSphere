@@ -1,12 +1,15 @@
-from fastapi import Depends, HTTPException, status, APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import get_db
-from app.schemas.club import ClubInfo
 from app.models.club import Club
+from app.schemas.club import ClubInfo
 
 router = APIRouter()
+SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
 @router.get(
@@ -15,7 +18,7 @@ router = APIRouter()
     status_code=status.HTTP_200_OK,
     responses=TOKEN_INVALID_RESPONSE,
 )
-async def get_club_info(club_id: int, db: AsyncSession = Depends(get_db)) -> Club:
+async def get_club_info(club_id: int, db: SessionDep) -> Club:
     club = await db.get(Club, club_id)
     if club is None:
         raise HTTPException(

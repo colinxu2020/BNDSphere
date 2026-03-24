@@ -19,4 +19,4 @@ class Settings(BaseSettings):
 
 
 # noinspection PyArgumentList
-settings = Settings()  # type: ignore
+settings = Settings()  # type: ignore[call-arg]

@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.core.settings import settings
 from app.api.v1 import router as v1_router
+from app.core.settings import settings
 
 app = FastAPI(
     title="BNDSphere API",

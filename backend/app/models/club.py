@@ -1,20 +1,20 @@
-from enum import Enum
 from datetime import datetime
+from enum import StrEnum
 
-from sqlalchemy import String, DateTime, func
+from sqlalchemy import DateTime, String, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
 from app.core.settings import settings
 
 
-class ClubStatusEnum(str, Enum):
+class ClubStatusEnum(StrEnum):
     unreviewed = "unreviewed"
     normal = "normal"
     archived = "archived"
 
 
-class ClubStarLevelEnum(str, Enum):
+class ClubStarLevelEnum(StrEnum):
     none = "暂无星级"
     one_star = "1星级社团"
     two_star = "2星级社团"
@@ -29,10 +29,12 @@ class Club(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(
-        String(settings.club_max_name_length), unique=True, index=True
+        String(settings.club_max_name_length),
+        unique=True,
+        index=True,
     )
     description: Mapped[str] = mapped_column(
-        String(settings.club_max_description_length)
+        String(settings.club_max_description_length),
     )
     logo_uri: Mapped[str] = mapped_column(String(255), nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())

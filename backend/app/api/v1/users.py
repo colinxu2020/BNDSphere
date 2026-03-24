@@ -1,6 +1,6 @@
-from typing import Annotated, cast
+from typing import Annotated
 
-from fastapi import Depends, status, APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
@@ -8,9 +8,8 @@ from app.api.dependencies import get_current_user, get_db
 from app.models.user import User
 from app.schemas.user import UserInfo, UserUpdate
 from app.services.user import (
-    get_user_by_username,
-    get_user_by_user_id,
     get_user_by_email,
+    get_user_by_user_id,
     update_user,
 )
 
@@ -34,7 +33,8 @@ async def get_user_profile(user_id: int, db: SessionDep) -> User:
     user = await get_user_by_user_id(db, user_id)
     if user is None:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail=f"User {user_id} not found."
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"User {user_id} not found.",
         )
     return user
 
@@ -47,9 +47,9 @@ async def get_user_profile(user_id: int, db: SessionDep) -> User:
         409: {
             "description": "Email already exists",
             "content": {
-                "application/json": {"example": {"detail": "Email already exists"}}
+                "application/json": {"example": {"detail": "Email already exists"}},
             },
-        }
+        },
     },
 )
 async def update_user_profile(
