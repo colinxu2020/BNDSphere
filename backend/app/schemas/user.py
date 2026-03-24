@@ -7,7 +7,6 @@ from app.models.user import RoleEnum
 
 
 class UserBase(BaseModel):
-    id: int
     username: str = Field(..., max_length=settings.user_max_username_length)
 
 
@@ -16,11 +15,18 @@ class UserCreate(UserBase):
 
 
 class UserInfo(UserBase):
+    id: int
     email: str | None = Field(..., max_length=settings.user_max_email_length)
     avatar_uri: str = Field(..., max_length=255)
     description: str = Field(..., max_length=settings.user_max_description_length)
     role: RoleEnum
     created_at: datetime
+
+
+class UserUpdate(BaseModel):
+    email: str | None = Field(..., max_length=settings.user_max_email_length)
+    avatar_uri: str = Field(..., max_length=255)
+    description: str = Field(..., max_length=settings.user_max_description_length)
 
 
 class Token(BaseModel):

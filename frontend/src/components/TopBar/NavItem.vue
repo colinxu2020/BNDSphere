@@ -7,6 +7,6 @@
 <script setup>
 defineProps({
   text: String,
-  to: [String, Object]
-})
+  to: [String, Object],
+});
 </script>

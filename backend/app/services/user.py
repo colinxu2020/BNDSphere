@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User, RoleEnum
-from app.schemas.user import UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 
 
 async def create_user(db: AsyncSession, user: UserCreate) -> User:
@@ -21,8 +21,22 @@ async def create_user(db: AsyncSession, user: UserCreate) -> User:
     return db_user
 
 
+async def update_user(db: AsyncSession, user: User, update: UserUpdate) -> User:
+    for field, value in update.model_dump(exclude_unset=True).items():
+        setattr(user, field, value)
+    db.add(user)
+    await db.commit()
+    await db.refresh(user)
+    return user
+
+
 async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
     result = await db.execute(select(User).where(User.username == username))
+    return result.scalars().first()
+
+
+async def get_user_by_email(db: AsyncSession, email: str) -> User | None:
+    result = await db.execute(select(User).where(User.email == email))
     return result.scalars().first()
 
 

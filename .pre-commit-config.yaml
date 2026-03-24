@@ -14,11 +14,33 @@ repos:
         language: system
         types: [python]
         pass_filenames: false
-        
+
       - id: bandit check
-        name: Type check with Mypy
+        name: Security check with Bandit
         entry: uv --directory backend run bandit app -li -ii
         language: system
         types: [python]
         pass_filenames: false
-        
+
+      - id: eslint
+        name: ESLint
+        entry: npm --prefix frontend run lint:eslint
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx)$
+        pass_filenames: false
+
+      - id: frontend-prettier
+        name: ✨ Prettier (Frontend)
+        entry: npm --prefix frontend run lint:prettier
+        language: system
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|scss|html|json)$
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict

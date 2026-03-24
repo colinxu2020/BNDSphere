@@ -1,40 +1,40 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory } from 'vue-router';
 
 const routes = [
   {
     path: '/login',
     component: () => import('@/views/auth/Login.vue'),
-    meta: { layout: 'blank' } // 使用空白布局
+    meta: { layout: 'blank' }, // 使用空白布局
   },
   {
     path: '/',
     component: () => import('@/views/GuestIndex.vue'),
-    meta: { layout: 'guest' } // 使用访客布局
+    meta: { layout: 'guest' }, // 使用访客布局
   },
-//   {
-//     path: '/',
-//     redirect: '/dashboard',
-//     children: [
-//       {
-//         path: 'dashboard',
-//         name: 'Dashboard',
-//         component: () => import('@/views/dashboard/index.vue'),
-//         meta: { title: '控制台', icon: 'home', requiresAuth: true }
-//       },
-//       {
-//         path: 'users',
-//         name: 'UserList',
-//         component: () => import('@/views/system/Users.vue'),
-//         meta: { title: '用户管理', requiresAuth: true, role: 'admin' }
-//       }
-//     ]
-//   }
-]
+  //   {
+  //     path: '/',
+  //     redirect: '/dashboard',
+  //     children: [
+  //       {
+  //         path: 'dashboard',
+  //         name: 'Dashboard',
+  //         component: () => import('@/views/dashboard/index.vue'),
+  //         meta: { title: '控制台', icon: 'home', requiresAuth: true }
+  //       },
+  //       {
+  //         path: 'users',
+  //         name: 'UserList',
+  //         component: () => import('@/views/system/Users.vue'),
+  //         meta: { title: '用户管理', requiresAuth: true, role: 'admin' }
+  //       }
+  //     ]
+  //   }
+];
 
 const router = createRouter({
   history: createWebHistory(),
-  routes
-})
+  routes,
+});
 
 // 商业级权限守卫
 // router.beforeEach((to, from, next) => {
@@ -48,4 +48,4 @@ const router = createRouter({
 //   }
 // })
 
-export default router
+export default router;
