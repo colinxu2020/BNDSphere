@@ -2,10 +2,11 @@ from datetime import datetime
 from enum import StrEnum
 
 from sqlalchemy import DateTime, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.core.settings import settings
+from app.models.clubmember import ClubMember
 
 
 class ClubStatusEnum(StrEnum):
@@ -42,3 +43,4 @@ class Club(Base):
     )
     status: Mapped[ClubStatusEnum] = mapped_column()
     star_level: Mapped[ClubStarLevelEnum] = mapped_column()
+    members: Mapped[list[ClubMember]] = relationship(back_populates="club")
