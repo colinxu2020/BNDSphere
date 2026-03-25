@@ -57,6 +57,8 @@ async def update_user_profile(
     db: SessionDep,
     update: UserUpdate,
 ) -> User:
-    if update.email and await get_user_by_email(db, update.email):
-        raise HTTPException(status_code=409, detail="Email already exists")
+    if update.email:
+        user = await get_user_by_email(db, update.email)
+        if user is not None and user.id != current_user.id:
+            raise HTTPException(status_code=409, detail="Email already exists")
     return await update_user(db, current_user, update)
