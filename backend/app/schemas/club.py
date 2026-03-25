@@ -4,6 +4,7 @@ from pydantic import BaseModel, Field, HttpUrl
 
 from app.core.settings import settings
 from app.models.club import ClubStarLevelEnum, ClubStatusEnum
+from app.models.clubmember import ClubMembershipEnum
 
 
 class ClubBase(BaseModel):
@@ -25,3 +26,15 @@ class ClubCreate(BaseModel):
     summary: str = Field(..., max_length=settings.club_max_summary_length)
     description: str = Field(..., max_length=settings.club_max_description_length)
     logo_uri: HttpUrl | None = Field(None, max_length=255)
+
+
+class ClubUpdate(BaseModel):
+    summary: str = Field(..., max_length=settings.club_max_summary_length)
+    description: str = Field(..., max_length=settings.club_max_description_length)
+    logo_uri: HttpUrl | None = Field(None, max_length=255)
+
+
+class ClubMemberUpdate(BaseModel):
+    user_id: int
+    club_id: int
+    membership: ClubMembershipEnum

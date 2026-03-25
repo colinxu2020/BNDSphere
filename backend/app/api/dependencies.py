@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import SessionLocal
 from app.core.security import verify_access_token
 from app.models.user import RoleEnum, User
+from app.services.base import ServiceBase
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -53,3 +54,11 @@ class RoleChecker:
                 detail="Permission denied",
             )
         return user
+
+
+class ServiceFactory:
+    def __init__(self, typ: type[ServiceBase]) -> None:
+        self.typ = typ
+
+    def __call__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> ServiceBase:
+        return self.typ(db)

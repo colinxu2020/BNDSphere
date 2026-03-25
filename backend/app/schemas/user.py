@@ -14,19 +14,26 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
 
+class UserCreateHashed(UserBase):
+    hashed_password: str = Field(..., min_length=6)
+
+
 class UserInfo(UserBase):
     id: int
     email: EmailStr | None = Field(..., max_length=settings.user_max_email_length)
-    avatar_uri: HttpUrl = Field(..., max_length=255)
+    avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=settings.user_max_description_length)
     role: RoleEnum
     created_at: datetime
 
 
 class UserUpdate(BaseModel):
-    email: EmailStr | None = Field(..., max_length=settings.user_max_email_length)
-    avatar_uri: HttpUrl = Field(..., max_length=255)
-    description: str = Field(..., max_length=settings.user_max_description_length)
+    email: EmailStr | None = Field(None, max_length=settings.user_max_email_length)
+    avatar_uri: HttpUrl | None = Field(None, max_length=255)
+    description: str | None = Field(
+        None,
+        max_length=settings.user_max_description_length,
+    )
 
 
 class Token(BaseModel):

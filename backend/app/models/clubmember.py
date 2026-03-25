@@ -12,7 +12,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ClubUserMembershipEnum(StrEnum):
+class ClubMembershipEnum(StrEnum):
     none = "none"
     pending = "pending"
     member = "member"
@@ -25,10 +25,11 @@ class ClubMember(Base):
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"), primary_key=True)
-    membership: Mapped[ClubUserMembershipEnum] = mapped_column()
+    membership: Mapped[ClubMembershipEnum] = mapped_column()
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
-        insert_default=func.now(),
+        server_default=func.now(),
+        onupdate=func.now(),
     )
     user: Mapped[User] = relationship(back_populates="club_memberships")
     club: Mapped[Club] = relationship(back_populates="members")

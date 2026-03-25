@@ -33,7 +33,6 @@ class ClubStarLevelEnum(StrEnum):
 class Club(Base):
     __tablename__ = "clubs"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     name: Mapped[str] = mapped_column(
         String(settings.club_max_name_length),
         unique=True,
@@ -41,11 +40,13 @@ class Club(Base):
     )
     summary: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
-    logo_uri: Mapped[str | None] = mapped_column(Text, nullable=True)
+    logo_uri: Mapped[str | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
     )
-    status: Mapped[ClubStatusEnum] = mapped_column()
-    star_level: Mapped[ClubStarLevelEnum] = mapped_column()
+    status: Mapped[ClubStatusEnum] = mapped_column(default=ClubStatusEnum.unreviewed)
+    star_level: Mapped[ClubStarLevelEnum] = mapped_column(
+        default=ClubStarLevelEnum.none,
+    )
     members: Mapped[list[ClubMember]] = relationship(back_populates="club")

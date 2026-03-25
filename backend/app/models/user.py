@@ -22,7 +22,6 @@ class RoleEnum(StrEnum):
 class User(Base):
     __tablename__ = "users"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     username: Mapped[str] = mapped_column(
         Text,
         unique=True,
@@ -31,16 +30,18 @@ class User(Base):
     email: Mapped[str | None] = mapped_column(
         Text,
         unique=True,
+        default=None,
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
-    avatar_uri: Mapped[str] = mapped_column(Text)
-    description: Mapped[str] = mapped_column(Text)
-    real_name: Mapped[str | None] = mapped_column(String(20))
-    role: Mapped[RoleEnum] = mapped_column()
+    avatar_uri: Mapped[str | None] = mapped_column(Text, default=None)
+    description: Mapped[str] = mapped_column(Text, default="这位用户还没有设置简介")
+    real_name: Mapped[str | None] = mapped_column(String(20), default=None)
+    role: Mapped[RoleEnum] = mapped_column(default=RoleEnum.user)
     wecom_userid: Mapped[str | None] = mapped_column(
         String(64),
         unique=True,
         index=True,
+        default=None,
     )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -1,58 +1,48 @@
 from collections.abc import Sequence
 
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models.club import Club, ClubStarLevelEnum, ClubStatusEnum
-from app.models.clubmember import ClubMember, ClubUserMembershipEnum
+from app.models.club import Club
+from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club import ClubCreate
+from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
+from app.services.base import ServiceBase
 
 
-async def get_club_by_club_id(db: AsyncSession, club_id: int) -> Club | None:
-    return await db.get(Club, club_id)
+class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
+    model = Club
+
+    async def get_by_name(self, name: str) -> Sequence[Club]:
+        result = await self.db.execute(select(Club).where(Club.name == name))
+        return result.scalars().all()
 
 
-async def get_clubs_by_club_name(db: AsyncSession, name: str) -> Sequence[Club]:
-    result = await db.execute(select(Club).where(Club.name == name))
-    return result.scalars().all()
+class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpdate]):
+    model = ClubMember
 
-
-async def create_club(club: ClubCreate, db: AsyncSession) -> Club:
-    db_club = Club(
-        name=club.name,
-        summary=club.summary,
-        description=club.description,
-        status=ClubStatusEnum.unreviewed,
-        star_level=ClubStarLevelEnum.none,
-    )
-    db.add(db_club)
-    await db.commit()
-    await db.refresh(db_club)
-    return db_club
-
-
-async def set_club_relationship(
-    db: AsyncSession,
-    club: Club,
-    user: User,
-    relationship: ClubUserMembershipEnum,
-) -> ClubMember:
-    stmt = select(ClubMember).where(
-        ClubMember.club_id == club.id,
-        ClubMember.user_id == user.club_id,
-    )
-    result = await db.execute(stmt)
-    record: ClubMember = result.scalars().first()
-    if record is not None:
-        record.membership = relationship
-    else:
-        record = ClubMember(
-            club_id=club.id,
-            user_id=user.id,
-            membership=relationship,
+    async def get_by_club_user(self, club: Club, user: User) -> ClubMember | None:
+        result = await self.db.execute(
+            select(self.model).where(
+                self.model.user_id == user.id,
+                self.model.club_id == club.id,
+            ),
         )
-        db.add(record)
-    await db.commit()
-    await db.refresh(record)
-    return record
+        return result.scalars().first()
+
+    async def set_relationship(
+        self,
+        club: Club,
+        user: User,
+        membership: ClubMembershipEnum,
+    ) -> ClubMember:
+        relationship = await self.get_by_club_user(club, user)
+        if relationship is None:
+            relationship = await self.create(
+                ClubMemberUpdate(user.id, club.id, membership),
+            )
+        else:
+            relationship.membership = membership
+            self.db.add(relationship)
+            await self.db.commit()
+            await self.db.refresh(relationship)
+        return relationship
