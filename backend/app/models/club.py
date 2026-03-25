@@ -15,13 +15,13 @@ class ClubStatusEnum(StrEnum):
 
 
 class ClubStarLevelEnum(StrEnum):
-    none = "暂无星级"
-    one_star = "1星级社团"
-    two_star = "2星级社团"
-    three_star = "3星级社团"
-    four_star = "4星级社团"
-    five_star = "5星级社团"
-    honorary = "荣誉社团"
+    none = "none"
+    one_star = "one_star"
+    two_star = "two_star"
+    three_star = "three_star"
+    four_star = "four_star"
+    five_star = "five_star"
+    honorary = "honorary"
 
 
 class Club(Base):
@@ -36,7 +36,10 @@ class Club(Base):
     description: Mapped[str] = mapped_column(
         String(settings.club_max_description_length),
     )
-    logo_uri: Mapped[str] = mapped_column(String(255), nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    logo_uri: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
     status: Mapped[ClubStatusEnum] = mapped_column()
     star_level: Mapped[ClubStarLevelEnum] = mapped_column()
