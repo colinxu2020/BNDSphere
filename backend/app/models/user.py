@@ -1,11 +1,14 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.clubmember import ClubMember
+
+if TYPE_CHECKING:
+    from app.models.clubmember import ClubMember
 
 
 class RoleEnum(StrEnum):

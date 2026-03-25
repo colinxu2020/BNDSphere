@@ -1,12 +1,15 @@
 from datetime import datetime
 from enum import StrEnum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
-from app.models.club import Club
-from app.models.user import User
+
+if TYPE_CHECKING:
+    from app.models.club import Club
+    from app.models.user import User
 
 
 class ClubUserMembershipEnum(StrEnum):
@@ -18,7 +21,7 @@ class ClubUserMembershipEnum(StrEnum):
 
 
 class ClubMember(Base):
-    __table__ = "club_members"
+    __tablename__ = "club_members"
 
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"), primary_key=True)

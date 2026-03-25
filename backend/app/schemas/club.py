@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, HttpUrl
 
 from app.core.settings import settings
 from app.models.club import ClubStarLevelEnum, ClubStatusEnum
@@ -14,13 +14,14 @@ class ClubBase(BaseModel):
 class ClubInfo(ClubBase):
     summary: str = Field(..., max_length=settings.club_max_summary_length)
     description: str = Field(..., max_length=settings.club_max_description_length)
-    logo_uri: str = Field(..., max_length=255)
+    logo_uri: HttpUrl | None = Field(None, max_length=255)
     created_at: datetime
     status: ClubStatusEnum
     star_level: ClubStarLevelEnum
 
 
-class ClubCreate(ClubBase):
+class ClubCreate(BaseModel):
+    name: str = Field(..., max_length=settings.club_max_name_length)
     summary: str = Field(..., max_length=settings.club_max_summary_length)
     description: str = Field(..., max_length=settings.club_max_description_length)
-    logo_uri: str = Field(..., max_length=255)
+    logo_uri: HttpUrl | None = Field(None, max_length=255)
