@@ -13,7 +13,7 @@ from app.services.user import (
     update_user,
 )
 
-router = APIRouter()
+router = APIRouter(tags=["users"])
 SessionDep = Annotated[AsyncSession, Depends(get_db)]
 
 
@@ -25,11 +25,16 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
 ) -> User:
+    """Get public profile of current user."""
     return current_user
 
 
-@router.get("/{user_id}", response_model=UserInfo)
+@router.get(
+    "/{user_id}",
+    response_model=UserInfo,
+)
 async def get_user_profile(user_id: int, db: SessionDep) -> User:
+    """Get public profile of a user by user id."""
     user = await get_user_by_user_id(db, user_id)
     if user is None:
         raise HTTPException(
@@ -57,6 +62,10 @@ async def update_user_profile(
     db: SessionDep,
     update: UserUpdate,
 ) -> User:
+    """Modify user profile of current user.
+
+    Note that username cannot be changed, and email must be unique.
+    """
     if update.email:
         user = await get_user_by_email(db, update.email)
         if user is not None and user.id != current_user.id:

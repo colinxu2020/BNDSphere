@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 from app.core.settings import settings
 from app.models.user import RoleEnum
@@ -16,16 +16,16 @@ class UserCreate(UserBase):
 
 class UserInfo(UserBase):
     id: int
-    email: str | None = Field(..., max_length=settings.user_max_email_length)
-    avatar_uri: str = Field(..., max_length=255)
+    email: EmailStr | None = Field(..., max_length=settings.user_max_email_length)
+    avatar_uri: HttpUrl = Field(..., max_length=255)
     description: str = Field(..., max_length=settings.user_max_description_length)
     role: RoleEnum
     created_at: datetime
 
 
 class UserUpdate(BaseModel):
-    email: str | None = Field(..., max_length=settings.user_max_email_length)
-    avatar_uri: str = Field(..., max_length=255)
+    email: EmailStr | None = Field(..., max_length=settings.user_max_email_length)
+    avatar_uri: HttpUrl = Field(..., max_length=255)
     description: str = Field(..., max_length=settings.user_max_description_length)
 
 
