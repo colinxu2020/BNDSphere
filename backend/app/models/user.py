@@ -1,11 +1,10 @@
 from datetime import datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, String, func
+from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
-from app.core.settings import settings
 
 
 class RoleEnum(StrEnum):
@@ -21,19 +20,17 @@ class User(Base):
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
     username: Mapped[str] = mapped_column(
-        String(settings.user_max_username_length),
+        Text,
         unique=True,
         index=True,
     )
     email: Mapped[str | None] = mapped_column(
-        String(settings.user_max_email_length),
+        Text,
         unique=True,
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
-    avatar_uri: Mapped[str] = mapped_column(String(255))
-    description: Mapped[str] = mapped_column(
-        String(settings.user_max_description_length),
-    )
+    avatar_uri: Mapped[str] = mapped_column(Text)
+    description: Mapped[str] = mapped_column(Text)
     real_name: Mapped[str | None] = mapped_column(String(20))
     role: Mapped[RoleEnum] = mapped_column()
     wecom_userid: Mapped[str | None] = mapped_column(
