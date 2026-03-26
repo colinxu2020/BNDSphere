@@ -1,4 +1,5 @@
-from typing import Annotated, AsyncGenerator
+from collections.abc import AsyncGenerator
+from typing import Annotated
 
 from fastapi import HTTPException, status
 from fastapi.params import Depends
@@ -7,12 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import SessionLocal
 from app.core.security import verify_access_token
-from app.models.user import User, RoleEnum
+from app.models.user import RoleEnum, User
+from app.services.base import ServiceBase
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
 
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
+async def get_db() -> AsyncGenerator[AsyncSession]:
     async with SessionLocal() as session:
         yield session
 
@@ -30,8 +32,8 @@ async def get_current_user(
         payload = verify_access_token(token)
         if "sub" not in payload:
             raise exc
-    except ValueError:
-        raise exc
+    except ValueError as err:
+        raise exc from err
 
     user = await db.get(User, int(payload["sub"]))
     if user is None:
@@ -42,12 +44,21 @@ async def get_current_user(
 
 
 class RoleChecker:
-    def __init__(self, allowed_roles: list[RoleEnum]):
+    def __init__(self, allowed_roles: list[RoleEnum]) -> None:
         self.allowed_roles = allowed_roles
 
     async def __call__(self, user: Annotated[User, Depends(get_current_user)]) -> User:
         if user.role not in self.allowed_roles and user.role != RoleEnum.dev:
             raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN, detail="Permission denied"
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Permission denied",
             )
         return user
+
+
+class ServiceFactory:
+    def __init__(self, typ: type[ServiceBase]) -> None:
+        self.typ = typ
+
+    def __call__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> ServiceBase:
+        return self.typ(db)

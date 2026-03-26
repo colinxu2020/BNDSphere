@@ -18,12 +18,14 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = [
-    "bandit>=1.9.4",
-    "black>=26.3.1",
-    "mypy>=1.19.1",
-    "types-passlib>=1.7.7.20260211",
-]
+dev = []
 
 [tool.mypy]
 strict = true
+
+[tool.ruff.lint]
+select =["ALL"]
+extend-ignore = ['EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003']
+
+[tool.ruff]
+extend-exclude = ["**/migrations"]

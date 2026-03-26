@@ -1,24 +1,42 @@
 repos:
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.19.1
+    hooks:
+      - id: mypy
+        name: Type check with Mypy
+        additional_dependencies: [types-passlib]
+        files: ^backend/
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.7
+    hooks:
+      - id: ruff
+        name: Lint code with Ruff
+        args: [ --fix ]
+        files: ^backend/
+      - id: ruff-format
+        name: Format code with Ruff
+        files: ^backend/
+
   - repo: local
     hooks:
-      - id: black-format
-        name: Format code with Black
-        entry: uv --directory backend run black app
+      - id: eslint
+        name: ESLint
+        entry: npm --prefix frontend exec -- eslint --fix
         language: system
-        types: [python]
-        pass_filenames: false
+        files: ^frontend/.*\.(ts|tsx|js|jsx|vue)$
 
-      - id: mypy-check
-        name: Type check with Mypy
-        entry: uv --directory backend run mypy app --disallow-untyped-def
+      - id: frontend-prettier
+        name: ✨ Prettier (Frontend)
+        entry: npm --prefix frontend exec -- prettier --write
         language: system
-        types: [python]
-        pass_filenames: false
-        
-      - id: bandit check
-        name: Type check with Mypy
-        entry: uv --directory backend run bandit app -li -ii
-        language: system
-        types: [python]
-        pass_filenames: false
-        
+        files: ^frontend/.*\.(ts|tsx|js|jsx|css|scss|html|json|vue)$
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict

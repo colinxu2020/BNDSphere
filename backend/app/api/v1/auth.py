@@ -2,17 +2,16 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
 
-from app.api.dependencies import get_db
+from app.api.dependencies import ServiceFactory
 from app.core.security import create_access_token
 from app.models.user import User
-from app.schemas.user import UserInfo, UserCreate, Token
-from app.services.user import get_user_by_username, create_user, authenticate
+from app.schemas.user import Token, UserCreate, UserInfo
+from app.services.user import UserService
 
-router = APIRouter()
-SessionDep = Annotated[AsyncSession, Depends(get_db)]
+router = APIRouter(tags=["auth"])
+ServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
 
 
 @router.post(
@@ -23,16 +22,17 @@ SessionDep = Annotated[AsyncSession, Depends(get_db)]
         400: {
             "description": "Username already exists",
             "content": {
-                "application/json": {"example": {"detail": "Username already exists"}}
+                "application/json": {"example": {"detail": "Username already exists"}},
             },
-        }
+        },
     },
 )
-async def register(user: UserCreate, db: SessionDep) -> User:
-    if await get_user_by_username(db, user.username):
+async def register(user: UserCreate, service: ServiceDep) -> User:
+    """Register a new user. Username must be unique."""
+    if await service.get_by_username(user.username):
         raise HTTPException(status_code=400, detail="Username already exists")
 
-    return await create_user(db, user)
+    return await service.register(user)
 
 
 @router.post(
@@ -43,16 +43,21 @@ async def register(user: UserCreate, db: SessionDep) -> User:
             "description": "Incorrect username or password",
             "content": {
                 "application/json": {
-                    "example": {"detail": "Incorrect username or password"}
-                }
+                    "example": {"detail": "Incorrect username or password"},
+                },
             },
-        }
+        },
     },
 )
 async def login(
-    form_data: Annotated[OAuth2PasswordRequestForm, Depends()], db: SessionDep
+    form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
+    service: ServiceDep,
 ) -> Token:
-    user = await authenticate(db, form_data.username, form_data.password)
+    """Login with username and password. Returns a JWT token if successful.
+
+    Note that all optional fields in the form data are ignored.
+    """
+    user = await service.authenticate(form_data.username, form_data.password)
     if not user:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -60,5 +65,6 @@ async def login(
             headers={"WWW-Authenticate": "Bearer"},
         )
     return Token(
-        access_token=create_access_token({"sub": str(user.id)}), token_type="bearer"
-    )  # nosec: B106
+        access_token=create_access_token({"sub": str(user.id)}),
+        token_type="bearer",  # noqa: S106
+    )

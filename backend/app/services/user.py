@@ -1,34 +1,30 @@
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import get_password_hash, verify_password
-from app.models.user import User, RoleEnum
-from app.schemas.user import UserCreate
+from app.models.user import User
+from app.schemas.user import UserCreate, UserCreateHashed, UserUpdate
+from app.services.base import ServiceBase
 
 
-async def create_user(db: AsyncSession, user: UserCreate) -> User:
-    db_user = User(
-        username=user.username,
-        hashed_password=get_password_hash(user.password),
-        email=None,
-        avatar_uri="https://files.seeusercontent.com/2026/03/20/S0pl/Text-2.png",
-        description="这位用户还没有设置简介！",
-        role=RoleEnum.user,
-    )
-    db.add(db_user)
-    await db.commit()
-    await db.refresh(db_user)
-    return db_user
+class UserService(ServiceBase[User, UserCreateHashed, UserUpdate]):
+    model = User
 
+    async def get_by_email(self, email: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.email == email))
+        return result.scalars().first()
 
-async def get_user_by_username(db: AsyncSession, username: str) -> User | None:
-    result = await db.execute(select(User).where(User.username == username))
-    return result.scalars().first()
+    async def get_by_username(self, username: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.username == username))
+        return result.scalars().first()
 
+    async def authenticate(self, username: str, password: str) -> User | None:
+        result = await self.get_by_username(username)
+        if not result or not verify_password(password, result.hashed_password):
+            return None
+        return result
 
-async def authenticate(db: AsyncSession, username: str, password: str) -> User | None:
-    stmt = await db.execute(select(User).where(User.username == username))
-    result = stmt.scalars().first()
-    if not result or not verify_password(password, result.hashed_password):
-        return None
-    return result
+    async def register(self, user: UserCreate) -> User:
+        hashed_password = get_password_hash(user.password)
+        return await self.create(
+            UserCreateHashed(username=user.username, hashed_password=hashed_password),
+        )

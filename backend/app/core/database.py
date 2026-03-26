@@ -1,12 +1,12 @@
 from typing import Final
 
 from sqlalchemy.ext.asyncio import (
-    create_async_engine,
     AsyncEngine,
-    async_sessionmaker,
     AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
 )
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 from .settings import settings
 
@@ -20,4 +20,4 @@ SessionLocal: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
 
 
 class Base(DeclarativeBase):
-    pass
+    id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
