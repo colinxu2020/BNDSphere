@@ -13,7 +13,7 @@ import NavItem from '@/components/TopBar/NavItem.vue'
       <!-- 中间 -->
       <nav class="flex flex-1 items-center justify-center gap-8">
         <NavItem text="首页" to="/" />
-        <NavItem text="管理社团" to="/product" />
+        <NavItem text="管理社团" to="/admin" />
         <NavItem text="发现社团" to="/pricing" />
       </nav>
 
@@ -24,7 +24,7 @@ import NavItem from '@/components/TopBar/NavItem.vue'
     </div>
   </header>
 
-  <div id="MainCountainer" class="h-[calc(100vh-64px)]">
+  <div id="MainCountainer" class="h-[calc(100vh-64px)] overflow-auto">
     <router-view />
   </div>
 </template>
