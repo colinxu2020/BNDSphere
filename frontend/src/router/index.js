@@ -4,7 +4,12 @@ const routes = [
   {
     path: '/login',
     component: () => import('@/views/auth/Login.vue'),
-    meta: { layout: 'blank' }, // 使用空白布局
+    meta: { layout: 'guest' }, // 使用空白布局
+  },
+  {
+    path: '/register',
+    component: () => import('@/views/auth/Register.vue'),
+    meta: { layout: 'guest' },
   },
   {
     path: '/',

@@ -16,8 +16,9 @@ import NavItem from '@/components/TopBar/NavItem.vue';
       </nav>
 
       <!-- 右侧 -->
-      <div class="w-40 flex justify-end">
-        <NavItem text="Login" to="/login" />
+      <div class="w-40 flex justify-end gap-6">
+        <NavItem text="登录" to="/login" />
+        <NavItem text="注册" to="/register" />
       </div>
     </div>
   </header>
