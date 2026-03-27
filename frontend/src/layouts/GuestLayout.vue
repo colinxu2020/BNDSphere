@@ -6,7 +6,7 @@ import NavItem from '@/components/TopBar/NavItem.vue';
   <header class="h-16 border-b border-gray-200 px-32">
     <div class="flex h-full items-center">
       <!-- 左侧 -->
-      <div class="w-40 font-semibold text-gray-800">一学校云平台</div>
+      <div class="w-40 font-semibold text-gray-800">十一学校云平台</div>
 
       <!-- 中间 -->
       <nav class="flex flex-1 items-center justify-center gap-8">

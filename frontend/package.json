@@ -17,6 +17,7 @@
     "@vueuse/core": "^14.2.1",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "jiti": "^2.6.1",
     "lucide-vue-next": "^0.577.0",
     "primevue": "^4.5.4",
     "reka-ui": "^2.9.2",
