@@ -59,7 +59,7 @@ async def create_club(
     """Create a new club. Club name must be unique in active clubs."""
     existing_clubs = await service.get_by_name(club.name)
     for existing_club in existing_clubs:
-        if existing_club.status == ClubStatusEnum.normal:
+        if existing_club.status in {ClubStatusEnum.normal, ClubStatusEnum.unreviewed}:
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=f"Club with name {club.name} already exists",

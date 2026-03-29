@@ -17,7 +17,7 @@ class ClubMembershipEnum(StrEnum):
     pending = "pending"
     member = "member"
     president = "president"
-    vice = "vice"
+    vice = "vice president"
 
 
 class ClubMember(Base):

@@ -12,6 +12,7 @@ from app.core.settings import settings
 
 if TYPE_CHECKING:
     from app.models.clubmember import ClubMember
+    from app.models.tag import Tag
 
 
 class ClubStatusEnum(StrEnum):
@@ -35,7 +36,6 @@ class Club(Base):
 
     name: Mapped[str] = mapped_column(
         String(settings.club_max_name_length),
-        unique=True,
         index=True,
     )
     summary: Mapped[str] = mapped_column(Text)
@@ -50,3 +50,4 @@ class Club(Base):
         default=ClubStarLevelEnum.none,
     )
     members: Mapped[list[ClubMember]] = relationship(back_populates="club")
+    tags: Mapped[list[Tag]] = relationship(back_populates="clubs")
