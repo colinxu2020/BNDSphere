@@ -1,8 +1,8 @@
 """empty message
 
-Revision ID: 957768f3c0e7
-Revises: 24729a59e96d
-Create Date: 2026-03-25 18:42:32.992500
+Revision ID: f3acf5df103a
+Revises:
+Create Date: 2026-03-27 22:06:27.468845
 
 """
 from typing import Sequence, Union
@@ -12,8 +12,8 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision: str = '957768f3c0e7'
-down_revision: Union[str, Sequence[str], None] = '24729a59e96d'
+revision: str = 'f3acf5df103a'
+down_revision: Union[str, Sequence[str], None] = None
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
@@ -24,11 +24,12 @@ def upgrade() -> None:
     op.create_table('club_members',
     sa.Column('user_id', sa.Integer(), nullable=False),
     sa.Column('club_id', sa.Integer(), nullable=False),
-    sa.Column('membership', sa.Enum('none', 'pending', 'member', 'president', 'vice', name='clubusermembershipenum'), nullable=False),
-    sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False),
+    sa.Column('membership', sa.Enum('none', 'pending', 'member', 'president', 'vice', name='clubmembershipenum'), nullable=False),
+    sa.Column('updated_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.ForeignKeyConstraint(['club_id'], ['clubs.id'], ),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], ),
-    sa.PrimaryKeyConstraint('user_id', 'club_id')
+    sa.PrimaryKeyConstraint('id')
     )
     # ### end Alembic commands ###
 

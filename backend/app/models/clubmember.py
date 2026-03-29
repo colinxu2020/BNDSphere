@@ -23,8 +23,8 @@ class ClubMembershipEnum(StrEnum):
 class ClubMember(Base):
     __tablename__ = "club_members"
 
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True)
-    club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"), primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"))
+    club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"))
     membership: Mapped[ClubMembershipEnum] = mapped_column()
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

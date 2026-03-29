@@ -2,6 +2,72 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
+@theme {
+  --color-b-gray: #747677;
+  --color-b-gray-50: #fafafa;
+  --color-b-gray-100: #f4f5f5;
+  --color-b-gray-200: #e5e6e6;
+  --color-b-gray-300: #d5d6d7;
+  --color-b-gray-400: #97999b;
+  --color-b-gray-500: #747677;
+  --color-b-gray-600: #555758;
+  --color-b-gray-700: #414244;
+  --color-b-gray-800: #282929;
+  --color-b-gray-900: #191a1a;
+  --color-b-gray-950: #0a0a0a;
+
+  --color-b-yellow: #f97c07;
+  --color-b-yellow-50: #fff8eb;
+  --color-b-yellow-100: #ffebc6;
+  --color-b-yellow-200: #ffd688;
+  --color-b-yellow-300: #ffba4a;
+  --color-b-yellow-400: #ff9e1b;
+  --color-b-yellow-500: #f97c07;
+  --color-b-yellow-600: #dd5702;
+  --color-b-yellow-700: #b73906;
+  --color-b-yellow-800: #942c0c;
+  --color-b-yellow-900: #7a240d;
+  --color-b-yellow-950: #461002;
+
+  --color-b-orange: #f9423a;
+  --color-b-orange-50: #fff2f1;
+  --color-b-orange-100: #ffe1e0;
+  --color-b-orange-200: #ffc9c7;
+  --color-b-orange-300: #ffa4a0;
+  --color-b-orange-400: #ff6f69;
+  --color-b-orange-500: #f9423a;
+  --color-b-orange-600: #e7241b;
+  --color-b-orange-700: #c21a13;
+  --color-b-orange-800: #a01a14;
+  --color-b-orange-900: #851c17;
+  --color-b-orange-950: #480a07;
+
+  --color-b-blue: #0ca5eb;
+  --color-b-blue-50: #f0f9ff;
+  --color-b-blue-100: #e0f2fe;
+  --color-b-blue-200: #b9e6fe;
+  --color-b-blue-300: #7cd3fd;
+  --color-b-blue-400: #36bdfa;
+  --color-b-blue-500: #0ca5eb;
+  --color-b-blue-600: #0085ca;
+  --color-b-blue-700: #0169a3;
+  --color-b-blue-800: #065986;
+  --color-b-blue-900: #0b4a6f;
+  --color-b-blue-950: #072f4a;
+
+  --color-b-lima: #9fdc06;
+  --color-b-lima-50: #faffe5;
+  --color-b-lima-100: #f3ffc7;
+  --color-b-lima-200: #e6ff95;
+  --color-b-lima-300: #d4fe58;
+  --color-b-lima-400: #bef526;
+  --color-b-lima-500: #9fdc06;
+  --color-b-lima-600: #84bd00;
+  --color-b-lima-700: #5c8506;
+  --color-b-lima-800: #4a690b;
+  --color-b-lima-900: #3f580f;
+  --color-b-lima-950: #203201;
+}
 @custom-variant dark (&:is(.dark *));
 
 /* 2. 导入 PrimeVue 官方集成插件 (使 bg-primary, text-surface 等可用) */
@@ -11,6 +77,8 @@
 @theme {
   /* 你可以在这里覆盖默认颜色，比如定义更简洁的品牌色 */
   --color-brand: #3b82f6;
+  --color-primary: var(--color-b-blue-500);
+  --color-primary-foreground: var(--color-b-blue-50);
 }
 
 /* 4. 全局简洁样式微调 */
@@ -68,8 +136,8 @@
   --card-foreground: oklch(0.145 0 0);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
+  --primary: var(--color-b-blue-600);
+  --primary-foreground: var(--color-b-blue-50);
   --secondary: oklch(0.97 0 0);
   --secondary-foreground: oklch(0.205 0 0);
   --muted: oklch(0.97 0 0);
@@ -102,8 +170,8 @@
   --card-foreground: oklch(0.985 0 0);
   --popover: oklch(0.205 0 0);
   --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
+  --primary: var(--color-b-blue-500);
+  --primary-foreground: var(--color-b-blue-50);
   --secondary: oklch(0.269 0 0);
   --secondary-foreground: oklch(0.985 0 0);
   --muted: oklch(0.269 0 0);
