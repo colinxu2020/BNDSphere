@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, func
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -33,3 +33,5 @@ class ClubMember(Base):
     )
     user: Mapped[User] = relationship(back_populates="club_memberships")
     club: Mapped[Club] = relationship(back_populates="members")
+
+    __table_args__ = UniqueConstraint("club_id", "user_id", name="uix_club_id_user_id")
