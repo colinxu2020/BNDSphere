@@ -3,6 +3,7 @@ import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
 import App from './App.vue';
 import router from './router';
+import './styles/variables.css';
 import './assets/main.css'; // 确保在这里引入
 
 const app = createApp(App);

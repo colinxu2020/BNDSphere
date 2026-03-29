@@ -1,8 +1,8 @@
 <script setup>
 defineProps({
-    name: String,
-    tags: Array,
-    descrption: String,
+  name: String,
+  tags: Array,
+  descrption: String,
 });
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 </script>
@@ -14,5 +14,5 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/com
       <CardDescription class="text-slate-500">{{ tags.join(', ') }}</CardDescription>
     </CardHeader>
     <CardContent class="text-sm text-slate-700"> {{ descrption }} </CardContent>
-</Card>
+  </Card>
 </template>

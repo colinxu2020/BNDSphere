@@ -1,0 +1,20 @@
+/* 全局设计令牌：颜色、半径等 */
+:root {
+  --color-primary: #0066ff;
+  --color-primary-600: #0052d4;
+  --color-accent: #ff7a59;
+  --color-bg: #ffffff;
+  --color-surface: #f8fafc;
+  --color-text: #111827;
+  --color-muted: #6b7280;
+  --radius-md: 8px;
+}
+
+/* 暗色模式示例：切换到 .dark 根类即可 */
+.dark {
+  --color-bg: #0b1220;
+  --color-surface: #061021;
+  --color-text: #e6eef8;
+}
+
+/* 可在此继续添加语义化 token（success/warning/danger 等） */

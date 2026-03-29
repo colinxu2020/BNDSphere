@@ -1,5 +1,4 @@
 <script setup>
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import ClubCard from '@/components/GuestMainPage/ClubCard.vue';
 
@@ -26,7 +25,7 @@ const clubs = [
 // 聚合所有标签并去重
 const allTags = computed(() => {
   const tagSet = new Set();
-  clubs.forEach(club => club.tags.forEach(tag => tagSet.add(tag)));
+  clubs.forEach((club) => club.tags.forEach((tag) => tagSet.add(tag)));
   return Array.from(tagSet);
 });
 
@@ -34,7 +33,7 @@ const selectedTag = ref('全部');
 
 const filteredClubs = computed(() => {
   if (selectedTag.value === '全部') return clubs;
-  return clubs.filter(club => club.tags.includes(selectedTag.value));
+  return clubs.filter((club) => club.tags.includes(selectedTag.value));
 });
 </script>
 <template>

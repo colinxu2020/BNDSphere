@@ -16,6 +16,13 @@ const routes = [
     component: () => import('@/views/GuestIndex.vue'),
     meta: { layout: 'guest' }, // 使用访客布局
   },
+  // {
+  //   path: '/user/:id',
+  //   name: 'User',
+  //   component: () => import('../views/User.vue'),
+  //   meta: { layout: 'main' },
+  //   props: true,
+  // },
   //   {
   //     path: '/',
   //     redirect: '/dashboard',

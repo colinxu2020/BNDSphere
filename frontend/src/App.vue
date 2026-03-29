@@ -18,6 +18,7 @@ const route = useRoute();
 const layout = computed(() => {
   if (route.meta.layout === 'blank') return BlankLayout;
   if (route.meta.layout === 'guest') return GuestLayout;
+  if (route.meta.layout === 'main') return GuestLayout;
   return DefaultLayout;
 });
 </script>
