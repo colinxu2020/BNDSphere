@@ -56,9 +56,9 @@ class RoleChecker:
         return user
 
 
-class ServiceFactory:
-    def __init__(self, typ: type[ServiceBase]) -> None:
+class ServiceFactory[Service: ServiceBase]:
+    def __init__(self, typ: type[Service]) -> None:
         self.typ = typ
 
-    def __call__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> ServiceBase:
+    def __call__(self, db: Annotated[AsyncSession, Depends(get_db)]) -> Service:
         return self.typ(db)
