@@ -1,0 +1,15 @@
+name: Sync to Gitee
+on:
+  push:
+    branches: [ "**" ]  
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Mirror Repository to Gitee
+        run: |
+          git clone --mirror https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git repo-mirror
+          cd repo-mirror
+          git remote set-url --push origin https://oauth2:${{ secrets.GITEE_PAT }}@gitee.com/bjbnds/BNDSphere.git
+          git push --mirror
