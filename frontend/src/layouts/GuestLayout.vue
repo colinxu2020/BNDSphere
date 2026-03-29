@@ -23,7 +23,7 @@ import NavItem from '@/components/TopBar/NavItem.vue';
     </div>
   </header>
 
-  <div id="MainCountainer" class="h-[calc(100vh-64px)] overflow-auto bg-b-gray-50">
+  <div id="MainCountainer" class="h-[calc(100vh-64px)] overflow-auto bg-b-gray-100">
     <router-view />
   </div>
 </template>
