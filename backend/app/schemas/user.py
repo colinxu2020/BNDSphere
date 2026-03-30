@@ -14,10 +14,6 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
 
-class UserCreateHashed(UserBase):
-    hashed_password: str = Field(..., min_length=6)
-
-
 class UserInfo(UserBase):
     id: int
     email: EmailStr | None = Field(..., max_length=settings.user_max_email_length)

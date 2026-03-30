@@ -1,12 +1,14 @@
+from typing import override
+
 from sqlalchemy import select
 
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
-from app.schemas.user import UserCreate, UserCreateHashed, UserUpdate
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.base import ServiceBase
 
 
-class UserService(ServiceBase[User, UserCreateHashed, UserUpdate]):
+class UserService(ServiceBase[User, UserCreate, UserUpdate]):
     model = User
 
     async def get_by_email(self, email: str) -> User | None:
@@ -23,8 +25,14 @@ class UserService(ServiceBase[User, UserCreateHashed, UserUpdate]):
             return None
         return result
 
-    async def register(self, user: UserCreate) -> User:
+    @override
+    async def create(self, user: UserCreate) -> User:
         hashed_password = get_password_hash(user.password)
-        return await self.create(
-            UserCreateHashed(username=user.username, hashed_password=hashed_password),
+        db_obj = self.model(
+            username=user.username,
+            hashed_password=hashed_password,
         )
+        self.db.add(db_obj)
+        await self.db.flush()
+        await self.db.refresh(db_obj)
+        return db_obj

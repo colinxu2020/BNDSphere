@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from app.api.dependencies import ServiceFactory
@@ -29,10 +30,10 @@ ServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
 )
 async def register(user: UserCreate, service: ServiceDep) -> User:
     """Register a new user. Username must be unique."""
-    if await service.get_by_username(user.username):
-        raise HTTPException(status_code=400, detail="Username already exists")
-
-    return await service.register(user)
+    try:
+        return await service.create(user)
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Username already exists") from None
 
 
 @router.post(
