@@ -29,13 +29,3 @@ class HttpUrlType(TypeDecorator[HttpUrl]):
         if value is None:
             return None
         return url_adapter.validate_python(value)
-
-    @override
-    def process_literal_param(
-        self,
-        value: HttpUrl | str | None,
-        dialect: Dialect,
-    ) -> str | None:
-        if value is None:
-            return None
-        return str(value)
