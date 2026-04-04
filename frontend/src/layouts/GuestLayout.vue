@@ -1,13 +1,20 @@
 <script setup>
 import NavItem from '@/components/TopBar/NavItem.vue';
 import { useUserStore } from '../lib/auth/userStore';
-import { onMounted } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 import UserCard from '../components/TopBar/UserCard.vue';
 
 const userStore = useUserStore();
+const isLogin = computed(() => userStore.isLogin);
 
 onMounted(async () => {
   if (userStore.isLogin && !userStore.userInfo) {
+    await userStore.fetchUser();
+  }
+});
+
+watch(isLogin, async (loggedIn) => {
+  if (loggedIn && !userStore.userInfo && !userStore.loading) {
     await userStore.fetchUser();
   }
 });
@@ -29,21 +36,21 @@ onMounted(async () => {
       </nav>
 
       <!-- 右侧 -->
-      <div class="w-40 flex justify-end gap-6" v-if="!userStore.isLogin">
+      <div class="w-40 flex justify-end gap-6" v-if="!userStore.isLogin || !userStore.userInfo">
         <NavItem text="登录" to="/login" />
         <NavItem text="注册" to="/register" />
       </div>
-      <div class="w-40 flex justify-end gap-6" v-if="userStore.isLogin">
+      <div class="w-40 flex justify-end gap-6" v-else>
         <UserCard
-          v-if="userStore.userInfo"
           :avatar-url="userStore.userInfo.avatar_uri"
           :name="userStore.userInfo.username"
+          :user-id="userStore.userInfo.id"
         />
       </div>
     </div>
   </header>
 
   <div id="MainCountainer" class="h-[calc(100vh-64px)] overflow-auto bg-b-gray-100">
-    <router-view />
+    <slot />
   </div>
 </template>

@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ENDPOINTS } from '@/lib/api';
 import { request } from '@/lib/utils';
+import { useUserStore } from '@/lib/auth/userStore';
 
 type LoginResponse = {
   access_token: string;
@@ -19,6 +20,7 @@ type LoginResponse = {
 };
 
 const router = useRouter();
+const userStore = useUserStore();
 const username = ref('');
 const password = ref('');
 const isLoading = ref(false);
@@ -43,7 +45,8 @@ const handleLogin = async () => {
     });
 
     localStorage.setItem('token', data.access_token);
-    await router.push('/');
+    await userStore.fetchUser();
+    void router.push('/');
   } catch (error: unknown) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败，请稍后再试';
     console.error('Login error:', error);

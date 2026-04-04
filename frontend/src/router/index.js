@@ -2,9 +2,36 @@ import { createRouter, createWebHistory } from 'vue-router';
 import { checkAuth } from '@/lib/auth/utils'; // 导入认证检查函数
 const routes = [
   {
-    path: '/profile',
+    path: '/user/:id',
+    name: 'UserProfile',
     component: () => import('@/views/profile/Profile.vue'),
     meta: { layout: 'main', requiresAuth: true },
+    props: true,
+  },
+  {
+    path: '/settings/profile',
+    name: 'ProfileSettings',
+    component: () => import('@/views/profile/ProfileSettings.vue'),
+    meta: { layout: 'main', requiresAuth: true },
+  },
+  {
+    path: '/profile',
+    meta: { layout: 'main', requiresAuth: true },
+    redirect: () => {
+      const raw = localStorage.getItem('userInfo');
+      if (raw) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (parsed?.id) {
+            return `/user/${parsed.id}`;
+          }
+        } catch (_error) {
+          console.warn('Failed to parse userInfo from localStorage:', _error);
+          // ignore parse errors and use default fallback
+        }
+      }
+      return '/';
+    },
   },
   {
     path: '/login',

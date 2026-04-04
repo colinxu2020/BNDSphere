@@ -32,12 +32,13 @@ onMounted(async () => {
           v-if="userStore.userInfo"
           :avatar-url="userStore.userInfo.avatar_uri"
           :name="userStore.userInfo.username"
+          :user-id="userStore.userInfo.id"
         />
       </div>
     </div>
   </header>
 
   <div id="MainCountainer" class="h-[calc(100vh-64px)] overflow-auto bg-b-gray-100">
-    <router-view />
+    <slot />
   </div>
 </template>
