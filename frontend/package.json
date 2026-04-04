@@ -19,6 +19,7 @@
     "clsx": "^2.1.1",
     "jiti": "^2.6.1",
     "lucide-vue-next": "^0.577.0",
+    "pinia": "^3.0.4",
     "primevue": "^4.5.4",
     "reka-ui": "^2.9.2",
     "tailwind-merge": "^3.5.0",

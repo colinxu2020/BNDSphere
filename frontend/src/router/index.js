@@ -1,6 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router';
-
+import { checkAuth } from '@/lib/auth/utils'; // 导入认证检查函数
 const routes = [
+  {
+    path: '/profile',
+    component: () => import('@/views/profile/Profile.vue'),
+    meta: { layout: 'main', requiresAuth: true },
+  },
   {
     path: '/login',
     component: () => import('@/views/auth/Login.vue'),
@@ -16,6 +21,18 @@ const routes = [
     component: () => import('@/views/GuestIndex.vue'),
     meta: { layout: 'guest' }, // 使用访客布局
   },
+  {
+    path: '/club/:id',
+    name: 'ClubDetail',
+    component: () => import('@/views/Club/ClubDetail.vue'),
+    meta: { layout: 'main', requiresAuth: true }, // 使用主布局
+    props: true,
+  },
+  // {
+  //   path: '/',
+  //   component: () => import('@/views/GuestIndex.vue'),
+  //   meta: { layout: 'main', requiresAuth: true }, // 使用主布局
+  // },
   // {
   //   path: '/user/:id',
   //   name: 'User',
@@ -48,16 +65,14 @@ const router = createRouter({
   routes,
 });
 
-// 商业级权限守卫
-// router.beforeEach((to, from, next) => {
-//   const token = localStorage.getItem('token')
-//   if (to.meta.requiresAuth && !token) {
-//     next('/login')
-//   } else {
-//     // 设置页面标题
-//     document.title = `${to.meta.title} - 某某商业系统`
-//     next()
-//   }
-// })
+router.beforeEach(async (to) => {
+  if (to.meta.requiresAuth) {
+    const isAuthenticated = await checkAuth();
+    if (!isAuthenticated) {
+      return { path: '/login' };
+    }
+  }
+  return true;
+});
 
 export default router;

@@ -12,13 +12,14 @@ import { useRoute } from 'vue-router';
 import DefaultLayout from './layouts/DefaultLayout.vue';
 import BlankLayout from './layouts/BlankLayout.vue';
 import GuestLayout from './layouts/GuestLayout.vue';
+import MainLayout from './layouts/MainLayout.vue';
 
 const route = useRoute();
 // 根据路由 meta 里的 layout 字段判断，默认使用 DefaultLayout
 const layout = computed(() => {
   if (route.meta.layout === 'blank') return BlankLayout;
   if (route.meta.layout === 'guest') return GuestLayout;
-  if (route.meta.layout === 'main') return GuestLayout;
+  if (route.meta.layout === 'main') return MainLayout;
   return DefaultLayout;
 });
 </script>

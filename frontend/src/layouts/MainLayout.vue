@@ -1,18 +1,16 @@
 <script setup>
 import NavItem from '@/components/TopBar/NavItem.vue';
-import { useUserStore } from '../lib/auth/userStore';
+import UserCard from '@/components/TopBar/UserCard.vue';
+import { useUserStore } from '@/lib/auth/userStore';
 import { onMounted } from 'vue';
-import UserCard from '../components/TopBar/UserCard.vue';
 
 const userStore = useUserStore();
 
 onMounted(async () => {
-  if (userStore.isLogin && !userStore.userInfo) {
+  if (!userStore.userInfo) {
     await userStore.fetchUser();
   }
 });
-
-// var isLogin = ref(false);
 </script>
 
 <template>
@@ -29,11 +27,7 @@ onMounted(async () => {
       </nav>
 
       <!-- 右侧 -->
-      <div class="w-40 flex justify-end gap-6" v-if="!userStore.isLogin">
-        <NavItem text="登录" to="/login" />
-        <NavItem text="注册" to="/register" />
-      </div>
-      <div class="w-40 flex justify-end gap-6" v-if="userStore.isLogin">
+      <div class="w-40 flex justify-end gap-6">
         <UserCard
           v-if="userStore.userInfo"
           :avatar-url="userStore.userInfo.avatar_uri"

@@ -1,4 +1,5 @@
 import { createApp } from 'vue';
+import { createPinia } from 'pinia';
 import PrimeVue from 'primevue/config';
 import Aura from '@primevue/themes/aura';
 import App from './App.vue';
@@ -7,7 +8,9 @@ import './styles/variables.css';
 import './assets/main.css'; // 确保在这里引入
 
 const app = createApp(App);
+const pinia = createPinia();
 
+app.use(pinia);
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
