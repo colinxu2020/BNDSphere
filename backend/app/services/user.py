@@ -1,11 +1,13 @@
 from typing import override
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.base import ServiceBase
+from app.services.errors import DuplicateEmailError, DuplicateUsernameError
 
 
 class UserService(ServiceBase[User, UserCreate, UserUpdate]):
@@ -32,7 +34,18 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
             username=user.username,
             hashed_password=hashed_password,
         )
-        self.db.add(db_obj)
-        await self.db.flush()
-        await self.db.refresh(db_obj)
-        return db_obj
+        try:
+            self.db.add(db_obj)
+            await self.db.flush()
+            await self.db.refresh(db_obj)
+        except IntegrityError as exc:
+            raise DuplicateUsernameError from exc
+        else:
+            return db_obj
+
+    @override
+    async def update(self, db_obj: User, obj_in: UserUpdate) -> User:
+        try:
+            return await super().update(db_obj, obj_in)
+        except IntegrityError as exc:
+            raise DuplicateEmailError from exc

@@ -2,13 +2,13 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.exc import IntegrityError
 from starlette import status
 
 from app.api.dependencies import ServiceFactory
 from app.core.security import create_access_token
 from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserInfo
+from app.services.errors import DuplicateUsernameError
 from app.services.user import UserService
 
 router = APIRouter(tags=["auth"])
@@ -32,7 +32,7 @@ async def register(user: UserCreate, service: ServiceDep) -> User:
     """Register a new user. Username must be unique."""
     try:
         return await service.create(user)
-    except IntegrityError:
+    except DuplicateUsernameError:
         raise HTTPException(status_code=400, detail="Username already exists") from None
 
 

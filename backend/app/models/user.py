@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy_utils import URLType
 
 from app.core.database import Base
 
@@ -33,7 +34,7 @@ class User(Base):
         default=None,
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
-    avatar_uri: Mapped[str | None] = mapped_column(Text, default=None)
+    avatar_uri: Mapped[URLType | None] = mapped_column(Text, default=None)
     description: Mapped[str] = mapped_column(Text, default="这位用户还没有设置简介")
     real_name: Mapped[str | None] = mapped_column(String(20), default=None)
     role: Mapped[RoleEnum] = mapped_column(default=RoleEnum.user)

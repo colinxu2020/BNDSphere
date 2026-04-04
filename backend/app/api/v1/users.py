@@ -6,6 +6,7 @@ from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import ServiceFactory, get_current_user
 from app.models.user import User
 from app.schemas.user import UserInfo, UserUpdate
+from app.services.errors import DuplicateEmailError
 from app.services.user import UserService
 
 router = APIRouter(tags=["users"])
@@ -61,8 +62,7 @@ async def update_user_profile(
 
     Note that username cannot be changed, and email must be unique.
     """
-    if update.email:
-        user = await service.get_by_email(update.email)
-        if user is not None and user.id != current_user.id:
-            raise HTTPException(status_code=409, detail="Email already exists")
-    return await service.update(current_user, update)
+    try:
+        return await service.update(current_user, update)
+    except DuplicateEmailError:
+        raise HTTPException(status_code=409, detail="Email already exists") from None

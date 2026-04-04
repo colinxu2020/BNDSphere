@@ -8,13 +8,24 @@ from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.services.base import ServiceBase
+from app.services.errors import DuplicateClubNameError
 
 
 class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
     model = Club
 
+    async def create(self, obj_in: ClubCreate) -> Club:
+        try:
+            return await super().create(obj_in)
+        except IntegrityError as exc:
+            raise DuplicateClubNameError from exc
+
     async def get_by_name(self, name: str) -> Sequence[Club]:
         result = await self.db.execute(select(Club).where(Club.name == name))
+        return result.scalars().all()
+
+    async def list(self, offset: int, limit: int) -> Sequence[Club]:
+        result = await self.db.execute(select(Club).offset(offset).limit(limit))
         return result.scalars().all()
 
 

@@ -4,11 +4,12 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import ServiceFactory, get_current_user
-from app.models.club import Club, ClubStatusEnum
+from app.models.club import Club
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club import ClubCreate, ClubInfo
+from app.schemas.club import ClubCreate, ClubInfo, ClubUpdate
 from app.services.club import ClubMemberService, ClubService
+from app.services.errors import DuplicateClubNameError
 
 router = APIRouter(tags=["clubs"])
 ServiceDep = Annotated[ClubService, Depends(ServiceFactory(ClubService))]
@@ -56,14 +57,33 @@ async def create_club(
     membership_service: MemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> Club:
-    """Create a new club. Club name must be unique in active clubs."""
-    existing_clubs = await service.get_by_name(club.name)
-    for existing_club in existing_clubs:
-        if existing_club.status in {ClubStatusEnum.normal, ClubStatusEnum.unreviewed}:
-            raise HTTPException(
-                status_code=status.HTTP_409_CONFLICT,
-                detail=f"Club with name {club.name} already exists",
-            )
-    club = await service.create(club)
+    """Create a new club. Club name must be unique among non-archived clubs."""
+    try:
+        club = await service.create(club)
+    except DuplicateClubNameError:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Club with name {club.name} already exists",
+        ) from None
     await membership_service.set_relationship(club, user, ClubMembershipEnum.president)
     return club
+
+
+@router.patch(
+    "/{club_id}",
+    response_model=ClubInfo,
+    responses=TOKEN_INVALID_RESPONSE,
+)
+async def update_club_info(
+    club_id: int,
+    club_update: ClubUpdate,
+    service: ServiceDep,
+) -> Club:
+    """Get information of a club by club id."""
+    club = await service.get(club_id)
+    if club is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Club with id {club_id} not found",
+        )
+    return await service.update(club, club_update)

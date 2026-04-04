@@ -4,8 +4,9 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, String, Text, func
+from sqlalchemy import DateTime, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy_utils import URLType
 
 from app.core.database import Base
 from app.core.settings import settings
@@ -31,6 +32,17 @@ class ClubStarLevelEnum(StrEnum):
     honorary = "honorary"
 
 
+class ClubCategoryEnum(StrEnum):
+    sports = "sports"
+    humanity = "humanity"
+    arts = "arts"
+    science = "science"
+    charity = "charity"
+    business = "business"
+    campus = "campus"
+    other = "other"
+
+
 class Club(Base):
     __tablename__ = "clubs"
 
@@ -40,7 +52,7 @@ class Club(Base):
     )
     summary: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
-    logo_uri: Mapped[str | None] = mapped_column(Text, default=None)
+    logo_uri: Mapped[URLType | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -49,5 +61,19 @@ class Club(Base):
     star_level: Mapped[ClubStarLevelEnum] = mapped_column(
         default=ClubStarLevelEnum.none,
     )
+    category: Mapped[ClubCategoryEnum] = mapped_column()
     members: Mapped[list[ClubMember]] = relationship(back_populates="club")
-    tags: Mapped[list[Tag]] = relationship(back_populates="clubs")
+    tags: Mapped[list[Tag]] = relationship(
+        back_populates="clubs",
+        secondary="club_tags",
+    )
+
+    __table_args__ = (
+        Index(
+            "ix_unique_active_club_name",
+            "name",
+            unique=True,
+            postgresql_where=status != ClubStatusEnum.archived.value,
+            sqlite_where=status != ClubStatusEnum.archived.value,
+        ),
+    )

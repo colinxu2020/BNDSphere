@@ -25,4 +25,7 @@ class Tag(Base):
         index=True,
     )
     status: Mapped[TagStatusEnum] = mapped_column(default=TagStatusEnum.normal)
-    clubs: Mapped[list[Club]] = relationship(back_populates="tags")
+    clubs: Mapped[list[Club]] = relationship(
+        back_populates="tags",
+        secondary="club_tags",
+    )

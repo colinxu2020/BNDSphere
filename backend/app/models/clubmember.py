@@ -34,4 +34,6 @@ class ClubMember(Base):
     user: Mapped[User] = relationship(back_populates="club_memberships")
     club: Mapped[Club] = relationship(back_populates="members")
 
-    __table_args__ = UniqueConstraint("club_id", "user_id", name="uix_club_id_user_id")
+    __table_args__ = (
+        UniqueConstraint("club_id", "user_id", name="uix_club_id_user_id"),
+    )
