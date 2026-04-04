@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from app.models.club import Club
 from app.models.clubmember import ClubMember, ClubMembershipEnum
@@ -35,14 +36,31 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         user: User,
         membership: ClubMembershipEnum,
     ) -> ClubMember:
-        relationship = await self.get_by_club_user(club, user)
-        if relationship is None:
-            relationship = await self.create(
-                ClubMemberUpdate(user.id, club.id, membership),
+        try:
+            async with self.db.begin_nested():
+                new_relationship = self.model(
+                    user_id=user.id,
+                    club_id=club.id,
+                    membership=membership,
+                )
+                self.db.add(new_relationship)
+                await self.db.flush()
+                return new_relationship
+        except IntegrityError:
+            pass
+
+        stmt = (
+            select(self.model)
+            .where(
+                self.model.user_id == user.id,
+                self.model.club_id == club.id,
             )
-        else:
-            relationship.membership = membership
-            self.db.add(relationship)
-            await self.db.commit()
-            await self.db.refresh(relationship)
+            .with_for_update()
+        )
+        result = await self.db.execute(stmt)
+        relationship = result.scalars().first()
+        if relationship is None:
+            return await self.set_relationship(club, user, membership)
+        relationship.membership = membership
+        await self.db.flush()
         return relationship

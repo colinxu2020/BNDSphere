@@ -23,7 +23,7 @@ class ServiceBase[
     async def create(self, obj_in: CreateSchemaType) -> ModelType:
         db_obj = self.model(**obj_in.model_dump())
         self.db.add(db_obj)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj
 
@@ -31,6 +31,6 @@ class ServiceBase[
         for field, value in obj_in.model_dump(exclude_unset=True).items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)
-        await self.db.commit()
+        await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj

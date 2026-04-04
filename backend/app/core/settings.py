@@ -16,6 +16,8 @@ class Settings(BaseSettings):
     club_max_description_length: int
     club_max_summary_length: int
 
+    tag_max_name_length: int
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 
