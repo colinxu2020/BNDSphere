@@ -1,25 +1,38 @@
 <!-- src/App.vue -->
 <template>
-  <!-- 动态绑定布局组件 -->
-  <component :is="layout">
-    <router-view />
-  </component>
+  <router-view v-slot="{ Component, route }">
+    <transition name="layout-fade" mode="out-in">
+      <component :is="resolveLayout(route.meta.layout)">
+        <component :is="Component" />
+      </component>
+    </transition>
+  </router-view>
 </template>
 
-<script setup>
-import { computed } from 'vue';
-import { useRoute } from 'vue-router';
-import DefaultLayout from './layouts/DefaultLayout.vue';
-import BlankLayout from './layouts/BlankLayout.vue';
+<script setup lang="ts">
+import type { RouteMeta } from 'vue-router';
 import GuestLayout from './layouts/GuestLayout.vue';
 import MainLayout from './layouts/MainLayout.vue';
 
-const route = useRoute();
-// 根据路由 meta 里的 layout 字段判断，默认使用 DefaultLayout
-const layout = computed(() => {
-  if (route.meta.layout === 'blank') return BlankLayout;
-  if (route.meta.layout === 'guest') return GuestLayout;
-  if (route.meta.layout === 'main') return MainLayout;
-  return DefaultLayout;
-});
+function resolveLayout(layout: RouteMeta['layout']) {
+  if (layout === 'main') {
+    return MainLayout;
+  }
+  return GuestLayout;
+}
 </script>
+
+<style scoped>
+.layout-fade-enter-active,
+.layout-fade-leave-active {
+  transition:
+    opacity 0.18s ease,
+    transform 0.18s ease;
+}
+
+.layout-fade-enter-from,
+.layout-fade-leave-to {
+  opacity: 0;
+  transform: translateY(4px);
+}
+</style>
