@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from app.core.settings import settings
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
@@ -14,6 +14,8 @@ class ClubBase(BaseModel):
 
 
 class ClubInfo(ClubBase):
+    model_config = ConfigDict(from_attributes=True)
+
     summary: str = Field(..., max_length=settings.club_max_summary_length)
     description: str = Field(..., max_length=settings.club_max_description_length)
     logo_uri: HttpUrl | None = Field(None, max_length=255)

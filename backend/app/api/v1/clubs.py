@@ -4,10 +4,11 @@ from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import ServiceFactory, get_current_user
-from app.models.club import Club
+from app.models.club import Club, ClubCategoryEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubInfo, ClubUpdate
+from app.schemas.generic import PageResponse
 from app.services.club import ClubMemberService, ClubService
 from app.services.errors import DuplicateClubNameError
 
@@ -87,3 +88,22 @@ async def update_club_info(
             detail=f"Club with id {club_id} not found",
         )
     return await service.update(club, club_update)
+
+
+@router.get(
+    "/",
+    response_model=PageResponse[ClubInfo],
+)
+async def list_clubs(
+    offset: int,
+    limit: int,
+    service: ServiceDep,
+    search: str | None = None,
+    category: ClubCategoryEnum | None = None,
+) -> PageResponse[ClubInfo]:
+    """Search Clubs."""
+    result = await service.get_multi(offset, limit, search, category)
+    return PageResponse(
+        total=result.total,
+        items=[ClubInfo.model_validate(c) for c in result.items],
+    )

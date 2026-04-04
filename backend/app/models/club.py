@@ -13,9 +13,9 @@ from app.core.settings import settings
 from app.utils.pydantic import HttpUrlType
 
 if TYPE_CHECKING:
+    from app.models.activity import Activity
     from app.models.clubmember import ClubMember
     from app.models.tag import Tag
-    from app.models.activity import Activity
 
 
 class ClubStatusEnum(StrEnum):
@@ -78,5 +78,23 @@ class Club(Base):
             unique=True,
             postgresql_where=status != ClubStatusEnum.archived.value,
             sqlite_where=status != ClubStatusEnum.archived.value,
+        ),
+        Index(
+            "ix_clubs_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_clubs_summary_trgm",
+            "summary",
+            postgresql_using="gin",
+            postgresql_ops={"summary": "gin_trgm_ops"},
+        ),
+        Index(
+            "ix_clubs_description_trgm",
+            "description",
+            postgresql_using="gin",
+            postgresql_ops={"description": "gin_trgm_ops"},
         ),
     )

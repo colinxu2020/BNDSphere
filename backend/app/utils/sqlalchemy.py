@@ -12,8 +12,12 @@ if TYPE_CHECKING:
 from app.core.database import Base
 
 
+def get_dialect(db: AsyncSession) -> str:
+    return db.get_bind().dialect.name
+
+
 def get_upsert_insert(db: AsyncSession, model: type[Base]) -> PGInsert | SQLiteInsert:
-    dialect = db.get_bind().dialect.name
+    dialect = get_dialect(db)
     if dialect == "postgresql":
         return pg_insert(model)
     if dialect == "sqlite":
