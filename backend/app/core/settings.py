@@ -18,6 +18,9 @@ class Settings(BaseSettings):
 
     tag_max_name_length: int
 
+    activity_max_name_length: int
+    activity_max_description_length: int
+
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

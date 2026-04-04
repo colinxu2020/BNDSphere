@@ -10,3 +10,9 @@ uv sync
 uv run alembic upgrade head
 uv run uvicorn main:app
 ```
+
+### 开发
+
+``` bash
+uv run fastapi dev --app app --port 6666
+```

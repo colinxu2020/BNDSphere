@@ -14,6 +14,7 @@ from app.core.settings import settings
 if TYPE_CHECKING:
     from app.models.clubmember import ClubMember
     from app.models.tag import Tag
+    from app.models.activity import Activity
 
 
 class ClubStatusEnum(StrEnum):
@@ -67,6 +68,7 @@ class Club(Base):
         back_populates="clubs",
         secondary="club_tags",
     )
+    activities: Mapped[list[Activity]] = relationship(back_populates="club")
 
     __table_args__ = (
         Index(

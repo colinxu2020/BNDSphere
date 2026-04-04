@@ -10,6 +10,7 @@ from app.core.database import Base
 
 if TYPE_CHECKING:
     from app.models.clubmember import ClubMember
+    from app.models.activity import Activity
 
 
 class RoleEnum(StrEnum):
@@ -49,3 +50,4 @@ class User(Base):
         server_default=func.now(),
     )
     club_memberships: Mapped[list[ClubMember]] = relationship(back_populates="user")
+    participated_activities: Mapped[list[Activity]] = relationship(back_populates="participators", secondary="activity_participators")
