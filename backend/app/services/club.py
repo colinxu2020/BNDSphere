@@ -9,6 +9,7 @@ from app.models.user import User
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.services.base import ServiceBase
 from app.services.errors import DuplicateClubNameError
+from app.utils.sqlalchemy import get_upsert_insert
 
 
 class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
@@ -47,31 +48,14 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         user: User,
         membership: ClubMembershipEnum,
     ) -> ClubMember:
-        try:
-            async with self.db.begin_nested():
-                new_relationship = self.model(
-                    user_id=user.id,
-                    club_id=club.id,
-                    membership=membership,
-                )
-                self.db.add(new_relationship)
-                await self.db.flush()
-                return new_relationship
-        except IntegrityError:
-            pass
-
-        stmt = (
-            select(self.model)
-            .where(
-                self.model.user_id == user.id,
-                self.model.club_id == club.id,
-            )
-            .with_for_update()
+        stmt = get_upsert_insert(self.db, self.model).values(
+            user_id=user.id,
+            club_id=club.id,
+            membership=membership,
         )
-        result = await self.db.execute(stmt)
-        relationship = result.scalars().first()
-        if relationship is None:
-            return await self.set_relationship(club, user, membership)
-        relationship.membership = membership
-        await self.db.flush()
-        return relationship
+        stmt = stmt.on_conflict_do_update(
+            index_elements=[self.model.club_id, self.model.user_id],
+            set_={"membership": membership},
+        ).returning(self.model)
+        result = await self.db.scalars(stmt)
+        return result.first()

@@ -4,12 +4,13 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
+from pydantic import HttpUrl
 from sqlalchemy import DateTime, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
-from sqlalchemy_utils import URLType
 
 from app.core.database import Base
 from app.core.settings import settings
+from app.utils.pydantic import HttpUrlType
 
 if TYPE_CHECKING:
     from app.models.clubmember import ClubMember
@@ -53,7 +54,7 @@ class Club(Base):
     )
     summary: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
-    logo_uri: Mapped[URLType | None] = mapped_column(Text, default=None)
+    logo_uri: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

@@ -14,7 +14,6 @@ dependencies = [
     "pydantic-settings>=2.13.1",
     "pyjwt>=2.12.1",
     "sqlalchemy>=2.0.48",
-    "sqlalchemy-utils>=0.42.1",
     "uvicorn[standard]>=0.42.0",
 ]
 
@@ -26,7 +25,7 @@ strict = true
 
 [tool.ruff.lint]
 select =["ALL"]
-extend-ignore = ['EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003']
+extend-ignore = ['EM102', 'EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003']
 
 [tool.ruff]
 extend-exclude = ["**/migrations"]
