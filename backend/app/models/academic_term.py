@@ -8,6 +8,8 @@ from app.core.database import Base
 
 
 class AcademicTerm(Base):
+    __tablename__ = "academic_term"
+
     term_name: Mapped[str] = mapped_column(
         String(constants.ACADEMIC_TERM_MAX_LENGTH),
         unique=True,
