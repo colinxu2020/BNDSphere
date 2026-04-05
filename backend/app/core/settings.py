@@ -8,19 +8,6 @@ class Settings(BaseSettings):
     database_url: str
     secret_key: str
 
-    user_max_username_length: int
-    user_max_email_length: int
-    user_max_description_length: int
-
-    club_max_name_length: int
-    club_max_description_length: int
-    club_max_summary_length: int
-
-    tag_max_name_length: int
-
-    activity_max_name_length: int
-    activity_max_description_length: int
-
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
 

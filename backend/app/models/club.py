@@ -8,8 +8,8 @@ from pydantic import HttpUrl
 from sqlalchemy import DateTime, Index, String, Text, case, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import constants
 from app.core.database import Base
-from app.core.settings import settings
 from app.utils.pydantic import HttpUrlType
 
 if TYPE_CHECKING:
@@ -49,7 +49,7 @@ class Club(Base):
     __tablename__ = "clubs"
 
     name: Mapped[str] = mapped_column(
-        String(settings.club_max_name_length),
+        String(constants.CLUB_MAX_NAME_LENGTH),
         index=True,
     )
     summary: Mapped[str] = mapped_column(Text)

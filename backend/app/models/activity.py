@@ -7,8 +7,8 @@ from typing import TYPE_CHECKING
 from sqlalchemy import DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
+from app.core import constants
 from app.core.database import Base
-from app.core.settings import settings
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -26,7 +26,7 @@ class Activity(Base):
     __tablename__ = "activities"
 
     name: Mapped[str] = mapped_column(
-        String(settings.activity_max_name_length),
+        String(constants.ACTIVITY_MAX_NAME_LENGTH),
         index=True,
     )
     description: Mapped[str] = mapped_column(Text)
