@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, Index, String, Text, func
+from sqlalchemy import DateTime, Index, String, Text, case, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -74,27 +74,34 @@ class Club(Base):
     __table_args__ = (
         Index(
             "ix_unique_active_club_name",
-            "name",
+            case(
+                (status != ClubStatusEnum.archived.value, name),
+                else_=None,
+            ),
             unique=True,
-            postgresql_where=status != ClubStatusEnum.archived.value,
-            sqlite_where=status != ClubStatusEnum.archived.value,
         ),
         Index(
             "ix_clubs_name_trgm",
             "name",
             postgresql_using="gin",
             postgresql_ops={"name": "gin_trgm_ops"},
+            mysql_prefix="FULLTEXT",
+            mysql_with_parser="ngram",
         ),
         Index(
             "ix_clubs_summary_trgm",
             "summary",
             postgresql_using="gin",
             postgresql_ops={"summary": "gin_trgm_ops"},
+            mysql_prefix="FULLTEXT",
+            mysql_with_parser="ngram",
         ),
         Index(
             "ix_clubs_description_trgm",
             "description",
             postgresql_using="gin",
             postgresql_ops={"description": "gin_trgm_ops"},
+            mysql_prefix="FULLTEXT",
+            mysql_with_parser="ngram",
         ),
     )

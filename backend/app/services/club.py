@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import cast
 
 from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
@@ -34,7 +35,8 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
         category: ClubCategoryEnum | None = None,
     ) -> PageResponse[Sequence[Club]]:
         if search is not None:
-            if get_dialect(self.db) == "postgresql":
+            dialect = get_dialect(self.db)
+            if dialect == "postgresql":
                 score_func = (
                     func.similarity(Club.name, search) * 1.0
                     + func.similarity(Club.summary, search) * 0.5
@@ -47,6 +49,24 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
                             Club.name.bool_op("%")(search),
                             Club.summary.bool_op("%")(search),
                             Club.description.bool_op("%")(search),
+                        ),
+                    )
+                    .order_by(score_func.desc())
+                )
+            elif dialect == "mysql":
+                score_func = (
+                    func.match(Club.name).op("against")(search) * 1.0
+                    + func.match(Club.summary).op("against")(search) * 0.5
+                    + func.match(Club.description).op("against")(search) * 0.3
+                )
+
+                stmt = (
+                    select(Club, score_func)
+                    .where(
+                        or_(
+                            func.match(Club.name).op("against")(search),
+                            func.match(Club.summary).op("against")(search),
+                            func.match(Club.description).op("against")(search),
                         ),
                     )
                     .order_by(score_func.desc())
@@ -68,7 +88,7 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
         if category is not None:
             stmt = stmt.where(Club.category == category)
         stmt = stmt.where(Club.status == ClubStatusEnum.normal)
-        count_stmt = select(func.count()).select_from(stmt.subquery())
+        count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
         count_result = await self.db.execute(count_stmt)
         count = count_result.scalar_one()
         stmt = stmt.offset(offset).limit(limit)
@@ -94,14 +114,12 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         user: User,
         membership: ClubMembershipEnum,
     ) -> ClubMember:
-        stmt = get_upsert_insert(self.db, self.model).values(
-            user_id=user.id,
-            club_id=club.id,
-            membership=membership,
+        stmt = get_upsert_insert(
+            self.db,
+            self.model,
+            [self.model.club_id, self.model.user_id],
+            {"membership": membership},
         )
-        stmt = stmt.on_conflict_do_update(
-            index_elements=[self.model.club_id, self.model.user_id],
-            set_={"membership": membership},
-        ).returning(self.model)
-        result = await self.db.scalars(stmt)
-        return result.first()
+        stmt = stmt.values(user_id=user.id, club_id=club.id, membership=membership)
+        await self.db.execute(stmt)
+        return cast("ClubMember", await self.get_by_club_user(club, user))
