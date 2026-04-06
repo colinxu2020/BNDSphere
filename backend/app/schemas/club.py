@@ -38,6 +38,14 @@ class ClubUpdate(BaseModel):
     logo_uri: HttpUrl | None = Field(None, max_length=255)
 
 
+class ClubMemberRelationship(BaseModel):
+    user_id: int
+    club_id: int
+    membership: ClubMembershipEnum
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ClubMemberUpdate(BaseModel):
     user_id: int
     club_id: int

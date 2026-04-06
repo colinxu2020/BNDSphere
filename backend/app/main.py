@@ -1,9 +1,12 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 import app.models as _  # noqa: F401
 from app.api.v1 import router as v1_router
 from app.core.settings import settings
+from app.services.errors import BusinessBaseError
 
 app = FastAPI(
     title="BNDSphere API",
@@ -22,3 +25,14 @@ app.add_middleware(
 app.debug = settings.debug
 
 app.include_router(v1_router, prefix="/api/v1")
+
+
+@app.exception_handler(BusinessBaseError)
+async def business_exception_handler(
+    _request: Request,
+    exc: BusinessBaseError,
+) -> JSONResponse:
+    return JSONResponse(
+        status_code=exc.status,
+        content={"message": exc.message},
+    )

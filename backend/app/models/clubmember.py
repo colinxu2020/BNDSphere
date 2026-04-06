@@ -13,11 +13,11 @@ if TYPE_CHECKING:
 
 
 class ClubMembershipEnum(StrEnum):
-    none = "none"
     pending = "pending"
     member = "member"
     president = "president"
     vice = "vice president"
+    left = "left"
 
 
 class ClubMember(Base):

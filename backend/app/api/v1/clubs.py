@@ -7,7 +7,7 @@ from app.api.dependencies import ServiceFactory, get_current_user
 from app.models.club import Club, ClubCategoryEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club import ClubCreate, ClubInfo, ClubUpdate
+from app.schemas.club import ClubCreate, ClubInfo, ClubMemberRelationship, ClubUpdate
 from app.schemas.generic import PageResponse
 from app.services.club import ClubMemberService, ClubService
 from app.services.errors import DuplicateClubNameError
@@ -106,4 +106,62 @@ async def list_clubs(
     return PageResponse(
         total=result.total,
         items=[ClubInfo.model_validate(c) for c in result.items],
+    )
+
+
+@router.post(
+    "/{club_id}/members",
+    response_model=ClubMemberRelationship,
+    status_code=status.HTTP_201_CREATED,
+)
+async def join_club(
+    club_id: int,
+    service: ServiceDep,
+    membership_service: MemberServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+) -> ClubMemberRelationship:
+    """Join a club."""
+    club = await service.ensure_club_normal(club_id)
+    relationship = await membership_service.get_by_club_user(club, user)
+    if relationship and relationship.membership != ClubMembershipEnum.left:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="you have already applied to join the club",
+        )
+    return await membership_service.set_relationship(
+        club,
+        user,
+        ClubMembershipEnum.pending,
+    )
+
+
+@router.delete(
+    "/{club_id}/members/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+async def leave_club(
+    club_id: int,
+    service: ServiceDep,
+    membership_service: MemberServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """Leave a club."""
+    club = await service.ensure_club_normal(club_id)
+
+    membership = await membership_service.get_by_club_user(club, user)
+    if membership is None or membership == ClubMembershipEnum.left:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="You are not a member of the club",
+        )
+    if membership in {ClubMembershipEnum.vice, ClubMembershipEnum.president}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not allowed to leave the club",
+        )
+
+    await membership_service.set_relationship(
+        club,
+        user,
+        ClubMembershipEnum.left,
     )

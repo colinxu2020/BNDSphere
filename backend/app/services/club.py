@@ -10,7 +10,11 @@ from app.models.user import User
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.schemas.generic import PageResponse
 from app.services.base import ServiceBase
-from app.services.errors import DuplicateClubNameError
+from app.services.errors import (
+    ClubNotActiveError,
+    ClubNotFoundError,
+    DuplicateClubNameError,
+)
 from app.utils.sqlalchemy import get_dialect, get_upsert_insert
 
 
@@ -22,6 +26,14 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
             return await super().create(obj_in)
         except IntegrityError as exc:
             raise DuplicateClubNameError from exc
+
+    async def ensure_club_normal(self, club_id: int) -> Club:
+        club = await self.get(club_id)
+        if club is None:
+            raise ClubNotFoundError
+        if club.status != ClubStatusEnum.normal:
+            raise ClubNotActiveError
+        return club
 
     async def get_by_name(self, name: str) -> Sequence[Club]:
         result = await self.db.execute(select(Club).where(Club.name == name))
