@@ -108,6 +108,12 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         )
         return result.scalars().first()
 
+    async def is_club_admin(self, club: Club, user: User) -> bool:
+        result = await self.get_by_club_user(club, user)
+        if result is None:
+            return False
+        return result in {ClubMembershipEnum.president, ClubMembershipEnum.vice}
+
     async def set_relationship(
         self,
         club: Club,

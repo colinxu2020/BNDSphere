@@ -7,7 +7,6 @@ from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import ServiceFactory, get_current_user
 from app.models.activity import Activity
 from app.models.club import ClubStatusEnum
-from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.activity import ActivityCreate, ActivityInfo
 from app.schemas.generic import PageResponse
@@ -56,6 +55,7 @@ async def get_club_activities(
     responses=TOKEN_INVALID_RESPONSE,
 )
 async def create_club_activity(
+    club_id: int,
     activity: ActivityCreate,
     activity_service: ActivityServiceDep,
     club_service: ClubServiceDep,
@@ -63,21 +63,19 @@ async def create_club_activity(
     user: Annotated[User, Depends(get_current_user)],
 ) -> Activity:
     try:
-        club = await club_service.get(activity.club_id)
+        club = await club_service.get(club_id)
+
         if club is None or club.status != ClubStatusEnum.normal:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="Club not found or status valid",
             ) from None
-        membership = await membership_service.get_by_club_user(club, user)
-        if not membership or membership not in {
-            ClubMembershipEnum.president,
-            ClubMembershipEnum.vice,
-        }:
+        if not await membership_service.is_club_admin(club, user):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
             ) from None
-        return await activity_service.create(activity)
+
+        return await activity_service.create_club_activity(club_id, activity)
     except IntegrityError:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

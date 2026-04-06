@@ -35,5 +35,12 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
         )
         return PageResponse(total=count, items=result.scalars().all())
 
-    async def create_club_activity(self, obj_in: ActivityCreate) -> Activity:
-        return await super().create(obj_in)
+    async def create_club_activity(
+        self,
+        club_id: int,
+        obj_in: ActivityCreate,
+    ) -> Activity:
+        db_activity = Activity(**obj_in.model_dump(), club_id=club_id)
+        self.db.add(db_activity)
+        await self.db.commit()
+        return db_activity
