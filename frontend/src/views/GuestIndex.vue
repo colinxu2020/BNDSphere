@@ -32,7 +32,7 @@ listClubsApiV1ClubsGet({
     console.error('获取社团列表失败:', error);
   } else {
     console.log('社团列表:', data);
-    clubs.value = data.items;
+    clubs.value = Array.isArray(data?.items) ? data.items : [];
   }
 });
 
@@ -58,41 +58,46 @@ const filteredClubs = computed(() => {
 });
 </script>
 <template>
-  <div class="ml-48 mt-16">
-    <h1 class="text-5xl font-bold text-gray-800 tracking-wide mb-4">北京市十一学校社团共享平台</h1>
-    <h2 class="text-3xl font-semibold text-gray-600 tracking-wide mb-4">
-      Beijing National Day School
-    </h2>
-    <p class="text-gray-500">一站式社团共享与协作平台</p>
-  </div>
-  <div class="mt-16 px-48 flex flex-wrap gap-4">
-    <Button
-      variant="outline"
-      :class="selectedCategory === '全部' ? 'bg-gray-200' : ''"
-      @click="selectedCategory = '全部'"
-    >
-      全部
-    </Button>
-    <Button
-      v-for="catKey in allCategories"
-      :key="catKey"
-      variant="outline"
-      :class="selectedCategory === catKey ? 'bg-gray-200' : ''"
-      @click="selectedCategory = catKey"
-    >
-      {{ CATEGORY_MAP[catKey] }}
-    </Button>
-  </div>
-  <div class="mt-16 px-48 pb-24">
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-      <ClubCard
-        v-for="(club, idx) in filteredClubs"
-        :key="idx"
-        :name="club.name"
-        :category="CATEGORY_MAP[club.category] || club.category"
-        :description="club.description"
-        :logo_uri="club.logo_uri"
-      />
+  <div class="h-full w-full">
+    <div class="ml-48 mt-16">
+      <h1 class="text-5xl font-bold text-gray-800 tracking-wide mb-4">
+        北京市十一学校社团共享平台
+      </h1>
+      <h2 class="text-3xl font-semibold text-gray-600 tracking-wide mb-4">
+        Beijing National Day School
+      </h2>
+      <p class="text-gray-500">一站式社团共享与协作平台</p>
+    </div>
+    <div class="mt-16 px-48 flex flex-wrap gap-4">
+      <Button
+        variant="outline"
+        :class="selectedCategory === '全部' ? 'bg-gray-200' : ''"
+        @click="selectedCategory = '全部'"
+      >
+        全部
+      </Button>
+      <Button
+        v-for="catKey in allCategories"
+        :key="catKey"
+        variant="outline"
+        :class="selectedCategory === catKey ? 'bg-gray-200' : ''"
+        @click="selectedCategory = catKey"
+      >
+        {{ CATEGORY_MAP[catKey] }}
+      </Button>
+    </div>
+    <div class="mt-16 px-48 pb-24">
+      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        <ClubCard
+          v-for="(club, idx) in filteredClubs"
+          :key="idx"
+          :name="club.name"
+          :category="CATEGORY_MAP[club.category] || club.category"
+          :description="club.description"
+          :logo_uri="club.logo_uri"
+          :id="`${club.id}`"
+        />
+      </div>
     </div>
   </div>
 </template>

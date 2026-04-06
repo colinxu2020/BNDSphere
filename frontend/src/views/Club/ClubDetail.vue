@@ -146,7 +146,7 @@ async function fetchClubActivities() {
       throw new Error(typeof fetchError === 'string' ? fetchError : '获取社团活动失败');
     }
 
-    activities.value = data.items;
+    activities.value = Array.isArray(data?.items) ? data.items : [];
   } catch (err) {
     activityError.value =
       err instanceof Error ? err.message || '获取社团活动失败' : '获取社团活动失败';
@@ -164,10 +164,8 @@ onMounted(() => {
   <div class="min-h-full bg-gradient-to-b from-slate-50 via-white to-slate-100 px-6 py-8 lg:px-12">
     <div class="mx-auto max-w-7xl space-y-6">
       <Card class="overflow-hidden border-slate-200/80 shadow-lg">
-        <div
-          class="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-700 px-6 py-6 text-white"
-        >
-          <CardDescription class="text-slate-300">Club ID: {{ route.params.id }}</CardDescription>
+        <div class="from-slate-900 via-slate-800 to-slate-700 px-6 py-6">
+          <CardDescription class="text-gray-500">Club ID: {{ route.params.id }}</CardDescription>
           <CardTitle class="mt-2 text-3xl font-bold tracking-tight">社团详情</CardTitle>
         </div>
 
