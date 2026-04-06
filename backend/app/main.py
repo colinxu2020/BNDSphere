@@ -13,6 +13,7 @@ app = FastAPI(
     description="Backend Service for BNDSphere",
     version="0.1.0",
     docs_url="/api/docs",
+    redoc_url="/api/redoc",
     openapi_url="/api/openapi.json",
 )
 app.add_middleware(
