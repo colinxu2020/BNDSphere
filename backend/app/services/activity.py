@@ -42,5 +42,6 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
     ) -> Activity:
         db_activity = Activity(**obj_in.model_dump(), club_id=club_id)
         self.db.add(db_activity)
-        await self.db.commit()
+        await self.db.flush()
+        await self.db.refresh(db_activity)
         return db_activity
