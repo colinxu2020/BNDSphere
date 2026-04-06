@@ -34,7 +34,7 @@ class ClubUpdate(BaseModel):
     logo_uri: HttpUrl | None = Field(None, max_length=255)
 
 
-class ClubMemberInfo(BaseModel, IdMixin):
+class ClubMemberInfo(IdMixin, BaseModel):
     user_id: int
     club_id: int
     membership: ClubMembershipEnum

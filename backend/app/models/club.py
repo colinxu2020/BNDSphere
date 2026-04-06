@@ -15,6 +15,7 @@ from app.utils.pydantic import HttpUrlType
 if TYPE_CHECKING:
     from app.models.activity import Activity
     from app.models.clubmember import ClubMember
+    from app.models.general_activity import ClubGeneralActivityRecord
     from app.models.tag import Tag
 
 
@@ -70,6 +71,10 @@ class Club(Base):
         secondary="club_tags",
     )
     activities: Mapped[list[Activity]] = relationship(back_populates="club")
+    general_activity_records: Mapped[list[ClubGeneralActivityRecord]] = relationship(
+        back_populates="club",
+        cascade="all, delete-orphan",
+    )
 
     __table_args__ = (
         Index(
