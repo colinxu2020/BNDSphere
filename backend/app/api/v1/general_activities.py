@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException
 
 from app.api.dependencies import GeneralActivityServiceDep
+from app.models.general_activity import GeneralActivityLevelEnum
 from app.schemas.general_activities import (
     GeneralActivityCreate,
     GeneralActivityInfo,
@@ -51,3 +52,15 @@ async def delete(
         raise HTTPException(status_code=404, detail="Activity not found")
     await service.delete(activity)
     return GeneralActivityInfo.model_validate(activity)
+
+
+@router.get("/")
+async def list_activities(
+    service: GeneralActivityServiceDep,
+    search: str | None = None,
+    level: GeneralActivityLevelEnum | None = None,
+) -> list[GeneralActivityInfo]:
+    return [
+        GeneralActivityInfo.model_validate(c)
+        for c in await service.get_muli(search, level)
+    ]
