@@ -1,7 +1,9 @@
 from collections.abc import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
+from sqlalchemy.orm import selectinload
 
+from app.models import Club
 from app.models.activity import Activity
 from app.schemas.activity import ActivityCreate, ActivityUpdate
 from app.schemas.generic import PageResponse
@@ -13,19 +15,23 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
 
     async def get_club_activities(
         self,
-        club_id: int,
+        club: Club,
         offset: int,
         limit: int,
     ) -> PageResponse[Sequence[Activity]]:
         result = await self.db.execute(
-            select(Activity).where(Activity.club_id == club_id),
+            select(func.count())
+            .select_from(Activity)
+            .where(Activity.club_id == club.id),
         )
         count = result.scalar_one()
         result = await self.db.execute(
             select(Activity)
-            .where(Activity.club_id == club_id)
+            .where(Activity.club_id == club.id)
             .offset(offset)
-            .limit(limit),
+            .limit(limit)
+            .order_by(Activity.start_time.desc(), Activity.id.desc())
+            .options(selectinload(Activity.participators)),
         )
         return PageResponse(total=count, items=result.scalars().all())
 

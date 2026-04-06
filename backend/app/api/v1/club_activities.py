@@ -34,8 +34,15 @@ async def get_club_activities(
     offset: int,
     limit: int,
     service: ActivityServiceDep,
+    club_service: ClubServiceDep,
 ) -> PageResponse[ActivityInfo]:
-    result = await service.get_club_activities(club_id, offset, limit)
+    club = await club_service.get(club_id)
+    if club is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Club not found",
+        )
+    result = await service.get_club_activities(club, offset, limit)
     return PageResponse(
         total=result.total,
         items=[ActivityInfo.model_validate(c) for c in result.items],
