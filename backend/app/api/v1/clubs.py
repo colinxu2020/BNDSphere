@@ -11,7 +11,7 @@ from app.api.dependencies import (
 from app.models.club import Club, ClubCategoryEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club import ClubCreate, ClubInfo, ClubMemberRelationship, ClubUpdate
+from app.schemas.club import ClubCreate, ClubInfo, ClubMemberInfo, ClubUpdate
 from app.schemas.generic import PageResponse
 from app.services.errors import DuplicateClubNameError
 
@@ -109,7 +109,7 @@ async def list_clubs(
 
 @router.post(
     "/{club_id}/members",
-    response_model=ClubMemberRelationship,
+    response_model=ClubMemberInfo,
     status_code=status.HTTP_201_CREATED,
 )
 async def join_club(
@@ -117,7 +117,7 @@ async def join_club(
     service: ClubServiceDep,
     membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
-) -> ClubMemberRelationship:
+) -> ClubMemberInfo:
     """Join a club."""
     club = await service.ensure_club_normal(club_id)
     relationship = await membership_service.get_by_club_user(club, user)

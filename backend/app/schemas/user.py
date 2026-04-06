@@ -4,6 +4,7 @@ from pydantic import BaseModel, EmailStr, Field, HttpUrl
 
 from app.core import constants
 from app.models.user import RoleEnum
+from app.schemas.generic import IdMixin
 
 
 class UserBase(BaseModel):
@@ -14,8 +15,7 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
 
-class UserInfo(UserBase):
-    id: int
+class UserInfo(UserBase, IdMixin):
     email: EmailStr | None = Field(..., max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)

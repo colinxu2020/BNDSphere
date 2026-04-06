@@ -4,7 +4,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
@@ -38,13 +38,14 @@ class Activity(Base):
     end_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
     )
-    status: Mapped[ActivityStatusEnum] = mapped_column(
-        default=ActivityStatusEnum.upcoming,
-    )
     location: Mapped[str] = mapped_column(Text)
     picture_urls: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     participators: Mapped[list[User]] = relationship(
         back_populates="participated_activities",
         secondary="activity_participators",
+    )
+
+    __table_args__ = (
+        CheckConstraint("end_time > start_time", name="check_start_end_time"),
     )
