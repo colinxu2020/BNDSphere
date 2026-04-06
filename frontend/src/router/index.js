@@ -15,6 +15,12 @@ const routes = [
     meta: { layout: 'main', requiresAuth: true },
   },
   {
+    path: '/dev/test',
+    name: 'DevTest',
+    component: () => import('@/views/dev/Test.vue'),
+    meta: { layout: 'main', requiresAuth: true },
+  },
+  {
     path: '/profile',
     meta: { layout: 'main', requiresAuth: true },
     redirect: () => {

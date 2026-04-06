@@ -7,6 +7,9 @@ import eslintConfigPrettier from 'eslint-config-prettier';
 
 export default defineConfig([
   {
+    ignores: ['src/client/**/*.ts'],
+  },
+  {
     files: ['**/*.{js,mjs,cjs,ts,mts,cts,vue}'],
     plugins: { js },
     extends: ['js/recommended'],

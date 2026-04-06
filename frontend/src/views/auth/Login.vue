@@ -10,14 +10,8 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { ENDPOINTS } from '@/lib/api';
-import { request } from '@/lib/utils';
+import { loginApiV1AuthLoginPost } from '@/client';
 import { useUserStore } from '@/lib/auth/userStore';
-
-type LoginResponse = {
-  access_token: string;
-  token_type: string;
-};
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -33,20 +27,22 @@ const handleLogin = async () => {
   errorMessage.value = '';
 
   try {
-    const data = await request<LoginResponse>(ENDPOINTS.AUTH.LOGIN, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
+    const { data, error } = await loginApiV1AuthLoginPost({
+      body: {
         username: username.value,
         password: password.value,
-      }),
+      },
     });
 
-    localStorage.setItem('token', data.access_token);
-    await userStore.fetchUser();
-    void router.push('/');
+    if (error) {
+      throw new Error(typeof error === 'string' ? error : '登录失败');
+    }
+
+    if (data && data.access_token) {
+      localStorage.setItem('token', data.access_token);
+      await userStore.fetchUser();
+      void router.push('/');
+    }
   } catch (error: unknown) {
     errorMessage.value = error instanceof Error ? error.message : '登录失败，请稍后再试';
     console.error('Login error:', error);

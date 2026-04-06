@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from app.core import constants
 from app.models.activity import ActivityStatusEnum
@@ -16,6 +16,8 @@ class ActivityBase(BaseModel):
 
 
 class ActivityInfo(ActivityBase, IdMixin):
+    model_config = ConfigDict(from_attributes=True)
+
     club_id: int
     status: ActivityStatusEnum
     picture_urls: list[str]

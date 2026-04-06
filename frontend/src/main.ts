@@ -6,6 +6,7 @@ import App from './App.vue';
 import router from './router';
 import './styles/variables.css';
 import './assets/main.css'; // 确保在这里引入
+import '@/lib/api'; // 初始化 API client 配置
 
 const app = createApp(App);
 const pinia = createPinia();
