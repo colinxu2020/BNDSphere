@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core import constants
 from app.models.activity import ActivityStatusEnum
@@ -13,6 +13,8 @@ class ActivityBase(BaseModel):
 
 
 class ActivityInfo(ActivityBase):
+    model_config = ConfigDict(from_attributes=True)
+
     description: str = Field(..., max_length=constants.ACTIVITY_MAX_DESCRIPTION_LENGTH)
     location: str = Field(..., max_length=constants.ACTIVITY_MAX_LOCATION_LENGTH)
     start_time: datetime

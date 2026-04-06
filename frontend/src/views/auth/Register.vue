@@ -11,8 +11,7 @@ import {
   CardFooter,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { request } from '@/lib/utils';
-import { ENDPOINTS } from '@/lib/api';
+import { registerApiV1AuthRegisterPost } from '@/client';
 
 const router = useRouter();
 const username = ref('');
@@ -69,16 +68,19 @@ const handleRegister = async () => {
   errorMessage.value = '';
 
   try {
-    await request(ENDPOINTS.AUTH.REGISTER, {
-      method: 'POST',
-      body: JSON.stringify({
+    const { error } = await registerApiV1AuthRegisterPost({
+      body: {
         username: username.value,
         password: password.value,
-      }),
+      },
     });
 
+    if (error) {
+      throw new Error(typeof error === 'string' ? error : '注册失败');
+    }
+
     // 注册成功，跳转到登录页
-    router.push('/login');
+    void router.push('/login');
   } catch (error: unknown) {
     // 处理由 request 函数抛出的错误
     const message = error instanceof Error ? error.message : '注册失败，请稍后再试';
