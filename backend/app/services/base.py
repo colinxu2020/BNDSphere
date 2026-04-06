@@ -34,3 +34,7 @@ class ServiceBase[
         await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj
+
+    async def delete(self, db_obj: ModelType) -> None:
+        await self.db.delete(db_obj)
+        await self.db.flush()
