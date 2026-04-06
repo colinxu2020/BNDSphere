@@ -8,3 +8,11 @@ TOKEN_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+PERMISSION_DENIED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    403: {
+        "description": "Permission Denied",
+        "content": {
+            "application/json": {"example": {"detail": "Permission Denied"}},
+        },
+    },
+}

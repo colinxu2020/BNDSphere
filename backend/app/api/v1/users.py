@@ -3,14 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
-from app.api.dependencies import ServiceFactory, get_current_user
+from app.api.dependencies import UserServiceDep, get_current_user
 from app.models.user import User
 from app.schemas.user import UserInfo, UserUpdate
 from app.services.errors import DuplicateEmailError
-from app.services.user import UserService
 
 router = APIRouter(tags=["users"])
-ServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
 
 
 @router.get(
@@ -29,7 +27,7 @@ async def get_current_user_info(
     "/{user_id}",
     response_model=UserInfo,
 )
-async def get_user_profile(user_id: int, service: ServiceDep) -> User:
+async def get_user_profile(user_id: int, service: UserServiceDep) -> User:
     """Get public profile of a user by user id."""
     user = await service.get(user_id)
     if user is None:
@@ -55,7 +53,7 @@ async def get_user_profile(user_id: int, service: ServiceDep) -> User:
 )
 async def update_user_profile(
     current_user: Annotated[User, Depends(get_current_user)],
-    service: ServiceDep,
+    service: UserServiceDep,
     update: UserUpdate,
 ) -> User:
     """Modify user profile of current user.

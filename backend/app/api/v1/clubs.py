@@ -3,21 +3,19 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
-from app.api.dependencies import ServiceFactory, get_current_user
+from app.api.dependencies import (
+    ClubMemberServiceDep,
+    ClubServiceDep,
+    get_current_user,
+)
 from app.models.club import Club, ClubCategoryEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubInfo, ClubMemberRelationship, ClubUpdate
 from app.schemas.generic import PageResponse
-from app.services.club import ClubMemberService, ClubService
 from app.services.errors import DuplicateClubNameError
 
 router = APIRouter(tags=["clubs"])
-ServiceDep = Annotated[ClubService, Depends(ServiceFactory(ClubService))]
-MemberServiceDep = Annotated[
-    ClubMemberService,
-    Depends(ServiceFactory(ClubMemberService)),
-]
 
 
 @router.get(
@@ -25,7 +23,7 @@ MemberServiceDep = Annotated[
     response_model=ClubInfo,
     responses=TOKEN_INVALID_RESPONSE,
 )
-async def get_club_info(club_id: int, service: ServiceDep) -> Club:
+async def get_club_info(club_id: int, service: ClubServiceDep) -> Club:
     """Get information of a club by club id."""
     club = await service.get(club_id)
     if club is None:
@@ -54,8 +52,8 @@ async def get_club_info(club_id: int, service: ServiceDep) -> Club:
 )
 async def create_club(
     club: ClubCreate,
-    service: ServiceDep,
-    membership_service: MemberServiceDep,
+    service: ClubServiceDep,
+    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> Club:
     """Create a new club. Club name must be unique among non-archived clubs."""
@@ -78,7 +76,7 @@ async def create_club(
 async def update_club_info(
     club_id: int,
     club_update: ClubUpdate,
-    service: ServiceDep,
+    service: ClubServiceDep,
 ) -> Club:
     """Get information of a club by club id."""
     club = await service.get(club_id)
@@ -97,7 +95,7 @@ async def update_club_info(
 async def list_clubs(
     offset: int,
     limit: int,
-    service: ServiceDep,
+    service: ClubServiceDep,
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
 ) -> PageResponse[ClubInfo]:
@@ -116,8 +114,8 @@ async def list_clubs(
 )
 async def join_club(
     club_id: int,
-    service: ServiceDep,
-    membership_service: MemberServiceDep,
+    service: ClubServiceDep,
+    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> ClubMemberRelationship:
     """Join a club."""
@@ -141,8 +139,8 @@ async def join_club(
 )
 async def leave_club(
     club_id: int,
-    service: ServiceDep,
-    membership_service: MemberServiceDep,
+    service: ClubServiceDep,
+    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """Leave a club."""
