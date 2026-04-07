@@ -13,7 +13,7 @@ class GenericActivityService(
 ):
     model = GeneralActivity
 
-    async def get_muli(
+    async def get_multi(
         self,
         search: str | None = None,
         level: GeneralActivityLevelEnum | None = None,

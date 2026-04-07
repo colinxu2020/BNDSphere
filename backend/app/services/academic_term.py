@@ -20,7 +20,7 @@ class AcademicTermService(
             .values(is_current=False),
         )
 
-    async def get_muli(self) -> Sequence[AcademicTerm]:
+    async def get_multi(self) -> Sequence[AcademicTerm]:
         stmt = select(AcademicTerm).order_by(AcademicTerm.start_date.desc())
         result = await self.db.execute(stmt)
         return result.scalars().all()

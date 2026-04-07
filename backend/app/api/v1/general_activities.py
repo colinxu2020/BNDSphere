@@ -28,5 +28,5 @@ async def list_activities(
 ) -> list[GeneralActivityInfo]:
     return [
         GeneralActivityInfo.model_validate(c)
-        for c in await service.get_muli(search, level)
+        for c in await service.get_multi(search, level)
     ]

@@ -12,7 +12,7 @@ router = APIRouter(tags=["Academic Terms"])
 
 @router.get("/")
 async def list_terms(service: AcademicTermServiceDep) -> list[AcademicTermInfo]:
-    return [AcademicTermInfo.model_validate(x) for x in await service.get_muli()]
+    return [AcademicTermInfo.model_validate(x) for x in await service.get_multi()]
 
 
 @router.post("/")
