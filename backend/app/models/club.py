@@ -10,7 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
-from app.utils.pydantic import HttpUrlType
+from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
     from app.models.activity import Activity
