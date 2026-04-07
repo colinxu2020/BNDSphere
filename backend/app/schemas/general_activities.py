@@ -41,7 +41,7 @@ class ClubGeneralActivityBase(BaseModel):
     proof_files: str | None
     created_at: datetime
     audit_status: AuditStatusEnum
-    final_score: int
+    requested_score: int
     participation_type: ParticipationTypeEnum
     met_conditions: list[RecordConditionDetail]
 
@@ -49,6 +49,7 @@ class ClubGeneralActivityBase(BaseModel):
 class ClubGeneralActivityInfo(ClubGeneralActivityBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
+    final_score: int
     club_id: int
     activity_id: int
 

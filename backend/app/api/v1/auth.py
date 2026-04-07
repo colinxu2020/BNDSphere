@@ -18,7 +18,7 @@ router = APIRouter(tags=["auth"])
     response_model=UserInfo,
     status_code=status.HTTP_201_CREATED,
     responses={
-        400: {
+        409: {
             "description": "Username already exists",
             "content": {
                 "application/json": {"example": {"detail": "Username already exists"}},
@@ -31,7 +31,10 @@ async def register(user: UserCreate, service: UserServiceDep) -> User:
     try:
         return await service.create(user)
     except DuplicateUsernameError:
-        raise HTTPException(status_code=400, detail="Username already exists") from None
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Username already exists",
+        ) from None
 
 
 @router.post(

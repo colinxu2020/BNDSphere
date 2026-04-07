@@ -64,6 +64,7 @@ class ClubGeneralActivityRecord(Base):
     )
 
     participation_type: Mapped[ParticipationTypeEnum] = mapped_column()
+    requested_score: Mapped[int] = mapped_column(default=0)
     final_score: Mapped[int] = mapped_column(default=0)
     audit_status: Mapped[AuditStatusEnum] = mapped_column(
         default=AuditStatusEnum.pending,
