@@ -14,7 +14,7 @@ import { nextTick, watch } from 'vue';
 import type { RouteMeta } from 'vue-router';
 import { useRoute } from 'vue-router';
 import GuestLayout from './layouts/GuestLayout.vue';
-import MainLayout from './layouts/MainLayout.vue';
+// import MainLayout from './layouts/MainLayout.vue';
 
 const route = useRoute();
 
@@ -31,10 +31,7 @@ watch(
   { immediate: true },
 );
 
-function resolveLayout(layout: RouteMeta['layout']) {
-  if (layout === 'main') {
-    return MainLayout;
-  }
+function resolveLayout(_layout: RouteMeta['layout']) {
   return GuestLayout;
 }
 </script>

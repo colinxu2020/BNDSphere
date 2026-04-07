@@ -3,13 +3,14 @@
     <div class="flex flex-wrap gap-3">
       <Button @click="createClub">createClub</Button>
       <Button variant="outline" @click="listClubs">ListClub</Button>
-      <Button variant="secondary" @click="openActivityDialog">新建活动</Button>
+      <Button variant="secondary" @click="openActivityDialog">新建社团活动</Button>
+      <Button variant="outline" @click="openGeneralActivityDialog">新建通用活动</Button>
     </div>
 
     <Dialog v-model:open="activityDialogOpen">
       <DialogContent class="sm:max-w-2xl">
         <DialogHeader>
-          <DialogTitle>新建活动</DialogTitle>
+          <DialogTitle>新建社团活动</DialogTitle>
           <DialogDescription>填写活动信息后，提交到指定社团。</DialogDescription>
         </DialogHeader>
 
@@ -78,12 +79,69 @@
         </form>
       </DialogContent>
     </Dialog>
+
+    <!-- 通用活动对话框 -->
+    <Dialog v-model:open="generalActivityDialogOpen">
+      <DialogContent class="sm:max-w-2xl">
+        <DialogHeader>
+          <DialogTitle>新建通用活动</DialogTitle>
+          <DialogDescription>创建全校范围或其他类型的通用活动。</DialogDescription>
+        </DialogHeader>
+
+        <form class="grid gap-4 py-2" @submit.prevent="submitGeneralActivity">
+          <div class="grid gap-2">
+            <Label for="ga-name">活动名称</Label>
+            <Input id="ga-name" v-model="generalActivityForm.name" placeholder="例如：全校讲座" />
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="ga-level">级别</Label>
+            <select
+              id="ga-level"
+              v-model="generalActivityForm.level"
+              class="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-xs transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <option value="school">全校性活动</option>
+              <option value="large">大型活动</option>
+              <option value="sua">学生会活动</option>
+            </select>
+          </div>
+
+          <div class="grid gap-2">
+            <Label for="ga-description">活动描述</Label>
+            <textarea
+              id="ga-description"
+              v-model="generalActivityForm.description"
+              class="min-h-32 w-full rounded-md border border-input bg-background px-3 py-2 text-sm shadow-xs outline-none transition focus-visible:border-ring focus-visible:ring-2 focus-visible:ring-ring/50"
+              placeholder="写下活动简介、流程或要求"
+            />
+          </div>
+
+          <div
+            v-if="generalActivityMessage"
+            class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-600"
+          >
+            {{ generalActivityMessage }}
+          </div>
+
+          <DialogFooter>
+            <Button type="button" variant="outline" @click="generalActivityDialogOpen = false"
+              >取消</Button
+            >
+            <Button type="submit" :disabled="generalActivitySubmitting">
+              {{ generalActivitySubmitting ? '提交中...' : '创建通用活动' }}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   </div>
 </template>
 
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import {
+  createApiV1GeneralActivitiesPost,
   createClubActivityApiV1ClubsClubIdActivitiesPost,
   createClubApiV1ClubsPost,
   listClubsApiV1ClubsGet,
@@ -126,6 +184,16 @@ const activityForm = reactive({
   description: '',
 });
 
+const generalActivityDialogOpen = ref(false);
+const generalActivitySubmitting = ref(false);
+const generalActivityMessage = ref('');
+
+const generalActivityForm = reactive({
+  name: '',
+  description: '',
+  level: 'school' as 'school' | 'large' | 'sua',
+});
+
 function toDatetimeLocal(date: Date) {
   const pad = (value: number) => String(value).padStart(2, '0');
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
@@ -145,13 +213,53 @@ function openActivityDialog() {
   activityDialogOpen.value = true;
 }
 
+function openGeneralActivityDialog() {
+  generalActivityMessage.value = '';
+  generalActivityDialogOpen.value = true;
+}
+
+function resetGeneralActivityForm() {
+  generalActivityForm.name = '';
+  generalActivityForm.description = '';
+  generalActivityForm.level = 'school';
+}
+
+async function submitGeneralActivity() {
+  generalActivitySubmitting.value = true;
+  generalActivityMessage.value = '';
+
+  try {
+    const { data, error } = await createApiV1GeneralActivitiesPost({
+      body: {
+        name: generalActivityForm.name,
+        description: generalActivityForm.description,
+        level: generalActivityForm.level,
+      },
+    });
+
+    if (error) {
+      generalActivityMessage.value = `创建失败: ${JSON.stringify(error)}`;
+    } else {
+      generalActivityMessage.value = `创建成功: ID ${data.id}`;
+      setTimeout(() => {
+        generalActivityDialogOpen.value = false;
+        resetGeneralActivityForm();
+      }, 1500);
+    }
+  } catch (err: any) {
+    generalActivityMessage.value = `发生错误: ${err.message}`;
+  } finally {
+    generalActivitySubmitting.value = false;
+  }
+}
+
 function createClub() {
   createClubApiV1ClubsPost({
     body: {
-      name: '测试社团2',
-      description: '这是一个测试社团2',
-      category: Categories.ARTS,
-      summary: '测试社团简介2',
+      name: '测试社团3',
+      description: '这是一个测试社团3',
+      category: Categories.OTHER,
+      summary: '测试社团简介3',
       logo_uri: 'https://example.com/logo.png',
     },
   }).then(({ data, error }) => {

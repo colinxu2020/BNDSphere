@@ -5,20 +5,43 @@ const routes = [
     path: '/user/:id',
     name: 'UserProfile',
     component: () => import('@/views/profile/Profile.vue'),
-    meta: { layout: 'main', requiresAuth: true },
+    meta: { layout: 'main', requiresAuth: true, title: '用户资料' },
     props: true,
   },
   {
-    path: '/settings/profile',
-    name: 'ProfileSettings',
-    component: () => import('@/views/profile/ProfileSettings.vue'),
-    meta: { layout: 'main', requiresAuth: true },
+    path: '/settings',
+    meta: { layout: 'main', requiresAuth: true, title: '设置' },
+    children: [
+      {
+        path: 'profile',
+        name: 'ProfileSettings',
+        component: () => import('@/views/profile/ProfileSettings.vue'),
+        meta: { title: '个人设置' },
+      },
+    ],
   },
   {
     path: '/dev/test',
     name: 'DevTest',
     component: () => import('@/views/dev/Test.vue'),
-    meta: { layout: 'main', requiresAuth: true },
+    meta: { layout: 'main', requiresAuth: true, title: '开发测试' },
+  },
+  {
+    path: '/activities',
+    meta: { layout: 'main', requiresAuth: true, title: '活动列表' },
+    children: [
+      {
+        path: '',
+        name: 'ActivityList',
+        component: () => import('@/views/Activity/ActivityList.vue'),
+      },
+      {
+        path: '/activity/:id',
+        name: 'ActivityDetail',
+        component: () => import('@/views/Activity/ActivityDetail.vue'),
+        meta: { title: '活动详情' },
+      },
+    ],
   },
   {
     path: '/profile',
@@ -42,23 +65,23 @@ const routes = [
   {
     path: '/login',
     component: () => import('@/views/auth/Login.vue'),
-    meta: { layout: 'guest' }, // 使用空白布局
+    meta: { layout: 'guest', title: '登录' }, // 使用空白布局
   },
   {
     path: '/register',
     component: () => import('@/views/auth/Register.vue'),
-    meta: { layout: 'guest' },
+    meta: { layout: 'guest', title: '注册' },
   },
   {
     path: '/',
     component: () => import('@/views/GuestIndex.vue'),
-    meta: { layout: 'guest' }, // 使用访客布局
+    meta: { layout: 'guest', title: '首页' }, // 使用访客布局
   },
   {
     path: '/club/:id',
     name: 'ClubDetail',
     component: () => import('@/views/Club/ClubDetail.vue'),
-    meta: { layout: 'main', requiresAuth: true }, // 使用主布局
+    meta: { layout: 'main', requiresAuth: true, title: '社团详情' }, // 使用主布局
     props: true,
   },
   // {

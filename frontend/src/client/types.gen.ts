@@ -97,10 +97,6 @@ export type ActivityInfo = {
    */
   name: string;
   /**
-   * Club Id
-   */
-  club_id: number;
-  /**
    * Description
    */
   description: string;
@@ -116,7 +112,10 @@ export type ActivityInfo = {
    * End Time
    */
   end_time: string;
-  status: ActivityStatusEnum;
+  /**
+   * Club Id
+   */
+  club_id: number;
   /**
    * Picture Urls
    */
@@ -124,9 +123,9 @@ export type ActivityInfo = {
 };
 
 /**
- * ActivityStatusEnum
+ * AuditStatusEnum
  */
-export type ActivityStatusEnum = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+export type AuditStatusEnum = 'pending' | 'approved' | 'rejected';
 
 /**
  * Body_login_api_v1_auth_login_post
@@ -179,6 +178,7 @@ export type ClubCreate = {
    * Name
    */
   name: string;
+  category: ClubCategoryEnum;
   /**
    * Summary
    */
@@ -191,7 +191,42 @@ export type ClubCreate = {
    * Logo Uri
    */
   logo_uri?: string | null;
-  category: ClubCategoryEnum;
+};
+
+/**
+ * ClubGeneralActivityInfo
+ */
+export type ClubGeneralActivityInfo = {
+  /**
+   * Id
+   */
+  id: number;
+  /**
+   * Proof Files
+   */
+  proof_files: string | null;
+  /**
+   * Created At
+   */
+  created_at: string;
+  audit_status: AuditStatusEnum;
+  /**
+   * Final Score
+   */
+  final_score: number;
+  participation_type: ParticipationTypeEnum;
+  /**
+   * Met Conditions
+   */
+  met_conditions: Array<RecordConditionDetail>;
+  /**
+   * Club Id
+   */
+  club_id: number;
+  /**
+   * Activity Id
+   */
+  activity_id: number;
 };
 
 /**
@@ -225,12 +260,24 @@ export type ClubInfo = {
   created_at: string;
   status: ClubStatusEnum;
   star_level: ClubStarLevelEnum;
+  /**
+   * Members
+   */
+  members: Array<ClubMemberInfo>;
+  /**
+   * Activities
+   */
+  activities: Array<ActivityInfo>;
 };
 
 /**
- * ClubMemberRelationship
+ * ClubMemberInfo
  */
-export type ClubMemberRelationship = {
+export type ClubMemberInfo = {
+  /**
+   * Id
+   */
+  id: number;
   /**
    * User Id
    */
@@ -283,6 +330,68 @@ export type ClubUpdate = {
 };
 
 /**
+ * GeneralActivityCreate
+ */
+export type GeneralActivityCreate = {
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+  level: GeneralActivityLevelEnum;
+};
+
+/**
+ * GeneralActivityInfo
+ */
+export type GeneralActivityInfo = {
+  /**
+   * Id
+   */
+  id: number;
+  /**
+   * Name
+   */
+  name: string;
+  /**
+   * Description
+   */
+  description: string;
+  level: GeneralActivityLevelEnum;
+  /**
+   * Created At
+   */
+  created_at: string;
+  /**
+   * Club Records
+   */
+  club_records: Array<ClubGeneralActivityInfo>;
+};
+
+/**
+ * GeneralActivityLevelEnum
+ */
+export type GeneralActivityLevelEnum = 'school' | 'large' | 'sua';
+
+/**
+ * GeneralActivityUpdate
+ */
+export type GeneralActivityUpdate = {
+  /**
+   * Name
+   */
+  name?: string | null;
+  /**
+   * Description
+   */
+  description?: string | null;
+  level?: GeneralActivityLevelEnum | null;
+};
+
+/**
  * HTTPValidationError
  */
 export type HttpValidationError = {
@@ -318,6 +427,29 @@ export type PageResponseClubInfo = {
    * Items
    */
   items: Array<ClubInfo>;
+};
+
+/**
+ * ParticipationTypeEnum
+ */
+export type ParticipationTypeEnum = 'participate_only' | 'organize';
+
+/**
+ * RecordConditionDetail
+ */
+export type RecordConditionDetail = {
+  /**
+   * Is Met
+   */
+  is_met: boolean;
+  /**
+   * Record Id
+   */
+  record_id: number;
+  /**
+   * Condition Id
+   */
+  condition_id: number;
 };
 
 /**
@@ -358,13 +490,13 @@ export type UserCreate = {
  */
 export type UserInfo = {
   /**
-   * Username
-   */
-  username: string;
-  /**
    * Id
    */
   id: number;
+  /**
+   * Username
+   */
+  username: string;
   /**
    * Email
    */
@@ -760,7 +892,7 @@ export type JoinClubApiV1ClubsClubIdMembersPostResponses = {
   /**
    * Successful Response
    */
-  201: ClubMemberRelationship;
+  201: ClubMemberInfo;
 };
 
 export type JoinClubApiV1ClubsClubIdMembersPostResponse =
@@ -882,6 +1014,17 @@ export type ListTermsApiV1AdminAcademicTermsGetData = {
   url: '/api/v1/admin/academic_terms/';
 };
 
+export type ListTermsApiV1AdminAcademicTermsGetErrors = {
+  /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Permission Denied
+   */
+  403: unknown;
+};
+
 export type ListTermsApiV1AdminAcademicTermsGetResponses = {
   /**
    * Response List Terms Api V1 Admin Academic Terms  Get
@@ -902,6 +1045,14 @@ export type CreateTermApiV1AdminAcademicTermsPostData = {
 };
 
 export type CreateTermApiV1AdminAcademicTermsPostErrors = {
+  /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Permission Denied
+   */
+  403: unknown;
   /**
    * Validation Error
    */
@@ -935,6 +1086,14 @@ export type DeleteTermApiV1AdminAcademicTermsTermIdDeleteData = {
 
 export type DeleteTermApiV1AdminAcademicTermsTermIdDeleteErrors = {
   /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Permission Denied
+   */
+  403: unknown;
+  /**
    * Validation Error
    */
   422: HttpValidationError;
@@ -966,6 +1125,14 @@ export type GetTermApiV1AdminAcademicTermsTermIdGetData = {
 };
 
 export type GetTermApiV1AdminAcademicTermsTermIdGetErrors = {
+  /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Permission Denied
+   */
+  403: unknown;
   /**
    * Validation Error
    */
@@ -999,6 +1166,14 @@ export type UpdateTermApiV1AdminAcademicTermsTermIdPatchData = {
 
 export type UpdateTermApiV1AdminAcademicTermsTermIdPatchErrors = {
   /**
+   * Unauthorized
+   */
+  401: unknown;
+  /**
+   * Permission Denied
+   */
+  403: unknown;
+  /**
    * Validation Error
    */
   422: HttpValidationError;
@@ -1016,3 +1191,164 @@ export type UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses = {
 
 export type UpdateTermApiV1AdminAcademicTermsTermIdPatchResponse =
   UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses[keyof UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses];
+
+export type ListActivitiesApiV1GeneralActivitiesGetData = {
+  body?: never;
+  path?: never;
+  query?: {
+    /**
+     * Search
+     */
+    search?: string | null;
+    /**
+     * Level
+     */
+    level?: GeneralActivityLevelEnum | null;
+  };
+  url: '/api/v1/general-activities/';
+};
+
+export type ListActivitiesApiV1GeneralActivitiesGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type ListActivitiesApiV1GeneralActivitiesGetError =
+  ListActivitiesApiV1GeneralActivitiesGetErrors[keyof ListActivitiesApiV1GeneralActivitiesGetErrors];
+
+export type ListActivitiesApiV1GeneralActivitiesGetResponses = {
+  /**
+   * Response List Activities Api V1 General Activities  Get
+   *
+   * Successful Response
+   */
+  200: Array<GeneralActivityInfo>;
+};
+
+export type ListActivitiesApiV1GeneralActivitiesGetResponse =
+  ListActivitiesApiV1GeneralActivitiesGetResponses[keyof ListActivitiesApiV1GeneralActivitiesGetResponses];
+
+export type CreateApiV1GeneralActivitiesPostData = {
+  body: GeneralActivityCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/general-activities/';
+};
+
+export type CreateApiV1GeneralActivitiesPostErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateApiV1GeneralActivitiesPostError =
+  CreateApiV1GeneralActivitiesPostErrors[keyof CreateApiV1GeneralActivitiesPostErrors];
+
+export type CreateApiV1GeneralActivitiesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type CreateApiV1GeneralActivitiesPostResponse =
+  CreateApiV1GeneralActivitiesPostResponses[keyof CreateApiV1GeneralActivitiesPostResponses];
+
+export type DeleteApiV1GeneralActivitiesActivityIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/general-activities/{activity_id}';
+};
+
+export type DeleteApiV1GeneralActivitiesActivityIdDeleteErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteApiV1GeneralActivitiesActivityIdDeleteError =
+  DeleteApiV1GeneralActivitiesActivityIdDeleteErrors[keyof DeleteApiV1GeneralActivitiesActivityIdDeleteErrors];
+
+export type DeleteApiV1GeneralActivitiesActivityIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type DeleteApiV1GeneralActivitiesActivityIdDeleteResponse =
+  DeleteApiV1GeneralActivitiesActivityIdDeleteResponses[keyof DeleteApiV1GeneralActivitiesActivityIdDeleteResponses];
+
+export type GetApiV1GeneralActivitiesActivityIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/general-activities/{activity_id}';
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetError =
+  GetApiV1GeneralActivitiesActivityIdGetErrors[keyof GetApiV1GeneralActivitiesActivityIdGetErrors];
+
+export type GetApiV1GeneralActivitiesActivityIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetResponse =
+  GetApiV1GeneralActivitiesActivityIdGetResponses[keyof GetApiV1GeneralActivitiesActivityIdGetResponses];
+
+export type UpdateApiV1GeneralActivitiesActivityIdPatchData = {
+  body: GeneralActivityUpdate;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/general-activities/{activity_id}';
+};
+
+export type UpdateApiV1GeneralActivitiesActivityIdPatchErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateApiV1GeneralActivitiesActivityIdPatchError =
+  UpdateApiV1GeneralActivitiesActivityIdPatchErrors[keyof UpdateApiV1GeneralActivitiesActivityIdPatchErrors];
+
+export type UpdateApiV1GeneralActivitiesActivityIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type UpdateApiV1GeneralActivitiesActivityIdPatchResponse =
+  UpdateApiV1GeneralActivitiesActivityIdPatchResponses[keyof UpdateApiV1GeneralActivitiesActivityIdPatchResponses];

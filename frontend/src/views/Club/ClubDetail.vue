@@ -16,6 +16,7 @@ import {
   CardTitle,
 } from '../../components/ui/card';
 import { ScrollArea } from '../../components/ui/scroll-area';
+import { formatError } from '@/lib/utils';
 
 const route = useRoute();
 const loading = ref(true);
@@ -111,16 +112,18 @@ async function fetchClubDetail() {
     });
 
     if (fetchError) {
-      throw new Error(typeof fetchError === 'string' ? fetchError : '获取社团详情失败');
+      error.value = formatError(fetchError, '获取社团详情失败');
+      return;
     }
 
     if (!data) {
-      throw new Error('获取社团详情失败');
+      error.value = '获取社团详情为空';
+      return;
     }
 
     club.value = data;
-  } catch (err) {
-    error.value = err instanceof Error ? err.message || '获取社团详情失败' : '获取社团详情失败';
+  } catch (err: any) {
+    error.value = `请求异常: ${err.message || '获取社团详情失败'}`;
   } finally {
     loading.value = false;
   }
@@ -143,13 +146,13 @@ async function fetchClubActivities() {
     });
 
     if (fetchError) {
-      throw new Error(typeof fetchError === 'string' ? fetchError : '获取社团活动失败');
+      activityError.value = formatError(fetchError, '获取社团活动失败');
+      return;
     }
 
     activities.value = Array.isArray(data?.items) ? data.items : [];
-  } catch (err) {
-    activityError.value =
-      err instanceof Error ? err.message || '获取社团活动失败' : '获取社团活动失败';
+  } catch (err: any) {
+    activityError.value = `请求异常: ${err.message || '获取社团活动失败'}`;
   } finally {
     activityLoading.value = false;
   }
@@ -161,142 +164,138 @@ onMounted(() => {
 </script>
 
 <template>
-  <div class="min-h-full bg-gradient-to-b from-slate-50 via-white to-slate-100 px-6 py-8 lg:px-12">
-    <div class="mx-auto max-w-7xl space-y-6">
-      <Card class="overflow-hidden border-slate-200/80 shadow-lg">
-        <div class="from-slate-900 via-slate-800 to-slate-700 px-6 py-6">
-          <CardDescription class="text-gray-500">Club ID: {{ route.params.id }}</CardDescription>
-          <CardTitle class="mt-2 text-3xl font-bold tracking-tight">社团详情</CardTitle>
+  <div class="space-y-6">
+    <Card class="overflow-hidden border-slate-200/80 shadow-lg">
+      <div class="from-slate-900 via-slate-800 to-slate-700 px-6 py-6">
+        <CardDescription class="text-gray-500">Club ID: {{ route.params.id }}</CardDescription>
+        <CardTitle class="mt-2 text-3xl font-bold tracking-tight">社团详情</CardTitle>
+      </div>
+
+      <CardContent class="p-6">
+        <div
+          v-if="loading"
+          class="rounded-2xl border border-dashed border-slate-200 p-8 text-slate-500"
+        >
+          正在加载社团信息...
         </div>
 
-        <CardContent class="p-6">
-          <div
-            v-if="loading"
-            class="rounded-2xl border border-dashed border-slate-200 p-8 text-slate-500"
-          >
-            正在加载社团信息...
-          </div>
+        <div
+          v-else-if="error"
+          class="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-600"
+        >
+          {{ error }}
+        </div>
 
-          <div
-            v-else-if="error"
-            class="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-600"
-          >
-            {{ error }}
-          </div>
-
-          <div v-else-if="club" class="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
-            <div class="space-y-6">
-              <div
-                class="flex items-start gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
-              >
-                <img
-                  v-if="club.logo_uri"
-                  :src="club.logo_uri"
-                  :alt="club.name"
-                  class="h-24 w-24 rounded-2xl border object-cover"
-                />
-                <div class="min-w-0 flex-1 space-y-3">
-                  <div class="flex flex-wrap items-center gap-2">
-                    <h1 class="text-2xl font-bold text-slate-900">{{ club.name }}</h1>
-                    <Badge variant="secondary" class="capitalize">{{ club.category }}</Badge>
-                  </div>
-                  <p class="text-slate-600">{{ club.summary }}</p>
-                  <div class="flex flex-wrap gap-2">
-                    <Badge variant="outline">状态: {{ statusText }}</Badge>
-                    <Badge variant="outline">评级: {{ starText }}</Badge>
-                    <Badge variant="outline">创建于 {{ createdAtText }}</Badge>
-                  </div>
+        <div v-else-if="club" class="grid gap-6 lg:grid-cols-[1.35fr_0.95fr]">
+          <div class="space-y-6">
+            <div
+              class="flex items-start gap-5 rounded-3xl border border-slate-200 bg-white p-5 shadow-sm"
+            >
+              <img
+                v-if="club.logo_uri"
+                :src="club.logo_uri"
+                :alt="club.name"
+                class="h-24 w-24 rounded-2xl border object-cover"
+              />
+              <div class="min-w-0 flex-1 space-y-3">
+                <div class="flex flex-wrap items-center gap-2">
+                  <h1 class="text-2xl font-bold text-slate-900">{{ club.name }}</h1>
+                  <Badge variant="secondary" class="capitalize">{{ club.category }}</Badge>
                 </div>
-              </div>
-
-              <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-                <h2 class="mb-3 text-lg font-semibold text-slate-900">社团介绍</h2>
-                <p class="whitespace-pre-line leading-7 text-slate-700">{{ club.description }}</p>
+                <p class="text-slate-600">{{ club.summary }}</p>
+                <div class="flex flex-wrap gap-2">
+                  <Badge variant="outline">状态: {{ statusText }}</Badge>
+                  <Badge variant="outline">评级: {{ starText }}</Badge>
+                  <Badge variant="outline">创建于 {{ createdAtText }}</Badge>
+                </div>
               </div>
             </div>
 
             <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
-              <div class="mb-4 flex items-center justify-between">
-                <div>
-                  <h2 class="text-xl font-semibold text-slate-900">社团活动</h2>
-                  <p class="text-sm text-slate-500">查看近期活动安排、时间与状态</p>
-                </div>
-                <Badge variant="outline">{{ activities.length }} 项</Badge>
-              </div>
-
-              <div
-                v-if="activityLoading"
-                class="rounded-2xl border border-dashed border-slate-200 p-6 text-slate-500"
-              >
-                正在加载活动...
-              </div>
-
-              <div
-                v-else-if="activityError"
-                class="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-600"
-              >
-                {{ activityError }}
-              </div>
-
-              <div
-                v-else-if="activities.length === 0"
-                class="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-500"
-              >
-                暂无活动，社团可以先发布一个活动计划。
-              </div>
-
-              <ScrollArea v-else class="h-[540px] pr-4">
-                <div class="space-y-4">
-                  <Card
-                    v-for="activity in activities"
-                    :key="activity.id"
-                    class="border-slate-200 bg-slate-50/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
-                  >
-                    <CardHeader class="space-y-3 pb-3">
-                      <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 space-y-1">
-                          <CardTitle class="text-base text-slate-900">{{
-                            activity.name
-                          }}</CardTitle>
-                          <CardDescription class="text-slate-500">{{
-                            activity.location
-                          }}</CardDescription>
-                        </div>
-                        <Badge :class="['border', getActivityStatusClass(activity.status)]">
-                          {{ getActivityStatusText(activity.status) }}
-                        </Badge>
-                      </div>
-                      <div class="grid gap-2 text-sm text-slate-600">
-                        <div>开始：{{ formatDateTime(activity.start_time) }}</div>
-                        <div>结束：{{ formatDateTime(activity.end_time) }}</div>
-                      </div>
-                    </CardHeader>
-                    <CardContent class="space-y-4 pt-0">
-                      <p class="whitespace-pre-line text-sm leading-6 text-slate-700">
-                        {{ activity.description }}
-                      </p>
-                      <div v-if="activity.picture_urls.length" class="space-y-3">
-                        <div class="text-xs font-medium uppercase tracking-wide text-slate-500">
-                          活动图片
-                        </div>
-                        <div class="flex gap-3 overflow-x-auto pb-1">
-                          <img
-                            v-for="(url, index) in activity.picture_urls"
-                            :key="`${activity.id}-${index}`"
-                            :src="url"
-                            :alt="`${activity.name} 图片 ${index + 1}`"
-                            class="h-20 w-28 shrink-0 rounded-xl border object-cover"
-                          />
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </div>
-              </ScrollArea>
+              <h2 class="mb-3 text-lg font-semibold text-slate-900">社团介绍</h2>
+              <p class="whitespace-pre-line leading-7 text-slate-700">{{ club.description }}</p>
             </div>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+
+          <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="mb-4 flex items-center justify-between">
+              <div>
+                <h2 class="text-xl font-semibold text-slate-900">社团活动</h2>
+                <p class="text-sm text-slate-500">查看近期活动安排、时间与状态</p>
+              </div>
+              <Badge variant="outline">{{ activities.length }} 项</Badge>
+            </div>
+
+            <div
+              v-if="activityLoading"
+              class="rounded-2xl border border-dashed border-slate-200 p-6 text-slate-500"
+            >
+              正在加载活动...
+            </div>
+
+            <div
+              v-else-if="activityError"
+              class="rounded-2xl border border-rose-200 bg-rose-50 p-5 text-sm text-rose-600"
+            >
+              {{ activityError }}
+            </div>
+
+            <div
+              v-else-if="activities.length === 0"
+              class="rounded-2xl border border-dashed border-slate-200 p-8 text-center text-slate-500"
+            >
+              暂无活动，社团可以先发布一个活动计划。
+            </div>
+
+            <ScrollArea v-else class="h-[540px] pr-4">
+              <div class="space-y-4">
+                <Card
+                  v-for="activity in activities"
+                  :key="activity.id"
+                  class="border-slate-200 bg-slate-50/70 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+                >
+                  <CardHeader class="space-y-3 pb-3">
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0 space-y-1">
+                        <CardTitle class="text-base text-slate-900">{{ activity.name }}</CardTitle>
+                        <CardDescription class="text-slate-500">{{
+                          activity.location
+                        }}</CardDescription>
+                      </div>
+                      <Badge :class="['border', getActivityStatusClass(activity.status)]">
+                        {{ getActivityStatusText(activity.status) }}
+                      </Badge>
+                    </div>
+                    <div class="grid gap-2 text-sm text-slate-600">
+                      <div>开始：{{ formatDateTime(activity.start_time) }}</div>
+                      <div>结束：{{ formatDateTime(activity.end_time) }}</div>
+                    </div>
+                  </CardHeader>
+                  <CardContent class="space-y-4 pt-0">
+                    <p class="whitespace-pre-line text-sm leading-6 text-slate-700">
+                      {{ activity.description }}
+                    </p>
+                    <div v-if="activity.picture_urls.length" class="space-y-3">
+                      <div class="text-xs font-medium uppercase tracking-wide text-slate-500">
+                        活动图片
+                      </div>
+                      <div class="flex gap-3 overflow-x-auto pb-1">
+                        <img
+                          v-for="(url, index) in activity.picture_urls"
+                          :key="`${activity.id}-${index}`"
+                          :src="url"
+                          :alt="`${activity.name} 图片 ${index + 1}`"
+                          class="h-20 w-28 shrink-0 rounded-xl border object-cover"
+                        />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </ScrollArea>
+          </div>
+        </div>
+      </CardContent>
+    </Card>
   </div>
 </template>
