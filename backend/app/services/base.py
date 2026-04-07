@@ -20,8 +20,8 @@ class ServiceBase[
         result = await self.db.execute(select(self.model).filter(self.model.id == id_))
         return result.scalars().first()
 
-    async def create(self, obj_in: CreateSchemaType) -> ModelType:
-        db_obj = self.model(**obj_in.model_dump())
+    async def create(self, obj_in: CreateSchemaType, **kwargs: object) -> ModelType:
+        db_obj = self.model(**obj_in.model_dump(), **kwargs)
         self.db.add(db_obj)
         await self.db.flush()
         await self.db.refresh(db_obj)

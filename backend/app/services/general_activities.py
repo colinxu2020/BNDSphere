@@ -14,6 +14,7 @@ from app.schemas.general_activities import (
     GeneralActivityUpdate,
 )
 from app.services.base import ServiceBase
+from app.services.errors import BusinessError
 
 
 class GenericActivityService(
@@ -49,11 +50,17 @@ class ClubGenericActivityService(
         obj_in: ClubGeneralActivityCreate,
         club_id: int,
     ) -> ClubGeneralActivityRecord:
-        db_obj = self.model(**obj_in.model_dump(), club_id=club_id)
-        self.db.add(db_obj)
-        await self.db.flush()
-        await self.db.refresh(db_obj)
-        return db_obj
+        stmt = select(self.model).where(
+            self.model.club_id == club_id,
+            self.model.activity_id == obj_in.activity_id,
+        )
+        existing = (await self.db.execute(stmt)).scalar_one_or_none()
+        if existing:
+            raise BusinessError(
+                message="the club already participate in the activity",
+                status=409,
+            )
+        return await self.create(obj_in, club_id=club_id)
 
     async def get_by_club(self, club: Club) -> Sequence[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)

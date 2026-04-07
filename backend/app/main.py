@@ -6,7 +6,7 @@ from starlette.responses import JSONResponse
 import app.models as _  # noqa: F401
 from app.api.v1 import router as v1_router
 from app.core.settings import settings
-from app.services.errors import BusinessBaseError
+from app.services.errors import BusinessError
 
 app = FastAPI(
     title="BNDSphere API",
@@ -28,10 +28,10 @@ app.debug = settings.debug
 app.include_router(v1_router, prefix="/api/v1")
 
 
-@app.exception_handler(BusinessBaseError)
+@app.exception_handler(BusinessError)
 async def business_exception_handler(
     _request: Request,
-    exc: BusinessBaseError,
+    exc: BusinessError,
 ) -> JSONResponse:
     return JSONResponse(
         status_code=exc.status,

@@ -51,6 +51,6 @@ async def create_club_general_activities(
 ) -> ClubGeneralActivityInfo:
     club = await club_service.ensure_club_normal(club_id)
     return await club_general_activity_service.create_club_general_activity(
-        obj,
         club.id,
+        obj,
     )

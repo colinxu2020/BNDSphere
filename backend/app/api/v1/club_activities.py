@@ -60,4 +60,4 @@ async def create_club_activity(
     activity: ActivityCreate,
     activity_service: ActivityServiceDep,
 ) -> Activity:
-    return await activity_service.create_club_activity(club_id, activity)
+    return await activity_service.create(activity, club_id=club_id)

@@ -1,4 +1,4 @@
-class BusinessBaseError(Exception):
+class BusinessError(Exception):
     def __init__(self, message: str, status: int) -> None:
         self.message = message
         self.status = status
@@ -17,11 +17,11 @@ class DuplicateClubNameError(Exception):
     pass
 
 
-class ClubNotFoundError(BusinessBaseError):
+class ClubNotFoundError(BusinessError):
     def __init__(self) -> None:
         super().__init__("Club not found", 404)
 
 
-class ClubNotActiveError(BusinessBaseError):
+class ClubNotActiveError(BusinessError):
     def __init__(self) -> None:
         super().__init__("Club is not active", 400)

@@ -34,7 +34,11 @@ class AcademicTermService(
         return term
 
     @override
-    async def create(self, obj: AcademicTermCreate) -> AcademicTerm:
-        if obj.is_current:
+    async def create(
+        self,
+        obj_in: AcademicTermCreate,
+        **kwargs: object,
+    ) -> AcademicTerm:
+        if obj_in.is_current:
             await self._clear_current_term()
-        return await super().create(obj)
+        return await super().create(obj_in, **kwargs)

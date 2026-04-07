@@ -21,9 +21,9 @@ from app.utils.crud_utils import apply_fulltext_search, get_dialect, get_upsert_
 class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
     model = Club
 
-    async def create(self, obj_in: ClubCreate) -> Club:
+    async def create(self, obj_in: ClubCreate, **kwargs: object) -> Club:
         try:
-            return await super().create(obj_in)
+            return await super().create(obj_in, **kwargs)
         except IntegrityError as exc:
             raise DuplicateClubNameError from exc
 

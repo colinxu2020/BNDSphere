@@ -28,11 +28,12 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
         return result
 
     @override
-    async def create(self, user: UserCreate) -> User:
-        hashed_password = get_password_hash(user.password)
+    async def create(self, obj_in: UserCreate, **kwargs: object) -> User:
+        hashed_password = get_password_hash(obj_in.password)
         db_obj = self.model(
-            username=user.username,
+            username=obj_in.username,
             hashed_password=hashed_password,
+            **kwargs,
         )
         try:
             self.db.add(db_obj)
