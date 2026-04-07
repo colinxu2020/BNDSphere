@@ -8,6 +8,7 @@ from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.schemas.activity import ActivityInfo
+from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin
 
 
@@ -27,6 +28,7 @@ class ClubInfo(ClubBase, IdMixin):
     star_level: ClubStarLevelEnum
     members: list[ClubMemberInfo]
     activities: list[ActivityInfo]
+    general_activity_records: list[ClubGeneralActivityInfo]
 
 
 class ClubCreate(ClubBase):
@@ -43,6 +45,7 @@ class ClubMemberInfo(IdMixin, BaseModel):
     user_id: int
     club_id: int
     membership: ClubMembershipEnum
+    updated_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
 

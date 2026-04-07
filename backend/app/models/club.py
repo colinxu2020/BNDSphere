@@ -80,6 +80,7 @@ class Club(Base):
     general_activity_records: Mapped[list[ClubGeneralActivityRecord]] = relationship(
         back_populates="club",
         cascade="all, delete-orphan",
+        lazy="selectin",
     )
 
     __table_args__ = (
