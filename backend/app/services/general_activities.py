@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.models import Club, GeneralActivity
 from app.models.general_activity import (
@@ -50,17 +51,28 @@ class ClubGenericActivityService(
         obj_in: ClubGeneralActivityCreate,
         club_id: int,
     ) -> ClubGeneralActivityRecord:
-        stmt = select(self.model).where(
-            self.model.club_id == club_id,
-            self.model.activity_id == obj_in.activity_id,
-        )
-        existing = (await self.db.execute(stmt)).scalar_one_or_none()
-        if existing:
-            raise BusinessError(
-                message="the club already participate in the activity",
-                status=409,
+        try:
+            stmt = select(self.model).where(
+                self.model.club_id == club_id,
+                self.model.activity_id == obj_in.activity_id,
             )
-        return await self.create(obj_in, club_id=club_id)
+            existing = (await self.db.execute(stmt)).scalar_one_or_none()
+            if existing:
+                raise BusinessError(
+                    message="the club already participate in the activity",
+                    status=409,
+                )
+            return await self.create(obj_in, club_id=club_id)
+        except IntegrityError:
+            raise BusinessError(
+                message="database conflict",
+                status=409,
+            ) from None
+        except OperationalError:
+            raise BusinessError(
+                message="database cannot respond",
+                status=503,
+            ) from None
 
     async def get_by_club(self, club: Club) -> Sequence[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)
