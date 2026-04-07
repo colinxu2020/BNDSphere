@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
@@ -5,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
+from app.schemas.activity import ActivityInfo
 from app.schemas.generic import IdMixin
 
 
@@ -22,6 +25,8 @@ class ClubInfo(ClubBase, IdMixin):
     created_at: datetime
     status: ClubStatusEnum
     star_level: ClubStarLevelEnum
+    members: list[ClubMemberInfo]
+    activities: list[ActivityInfo]
 
 
 class ClubCreate(ClubBase):

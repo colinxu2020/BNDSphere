@@ -65,12 +65,18 @@ class Club(Base):
         default=ClubStarLevelEnum.none,
     )
     category: Mapped[ClubCategoryEnum] = mapped_column()
-    members: Mapped[list[ClubMember]] = relationship(back_populates="club")
+    members: Mapped[list[ClubMember]] = relationship(
+        back_populates="club",
+        lazy="selectin",
+    )
     tags: Mapped[list[Tag]] = relationship(
         back_populates="clubs",
         secondary="club_tags",
     )
-    activities: Mapped[list[Activity]] = relationship(back_populates="club")
+    activities: Mapped[list[Activity]] = relationship(
+        back_populates="club",
+        lazy="selectin",
+    )
     general_activity_records: Mapped[list[ClubGeneralActivityRecord]] = relationship(
         back_populates="club",
         cascade="all, delete-orphan",
