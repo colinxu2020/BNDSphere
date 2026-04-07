@@ -12,6 +12,7 @@ import {
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { registerApiV1AuthRegisterPost } from '@/client';
+import { formatError } from '@/lib/utils';
 
 const router = useRouter();
 const username = ref('');
@@ -76,16 +77,16 @@ const handleRegister = async () => {
     });
 
     if (error) {
-      throw new Error(typeof error === 'string' ? error : '注册失败');
+      errorMessage.value = formatError(error, '注册失败');
+      return;
     }
 
     // 注册成功，跳转到登录页
     void router.push('/login');
-  } catch (error: unknown) {
-    // 处理由 request 函数抛出的错误
-    const message = error instanceof Error ? error.message : '注册失败，请稍后再试';
-    errorMessage.value = message;
-    console.error('Register error:', error);
+  } catch (err: any) {
+    // 处理由请求过程抛出的意外错误
+    errorMessage.value = `请求异常: ${err.message || '请检查网络连接'}`;
+    console.error('Register unexpected error:', err);
   } finally {
     isLoading.value = false;
   }

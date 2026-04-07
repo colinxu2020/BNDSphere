@@ -12,6 +12,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { loginApiV1AuthLoginPost } from '@/client';
 import { useUserStore } from '@/lib/auth/userStore';
+import { formatError } from '@/lib/utils';
 
 const router = useRouter();
 const userStore = useUserStore();
@@ -35,7 +36,8 @@ const handleLogin = async () => {
     });
 
     if (error) {
-      throw new Error(typeof error === 'string' ? error : '登录失败');
+      errorMessage.value = formatError(error, '登录失败');
+      return;
     }
 
     if (data && data.access_token) {
@@ -43,9 +45,9 @@ const handleLogin = async () => {
       await userStore.fetchUser();
       void router.push('/');
     }
-  } catch (error: unknown) {
-    errorMessage.value = error instanceof Error ? error.message : '登录失败，请稍后再试';
-    console.error('Login error:', error);
+  } catch (err: any) {
+    errorMessage.value = `请求异常: ${err.message || '请检查网络连接'}`;
+    console.error('Login unexpected error:', err);
   } finally {
     isLoading.value = false;
   }

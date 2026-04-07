@@ -8,6 +8,9 @@ import {
 } from './client';
 import { client } from './client.gen';
 import type {
+  CreateApiV1GeneralActivitiesPostData,
+  CreateApiV1GeneralActivitiesPostErrors,
+  CreateApiV1GeneralActivitiesPostResponses,
   CreateClubActivityApiV1ClubsClubIdActivitiesPostData,
   CreateClubActivityApiV1ClubsClubIdActivitiesPostErrors,
   CreateClubActivityApiV1ClubsClubIdActivitiesPostResponses,
@@ -17,9 +20,15 @@ import type {
   CreateTermApiV1AdminAcademicTermsPostData,
   CreateTermApiV1AdminAcademicTermsPostErrors,
   CreateTermApiV1AdminAcademicTermsPostResponses,
+  DeleteApiV1GeneralActivitiesActivityIdDeleteData,
+  DeleteApiV1GeneralActivitiesActivityIdDeleteErrors,
+  DeleteApiV1GeneralActivitiesActivityIdDeleteResponses,
   DeleteTermApiV1AdminAcademicTermsTermIdDeleteData,
   DeleteTermApiV1AdminAcademicTermsTermIdDeleteErrors,
   DeleteTermApiV1AdminAcademicTermsTermIdDeleteResponses,
+  GetApiV1GeneralActivitiesActivityIdGetData,
+  GetApiV1GeneralActivitiesActivityIdGetErrors,
+  GetApiV1GeneralActivitiesActivityIdGetResponses,
   GetClubActivitiesApiV1ClubsClubIdActivitiesGetData,
   GetClubActivitiesApiV1ClubsClubIdActivitiesGetErrors,
   GetClubActivitiesApiV1ClubsClubIdActivitiesGetResponses,
@@ -41,10 +50,14 @@ import type {
   LeaveClubApiV1ClubsClubIdMembersMeDeleteData,
   LeaveClubApiV1ClubsClubIdMembersMeDeleteErrors,
   LeaveClubApiV1ClubsClubIdMembersMeDeleteResponses,
+  ListActivitiesApiV1GeneralActivitiesGetData,
+  ListActivitiesApiV1GeneralActivitiesGetErrors,
+  ListActivitiesApiV1GeneralActivitiesGetResponses,
   ListClubsApiV1ClubsGetData,
   ListClubsApiV1ClubsGetErrors,
   ListClubsApiV1ClubsGetResponses,
   ListTermsApiV1AdminAcademicTermsGetData,
+  ListTermsApiV1AdminAcademicTermsGetErrors,
   ListTermsApiV1AdminAcademicTermsGetResponses,
   LoginApiV1AuthLoginPostData,
   LoginApiV1AuthLoginPostErrors,
@@ -52,6 +65,9 @@ import type {
   RegisterApiV1AuthRegisterPostData,
   RegisterApiV1AuthRegisterPostErrors,
   RegisterApiV1AuthRegisterPostResponses,
+  UpdateApiV1GeneralActivitiesActivityIdPatchData,
+  UpdateApiV1GeneralActivitiesActivityIdPatchErrors,
+  UpdateApiV1GeneralActivitiesActivityIdPatchResponses,
   UpdateClubInfoApiV1ClubsClubIdPatchData,
   UpdateClubInfoApiV1ClubsClubIdPatchErrors,
   UpdateClubInfoApiV1ClubsClubIdPatchResponses,
@@ -333,9 +349,13 @@ export const listTermsApiV1AdminAcademicTermsGet = <ThrowOnError extends boolean
 ) =>
   (options?.client ?? client).get<
     ListTermsApiV1AdminAcademicTermsGetResponses,
-    unknown,
+    ListTermsApiV1AdminAcademicTermsGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/admin/academic_terms/', ...options });
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/admin/academic_terms/',
+    ...options,
+  });
 
 /**
  * Create Term
@@ -348,6 +368,7 @@ export const createTermApiV1AdminAcademicTermsPost = <ThrowOnError extends boole
     CreateTermApiV1AdminAcademicTermsPostErrors,
     ThrowOnError
   >({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/admin/academic_terms/',
     ...options,
     headers: {
@@ -366,7 +387,11 @@ export const deleteTermApiV1AdminAcademicTermsTermIdDelete = <ThrowOnError exten
     DeleteTermApiV1AdminAcademicTermsTermIdDeleteResponses,
     DeleteTermApiV1AdminAcademicTermsTermIdDeleteErrors,
     ThrowOnError
-  >({ url: '/api/v1/admin/academic_terms/{term_id}', ...options });
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/admin/academic_terms/{term_id}',
+    ...options,
+  });
 
 /**
  * Get Term
@@ -378,7 +403,11 @@ export const getTermApiV1AdminAcademicTermsTermIdGet = <ThrowOnError extends boo
     GetTermApiV1AdminAcademicTermsTermIdGetResponses,
     GetTermApiV1AdminAcademicTermsTermIdGetErrors,
     ThrowOnError
-  >({ url: '/api/v1/admin/academic_terms/{term_id}', ...options });
+  >({
+    security: [{ scheme: 'bearer', type: 'http' }],
+    url: '/api/v1/admin/academic_terms/{term_id}',
+    ...options,
+  });
 
 /**
  * Update Term
@@ -391,7 +420,82 @@ export const updateTermApiV1AdminAcademicTermsTermIdPatch = <ThrowOnError extend
     UpdateTermApiV1AdminAcademicTermsTermIdPatchErrors,
     ThrowOnError
   >({
+    security: [{ scheme: 'bearer', type: 'http' }],
     url: '/api/v1/admin/academic_terms/{term_id}',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * List Activities
+ */
+export const listActivitiesApiV1GeneralActivitiesGet = <ThrowOnError extends boolean = false>(
+  options?: Options<ListActivitiesApiV1GeneralActivitiesGetData, ThrowOnError>,
+) =>
+  (options?.client ?? client).get<
+    ListActivitiesApiV1GeneralActivitiesGetResponses,
+    ListActivitiesApiV1GeneralActivitiesGetErrors,
+    ThrowOnError
+  >({ url: '/api/v1/general-activities/', ...options });
+
+/**
+ * Create
+ */
+export const createApiV1GeneralActivitiesPost = <ThrowOnError extends boolean = false>(
+  options: Options<CreateApiV1GeneralActivitiesPostData, ThrowOnError>,
+) =>
+  (options.client ?? client).post<
+    CreateApiV1GeneralActivitiesPostResponses,
+    CreateApiV1GeneralActivitiesPostErrors,
+    ThrowOnError
+  >({
+    url: '/api/v1/general-activities/',
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+/**
+ * Delete
+ */
+export const deleteApiV1GeneralActivitiesActivityIdDelete = <ThrowOnError extends boolean = false>(
+  options: Options<DeleteApiV1GeneralActivitiesActivityIdDeleteData, ThrowOnError>,
+) =>
+  (options.client ?? client).delete<
+    DeleteApiV1GeneralActivitiesActivityIdDeleteResponses,
+    DeleteApiV1GeneralActivitiesActivityIdDeleteErrors,
+    ThrowOnError
+  >({ url: '/api/v1/general-activities/{activity_id}', ...options });
+
+/**
+ * Get
+ */
+export const getApiV1GeneralActivitiesActivityIdGet = <ThrowOnError extends boolean = false>(
+  options: Options<GetApiV1GeneralActivitiesActivityIdGetData, ThrowOnError>,
+) =>
+  (options.client ?? client).get<
+    GetApiV1GeneralActivitiesActivityIdGetResponses,
+    GetApiV1GeneralActivitiesActivityIdGetErrors,
+    ThrowOnError
+  >({ url: '/api/v1/general-activities/{activity_id}', ...options });
+
+/**
+ * Update
+ */
+export const updateApiV1GeneralActivitiesActivityIdPatch = <ThrowOnError extends boolean = false>(
+  options: Options<UpdateApiV1GeneralActivitiesActivityIdPatchData, ThrowOnError>,
+) =>
+  (options.client ?? client).patch<
+    UpdateApiV1GeneralActivitiesActivityIdPatchResponses,
+    UpdateApiV1GeneralActivitiesActivityIdPatchErrors,
+    ThrowOnError
+  >({
+    url: '/api/v1/general-activities/{activity_id}',
     ...options,
     headers: {
       'Content-Type': 'application/json',
