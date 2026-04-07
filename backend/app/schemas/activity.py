@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core import constants
+from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
 
 
@@ -19,6 +20,7 @@ class ActivityInfo(ActivityBase, IdMixin):
 
     club_id: int
     picture_urls: list[str]
+    academic_term: AcademicTermInfo
 
 
 class ActivityCreate(ActivityBase):

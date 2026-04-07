@@ -53,3 +53,14 @@ async def delete_term(
         raise HTTPException(status_code=404, detail="Term not found")
     await service.delete(db_term)
     return AcademicTermInfo.model_validate(db_term)
+
+
+@router.post("/{term_id}/set-current")
+async def set_current_term(
+    term_id: int,
+    service: AcademicTermServiceDep,
+) -> AcademicTermInfo:
+    db_term = await service.get(term_id)
+    if db_term is None:
+        raise HTTPException(status_code=404, detail="Term not found")
+    return AcademicTermInfo.model_validate(await service.set_current(db_term))

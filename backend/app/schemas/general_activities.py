@@ -8,6 +8,7 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
     ParticipationTypeEnum,
 )
+from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
 
 
@@ -26,6 +27,7 @@ class GeneralActivityInfo(GeneralActivityBase, IdMixin):
 
     created_at: datetime
     club_records: list[ClubGeneralActivityInfo]
+    academic_term: AcademicTermInfo
 
 
 class GeneralActivityUpdate(BaseModel):

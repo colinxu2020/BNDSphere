@@ -2,11 +2,12 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func, select
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
+from app.models import AcademicTerm
 
 if TYPE_CHECKING:
     from app.models import Club
@@ -49,6 +50,15 @@ class GeneralActivity(Base):
         cascade="all, delete-orphan",
         lazy="selectin",
     )
+
+    academic_term_id: Mapped[int] = mapped_column(
+        ForeignKey("academic_term.id", name="fk_club_gen_act_records_academic_term_id"),
+        default=select(AcademicTerm.id)
+        .where(AcademicTerm.is_current.is_(True))
+        .scalar_subquery(),
+    )
+
+    academic_term: Mapped[AcademicTerm] = relationship(lazy="selectin")
 
 
 class ClubGeneralActivityRecord(Base):
