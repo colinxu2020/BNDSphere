@@ -3,6 +3,7 @@ from fastapi import APIRouter, Depends
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import RoleChecker
 from app.api.v1.admin.academic_terms import router as academic_terms_router
+from app.api.v1.admin.general_activities import router as general_activities_router
 from app.models.user import RoleEnum
 
 router = APIRouter(
@@ -10,4 +11,5 @@ router = APIRouter(
     dependencies=[Depends(RoleChecker([RoleEnum.dev, RoleEnum.admin]))],
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )
-router.include_router(academic_terms_router, prefix="/academic_terms")
+router.include_router(academic_terms_router, prefix="/academic-terms")
+router.include_router(general_activities_router, prefix="/general-activities")

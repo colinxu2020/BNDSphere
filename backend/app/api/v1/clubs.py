@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ClubMemberServiceDep,
+    ClubRoleChecker,
     ClubServiceDep,
     get_current_user,
 )
@@ -72,6 +73,7 @@ async def create_club(
     "/{club_id}",
     response_model=ClubInfo,
     responses=TOKEN_INVALID_RESPONSE,
+    dependencies=[Depends(ClubRoleChecker([ClubMembershipEnum.president]))],
 )
 async def update_club_info(
     club_id: int,
