@@ -14,7 +14,10 @@ from app.services.academic_term import AcademicTermService
 from app.services.activity import ActivityService
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService
-from app.services.general_activities import GenericActivityService
+from app.services.general_activities import (
+    ClubGenericActivityService,
+    GenericActivityService,
+)
 from app.services.user import UserService
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -92,6 +95,10 @@ type AcademicTermServiceDep = Annotated[
 type GeneralActivityServiceDep = Annotated[
     GenericActivityService,
     Depends(ServiceFactory(GenericActivityService)),
+]
+type ClubGeneralActivityServiceDep = Annotated[
+    ClubGenericActivityService,
+    Depends(ServiceFactory(ClubGenericActivityService)),
 ]
 
 

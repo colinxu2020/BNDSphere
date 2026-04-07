@@ -2,7 +2,17 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func, select
+from sqlalchemy import (
+    JSON,
+    Boolean,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    func,
+    select,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
@@ -80,7 +90,7 @@ class ClubGeneralActivityRecord(Base):
         default=AuditStatusEnum.pending,
     )
 
-    proof_files: Mapped[str | None] = mapped_column(Text, default=None)
+    proof_files: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

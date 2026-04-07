@@ -148,13 +148,16 @@ async def leave_club(
     """Leave a club."""
     club = await service.ensure_club_normal(club_id)
 
-    membership = await membership_service.get_by_club_user(club, user)
-    if membership is None or membership == ClubMembershipEnum.left:
+    relationship = await membership_service.get_by_club_user(club, user)
+    if relationship is None or relationship == ClubMembershipEnum.left:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="You are not a member of the club",
         )
-    if membership in {ClubMembershipEnum.vice, ClubMembershipEnum.president}:
+    if relationship.membership in {
+        ClubMembershipEnum.vice,
+        ClubMembershipEnum.president,
+    }:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="You are not allowed to leave the club",
