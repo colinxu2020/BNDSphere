@@ -1,6 +1,6 @@
 from datetime import date
 
-from sqlalchemy import Boolean, Connection, Date, String, event
+from sqlalchemy import Boolean, Connection, Date, Index, String, case, event, inspect
 from sqlalchemy.orm import Mapped, Mapper, mapped_column
 
 from app.core import constants
@@ -24,13 +24,36 @@ class AcademicTerm(Base):
             return f"{start_date.year} - {start_date.year + 1} - 1"
         return f"{start_date.year - 1} - {start_date.year} - 2"
 
+    __table_args__ = (
+        Index(
+            "ix_only_one_current",
+            case(
+                (is_current, True),
+                else_=None,
+            ),
+            unique=True,
+        ),
+    )
+
 
 @event.listens_for(AcademicTerm, "before_insert")
-@event.listens_for(AcademicTerm, "before_update")
-def handle_term_data(
+def handle_term_insert(
     mapper: Mapper,  # noqa: ARG001
     connection: Connection,  # noqa: ARG001
     target: AcademicTerm,
 ) -> None:
     if not target.term_name and target.start_date:
+        target.term_name = AcademicTerm.calc_term_name(target.start_date)
+
+
+@event.listens_for(AcademicTerm, "before_update")
+def handle_term_update(
+    mapper: Mapper,  # noqa: ARG001
+    connection: Connection,  # noqa: ARG001
+    target: AcademicTerm,
+) -> None:
+    state = inspect(target)
+    start_date_changed = state.attrs.start_date.history.has_changes()
+    term_name_changed = state.attrs.term_name.history.has_changes()
+    if start_date_changed and not term_name_changed:
         target.term_name = AcademicTerm.calc_term_name(target.start_date)
