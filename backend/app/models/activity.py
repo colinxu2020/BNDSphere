@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import datetime
-from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Text, select
@@ -14,13 +13,6 @@ from app.models import AcademicTerm
 if TYPE_CHECKING:
     from app.models.club import Club
     from app.models.user import User
-
-
-class ActivityStatusEnum(StrEnum):
-    upcoming = "upcoming"
-    ongoing = "ongoing"
-    completed = "completed"
-    cancelled = "cancelled"
 
 
 class Activity(Base):
