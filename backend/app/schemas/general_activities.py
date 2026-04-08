@@ -61,6 +61,7 @@ class ClubGeneralActivityCreate(BaseModel):
     activity_id: int
     participation_type: ParticipationTypeEnum
     proof_files: list[str] | None = Field(None)
+    requested_score: int
 
 
 class ClubGeneralActivityUpdate(BaseModel):
@@ -69,6 +70,7 @@ class ClubGeneralActivityUpdate(BaseModel):
     activity_id: int
     participation_type: ParticipationTypeEnum
     proof_files: list[str] | None = Field(None)
+    requested_score: int
 
 
 class RecordConditionDetail(BaseModel):

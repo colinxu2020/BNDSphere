@@ -34,6 +34,6 @@ async def business_exception_handler(
     exc: BusinessError,
 ) -> JSONResponse:
     return JSONResponse(
-        status_code=exc.status,
+        status_code=exc.status_code,
         content={"message": exc.message},
     )

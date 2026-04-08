@@ -15,7 +15,7 @@ from app.schemas.general_activities import (
     GeneralActivityUpdate,
 )
 from app.services.base import ServiceBase
-from app.services.errors import BusinessError
+from app.services.errors import BusinessError, ResourceNotFoundError
 
 
 class GeneralActivityService(
@@ -60,21 +60,35 @@ class ClubGeneralActivityService(
             if existing:
                 raise BusinessError(
                     message="the club already participate in the activity",
-                    status=409,
+                    status_code=409,
                 )
             return await self.create(obj_in, club_id=club_id)
         except IntegrityError:
             raise BusinessError(
                 message="database conflict",
-                status=409,
+                status_code=409,
             ) from None
         except OperationalError:
             raise BusinessError(
                 message="database cannot respond",
-                status=503,
+                status_code=503,
             ) from None
 
     async def get_by_club(self, club: Club) -> Sequence[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)
         result = await self.db.execute(stmt)
         return result.scalars().all()
+
+    async def get_by_club_activity(
+        self,
+        club: Club,
+        activity: GeneralActivity,
+    ) -> ClubGeneralActivityRecord:
+        stmt = select(self.model).where(
+            self.model.club == club,
+            self.model.activity_id == activity.id,
+        )
+        result = (await self.db.execute(stmt)).scalar_one_or_none()
+        if result is None:
+            raise ResourceNotFoundError("record not found")
+        return result

@@ -1,17 +1,20 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 
 from app.api.dependencies import (
     ClubGeneralActivityServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
+    GeneralActivityServiceDep,
 )
 from app.models.clubmember import ClubMembershipEnum
+from app.models.general_activity import AuditStatusEnum
 from app.models.user import User
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityInfo,
+    ClubGeneralActivityUpdate,
 )
 
 router = APIRouter(tags=["club_general_activities"])
@@ -47,10 +50,43 @@ async def create_club_general_activities(
     club_id: int,
     obj: ClubGeneralActivityCreate,
     club_service: ClubServiceDep,
+    general_activity_service: ClubGeneralActivityServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> ClubGeneralActivityInfo:
     club = await club_service.ensure_club_normal(club_id)
+    activity = await general_activity_service.get(obj.activity_id)
+    if activity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="general activity not found",
+        )
+
     return await club_general_activity_service.create_club_general_activity(
         club.id,
         obj,
     )
+
+
+@router.patch("/")
+async def update_club_general_activities(
+    club_id: int,
+    obj: ClubGeneralActivityUpdate,
+    club_service: ClubServiceDep,
+    general_activity_service: GeneralActivityServiceDep,
+    club_general_activity_service: ClubGeneralActivityServiceDep,
+) -> ClubGeneralActivityInfo:
+    club = await club_service.ensure_club_normal(club_id)
+    activity = await general_activity_service.get(obj.activity_id)
+    if activity is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="general activity not found",
+        )
+    record = await club_general_activity_service.get_by_club_activity(club, activity)
+    if record.audit_status != AuditStatusEnum.pending:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="the record request was reviewed",
+        )
+
+    return await club_general_activity_service.update(record, obj)
