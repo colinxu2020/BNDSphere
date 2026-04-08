@@ -15,8 +15,8 @@ from app.services.activity import ActivityService
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService
 from app.services.general_activities import (
-    ClubGenericActivityService,
-    GenericActivityService,
+    ClubGeneralActivityService,
+    GeneralActivityService,
 )
 from app.services.user import UserService
 
@@ -93,12 +93,12 @@ type AcademicTermServiceDep = Annotated[
     Depends(ServiceFactory(AcademicTermService)),
 ]
 type GeneralActivityServiceDep = Annotated[
-    GenericActivityService,
-    Depends(ServiceFactory(GenericActivityService)),
+    GeneralActivityService,
+    Depends(ServiceFactory(GeneralActivityService)),
 ]
 type ClubGeneralActivityServiceDep = Annotated[
-    ClubGenericActivityService,
-    Depends(ServiceFactory(ClubGenericActivityService)),
+    ClubGeneralActivityService,
+    Depends(ServiceFactory(ClubGeneralActivityService)),
 ]
 
 

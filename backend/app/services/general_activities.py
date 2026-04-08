@@ -18,7 +18,7 @@ from app.services.base import ServiceBase
 from app.services.errors import BusinessError
 
 
-class GenericActivityService(
+class GeneralActivityService(
     ServiceBase[GeneralActivity, GeneralActivityCreate, GeneralActivityUpdate],
 ):
     model = GeneralActivity
@@ -37,7 +37,7 @@ class GenericActivityService(
         return result.scalars().all()
 
 
-class ClubGenericActivityService(
+class ClubGeneralActivityService(
     ServiceBase[
         ClubGeneralActivityRecord,
         ClubGeneralActivityCreate,
