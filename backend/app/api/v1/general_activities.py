@@ -1,10 +1,11 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 
 from app.api.dependencies import GeneralActivityServiceDep
 from app.models.general_activity import GeneralActivityLevelEnum
 from app.schemas.general_activities import (
     GeneralActivityInfo,
 )
+from app.services.errors import GeneralActivityNotFoundError
 
 router = APIRouter(tags=["general activities"])
 
@@ -16,7 +17,7 @@ async def get(
 ) -> GeneralActivityInfo:
     activity = await service.get(activity_id)
     if activity is None:
-        raise HTTPException(status_code=404, detail="Activity not found")
+        raise GeneralActivityNotFoundError(activity_id) from None
     return GeneralActivityInfo.model_validate(activity)
 
 

@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
@@ -13,6 +13,7 @@ from app.models.activity import Activity
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.activity import ActivityCreate, ActivityInfo
+from app.services.errors import ClubNotFoundError
 
 router = APIRouter(tags=["club_activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
@@ -34,10 +35,7 @@ async def get_club_activities(
 ) -> Page[Activity]:
     club = await club_service.get(club_id)
     if club is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Club not found",
-        )
+        raise ClubNotFoundError(club_id) from None
     return await service.get_club_activities(club, offset, limit)
 
 

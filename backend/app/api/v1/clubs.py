@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
@@ -14,7 +14,13 @@ from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubInfo, ClubMemberInfo, ClubUpdate
-from app.services.errors import DuplicateClubNameError
+from app.services.errors import (
+    ClubNotFoundError,
+    DuplicateClubNameError,
+    DuplicateResourceError,
+    ResourceForbiddenError,
+    ResourceNotFoundError,
+)
 
 router = APIRouter(tags=["clubs"])
 
@@ -26,13 +32,7 @@ router = APIRouter(tags=["clubs"])
 )
 async def get_club_info(club_id: int, service: ClubServiceDep) -> Club:
     """Get information of a club by club id."""
-    club = await service.get(club_id)
-    if club is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Club with id {club_id} not found",
-        )
-    return club
+    return await service.ensure_club_normal(club_id)
 
 
 @router.post(
@@ -61,9 +61,9 @@ async def create_club(
     try:
         club = await service.create(club)
     except DuplicateClubNameError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail=f"Club with name {club.name} already exists",
+        raise DuplicateResourceError(
+            message_key="error.club.duplicate_club_name",
+            error_code="DUPLICAE_CLUB_NAME",
         ) from None
     await membership_service.set_relationship(club, user, ClubMembershipEnum.president)
     return club
@@ -83,10 +83,7 @@ async def update_club_info(
     """Get information of a club by club id."""
     club = await service.get(club_id)
     if club is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Club with id {club_id} not found",
-        )
+        raise ClubNotFoundError(club_id) from None
     return await service.update(club, club_update)
 
 
@@ -119,10 +116,10 @@ async def join_club(
     club = await service.ensure_club_normal(club_id)
     relationship = await membership_service.get_by_club_user(club, user)
     if relationship and relationship.membership != ClubMembershipEnum.left:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="you have already applied to join the club",
-        )
+        raise DuplicateResourceError(
+            message_key="error.club.duplicate_join_request",
+            error_code="DUPLICAE_JOIN_REQUEST",
+        ) from None
     return await membership_service.set_relationship(
         club,
         user,
@@ -145,18 +142,18 @@ async def leave_club(
 
     relationship = await membership_service.get_by_club_user(club, user)
     if relationship is None or relationship == ClubMembershipEnum.left:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="You are not a member of the club",
-        )
+        raise ResourceNotFoundError(
+            message_key="error.club.is_not_member",
+            error_code="IS_NOT_MEMBER",
+        ) from None
     if relationship.membership in {
         ClubMembershipEnum.vice,
         ClubMembershipEnum.president,
     }:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="You are not allowed to leave the club",
-        )
+        raise ResourceForbiddenError(
+            message_key="error.club.not_allowed_leave",
+            error_code="NOT_ALLOWED_LEAVE_CLUB",
+        ) from None
 
     await membership_service.set_relationship(
         club,

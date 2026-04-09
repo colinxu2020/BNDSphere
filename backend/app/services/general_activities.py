@@ -15,7 +15,11 @@ from app.schemas.general_activities import (
     GeneralActivityUpdate,
 )
 from app.services.base import ServiceBase
-from app.services.errors import BusinessError, ResourceNotFoundError
+from app.services.errors import (
+    BusinessError,
+    DuplicateResourceError,
+    GeneralActivityNotFoundError,
+)
 
 
 class GeneralActivityService(
@@ -58,20 +62,26 @@ class ClubGeneralActivityService(
             )
             existing = (await self.db.execute(stmt)).scalar_one_or_none()
             if existing:
-                raise BusinessError(
-                    message="the club already participate in the activity",
-                    status_code=409,
+                raise DuplicateResourceError(
+                    message_key="error.general_activity.club_requested",
+                    error_code="DUPLICATE_CLUB_REQUESTED",
+                    details={
+                        "club_id": club_id,
+                        "activity_id": obj_in.activity_id,
+                    },
                 )
             return await self.create(obj_in, club_id=club_id)
         except IntegrityError:
             raise BusinessError(
-                message="database conflict",
+                message_key="error.database.conflict",
                 status_code=409,
+                error_code="DATABASE_CONFLICT",
             ) from None
         except OperationalError:
             raise BusinessError(
-                message="database cannot respond",
+                message_key="error.database.unavailable",
                 status_code=503,
+                error_code="DATABASE_UNAVAILABLE",
             ) from None
 
     async def get_by_club(self, club: Club) -> Sequence[ClubGeneralActivityRecord]:
@@ -90,5 +100,5 @@ class ClubGeneralActivityService(
         )
         result = (await self.db.execute(stmt)).scalar_one_or_none()
         if result is None:
-            raise ResourceNotFoundError("record not found")
+            raise GeneralActivityNotFoundError(activity.id) from None
         return result

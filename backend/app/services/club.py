@@ -12,9 +12,9 @@ from app.models.user import User
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.services.base import ServiceBase
 from app.services.errors import (
-    ClubNotActiveError,
     ClubNotFoundError,
     DuplicateClubNameError,
+    ResourceForbiddenError,
 )
 from app.utils.crud_utils import apply_fulltext_search, get_dialect, get_upsert_insert
 
@@ -31,9 +31,13 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
     async def ensure_club_normal(self, club_id: int) -> Club:
         club = await self.get(club_id)
         if club is None:
-            raise ClubNotFoundError
+            raise ClubNotFoundError(club_id) from None
         if club.status != ClubStatusEnum.normal:
-            raise ClubNotActiveError
+            raise ResourceForbiddenError(
+                "error.club.not_active",
+                "CLUB_NOT_ACTIVE",
+                {"club_id": club_id},
+            ) from None
         return club
 
     async def get_by_name(self, name: str) -> Sequence[Club]:
