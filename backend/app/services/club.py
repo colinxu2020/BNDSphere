@@ -1,14 +1,15 @@
 from collections.abc import Sequence
 from typing import cast
 
-from sqlalchemy import func, select
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
-from app.schemas.generic import PageResponse
 from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotActiveError,
@@ -41,11 +42,10 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
 
     async def get_multi(
         self,
-        offset: int,
-        limit: int,
         search: str | None = None,
         category: ClubCategoryEnum | None = None,
-    ) -> PageResponse[Sequence[Club]]:
+        status: ClubStatusEnum | None = None,
+    ) -> Page[Club]:
         stmt = select(Club)
         if search is not None and search.strip():
             dialect = get_dialect(self.db)
@@ -66,16 +66,10 @@ class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
 
         if category is not None:
             stmt = stmt.where(Club.category == category)
-        stmt = stmt.where(Club.status == ClubStatusEnum.normal)
+        if status is not None:
+            stmt = stmt.where(Club.status == status)
 
-        count_stmt = select(func.count()).select_from(stmt.order_by(None).subquery())
-        count_result = await self.db.execute(count_stmt)
-        count = count_result.scalar_one()
-
-        stmt = stmt.offset(offset).limit(limit)
-        result = await self.db.execute(stmt)
-
-        return PageResponse(total=count, items=result.scalars().all())
+        return await apaginate(self.db, stmt)
 
 
 class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpdate]):

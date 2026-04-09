@@ -1,6 +1,8 @@
 from fastapi import APIRouter, HTTPException
+from fastapi_pagination import Page
 
 from app.api.dependencies import AcademicTermServiceDep
+from app.models import AcademicTerm
 from app.schemas.academic_terms import (
     AcademicTermCreate,
     AcademicTermInfo,
@@ -10,9 +12,9 @@ from app.schemas.academic_terms import (
 router = APIRouter(tags=["Academic Terms"])
 
 
-@router.get("/")
-async def list_terms(service: AcademicTermServiceDep) -> list[AcademicTermInfo]:
-    return [AcademicTermInfo.model_validate(x) for x in await service.get_multi()]
+@router.get("/", response_model=Page[AcademicTermInfo])
+async def list_terms(service: AcademicTermServiceDep) -> Page[AcademicTerm]:
+    return await service.get_multi()
 
 
 @router.post("/")

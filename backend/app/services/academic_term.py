@@ -1,6 +1,7 @@
-from collections.abc import Sequence
 from typing import override
 
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select, update
 
 from app.models.academic_term import AcademicTerm
@@ -20,10 +21,9 @@ class AcademicTermService(
             .values(is_current=False),
         )
 
-    async def get_multi(self) -> Sequence[AcademicTerm]:
+    async def get_multi(self) -> Page[AcademicTerm]:
         stmt = select(AcademicTerm).order_by(AcademicTerm.start_date.desc())
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+        return await apaginate(self.db, stmt)
 
     async def set_current(self, term: AcademicTerm) -> AcademicTerm:
         await self._clear_current_term()

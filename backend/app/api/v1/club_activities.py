@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -12,7 +13,6 @@ from app.models.activity import Activity
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.activity import ActivityCreate, ActivityInfo
-from app.schemas.generic import PageResponse
 
 router = APIRouter(tags=["club_activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
@@ -23,6 +23,7 @@ ClubRoleCheckerRequiresPresidentVice = Annotated[
 
 @router.get(
     "/",
+    response_model=Page[ActivityInfo],
 )
 async def get_club_activities(
     club_id: int,
@@ -30,18 +31,14 @@ async def get_club_activities(
     limit: int,
     service: ActivityServiceDep,
     club_service: ClubServiceDep,
-) -> PageResponse[ActivityInfo]:
+) -> Page[Activity]:
     club = await club_service.get(club_id)
     if club is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Club not found",
         )
-    result = await service.get_club_activities(club, offset, limit)
-    return PageResponse(
-        total=result.total,
-        items=[ActivityInfo.model_validate(c) for c in result.items],
-    )
+    return await service.get_club_activities(club, offset, limit)
 
 
 @router.post(

@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi_pagination import add_pagination
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 
@@ -26,6 +27,7 @@ app.add_middleware(
 app.debug = settings.debug
 
 app.include_router(v1_router, prefix="/api/v1")
+add_pagination(app)
 
 
 @app.exception_handler(BusinessError)

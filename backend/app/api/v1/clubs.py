@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi_pagination import Page
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -9,11 +10,10 @@ from app.api.dependencies import (
     ClubServiceDep,
     get_current_user,
 )
-from app.models.club import Club, ClubCategoryEnum
+from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubInfo, ClubMemberInfo, ClubUpdate
-from app.schemas.generic import PageResponse
 from app.services.errors import DuplicateClubNameError
 
 router = APIRouter(tags=["clubs"])
@@ -92,21 +92,16 @@ async def update_club_info(
 
 @router.get(
     "/",
-    response_model=PageResponse[ClubInfo],
+    response_model=Page[ClubInfo],
 )
 async def list_clubs(
-    offset: int,
-    limit: int,
     service: ClubServiceDep,
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
-) -> PageResponse[ClubInfo]:
+    status: ClubStatusEnum | None = None,
+) -> Page[Club]:
     """Search Clubs."""
-    result = await service.get_multi(offset, limit, search, category)
-    return PageResponse(
-        total=result.total,
-        items=[ClubInfo.model_validate(c) for c in result.items],
-    )
+    return await service.get_multi(search, category, status)
 
 
 @router.post(
