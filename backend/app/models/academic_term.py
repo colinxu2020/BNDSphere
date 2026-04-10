@@ -1,7 +1,17 @@
 from datetime import date
 
-from sqlalchemy import Boolean, Connection, Date, Index, String, case, event, inspect
-from sqlalchemy.orm import Mapped, Mapper, mapped_column
+from sqlalchemy import (
+    Boolean,
+    Connection,
+    Date,
+    Index,
+    String,
+    case,
+    event,
+    inspect,
+    select,
+)
+from sqlalchemy.orm import Mapped, Mapper, declared_attr, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
@@ -57,3 +67,20 @@ def handle_term_update(
     term_name_changed = state.attrs.term_name.history.has_changes()
     if start_date_changed and not term_name_changed:
         target.term_name = AcademicTerm.calc_term_name(target.start_date)
+
+
+class AcademicTermMixin:
+    @declared_attr
+    @classmethod
+    def academic_term_id(cls) -> Mapped[int]:
+        return mapped_column(
+            String,
+            default=select(AcademicTerm.id)
+            .where(AcademicTerm.is_current.is_(True))
+            .scalar_subquery(),
+        )
+
+    @declared_attr
+    @classmethod
+    def academic_term(cls) -> Mapped[AcademicTerm]:
+        return relationship(AcademicTerm, lazy="selectin")

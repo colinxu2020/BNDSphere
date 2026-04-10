@@ -3,8 +3,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, String, Text, func
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.core.database import Base
 from app.utils.custom_types import HttpUrlType
@@ -20,6 +20,12 @@ class RoleEnum(StrEnum):
     union_of_associations = "union of associations"
     admin = "admin"
     dev = "dev"
+
+
+class AuditStatusEnum(StrEnum):
+    pending = "pending"
+    approved = "approved"
+    rejected = "rejected"
 
 
 class User(Base):
@@ -55,3 +61,22 @@ class User(Base):
         back_populates="participators",
         secondary="activity_participators",
     )
+
+
+class AuditMixin:
+    audit_status: Mapped[AuditStatusEnum] = mapped_column(
+        default=AuditStatusEnum.pending,
+    )
+
+    @declared_attr
+    @classmethod
+    def auditor_id(cls) -> Mapped[int | None]:
+        return mapped_column(
+            ForeignKey("users.id"),
+            default=None,
+        )
+
+    @declared_attr
+    @classmethod
+    def auditor(cls) -> Mapped[User | None]:
+        return relationship("User")

@@ -11,16 +11,16 @@ from sqlalchemy import (
     String,
     Text,
     func,
-    select,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
-from app.models import AcademicTerm
+from app.models.academic_term import AcademicTermMixin
+from app.models.user import AuditMixin
 
 if TYPE_CHECKING:
-    from app.models import Club, User
+    from app.models import Club
 
 
 class GeneralActivityLevelEnum(StrEnum):
@@ -34,13 +34,7 @@ class ParticipationTypeEnum(StrEnum):
     organize = "organize"
 
 
-class AuditStatusEnum(StrEnum):
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
-
-
-class GeneralActivity(Base):
+class GeneralActivity(Base, AcademicTermMixin):
     __tablename__ = "general_activities"
 
     name: Mapped[str] = mapped_column(
@@ -61,17 +55,8 @@ class GeneralActivity(Base):
         lazy="selectin",
     )
 
-    academic_term_id: Mapped[int] = mapped_column(
-        ForeignKey("academic_term.id", name="fk_club_gen_act_records_academic_term_id"),
-        default=select(AcademicTerm.id)
-        .where(AcademicTerm.is_current.is_(True))
-        .scalar_subquery(),
-    )
 
-    academic_term: Mapped[AcademicTerm] = relationship(lazy="selectin")
-
-
-class ClubGeneralActivityRecord(Base):
+class ClubGeneralActivityRecord(Base, AuditMixin):
     __tablename__ = "club_general_activity_records"
 
     club_id: Mapped[int] = mapped_column(
@@ -86,13 +71,6 @@ class ClubGeneralActivityRecord(Base):
     participation_type: Mapped[ParticipationTypeEnum] = mapped_column()
     requested_score: Mapped[int] = mapped_column(default=0)
     final_score: Mapped[int] = mapped_column(default=0)
-    audit_status: Mapped[AuditStatusEnum] = mapped_column(
-        default=AuditStatusEnum.pending,
-    )
-    auditor_id: Mapped[int | None] = mapped_column(
-        ForeignKey("user.id", ondelete="RESTRICT"),
-    )
-    auditor: Mapped[User | None] = relationship()
 
     proof_files: Mapped[list[str]] = mapped_column(JSON, default=list)
 
