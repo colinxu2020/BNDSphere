@@ -4,10 +4,10 @@ from pydantic import BaseModel, ConfigDict, Field
 
 from app.core import constants
 from app.models.general_activity import (
-    AuditStatusEnum,
     GeneralActivityLevelEnum,
     ParticipationTypeEnum,
 )
+from app.models.user import AuditStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
 

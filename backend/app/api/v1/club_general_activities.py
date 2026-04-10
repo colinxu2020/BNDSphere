@@ -9,8 +9,7 @@ from app.api.dependencies import (
     GeneralActivityServiceDep,
 )
 from app.models.clubmember import ClubMembershipEnum
-from app.models.general_activity import AuditStatusEnum
-from app.models.user import User
+from app.models.user import AuditStatusEnum, User
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityInfo,

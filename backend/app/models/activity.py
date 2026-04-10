@@ -3,19 +3,19 @@ from __future__ import annotations
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Text, select
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
-from app.models import AcademicTerm
+from app.models.academic_term import AcademicTermMixin
 
 if TYPE_CHECKING:
     from app.models.club import Club
     from app.models.user import User
 
 
-class Activity(Base):
+class Activity(Base, AcademicTermMixin):
     __tablename__ = "activities"
 
     name: Mapped[str] = mapped_column(
@@ -38,15 +38,6 @@ class Activity(Base):
         back_populates="participated_activities",
         secondary="activity_participators",
     )
-
-    academic_term_id: Mapped[int] = mapped_column(
-        ForeignKey("academic_term.id", name="fk_club_gen_act_records_academic_term_id"),
-        default=select(AcademicTerm.id)
-        .where(AcademicTerm.is_current.is_(True))
-        .scalar_subquery(),
-    )
-
-    academic_term: Mapped[AcademicTerm] = relationship(lazy="selectin")
 
     __table_args__ = (
         CheckConstraint("end_time > start_time", name="check_start_end_time"),
