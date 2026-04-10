@@ -7,7 +7,9 @@ from app.core.security import get_password_hash, verify_password
 from app.models.user import User
 from app.schemas.user import UserCreate, UserUpdate
 from app.services.base import ServiceBase
-from app.services.errors import DuplicateEmailError, DuplicateUsernameError
+from app.services.errors import (
+    DuplicateResourceError,
+)
 
 
 class UserService(ServiceBase[User, UserCreate, UserUpdate]):
@@ -39,8 +41,12 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
             self.db.add(db_obj)
             await self.db.flush()
             await self.db.refresh(db_obj)
-        except IntegrityError as exc:
-            raise DuplicateUsernameError from exc
+        except IntegrityError:
+            raise DuplicateResourceError(
+                message_key="error.user.duplicate_username",
+                error_code="DUPLICATE_USERNAME",
+                details={"username": obj_in.username},
+            ) from None
         else:
             return db_obj
 
@@ -48,5 +54,9 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
     async def update(self, db_obj: User, obj_in: UserUpdate) -> User:
         try:
             return await super().update(db_obj, obj_in)
-        except IntegrityError as exc:
-            raise DuplicateEmailError from exc
+        except IntegrityError:
+            raise DuplicateResourceError(
+                message_key="error.user.duplicate_email",
+                error_code="DUPLICATE_EMAIL",
+                details={"email": obj_in.email},
+            ) from None

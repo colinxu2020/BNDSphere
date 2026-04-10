@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import UserServiceDep, get_current_user
 from app.models.user import User
 from app.schemas.user import UserInfo, UserUpdate
-from app.services.errors import DuplicateEmailError
+from app.services.errors import ResourceNotFoundError
 
 router = APIRouter(tags=["users"])
 
@@ -31,10 +31,11 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> User:
     """Get public profile of a user by user id."""
     user = await service.get(user_id)
     if user is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User {user_id} not found.",
-        )
+        raise ResourceNotFoundError(
+            message_key="error.user.not_found",
+            error_code="USER_NOT_FOUND",
+            details={"user_id": user_id},
+        ) from None
     return user
 
 
@@ -60,7 +61,4 @@ async def update_user_profile(
 
     Note that username cannot be changed, and email must be unique.
     """
-    try:
-        return await service.update(current_user, update)
-    except DuplicateEmailError:
-        raise HTTPException(status_code=409, detail="Email already exists") from None
+    return await service.update(current_user, update)

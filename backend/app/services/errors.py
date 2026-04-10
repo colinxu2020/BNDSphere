@@ -5,12 +5,28 @@ class BusinessError(Exception):
         status_code: int,
         error_code: str,
         details: dict | None = None,
+        headers: dict[str, str] | None = None,
     ) -> None:
         self.message_key = message_key
         self.status_code = status_code
         self.error_code = error_code
-        self.details = details
+        self.details = details or {}
+        self.headers = headers
         super().__init__(error_code)
+
+
+class AuthenticationError(BusinessError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+    ) -> None:
+        super().__init__(
+            message_key,
+            401,
+            error_code,
+            headers={"WWW-Authenticate": "Bearer"},
+        )
 
 
 class ResourceNotFoundError(BusinessError):
@@ -38,6 +54,15 @@ class GeneralActivityNotFoundError(ResourceNotFoundError):
             "error.general_activity.not_found",
             "GENERAL_ACTIVITY_NOT_FOUND",
             {"general_activity_id": activity_id},
+        )
+
+
+class AcademicTermNotFoundError(ResourceNotFoundError):
+    def __init__(self, term_id: int) -> None:
+        super().__init__(
+            "error.academic_term.not_found",
+            "ACADEMIC_TERM_NOT_FOUND",
+            {"academic_term_id": term_id},
         )
 
 

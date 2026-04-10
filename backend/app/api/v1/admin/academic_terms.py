@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from fastapi_pagination import Page
 
 from app.api.dependencies import AcademicTermServiceDep
@@ -8,6 +8,7 @@ from app.schemas.academic_terms import (
     AcademicTermInfo,
     AcademicTermUpdate,
 )
+from app.services.errors import AcademicTermNotFoundError
 
 router = APIRouter(tags=["Academic Terms"])
 
@@ -29,7 +30,7 @@ async def create_term(
 async def get_term(term_id: int, service: AcademicTermServiceDep) -> AcademicTermInfo:
     result = await service.get(term_id)
     if result is None:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise AcademicTermNotFoundError(term_id)
     return AcademicTermInfo.model_validate(result)
 
 
@@ -41,7 +42,7 @@ async def update_term(
 ) -> AcademicTermInfo:
     db_term = await service.get(term_id)
     if db_term is None:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise AcademicTermNotFoundError(term_id)
     return AcademicTermInfo.model_validate(await service.update(db_term, term))
 
 
@@ -52,7 +53,7 @@ async def delete_term(
 ) -> AcademicTermInfo:
     db_term = await service.get(term_id)
     if db_term is None:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise AcademicTermNotFoundError(term_id)
     await service.delete(db_term)
     return AcademicTermInfo.model_validate(db_term)
 
@@ -64,5 +65,5 @@ async def set_current_term(
 ) -> AcademicTermInfo:
     db_term = await service.get(term_id)
     if db_term is None:
-        raise HTTPException(status_code=404, detail="Term not found")
+        raise AcademicTermNotFoundError(term_id)
     return AcademicTermInfo.model_validate(await service.set_current(db_term))

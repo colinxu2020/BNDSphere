@@ -1,7 +1,6 @@
 from collections.abc import AsyncGenerator
 from typing import Annotated
 
-from fastapi import HTTPException, status
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -14,6 +13,11 @@ from app.services.academic_term import AcademicTermService
 from app.services.activity import ActivityService
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService
+from app.services.errors import (
+    AuthenticationError,
+    ClubNotFoundError,
+    ResourceForbiddenError,
+)
 from app.services.general_activities import (
     ClubGeneralActivityService,
     GeneralActivityService,
@@ -37,10 +41,9 @@ async def get_current_user(
     token: Annotated[str, Depends(oauth2_schema)],
     db: Annotated[AsyncSession, Depends(get_db)],
 ) -> User:
-    exc = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Token is invalid or expired",
-        headers={"WWW-Authenticate": "Bearer"},
+    exc = AuthenticationError(
+        "error.auth.token_invalid",
+        "AUTH_TOKEN_INVALID",
     )
     try:
         payload = verify_access_token(token)
@@ -63,10 +66,10 @@ class RoleChecker:
 
     async def __call__(self, user: Annotated[User, Depends(get_current_user)]) -> User:
         if user.role not in self.allowed_roles and user.role != RoleEnum.dev:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail="Permission denied",
-            )
+            raise ResourceForbiddenError(
+                "error.role.not_allowed",
+                "ROLE_NOT_ALLOWED",
+            ) from None
         return user
 
 
@@ -115,16 +118,13 @@ class ClubRoleChecker:
     ) -> User:
         club = await club_service.get(club_id)
         if club is None:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Club not found",
-            )
+            raise ClubNotFoundError(club_id) from None
         if user.role in (RoleEnum.dev, RoleEnum.admin):
             return user
         membership = await club_member_service.get_by_club_user(club, user)
         if membership is not None and membership.membership in self.allowed_roles:
             return user
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Permission denied",
-        )
+        raise ResourceForbiddenError(
+            "error.club.role_not_allowed",
+            "CLUB_ROLE_NOT_ALLOWED",
+        ) from None

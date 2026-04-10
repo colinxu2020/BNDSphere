@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends
 from fastapi.security import OAuth2PasswordRequestForm
 from starlette import status
 
@@ -8,7 +8,7 @@ from app.api.dependencies import UserServiceDep
 from app.core.security import create_access_token
 from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserInfo
-from app.services.errors import DuplicateUsernameError
+from app.services.errors import AuthenticationError
 
 router = APIRouter(tags=["auth"])
 
@@ -28,13 +28,7 @@ router = APIRouter(tags=["auth"])
 )
 async def register(user: UserCreate, service: UserServiceDep) -> User:
     """Register a new user. Username must be unique."""
-    try:
-        return await service.create(user)
-    except DuplicateUsernameError:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username already exists",
-        ) from None
+    return await service.create(user)
 
 
 @router.post(
@@ -61,10 +55,9 @@ async def login(
     """
     user = await service.authenticate(form_data.username, form_data.password)
     if not user:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Incorrect username or password",
-            headers={"WWW-Authenticate": "Bearer"},
+        raise AuthenticationError(
+            "error.auth.incorrect_user_passwd",
+            "INCORRECT_USER_PASSWD",
         )
     return Token(
         access_token=create_access_token({"sub": str(user.id)}),
