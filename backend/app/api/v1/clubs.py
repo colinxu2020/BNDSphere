@@ -95,10 +95,9 @@ async def list_clubs(
     service: ClubServiceDep,
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
-    status: ClubStatusEnum | None = None,
 ) -> Page[Club]:
     """Search Clubs."""
-    return await service.get_multi(search, category, status)
+    return await service.get_multi(search, category, status=ClubStatusEnum.normal)
 
 
 @router.post(
