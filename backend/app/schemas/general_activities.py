@@ -46,6 +46,7 @@ class ClubGeneralActivityBase(BaseModel):
     requested_score: int
     participation_type: ParticipationTypeEnum
     met_conditions: list[RecordConditionDetail]
+    auditor_id: int
 
 
 class ClubGeneralActivityInfo(ClubGeneralActivityBase, IdMixin):

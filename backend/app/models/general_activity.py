@@ -20,7 +20,7 @@ from app.core.database import Base
 from app.models import AcademicTerm
 
 if TYPE_CHECKING:
-    from app.models import Club
+    from app.models import Club, User
 
 
 class GeneralActivityLevelEnum(StrEnum):
@@ -89,6 +89,10 @@ class ClubGeneralActivityRecord(Base):
     audit_status: Mapped[AuditStatusEnum] = mapped_column(
         default=AuditStatusEnum.pending,
     )
+    auditor_id: Mapped[int | None] = mapped_column(
+        ForeignKey("user.id", ondelete="RESTRICT"),
+    )
+    auditor: Mapped[User | None] = relationship()
 
     proof_files: Mapped[list[str]] = mapped_column(JSON, default=list)
 
