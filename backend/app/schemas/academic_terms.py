@@ -3,9 +3,10 @@ from datetime import date
 from pydantic import BaseModel, ConfigDict, Field
 
 from app.core import constants
+from app.schemas.generic import IdMixin
 
 
-class AcademicTermInfo(BaseModel):
+class AcademicTermInfo(BaseModel, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     term_name: str = Field(max_length=constants.ACADEMIC_TERM_MAX_LENGTH)
