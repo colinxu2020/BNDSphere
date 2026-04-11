@@ -1,8 +1,8 @@
 from fastapi import APIRouter
 from fastapi_pagination import Page
+from starlette.status import HTTP_201_CREATED
 
 from app.api.dependencies import AcademicTermServiceDep
-from app.models import AcademicTerm
 from app.schemas.academic_terms import (
     AcademicTermCreate,
     AcademicTermInfo,
@@ -13,12 +13,12 @@ from app.services.errors import AcademicTermNotFoundError
 router = APIRouter(tags=["Academic Terms"])
 
 
-@router.get("/", response_model=Page[AcademicTermInfo])
-async def list_terms(service: AcademicTermServiceDep) -> Page[AcademicTerm]:
-    return await service.get_multi()
+@router.get("/")
+async def list_terms(service: AcademicTermServiceDep) -> Page[AcademicTermInfo]:
+    return Page[AcademicTermInfo].model_validate(await service.get_multi())
 
 
-@router.post("/")
+@router.post("/", status_code=HTTP_201_CREATED)
 async def create_term(
     term: AcademicTermCreate,
     service: AcademicTermServiceDep,

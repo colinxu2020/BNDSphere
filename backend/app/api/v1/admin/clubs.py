@@ -4,6 +4,7 @@ from app.api.dependencies import ClubServiceDep
 from app.models.club import Club
 from app.schemas.admin.club import AdminClubUpdate
 from app.schemas.club import ClubInfo
+from app.services.errors import ClubNotFoundError
 
 router = APIRouter(tags=["clubs"])
 
@@ -17,5 +18,7 @@ async def update_club_info(
     obj_in: AdminClubUpdate,
     club_service: ClubServiceDep,
 ) -> Club:
-    club = await club_service.ensure_club_normal(club_id)
+    club = await club_service.get(club_id)
+    if club is None:
+        raise ClubNotFoundError(club_id) from None
     return await club_service.update(club, obj_in)

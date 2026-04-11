@@ -8,7 +8,6 @@ from app.api.dependencies import (
     StarLevelServiceDep,
 )
 from app.models.clubmember import ClubMembershipEnum
-from app.models.star_level import StarLevelApplication
 from app.schemas.star_level import StarLevelApplicationCreate, StarLevelApplicationInfo
 from app.services.errors import ClubNotFoundError
 
@@ -17,22 +16,22 @@ router = APIRouter(tags=["Club Star Level"])
 
 @router.get(
     "/",
-    response_model=Page[StarLevelApplicationInfo],
 )
 async def get_club_applications(
     club_id: int,
     service: StarLevelServiceDep,
     club_service: ClubServiceDep,
-) -> Page[StarLevelApplication]:
+) -> Page[StarLevelApplicationInfo]:
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
-    return await service.list_by_club(club)
+    return Page[StarLevelApplicationInfo].model_validate(
+        await service.list_by_club(club),
+    )
 
 
 @router.post(
     "/",
-    response_model=StarLevelApplicationInfo,
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
@@ -45,5 +44,7 @@ async def create_club_activity(
     club_id: int,
     request: StarLevelApplicationCreate,
     service: StarLevelServiceDep,
-) -> StarLevelApplication:
-    return await service.create(request, club_id=club_id)
+) -> StarLevelApplicationInfo:
+    return StarLevelApplicationInfo.model_validate(
+        await service.create(request, club_id=club_id),
+    )

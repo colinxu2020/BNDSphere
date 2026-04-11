@@ -1,7 +1,7 @@
-from typing import Annotated
-
 from fastapi import APIRouter, Depends, status
+from fastapi_pagination import Page
 
+from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ClubGeneralActivityServiceDep,
     ClubRoleChecker,
@@ -9,7 +9,7 @@ from app.api.dependencies import (
     GeneralActivityServiceDep,
 )
 from app.models.clubmember import ClubMembershipEnum
-from app.models.user import AuditStatusEnum, User
+from app.models.user import AuditStatusEnum
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityInfo,
@@ -20,11 +20,7 @@ from app.services.errors import (
     ResourceForbiddenError,
 )
 
-router = APIRouter(tags=["club_general_activities"])
-ClubRoleCheckerRequiresPresidentVice = Annotated[
-    User,
-    Depends(ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president])),
-]
+router = APIRouter(tags=["Club General Activities"])
 
 
 @router.get("/")
@@ -32,12 +28,11 @@ async def get_club_general_activities(
     club_id: int,
     club_service: ClubServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
-) -> list[ClubGeneralActivityInfo]:
+) -> Page[ClubGeneralActivityInfo]:
     club = await club_service.ensure_club_normal(club_id)
-    return [
-        ClubGeneralActivityInfo.model_validate(c)
-        for c in await club_general_activity_service.get_by_club(club)
-    ]
+    return Page[ClubGeneralActivityInfo].model_validate(
+        await club_general_activity_service.get_by_club(club),
+    )
 
 
 @router.post(
@@ -48,6 +43,7 @@ async def get_club_general_activities(
             ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
         ),
     ],
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def create_club_general_activities(
     club_id: int,
@@ -61,13 +57,23 @@ async def create_club_general_activities(
     if activity is None:
         raise GeneralActivityNotFoundError(obj.activity_id) from None
 
-    return await club_general_activity_service.create_club_general_activity(
-        club.id,
-        obj,
+    return ClubGeneralActivityInfo.model_validate(
+        await club_general_activity_service.create_club_general_activity(
+            obj,
+            club.id,
+        ),
     )
 
 
-@router.patch("/")
+@router.patch(
+    "/",
+    dependencies=[
+        Depends(
+            ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
+        ),
+    ],
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
 async def update_club_general_activities(
     club_id: int,
     obj: ClubGeneralActivityUpdate,
@@ -90,4 +96,6 @@ async def update_club_general_activities(
             },
         ) from None
 
-    return await club_general_activity_service.update(record, obj)
+    return ClubGeneralActivityInfo.model_validate(
+        await club_general_activity_service.update(record, obj),
+    )

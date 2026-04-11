@@ -1,5 +1,5 @@
-from collections.abc import Sequence
-
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 
@@ -31,14 +31,13 @@ class GeneralActivityService(
         self,
         search: str | None = None,
         level: GeneralActivityLevelEnum | None = None,
-    ) -> Sequence[GeneralActivity]:
+    ) -> Page[GeneralActivity]:
         stmt = select(self.model).order_by(GeneralActivity.created_at.desc())
         if level is not None:
             stmt = stmt.where(self.model.level == level)
         if search is not None:
             stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+        return await apaginate(self.db, stmt)
 
 
 class ClubGeneralActivityService(
@@ -84,10 +83,9 @@ class ClubGeneralActivityService(
                 error_code="DATABASE_UNAVAILABLE",
             ) from None
 
-    async def get_by_club(self, club: Club) -> Sequence[ClubGeneralActivityRecord]:
+    async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)
-        result = await self.db.execute(stmt)
-        return result.scalars().all()
+        return await apaginate(self.db, stmt)
 
     async def get_by_club_activity(
         self,

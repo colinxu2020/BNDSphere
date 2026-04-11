@@ -3,14 +3,14 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
-from app.api.common_responses import TOKEN_INVALID_RESPONSE
+from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ClubMemberServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
     get_current_user,
 )
-from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
+from app.models.club import ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
 from app.schemas.club import ClubCreate, ClubInfo, ClubMemberInfo, ClubUpdate
@@ -27,17 +27,15 @@ router = APIRouter(tags=["clubs"])
 
 @router.get(
     "/{club_id}",
-    response_model=ClubInfo,
     responses=TOKEN_INVALID_RESPONSE,
 )
-async def get_club_info(club_id: int, service: ClubServiceDep) -> Club:
+async def get_club_info(club_id: int, service: ClubServiceDep) -> ClubInfo:
     """Get information of a club by club id."""
-    return await service.ensure_club_normal(club_id)
+    return ClubInfo.model_validate(await service.ensure_club_normal(club_id))
 
 
 @router.post(
     "/",
-    response_model=ClubInfo,
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE
     | {
@@ -56,7 +54,7 @@ async def create_club(
     service: ClubServiceDep,
     membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
-) -> Club:
+) -> ClubInfo:
     """Create a new club. Club name must be unique among non-archived clubs."""
     try:
         club = await service.create(club)
@@ -66,44 +64,45 @@ async def create_club(
             error_code="DUPLICAE_CLUB_NAME",
         ) from None
     await membership_service.set_relationship(club, user, ClubMembershipEnum.president)
-    return club
+    return ClubInfo.model_validate(club)
 
 
 @router.patch(
     "/{club_id}",
-    response_model=ClubInfo,
-    responses=TOKEN_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[Depends(ClubRoleChecker([ClubMembershipEnum.president]))],
 )
 async def update_club_info(
     club_id: int,
     club_update: ClubUpdate,
     service: ClubServiceDep,
-) -> Club:
+) -> ClubInfo:
     """Get information of a club by club id."""
     club = await service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
-    return await service.update(club, club_update)
+    return ClubInfo.model_validate(await service.update(club, club_update))
 
 
 @router.get(
     "/",
-    response_model=Page[ClubInfo],
 )
 async def list_clubs(
     service: ClubServiceDep,
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
-) -> Page[Club]:
+) -> Page[ClubInfo]:
     """Search Clubs."""
-    return await service.get_multi(search, category, status=ClubStatusEnum.normal)
+    return Page[ClubInfo].model_validate(
+        await service.get_multi(search, category, status=ClubStatusEnum.normal),
+    )
 
 
 @router.post(
     "/{club_id}/members",
     response_model=ClubMemberInfo,
     status_code=status.HTTP_201_CREATED,
+    responses=TOKEN_INVALID_RESPONSE,
 )
 async def join_club(
     club_id: int,
@@ -119,16 +118,19 @@ async def join_club(
             message_key="error.club.duplicate_join_request",
             error_code="DUPLICAE_JOIN_REQUEST",
         ) from None
-    return await membership_service.set_relationship(
-        club,
-        user,
-        ClubMembershipEnum.pending,
+    return ClubMemberInfo.model_validate(
+        await membership_service.set_relationship(
+            club,
+            user,
+            ClubMembershipEnum.pending,
+        ),
     )
 
 
 @router.delete(
     "/{club_id}/members/me",
     status_code=status.HTTP_204_NO_CONTENT,
+    responses=TOKEN_INVALID_RESPONSE,
 )
 async def leave_club(
     club_id: int,

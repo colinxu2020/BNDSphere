@@ -13,21 +13,19 @@ router = APIRouter(tags=["users"])
 
 @router.get(
     "/me",
-    response_model=UserInfo,
     responses=TOKEN_INVALID_RESPONSE,
 )
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
-) -> User:
+) -> UserInfo:
     """Get public profile of current user."""
-    return current_user
+    return UserInfo.model_validate(current_user)
 
 
 @router.get(
     "/{user_id}",
-    response_model=UserInfo,
 )
-async def get_user_profile(user_id: int, service: UserServiceDep) -> User:
+async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
     """Get public profile of a user by user id."""
     user = await service.get(user_id)
     if user is None:
@@ -36,7 +34,7 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> User:
             error_code="USER_NOT_FOUND",
             details={"user_id": user_id},
         ) from None
-    return user
+    return UserInfo.model_validate(user)
 
 
 @router.patch(
@@ -56,9 +54,9 @@ async def update_user_profile(
     current_user: Annotated[User, Depends(get_current_user)],
     service: UserServiceDep,
     update: UserUpdate,
-) -> User:
+) -> UserInfo:
     """Modify user profile of current user.
 
     Note that username cannot be changed, and email must be unique.
     """
-    return await service.update(current_user, update)
+    return UserInfo.model_validate(await service.update(current_user, update))

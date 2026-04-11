@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from pydantic import BaseModel, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
 from app.core import constants
 from app.models.user import RoleEnum
@@ -16,6 +16,8 @@ class UserCreate(UserBase):
 
 
 class UserInfo(UserBase, IdMixin):
+    model_config = ConfigDict(from_attributes=True)
+
     email: EmailStr | None = Field(..., max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)

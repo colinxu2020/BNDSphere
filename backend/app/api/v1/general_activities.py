@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from fastapi_pagination import Page
 
 from app.api.dependencies import GeneralActivityServiceDep
 from app.models.general_activity import GeneralActivityLevelEnum
@@ -26,8 +27,7 @@ async def list_activities(
     service: GeneralActivityServiceDep,
     search: str | None = None,
     level: GeneralActivityLevelEnum | None = None,
-) -> list[GeneralActivityInfo]:
-    return [
-        GeneralActivityInfo.model_validate(c)
-        for c in await service.get_multi(search, level)
-    ]
+) -> Page[GeneralActivityInfo]:
+    return Page[GeneralActivityInfo].model_validate(
+        await service.get_multi(search, level),
+    )

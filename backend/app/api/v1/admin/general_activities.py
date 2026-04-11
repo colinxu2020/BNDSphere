@@ -1,4 +1,5 @@
 from fastapi import APIRouter
+from starlette import status
 
 from app.api.dependencies import GeneralActivityServiceDep
 from app.schemas.general_activities import (
@@ -11,7 +12,7 @@ from app.services.errors import GeneralActivityNotFoundError
 router = APIRouter(tags=["general activities"])
 
 
-@router.post("/")
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create(
     obj: GeneralActivityCreate,
     service: GeneralActivityServiceDep,

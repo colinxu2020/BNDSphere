@@ -6,7 +6,6 @@ from starlette import status
 
 from app.api.dependencies import UserServiceDep
 from app.core.security import create_access_token
-from app.models.user import User
 from app.schemas.user import Token, UserCreate, UserInfo
 from app.services.errors import AuthenticationError
 
@@ -15,7 +14,6 @@ router = APIRouter(tags=["auth"])
 
 @router.post(
     "/register",
-    response_model=UserInfo,
     status_code=status.HTTP_201_CREATED,
     responses={
         409: {
@@ -26,9 +24,9 @@ router = APIRouter(tags=["auth"])
         },
     },
 )
-async def register(user: UserCreate, service: UserServiceDep) -> User:
+async def register(user: UserCreate, service: UserServiceDep) -> UserInfo:
     """Register a new user. Username must be unique."""
-    return await service.create(user)
+    return UserInfo.model_validate(await service.create(user))
 
 
 @router.post(
