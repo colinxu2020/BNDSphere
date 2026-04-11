@@ -4,6 +4,7 @@ from sqlalchemy import (
     Boolean,
     Connection,
     Date,
+    ForeignKey,
     Index,
     String,
     case,
@@ -74,7 +75,7 @@ class AcademicTermMixin:
     @classmethod
     def academic_term_id(cls) -> Mapped[int]:
         return mapped_column(
-            String,
+            ForeignKey("academic_term.id"),
             default=select(AcademicTerm.id)
             .where(AcademicTerm.is_current.is_(True))
             .scalar_subquery(),
