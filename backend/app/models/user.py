@@ -64,9 +64,12 @@ class User(Base):
 
 
 class AuditMixin:
-    audit_status: Mapped[AuditStatusEnum] = mapped_column(
-        default=AuditStatusEnum.pending,
-    )
+    @declared_attr
+    @classmethod
+    def audit_status(cls) -> Mapped[AuditStatusEnum]:
+        return mapped_column(
+            default=AuditStatusEnum.pending,
+        )
 
     @declared_attr
     @classmethod
