@@ -32,7 +32,7 @@ def upgrade() -> None:
     sa.Column('uniqueness_approved', sa.Boolean(), nullable=True),
     sa.Column('approved_score', sa.Integer(), nullable=True),
     sa.Column('approved_level', sa.Enum('none', 'one_star', 'two_star', 'three_star', 'four_star', 'five_star', 'honorary', name='clubstarlevelenum'), nullable=True),
-    sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
+    #sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.Column('academic_term_id', sa.Integer(), nullable=False),
     sa.Column('audit_status', sa.Enum('pending', 'approved', 'rejected', name='auditstatusenum'), nullable=False),
@@ -41,7 +41,7 @@ def upgrade() -> None:
     sa.ForeignKeyConstraint(['auditor_id'], ['users.id'], name=op.f('fk_star_level_applications_auditor_id_users')),
     sa.ForeignKeyConstraint(['club_id'], ['clubs.id'], name=op.f('fk_star_level_applications_club_id_clubs')),
     sa.PrimaryKeyConstraint('id', name=op.f('pk_star_level_applications')),
-    sa.UniqueConstraint('club_id', 'academic_term_id', name=op.f('uq_star_level_applications_club_id_academic_term_id'))
+    #sa.UniqueConstraint('club_id', 'academic_term_id', name=op.f('uq_star_level_applications_club_id_academic_term_id'))
     )
 
     with op.batch_alter_table('academic_term', schema=None) as batch_op:
