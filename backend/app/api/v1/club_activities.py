@@ -28,15 +28,13 @@ ClubRoleCheckerRequiresPresidentVice = Annotated[
 )
 async def get_club_activities(
     club_id: int,
-    offset: int,
-    limit: int,
     service: ActivityServiceDep,
     club_service: ClubServiceDep,
 ) -> Page[Activity]:
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
-    return await service.get_club_activities(club, offset, limit)
+    return await service.get_club_activities(club)
 
 
 @router.post(

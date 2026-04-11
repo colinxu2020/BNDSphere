@@ -15,14 +15,10 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
     async def get_club_activities(
         self,
         club: Club,
-        offset: int,
-        limit: int,
     ) -> Page[Activity]:
         stmt = (
             select(Activity)
             .where(Activity.club_id == club.id)
-            .offset(offset)
-            .limit(limit)
             .order_by(Activity.start_time.desc(), Activity.id.desc())
             .options(selectinload(Activity.participators))
         )
