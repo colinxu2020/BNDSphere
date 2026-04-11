@@ -4,8 +4,10 @@ from app.api.v1.admin import router as admin_router
 from app.api.v1.auth import router as auth_router
 from app.api.v1.club_activities import router as club_activities_router
 from app.api.v1.club_general_activities import router as club_general_activities_router
+from app.api.v1.club_star_level import router as club_star_level_router
 from app.api.v1.clubs import router as clubs_router
 from app.api.v1.general_activities import router as general_activities_router
+from app.api.v1.star_level import router as star_level_router
 from app.api.v1.users import router as users_router
 
 router = APIRouter()
@@ -18,4 +20,12 @@ router.include_router(general_activities_router, prefix="/general-activities")
 router.include_router(
     club_general_activities_router,
     prefix="/clubs/{club_id}/general-activities",
+)
+router.include_router(
+    club_star_level_router,
+    prefix="/clubs/{club_id}/star-level",
+)
+router.include_router(
+    star_level_router,
+    prefix="/star-level",
 )

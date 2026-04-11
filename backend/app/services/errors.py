@@ -39,6 +39,34 @@ class ResourceNotFoundError(BusinessError):
         super().__init__(message_key, 404, error_code, details)
 
 
+class StarLevelNotFoundError(ResourceNotFoundError):
+    def __init__(self, star_level_id: int) -> None:
+        super().__init__(
+            "error.star_level.not_found",
+            "STAR_LEVEL_NOT_FOUND",
+            {"star_level_id": star_level_id},
+        )
+
+
+class BusinessPermissionError(BusinessError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+        details: dict | None = None,
+    ) -> None:
+        super().__init__(message_key, 403, error_code, details)
+
+
+class StarLevelApplicationUpdateDeniedError(BusinessPermissionError):
+    def __init__(self, star_level_id: int) -> None:
+        super().__init__(
+            "error.star_level.denied",
+            "STAR_LEVEL_UPDATE_DENIED",
+            {"star_level_id": star_level_id},
+        )
+
+
 class ClubNotFoundError(ResourceNotFoundError):
     def __init__(self, club_id: int) -> None:
         super().__init__(

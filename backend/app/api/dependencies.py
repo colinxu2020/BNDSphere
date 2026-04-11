@@ -22,6 +22,7 @@ from app.services.general_activities import (
     ClubGeneralActivityService,
     GeneralActivityService,
 )
+from app.services.star_level import StarLevelService
 from app.services.user import UserService
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
@@ -102,6 +103,10 @@ type GeneralActivityServiceDep = Annotated[
 type ClubGeneralActivityServiceDep = Annotated[
     ClubGeneralActivityService,
     Depends(ServiceFactory(ClubGeneralActivityService)),
+]
+type StarLevelServiceDep = Annotated[
+    StarLevelService,
+    Depends(ServiceFactory(StarLevelService)),
 ]
 
 
