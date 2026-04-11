@@ -14,6 +14,7 @@ async def update_user(
     obj_in: AdminUserUpdate,
     user_service: UserServiceDep,
 ) -> UserInfo:
+    """Update the information of a user."""
     user = await user_service.get(user_id)
     if user is None:
         raise ResourceNotFoundError(

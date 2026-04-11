@@ -22,6 +22,7 @@ async def get_club_applications(
     service: StarLevelServiceDep,
     club_service: ClubServiceDep,
 ) -> Page[StarLevelApplicationInfo]:
+    """List all star level applications of the given club."""
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
@@ -40,11 +41,12 @@ async def get_club_applications(
         ),
     ],
 )
-async def create_club_activity(
+async def create_club_star_level_application(
     club_id: int,
     request: StarLevelApplicationCreate,
     service: StarLevelServiceDep,
 ) -> StarLevelApplicationInfo:
+    """Create a new star level application for the given club."""
     return StarLevelApplicationInfo.model_validate(
         await service.create(request, club_id=club_id),
     )

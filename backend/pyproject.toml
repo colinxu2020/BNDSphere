@@ -29,7 +29,7 @@ max-args = 8
 
 [tool.ruff.lint]
 select =["ALL"]
-extend-ignore = ['EM102', 'EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003']
+extend-ignore = ['EM102', 'EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003', 'D205']
 
 [tool.ruff]
 extend-exclude = ["**/migrations"]

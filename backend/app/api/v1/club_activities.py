@@ -29,6 +29,7 @@ async def get_club_activities(
     service: ActivityServiceDep,
     club_service: ClubServiceDep,
 ) -> Page[ActivityInfo]:
+    """List all activities of the given club."""
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
@@ -51,6 +52,9 @@ async def create_club_activity(
     activity: ActivityCreate,
     activity_service: ActivityServiceDep,
 ) -> ActivityInfo:
+    """Create a new activity for the given club.
+    Only club president and vice president can perform this operation.
+    """
     return ActivityInfo.model_validate(
         await activity_service.create(activity, club_id=club_id),
     )

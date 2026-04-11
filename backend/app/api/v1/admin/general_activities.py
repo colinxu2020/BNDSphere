@@ -17,6 +17,7 @@ async def create(
     obj: GeneralActivityCreate,
     service: GeneralActivityServiceDep,
 ) -> GeneralActivityInfo:
+    """Create a new general activity."""
     return GeneralActivityInfo.model_validate(await service.create(obj))
 
 
@@ -26,6 +27,7 @@ async def update(
     update: GeneralActivityUpdate,
     service: GeneralActivityServiceDep,
 ) -> GeneralActivityInfo:
+    """Update the general activity with the given ID."""
     activity = await service.get(activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(activity_id)
@@ -37,6 +39,7 @@ async def delete(
     activity_id: int,
     service: GeneralActivityServiceDep,
 ) -> GeneralActivityInfo:
+    """Delete the general activity with the given ID."""
     activity = await service.get(activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(activity_id)

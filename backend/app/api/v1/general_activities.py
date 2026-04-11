@@ -16,6 +16,7 @@ async def get(
     activity_id: int,
     service: GeneralActivityServiceDep,
 ) -> GeneralActivityInfo:
+    """Get the general activity with the given ID."""
     activity = await service.get(activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(activity_id) from None
@@ -28,6 +29,9 @@ async def list_activities(
     search: str | None = None,
     level: GeneralActivityLevelEnum | None = None,
 ) -> Page[GeneralActivityInfo]:
+    """List general activities.
+    Optionally filtered by search keyword and/or activity level.
+    """
     return Page[GeneralActivityInfo].model_validate(
         await service.get_multi(search, level),
     )

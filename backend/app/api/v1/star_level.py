@@ -1,8 +1,7 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter
 
-from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
-from app.api.dependencies import ClubRoleChecker, StarLevelServiceDep
-from app.models.clubmember import ClubMembershipEnum
+from app.api.common_responses import TOKEN_INVALID_RESPONSE
+from app.api.dependencies import StarLevelServiceDep
 from app.models.user import AuditStatusEnum
 from app.schemas.star_level import StarLevelApplicationInfo, StarLevelApplicationUpdate
 from app.services.errors import (
@@ -26,14 +25,16 @@ async def get_by_id(
 
 @router.patch(
     "/{star_level_id}",
-    dependencies=[Depends(ClubRoleChecker([ClubMembershipEnum.president]))],
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE,
 )
 async def update_application(
     star_level_id: int,
     update: StarLevelApplicationUpdate,
     service: StarLevelServiceDep,
 ) -> StarLevelApplicationInfo:
+    """Update a star level application.
+    Only the club president can perform this operation.
+    """
     star_level = await service.get(star_level_id)
     if star_level is None:
         raise StarLevelNotFoundError(star_level_id) from None

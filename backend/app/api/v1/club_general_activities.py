@@ -29,6 +29,7 @@ async def get_club_general_activities(
     club_service: ClubServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> Page[ClubGeneralActivityInfo]:
+    """List the general activities the given club practiced."""
     club = await club_service.ensure_club_normal(club_id)
     return Page[ClubGeneralActivityInfo].model_validate(
         await club_general_activity_service.get_by_club(club),
@@ -52,6 +53,9 @@ async def create_club_general_activities(
     general_activity_service: ClubGeneralActivityServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> ClubGeneralActivityInfo:
+    """Create a new record of general activity practiced by the club.
+    Only club president and vice president can perform this operation.
+    """
     club = await club_service.ensure_club_normal(club_id)
     activity = await general_activity_service.get(obj.activity_id)
     if activity is None:
@@ -81,6 +85,7 @@ async def update_club_general_activities(
     general_activity_service: GeneralActivityServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> ClubGeneralActivityInfo:
+    """Update the record of general activity practiced by the club."""
     club = await club_service.ensure_club_normal(club_id)
     activity = await general_activity_service.get(obj.activity_id)
     if activity is None:
