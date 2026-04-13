@@ -3,11 +3,12 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 
-from app.models import Club, GeneralActivity
+from app.models import Club, GeneralActivity, User
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
 )
+from app.schemas.club import ScfClubUpdate
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityUpdate,
@@ -19,6 +20,7 @@ from app.services.errors import (
     BusinessError,
     DuplicateResourceError,
     GeneralActivityNotFoundError,
+    ResourceNotFoundError,
 )
 
 
@@ -100,3 +102,27 @@ class ClubGeneralActivityService(
         if result is None:
             raise GeneralActivityNotFoundError(activity.id) from None
         return result
+
+    async def review_record(
+        self,
+        record_id: int,
+        obj_in: ScfClubUpdate,
+        auditor: User,
+    ) -> ClubGeneralActivityRecord:
+        db_obj = await self.get(record_id)
+        if db_obj is None:
+            raise ResourceNotFoundError(
+                "error.general_activity.record_not_found",
+                "RECORD_NOT_FOUND",
+                {"record_id": record_id},
+            )
+
+        for field, value in obj_in.model_dump(exclude_unset=True).items():
+            setattr(db_obj, field, value)
+        db_obj.auditor = auditor
+        db_obj.auditor_id = auditor.id
+
+        self.db.add(db_obj)
+        await self.db.flush()
+        await self.db.refresh(db_obj)
+        return db_obj
