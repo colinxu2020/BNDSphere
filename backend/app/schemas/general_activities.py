@@ -74,13 +74,6 @@ class ClubGeneralActivityUpdate(BaseModel):
     requested_score: int
 
 
-class ScfRecordUpdate(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    audit_status: AuditStatusEnum = Field(...)
-    final_score: int | None = Field(None)
-
-
 class RecordConditionDetail(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
