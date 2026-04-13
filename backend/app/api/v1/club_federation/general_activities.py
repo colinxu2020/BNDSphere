@@ -9,7 +9,7 @@ from app.schemas.general_activities import (
 )
 from app.services.errors import GeneralActivityNotFoundError
 
-router = APIRouter(tags=["general activities"])
+router = APIRouter(tags=["General Activities"])
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)
