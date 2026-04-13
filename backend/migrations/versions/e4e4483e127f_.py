@@ -30,7 +30,7 @@ def upgrade() -> None:
     op.create_table('general_activities',
     sa.Column('name', sa.String(length=128), nullable=False),
     sa.Column('description', sa.Text(), nullable=False),
-    sa.Column('level', sa.Enum('school', 'large', 'sua', name='generalactivitylevelenum'), nullable=False),
+    sa.Column('level', sa.Enum('school', 'large', 'club_federation', name='generalactivitylevelenum'), nullable=False),
     sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     sa.Column('id', sa.Integer(), autoincrement=True, nullable=False),
     sa.PrimaryKeyConstraint('id')

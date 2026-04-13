@@ -10,8 +10,12 @@ from app.api.dependencies import (
 )
 from app.models.club import Club
 from app.models.user import User
-from app.schemas.admin.club import AdminClubUpdate
-from app.schemas.club import ClubInfo, ClubUpdateRequestAudit, ClubUpdateRequestInfo
+from app.schemas.club import (
+    AdminClubUpdate,
+    ClubInfo,
+    ClubUpdateRequestAudit,
+    ClubUpdateRequestInfo,
+)
 from app.services.errors import ClubNotFoundError
 
 router = APIRouter(tags=["clubs"])
@@ -21,7 +25,7 @@ router = APIRouter(tags=["clubs"])
     "/{club_id}",
     response_model=ClubInfo,
 )
-async def update_club_info(
+async def admin_update_club_info(
     club_id: int,
     obj_in: AdminClubUpdate,
     club_service: ClubServiceDep,

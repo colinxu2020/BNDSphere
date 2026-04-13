@@ -46,7 +46,7 @@ class ClubGeneralActivityBase(BaseModel):
     requested_score: int
     participation_type: ParticipationTypeEnum
     met_conditions: list[RecordConditionDetail]
-    auditor_id: int
+    auditor_id: int | None
 
 
 class ClubGeneralActivityInfo(ClubGeneralActivityBase, IdMixin):
@@ -72,6 +72,13 @@ class ClubGeneralActivityUpdate(BaseModel):
     participation_type: ParticipationTypeEnum
     proof_files: list[str] | None = Field(None)
     requested_score: int
+
+
+class ScfRecordUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    audit_status: AuditStatusEnum = Field(...)
+    final_score: int | None = Field(None)
 
 
 class RecordConditionDetail(BaseModel):

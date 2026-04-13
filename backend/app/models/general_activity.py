@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 class GeneralActivityLevelEnum(StrEnum):
     school = "school"
     large = "large"
-    sua = "sua"
+    federation = "club_federation"
 
 
 class ParticipationTypeEnum(StrEnum):
