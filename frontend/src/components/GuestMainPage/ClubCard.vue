@@ -5,6 +5,18 @@ defineProps({
   description: String,
   logo_uri: String,
   id: String,
+  memberCount: {
+    type: Number,
+    default: 0,
+  },
+  presidentName: {
+    type: String,
+    default: '未知',
+  },
+  isJoined: {
+    type: Boolean,
+    default: false,
+  },
 });
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -24,13 +36,20 @@ import { Badge } from '@/components/ui/badge';
         />
         <div class="flex-1">
           <CardTitle class="text-xl text-slate-800">{{ name }}</CardTitle>
-          <div class="mt-1">
+          <div class="mt-1 flex flex-wrap items-center gap-2">
             <Badge variant="secondary">{{ category }}</Badge>
+            <Badge v-if="isJoined" variant="outline" class="border-emerald-200 text-emerald-700">
+              已加入
+            </Badge>
           </div>
         </div>
       </CardHeader>
-      <CardContent class="text-sm text-slate-700">
-        {{ description }}
+      <CardContent class="space-y-2 text-sm text-slate-700">
+        <p>{{ description }}</p>
+        <div class="flex flex-wrap gap-3 text-xs text-slate-500">
+          <span>成员人数: {{ memberCount }}</span>
+          <span>社长: {{ presidentName }}</span>
+        </div>
       </CardContent>
     </Card>
   </router-link>

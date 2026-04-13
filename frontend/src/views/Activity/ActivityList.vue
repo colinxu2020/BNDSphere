@@ -51,6 +51,11 @@ import { listActivitiesApiV1GeneralActivitiesGet, type GeneralActivityInfo } fro
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import {
+  generalActivityLevelLabels,
+  getEnumLabel,
+  getGeneralActivityBadgeVariant,
+} from '@/lib/i18n/enumLabels';
 
 const router = useRouter();
 const activities = ref<GeneralActivityInfo[]>([]);
@@ -72,31 +77,9 @@ const fetchActivities = async () => {
   }
 };
 
-const getBadgeVariant = (level: string) => {
-  switch (level) {
-    case 'school':
-      return 'default';
-    case 'large':
-      return 'secondary';
-    case 'club_federation':
-      return 'outline';
-    default:
-      return 'default';
-  }
-};
+const getBadgeVariant = (level: string) => getGeneralActivityBadgeVariant(level);
 
-const getLevelLabel = (level: string) => {
-  switch (level) {
-    case 'school':
-      return '全校活动';
-    case 'large':
-      return '大型活动';
-    case 'club_federation':
-      return '学生会活动';
-    default:
-      return level;
-  }
-};
+const getLevelLabel = (level: string) => getEnumLabel(generalActivityLevelLabels, level);
 
 const formatDate = (dateStr: string) => {
   return new Date(dateStr).toLocaleDateString('zh-CN', {

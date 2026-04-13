@@ -73,7 +73,7 @@ watch(isLogin, async (loggedIn) => {
         <nav class="flex flex-1 items-center justify-center gap-8">
           <NavItem text="首页" to="/" />
           <NavItem text="活动列表" to="/activities" />
-          <NavItem text="发现社团" to="/pricing" />
+          <NavItem text="发现社团" to="/clubs/discover" />
         </nav>
 
         <!-- 右侧 -->

@@ -16,34 +16,24 @@ const {
   totalItems,
   loading,
   allCategories,
-  isJoinedMode,
   handleSearch,
   getIsJoined,
   getMemberCount,
   getPresidentName,
 } = useClubDirectory({
   userStore,
-  modeRef: computed(() => (isLogin.value ? 'joined' : 'discover')),
+  modeRef: computed(() => 'discover'),
 });
 </script>
+
 <template>
   <div class="h-full w-full max-w-7xl mx-auto px-6 lg:px-12">
-    <div class="mt-16">
-      <template v-if="!isJoinedMode">
-        <h1 class="text-5xl font-bold text-gray-800 tracking-wide mb-4">
-          北京市十一学校社团共享平台
-        </h1>
-        <h2 class="text-3xl font-semibold text-gray-600 tracking-wide mb-4">
-          Beijing National Day School
-        </h2>
-        <p class="text-gray-500">一站式社团共享与协作平台</p>
-      </template>
-      <template v-else>
-        <h1 class="text-4xl font-bold text-gray-800 tracking-wide mb-3">我加入的社团</h1>
-        <p class="text-gray-500">这里仅展示你已加入的社团。</p>
-      </template>
+    <div class="mt-12">
+      <h1 class="text-4xl font-bold text-gray-800 tracking-wide mb-3">发现社团</h1>
+      <p class="text-gray-500">浏览并搜索感兴趣的社团，选择你想加入的组织。</p>
     </div>
-    <div class="mt-10">
+
+    <div class="mt-8">
       <ClubDirectoryPanel
         v-model:selectedCategory="selectedCategory"
         v-model:searchKeyword="searchKeyword"
@@ -54,7 +44,7 @@ const {
         :category-map="CATEGORY_MAP"
         :total-pages="totalPages"
         :total-items="totalItems"
-        :empty-text="isJoinedMode ? '你还没有加入任何社团。' : '没有找到符合条件的社团。'"
+        empty-text="没有找到符合条件的社团。"
         :get-is-joined="getIsJoined"
         :get-member-count="getMemberCount"
         :get-president-name="getPresidentName"
