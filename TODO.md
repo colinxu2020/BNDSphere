@@ -26,7 +26,7 @@
 
 ### Club Activities
 
-- [ ] <font color="red">需改动</font> 获取 {club_id} 社团的活动列表
+- [x] 获取 {club_id} 社团的活动列表
 - [x] 创建社团活动（社长/副社长）
 
 ### General Activities
@@ -34,15 +34,13 @@
 - [x] 查询大型活动
 - [x] 获取大型活动信息
 - [x] 创建大型活动
-- [x] <font color="red">需改动</font> 编辑大型活动信息
+- [x] 编辑大型活动信息
 - [x] 删除大型活动
 
 ### Club General Activities
 
-<font color="red">需改动</font>
-
-- [ ] 创建社团参加大型活动的记录
-- [ ] 获取 {club_id} 参加大型活动的记录
+- [x] 创建社团参加大型活动的记录
+- [x] 获取 {club_id} 参加大型活动的记录
 - [ ] 编辑 {club_id} 在 {activity_id} 活动的记录（记录状态应当为 `pending`）
 
 ### Admin
@@ -63,5 +61,3 @@
 - [x] 设置 {term_id} 为当前学期
 
 ### Star Level
-
-<font color="red">未完成</font>
