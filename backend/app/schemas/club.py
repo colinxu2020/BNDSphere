@@ -36,9 +36,20 @@ class ClubCreate(ClubBase):
 
 
 class ClubUpdate(BaseModel):
-    summary: str = Field(..., max_length=constants.CLUB_MAX_SUMMARY_LENGTH)
-    description: str = Field(..., max_length=constants.CLUB_MAX_DESCRIPTION_LENGTH)
+    summary: str | None = Field(None, max_length=constants.CLUB_MAX_SUMMARY_LENGTH)
+    description: str | None = Field(
+        None,
+        max_length=constants.CLUB_MAX_DESCRIPTION_LENGTH,
+    )
     logo_uri: HttpUrl | None = Field(None, max_length=255)
+
+
+class ScfClubUpdate(ClubUpdate):
+    star_level: ClubStarLevelEnum | None = Field(None)
+
+
+class AdminClubUpdate(ScfClubUpdate):
+    status: ClubStatusEnum | None = Field(None)
 
 
 class ClubMemberInfo(IdMixin, BaseModel):

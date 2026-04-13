@@ -191,7 +191,7 @@ const generalActivityMessage = ref('');
 const generalActivityForm = reactive({
   name: '',
   description: '',
-  level: 'school' as 'school' | 'large' | 'sua',
+  level: 'school' as 'school' | 'large' | 'club_federation',
 });
 
 function toDatetimeLocal(date: Date) {

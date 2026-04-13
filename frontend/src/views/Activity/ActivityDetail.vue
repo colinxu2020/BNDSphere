@@ -163,7 +163,7 @@ const getBadgeVariant = (level: string) => {
       return 'default';
     case 'large':
       return 'secondary';
-    case 'sua':
+    case 'club_federation':
       return 'outline';
     default:
       return 'default';
@@ -176,7 +176,7 @@ const getLevelLabel = (level: string) => {
       return '全校活动';
     case 'large':
       return '大型活动';
-    case 'sua':
+    case 'club_federation':
       return '学生会活动';
     default:
       return level;

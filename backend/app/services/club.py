@@ -9,7 +9,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
+from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
 from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
@@ -19,7 +19,7 @@ from app.services.errors import (
 from app.utils.crud_utils import apply_fulltext_search, get_dialect, get_upsert_insert
 
 
-class ClubService(ServiceBase[Club, ClubCreate, ClubUpdate]):
+class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
     model = Club
 
     async def create(self, obj_in: ClubCreate, **kwargs: object) -> Club:

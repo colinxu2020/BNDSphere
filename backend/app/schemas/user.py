@@ -34,6 +34,10 @@ class UserUpdate(BaseModel):
     )
 
 
+class AdminUserUpdate(UserUpdate):
+    role: RoleEnum | None = Field(None)
+
+
 class Token(BaseModel):
     access_token: str
     token_type: str
