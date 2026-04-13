@@ -82,4 +82,4 @@ class AuditMixin:
     @declared_attr
     @classmethod
     def auditor(cls) -> Mapped[User | None]:
-        return relationship("User")
+        return relationship("User", foreign_keys=[cls.auditor_id])
