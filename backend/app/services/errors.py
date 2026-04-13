@@ -124,3 +124,12 @@ class DuplicateEmailError(Exception):
 
 class DuplicateClubNameError(Exception):
     pass
+
+
+class ClubUpdateRequestNotFoundError(ResourceNotFoundError):
+    def __init__(self, request_id: int) -> None:
+        super().__init__(
+            "error.club.update_request_not_found",
+            "CLUB_UPDATE_REQUEST_NOT_FOUND",
+            {"request_id": request_id},
+        )

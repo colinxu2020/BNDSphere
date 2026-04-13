@@ -7,6 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
+from app.models.user import AuditStatusEnum
 from app.schemas.activity import ActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin
@@ -54,3 +55,20 @@ class ClubMemberUpdate(BaseModel):
     user_id: int
     club_id: int
     membership: ClubMembershipEnum
+
+
+class ClubUpdateRequestInfo(IdMixin, BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    club_id: int
+    requester_id: int
+    summary: str
+    description: str
+    logo_uri: HttpUrl | None
+    created_at: datetime
+    audit_status: AuditStatusEnum
+    auditor_id: int | None
+
+
+class ClubUpdateRequestAudit(BaseModel):
+    audit_status: AuditStatusEnum
