@@ -2,7 +2,6 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
-  createApiV1AdminGeneralActivitiesPost,
   createClubActivityApiV1ClubsClubIdActivitiesPost,
   createClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPost,
   getClubActivitiesApiV1ClubsClubIdActivitiesGet,
@@ -189,7 +188,7 @@ const canManageClub = computed(() => {
 });
 
 const filteredMembers = computed(() => {
-  if (!club.value) return [];
+  if (!club.value?.members) return [];
 
   let items = club.value.members;
   if (memberFilter.value !== 'all') {
@@ -213,7 +212,8 @@ const totalMemberPages = computed(() => {
 
 const pagedMembers = computed(() => {
   const start = (memberPage.value - 1) * memberPageSize;
-  return filteredMembers.value.slice(start, start + memberPageSize);
+  const items = filteredMembers.value || [];
+  return items.slice(start, start + memberPageSize);
 });
 
 const filteredRecords = computed(() => {
@@ -401,10 +401,7 @@ async function saveClubInfo() {
       return;
     }
 
-    if (data) {
-      club.value = data;
-    }
-    clubMessage.value = '社团信息已更新';
+    clubMessage.value = '社团信息更新请求已提交，请等待审核';
     clubMessageIsError.value = false;
   } catch (err: any) {
     clubMessage.value = err?.message || '更新社团信息失败';
@@ -517,6 +514,7 @@ async function fetchClubActivities() {
   try {
     const { data, error: fetchError } = await getClubActivitiesApiV1ClubsClubIdActivitiesGet({
       path: { club_id: club.value.id },
+      query: { page: 1, size: 50, limit: 50, offset: 0 } as any,
     });
     if (fetchError) {
       console.error('获取社团活动失败:', fetchError);
