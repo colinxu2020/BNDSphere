@@ -141,7 +141,7 @@
 <script setup lang="ts">
 import { reactive, ref } from 'vue';
 import {
-  createApiV1GeneralActivitiesPost,
+  createApiV1AdminGeneralActivitiesPost,
   createClubActivityApiV1ClubsClubIdActivitiesPost,
   createClubApiV1ClubsPost,
   listClubsApiV1ClubsGet,
@@ -229,11 +229,11 @@ async function submitGeneralActivity() {
   generalActivityMessage.value = '';
 
   try {
-    const { data, error } = await createApiV1GeneralActivitiesPost({
+    const { data, error } = await createApiV1AdminGeneralActivitiesPost({
       body: {
         name: generalActivityForm.name,
         description: generalActivityForm.description,
-        level: generalActivityForm.level,
+        level: generalActivityForm.level as any,
       },
     });
 

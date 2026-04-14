@@ -2,13 +2,17 @@
 import { computed, onMounted, reactive, ref, watch } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
+  createApiV1AdminGeneralActivitiesPost,
+  createClubActivityApiV1ClubsClubIdActivitiesPost,
   createClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPost,
+  getClubActivitiesApiV1ClubsClubIdActivitiesGet,
   getClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGet,
   getClubInfoApiV1ClubsClubIdGet,
   getUserProfileApiV1UsersUserIdGet,
   listActivitiesApiV1GeneralActivitiesGet,
   updateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatch,
   updateClubInfoApiV1ClubsClubIdPatch,
+  type ActivityInfo,
   type ClubGeneralActivityInfo,
   type ClubInfo,
   type ClubMemberInfo,
@@ -91,7 +95,8 @@ const clubManageSections = [
   { id: 'club-overview', label: '社团概览' },
   { id: 'club-info-edit', label: '信息编辑' },
   { id: 'club-members', label: '成员管理' },
-  { id: 'club-records', label: '活动申请' },
+  { id: 'club-records', label: '大活申请' },
+  { id: 'club-activities-create', label: '发布活动' },
 ] as const;
 
 type ClubManageSectionId = (typeof clubManageSections)[number]['id'];
@@ -139,6 +144,25 @@ const updateForm = reactive<{
   requested_score: 0,
   proof_files_text: '',
 });
+
+const activityCreateForm = reactive({
+  name: '',
+  description: '',
+  location: '',
+  startTime: toDatetimeLocal(new Date(Date.now() + 60 * 60 * 1000)),
+  endTime: toDatetimeLocal(new Date(Date.now() + 2 * 60 * 60 * 1000)),
+});
+const activityCreateSubmitting = ref(false);
+const activityCreateMessage = ref('');
+const activityCreateMessageIsError = ref(false);
+
+const clubActivities = ref<ActivityInfo[]>([]);
+const clubActivitiesLoading = ref(false);
+
+function toDatetimeLocal(date: Date) {
+  const pad = (value: number) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`;
+}
 
 const auditTextMap = {
   pending: '待审核',
@@ -487,6 +511,69 @@ async function updateRecord() {
   }
 }
 
+async function fetchClubActivities() {
+  if (!club.value) return;
+  clubActivitiesLoading.value = true;
+  try {
+    const { data, error: fetchError } = await getClubActivitiesApiV1ClubsClubIdActivitiesGet({
+      path: { club_id: club.value.id },
+    });
+    if (fetchError) {
+      console.error('获取社团活动失败:', fetchError);
+      return;
+    }
+    // 处理分页
+    clubActivities.value = Array.isArray(data) ? data : (data as any).items || [];
+  } catch (err) {
+    console.error('获取社团活动出错:', err);
+  } finally {
+    clubActivitiesLoading.value = false;
+  }
+}
+
+async function createActivity() {
+  if (!canManageClub.value || !club.value || activityCreateSubmitting.value) return;
+  if (!activityCreateForm.name || !activityCreateForm.description || !activityCreateForm.location) {
+    activityCreateMessage.value = '请填写完整的活动信息（名称、地点、描述）';
+    activityCreateMessageIsError.value = true;
+    return;
+  }
+
+  activityCreateSubmitting.value = true;
+  activityCreateMessage.value = '';
+
+  try {
+    const { error: createError } = await createClubActivityApiV1ClubsClubIdActivitiesPost({
+      path: { club_id: club.value.id },
+      body: {
+        name: activityCreateForm.name,
+        description: activityCreateForm.description,
+        location: activityCreateForm.location,
+        start_time: activityCreateForm.startTime,
+        end_time: activityCreateForm.endTime,
+      },
+    });
+
+    if (createError) {
+      activityCreateMessage.value = formatError(createError, '发布社团活动失败');
+      activityCreateMessageIsError.value = true;
+      return;
+    }
+
+    activityCreateMessage.value = '活动发布成功！';
+    activityCreateMessageIsError.value = false;
+    activityCreateForm.name = '';
+    activityCreateForm.description = '';
+    activityCreateForm.location = '';
+    await fetchClubActivities();
+  } catch (err: any) {
+    activityCreateMessage.value = err?.message || '发布社团活动失败';
+    activityCreateMessageIsError.value = true;
+  } finally {
+    activityCreateSubmitting.value = false;
+  }
+}
+
 function goBackToClub() {
   if (!Number.isInteger(clubId.value) || clubId.value <= 0) {
     void router.push('/');
@@ -523,7 +610,12 @@ onMounted(async () => {
     await userStore.fetchUser();
   }
 
-  await Promise.all([fetchClubInfo(), fetchClubRecords(), fetchActivities()]);
+  await Promise.all([
+    fetchClubInfo(),
+    fetchClubRecords(),
+    fetchActivities(),
+    fetchClubActivities(),
+  ]);
   if (pagedMembers.value.length > 0) {
     await ensureMemberProfiles(pagedMembers.value);
   }
@@ -1034,6 +1126,128 @@ onMounted(async () => {
                         class="rounded-lg border border-dashed border-slate-200 px-3 py-6 text-center text-sm text-slate-500"
                       >
                         当前筛选下无申请记录
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                <Card
+                  v-if="activeClubSection === 'club-activities-create'"
+                  id="club-activities-create"
+                  class="border-slate-200"
+                >
+                  <CardHeader>
+                    <CardTitle>发布社团活动</CardTitle>
+                    <CardDescription>发布仅属于本社团的正规活动</CardDescription>
+                  </CardHeader>
+                  <CardContent class="p-6">
+                    <div class="space-y-6 max-w-2xl">
+                      <div class="grid gap-4">
+                        <div class="grid gap-2">
+                          <label for="act-name" class="text-sm font-medium">活动名称</label>
+                          <input
+                            id="act-name"
+                            v-model="activityCreateForm.name"
+                            :disabled="!canManageClub || activityCreateSubmitting"
+                            class="w-full rounded-md border border-slate-200 px-3 py-2"
+                            placeholder="如：XX社团招新、例行练习等"
+                          />
+                        </div>
+
+                        <div class="grid gap-2">
+                          <label for="act-loc" class="text-sm font-medium">活动地点</label>
+                          <input
+                            id="act-loc"
+                            v-model="activityCreateForm.location"
+                            :disabled="!canManageClub || activityCreateSubmitting"
+                            class="w-full rounded-md border border-slate-200 px-3 py-2"
+                            placeholder="请输入活动具体地点"
+                          />
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                          <div class="grid gap-2">
+                            <label for="act-start" class="text-sm font-medium">开始时间</label>
+                            <input
+                              id="act-start"
+                              v-model="activityCreateForm.startTime"
+                              type="datetime-local"
+                              :disabled="!canManageClub || activityCreateSubmitting"
+                              class="w-full rounded-md border border-slate-200 px-3 py-2"
+                            />
+                          </div>
+                          <div class="grid gap-2">
+                            <label for="act-end" class="text-sm font-medium">结束时间</label>
+                            <input
+                              id="act-end"
+                              v-model="activityCreateForm.endTime"
+                              type="datetime-local"
+                              :disabled="!canManageClub || activityCreateSubmitting"
+                              class="w-full rounded-md border border-slate-200 px-3 py-2"
+                            />
+                          </div>
+                        </div>
+
+                        <div class="grid gap-2">
+                          <label for="act-desc" class="text-sm font-medium">活动描述</label>
+                          <textarea
+                            id="act-desc"
+                            v-model="activityCreateForm.description"
+                            :disabled="!canManageClub || activityCreateSubmitting"
+                            class="min-h-[120px] w-full rounded-md border border-slate-200 px-3 py-2"
+                            placeholder="描述一下活动内容..."
+                          ></textarea>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="activityCreateMessage"
+                        :class="[
+                          'rounded-md border px-3 py-2 text-sm',
+                          activityCreateMessageIsError
+                            ? 'border-rose-200 bg-rose-50 text-rose-600'
+                            : 'border-emerald-200 bg-emerald-50 text-emerald-700',
+                        ]"
+                      >
+                        {{ activityCreateMessage }}
+                      </div>
+
+                      <div class="flex items-center gap-4">
+                        <Button
+                          :disabled="!canManageClub || activityCreateSubmitting"
+                          size="lg"
+                          @click="createActivity"
+                        >
+                          {{ activityCreateSubmitting ? '发布中...' : '立即发布' }}
+                        </Button>
+                      </div>
+
+                      <div class="mt-8 border-t pt-6">
+                        <h3 class="text-lg font-medium mb-4">本社团已发布的活动</h3>
+                        <div v-if="clubActivitiesLoading" class="text-sm text-slate-500">
+                          加载中...
+                        </div>
+                        <div
+                          v-else-if="clubActivities.length === 0"
+                          class="text-sm text-slate-500 italic"
+                        >
+                          暂未发布任何活动
+                        </div>
+                        <div v-else class="space-y-3">
+                          <div
+                            v-for="act in clubActivities"
+                            :key="act.id"
+                            class="p-3 border rounded-lg bg-slate-50/30 flex justify-between items-center"
+                          >
+                            <div>
+                              <div class="font-medium text-slate-900">{{ act.name }}</div>
+                              <div class="text-xs text-slate-500">
+                                {{ act.location }} | {{ formatDateTime(act.start_time) }}
+                              </div>
+                            </div>
+                            <Badge variant="outline">已发布</Badge>
+                          </div>
+                        </div>
                       </div>
                     </div>
                   </CardContent>
