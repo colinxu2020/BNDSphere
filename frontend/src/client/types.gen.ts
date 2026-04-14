@@ -20,6 +20,10 @@ export type AcademicTermCreate = {
    * End Date
    */
   end_date: string;
+  /**
+   * Is Current
+   */
+  is_current: boolean;
 };
 
 /**
@@ -38,6 +42,10 @@ export type AcademicTermInfo = {
    * End Date
    */
   end_date: string;
+  /**
+   * Is Current
+   */
+  is_current: boolean;
 };
 
 /**
@@ -120,6 +128,7 @@ export type ActivityInfo = {
    * Picture Urls
    */
   picture_urls: Array<string>;
+  academic_term: AcademicTermInfo;
 };
 
 /**
@@ -194,6 +203,25 @@ export type ClubCreate = {
 };
 
 /**
+ * ClubGeneralActivityCreate
+ */
+export type ClubGeneralActivityCreate = {
+  /**
+   * Activity Id
+   */
+  activity_id: number;
+  participation_type: ParticipationTypeEnum;
+  /**
+   * Proof Files
+   */
+  proof_files?: Array<string> | null;
+  /**
+   * Requested Score
+   */
+  requested_score: number;
+};
+
+/**
  * ClubGeneralActivityInfo
  */
 export type ClubGeneralActivityInfo = {
@@ -204,16 +232,16 @@ export type ClubGeneralActivityInfo = {
   /**
    * Proof Files
    */
-  proof_files: string | null;
+  proof_files: Array<string>;
   /**
    * Created At
    */
   created_at: string;
   audit_status: AuditStatusEnum;
   /**
-   * Final Score
+   * Requested Score
    */
-  final_score: number;
+  requested_score: number;
   participation_type: ParticipationTypeEnum;
   /**
    * Met Conditions
@@ -227,6 +255,25 @@ export type ClubGeneralActivityInfo = {
    * Activity Id
    */
   activity_id: number;
+};
+
+/**
+ * ClubGeneralActivityUpdate
+ */
+export type ClubGeneralActivityUpdate = {
+  /**
+   * Activity Id
+   */
+  activity_id: number;
+  participation_type: ParticipationTypeEnum;
+  /**
+   * Proof Files
+   */
+  proof_files?: Array<string> | null;
+  /**
+   * Requested Score
+   */
+  requested_score: number;
 };
 
 /**
@@ -268,6 +315,10 @@ export type ClubInfo = {
    * Activities
    */
   activities: Array<ActivityInfo>;
+  /**
+   * General Activity Records
+   */
+  general_activity_records: Array<ClubGeneralActivityInfo>;
 };
 
 /**
@@ -287,6 +338,10 @@ export type ClubMemberInfo = {
    */
   club_id: number;
   membership: ClubMembershipEnum;
+  /**
+   * Updated At
+   */
+  updated_at: string;
 };
 
 /**
@@ -330,6 +385,32 @@ export type ClubUpdate = {
 };
 
 /**
+ * ErrorResponseModel
+ */
+export type ErrorResponseModel = {
+  /**
+   * Message Key
+   *
+   * i18n translate key
+   */
+  message_key: string;
+  /**
+   * Error Code
+   *
+   * error code
+   */
+  error_code: string;
+  /**
+   * Details
+   *
+   * extra context
+   */
+  details?: {
+    [key: string]: unknown;
+  };
+};
+
+/**
  * GeneralActivityCreate
  */
 export type GeneralActivityCreate = {
@@ -369,6 +450,7 @@ export type GeneralActivityInfo = {
    * Club Records
    */
   club_records: Array<ClubGeneralActivityInfo>;
+  academic_term: AcademicTermInfo;
 };
 
 /**
@@ -402,31 +484,81 @@ export type HttpValidationError = {
 };
 
 /**
- * PageResponse[ActivityInfo]
+ * Page[AcademicTermInfo]
  */
-export type PageResponseActivityInfo = {
+export type PageAcademicTermInfo = {
+  /**
+   * Items
+   */
+  items: Array<AcademicTermInfo>;
   /**
    * Total
    */
   total: number;
+  /**
+   * Page
+   */
+  page: number;
+  /**
+   * Size
+   */
+  size: number;
+  /**
+   * Pages
+   */
+  pages: number;
+};
+
+/**
+ * Page[ActivityInfo]
+ */
+export type PageActivityInfo = {
   /**
    * Items
    */
   items: Array<ActivityInfo>;
-};
-
-/**
- * PageResponse[ClubInfo]
- */
-export type PageResponseClubInfo = {
   /**
    * Total
    */
   total: number;
   /**
+   * Page
+   */
+  page: number;
+  /**
+   * Size
+   */
+  size: number;
+  /**
+   * Pages
+   */
+  pages: number;
+};
+
+/**
+ * Page[ClubInfo]
+ */
+export type PageClubInfo = {
+  /**
    * Items
    */
   items: Array<ClubInfo>;
+  /**
+   * Total
+   */
+  total: number;
+  /**
+   * Page
+   */
+  page: number;
+  /**
+   * Size
+   */
+  size: number;
+  /**
+   * Pages
+   */
+  pages: number;
 };
 
 /**
@@ -571,10 +703,13 @@ export type GetCurrentUserInfoApiV1UsersMeGetData = {
 
 export type GetCurrentUserInfoApiV1UsersMeGetErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
 };
+
+export type GetCurrentUserInfoApiV1UsersMeGetError =
+  GetCurrentUserInfoApiV1UsersMeGetErrors[keyof GetCurrentUserInfoApiV1UsersMeGetErrors];
 
 export type GetCurrentUserInfoApiV1UsersMeGetResponses = {
   /**
@@ -595,9 +730,9 @@ export type UpdateUserProfileApiV1UsersMePatchData = {
 
 export type UpdateUserProfileApiV1UsersMePatchErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Email already exists
    */
@@ -664,7 +799,7 @@ export type RegisterApiV1AuthRegisterPostErrors = {
   /**
    * Username already exists
    */
-  400: unknown;
+  409: unknown;
   /**
    * Validation Error
    */
@@ -729,9 +864,9 @@ export type GetClubInfoApiV1ClubsClubIdGetData = {
 
 export type GetClubInfoApiV1ClubsClubIdGetErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -765,9 +900,9 @@ export type UpdateClubInfoApiV1ClubsClubIdPatchData = {
 
 export type UpdateClubInfoApiV1ClubsClubIdPatchErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -790,15 +925,7 @@ export type UpdateClubInfoApiV1ClubsClubIdPatchResponse =
 export type ListClubsApiV1ClubsGetData = {
   body?: never;
   path?: never;
-  query: {
-    /**
-     * Offset
-     */
-    offset: number;
-    /**
-     * Limit
-     */
-    limit: number;
+  query?: {
     /**
      * Search
      */
@@ -807,6 +934,22 @@ export type ListClubsApiV1ClubsGetData = {
      * Category
      */
     category?: ClubCategoryEnum | null;
+    /**
+     * Status
+     */
+    status?: ClubStatusEnum | null;
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number;
+    /**
+     * Size
+     *
+     * Page size
+     */
+    size?: number;
   };
   url: '/api/v1/clubs/';
 };
@@ -825,7 +968,7 @@ export type ListClubsApiV1ClubsGetResponses = {
   /**
    * Successful Response
    */
-  200: PageResponseClubInfo;
+  200: PageClubInfo;
 };
 
 export type ListClubsApiV1ClubsGetResponse =
@@ -840,9 +983,9 @@ export type CreateClubApiV1ClubsPostData = {
 
 export type CreateClubApiV1ClubsPostErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Club with the same name already exists
    */
@@ -947,6 +1090,18 @@ export type GetClubActivitiesApiV1ClubsClubIdActivitiesGetData = {
      * Limit
      */
     limit: number;
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number;
+    /**
+     * Size
+     *
+     * Page size
+     */
+    size?: number;
   };
   url: '/api/v1/clubs/{club_id}/activities/';
 };
@@ -965,7 +1120,7 @@ export type GetClubActivitiesApiV1ClubsClubIdActivitiesGetResponses = {
   /**
    * Successful Response
    */
-  200: PageResponseActivityInfo;
+  200: PageActivityInfo;
 };
 
 export type GetClubActivitiesApiV1ClubsClubIdActivitiesGetResponse =
@@ -985,9 +1140,9 @@ export type CreateClubActivityApiV1ClubsClubIdActivitiesPostData = {
 
 export type CreateClubActivityApiV1ClubsClubIdActivitiesPostErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -1010,28 +1165,46 @@ export type CreateClubActivityApiV1ClubsClubIdActivitiesPostResponse =
 export type ListTermsApiV1AdminAcademicTermsGetData = {
   body?: never;
   path?: never;
-  query?: never;
-  url: '/api/v1/admin/academic_terms/';
+  query?: {
+    /**
+     * Page
+     *
+     * Page number
+     */
+    page?: number;
+    /**
+     * Size
+     *
+     * Page size
+     */
+    size?: number;
+  };
+  url: '/api/v1/admin/academic-terms/';
 };
 
 export type ListTermsApiV1AdminAcademicTermsGetErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Permission Denied
    */
-  403: unknown;
+  403: ErrorResponseModel;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
 };
+
+export type ListTermsApiV1AdminAcademicTermsGetError =
+  ListTermsApiV1AdminAcademicTermsGetErrors[keyof ListTermsApiV1AdminAcademicTermsGetErrors];
 
 export type ListTermsApiV1AdminAcademicTermsGetResponses = {
   /**
-   * Response List Terms Api V1 Admin Academic Terms  Get
-   *
    * Successful Response
    */
-  200: Array<AcademicTermInfo>;
+  200: PageAcademicTermInfo;
 };
 
 export type ListTermsApiV1AdminAcademicTermsGetResponse =
@@ -1041,18 +1214,18 @@ export type CreateTermApiV1AdminAcademicTermsPostData = {
   body: AcademicTermCreate;
   path?: never;
   query?: never;
-  url: '/api/v1/admin/academic_terms/';
+  url: '/api/v1/admin/academic-terms/';
 };
 
 export type CreateTermApiV1AdminAcademicTermsPostErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Permission Denied
    */
-  403: unknown;
+  403: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -1081,18 +1254,18 @@ export type DeleteTermApiV1AdminAcademicTermsTermIdDeleteData = {
     term_id: number;
   };
   query?: never;
-  url: '/api/v1/admin/academic_terms/{term_id}';
+  url: '/api/v1/admin/academic-terms/{term_id}';
 };
 
 export type DeleteTermApiV1AdminAcademicTermsTermIdDeleteErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Permission Denied
    */
-  403: unknown;
+  403: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -1121,18 +1294,18 @@ export type GetTermApiV1AdminAcademicTermsTermIdGetData = {
     term_id: number;
   };
   query?: never;
-  url: '/api/v1/admin/academic_terms/{term_id}';
+  url: '/api/v1/admin/academic-terms/{term_id}';
 };
 
 export type GetTermApiV1AdminAcademicTermsTermIdGetErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Permission Denied
    */
-  403: unknown;
+  403: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -1161,18 +1334,18 @@ export type UpdateTermApiV1AdminAcademicTermsTermIdPatchData = {
     term_id: number;
   };
   query?: never;
-  url: '/api/v1/admin/academic_terms/{term_id}';
+  url: '/api/v1/admin/academic-terms/{term_id}';
 };
 
 export type UpdateTermApiV1AdminAcademicTermsTermIdPatchErrors = {
   /**
-   * Unauthorized
+   * Unauthorized or Token invalid
    */
-  401: unknown;
+  401: ErrorResponseModel;
   /**
    * Permission Denied
    */
-  403: unknown;
+  403: ErrorResponseModel;
   /**
    * Validation Error
    */
@@ -1191,6 +1364,193 @@ export type UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses = {
 
 export type UpdateTermApiV1AdminAcademicTermsTermIdPatchResponse =
   UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses[keyof UpdateTermApiV1AdminAcademicTermsTermIdPatchResponses];
+
+export type SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostData = {
+  body?: never;
+  path: {
+    /**
+     * Term Id
+     */
+    term_id: number;
+  };
+  query?: never;
+  url: '/api/v1/admin/academic-terms/{term_id}/set-current';
+};
+
+export type SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostErrors = {
+  /**
+   * Unauthorized or Token invalid
+   */
+  401: ErrorResponseModel;
+  /**
+   * Permission Denied
+   */
+  403: ErrorResponseModel;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostError =
+  SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostErrors[keyof SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostErrors];
+
+export type SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: AcademicTermInfo;
+};
+
+export type SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostResponse =
+  SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostResponses[keyof SetCurrentTermApiV1AdminAcademicTermsTermIdSetCurrentPostResponses];
+
+export type CreateApiV1AdminGeneralActivitiesPostData = {
+  body: GeneralActivityCreate;
+  path?: never;
+  query?: never;
+  url: '/api/v1/admin/general-activities/';
+};
+
+export type CreateApiV1AdminGeneralActivitiesPostErrors = {
+  /**
+   * Unauthorized or Token invalid
+   */
+  401: ErrorResponseModel;
+  /**
+   * Permission Denied
+   */
+  403: ErrorResponseModel;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type CreateApiV1AdminGeneralActivitiesPostError =
+  CreateApiV1AdminGeneralActivitiesPostErrors[keyof CreateApiV1AdminGeneralActivitiesPostErrors];
+
+export type CreateApiV1AdminGeneralActivitiesPostResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type CreateApiV1AdminGeneralActivitiesPostResponse =
+  CreateApiV1AdminGeneralActivitiesPostResponses[keyof CreateApiV1AdminGeneralActivitiesPostResponses];
+
+export type DeleteApiV1AdminGeneralActivitiesActivityIdDeleteData = {
+  body?: never;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/admin/general-activities/{activity_id}';
+};
+
+export type DeleteApiV1AdminGeneralActivitiesActivityIdDeleteErrors = {
+  /**
+   * Unauthorized or Token invalid
+   */
+  401: ErrorResponseModel;
+  /**
+   * Permission Denied
+   */
+  403: ErrorResponseModel;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type DeleteApiV1AdminGeneralActivitiesActivityIdDeleteError =
+  DeleteApiV1AdminGeneralActivitiesActivityIdDeleteErrors[keyof DeleteApiV1AdminGeneralActivitiesActivityIdDeleteErrors];
+
+export type DeleteApiV1AdminGeneralActivitiesActivityIdDeleteResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type DeleteApiV1AdminGeneralActivitiesActivityIdDeleteResponse =
+  DeleteApiV1AdminGeneralActivitiesActivityIdDeleteResponses[keyof DeleteApiV1AdminGeneralActivitiesActivityIdDeleteResponses];
+
+export type UpdateApiV1AdminGeneralActivitiesActivityIdPatchData = {
+  body: GeneralActivityUpdate;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/admin/general-activities/{activity_id}';
+};
+
+export type UpdateApiV1AdminGeneralActivitiesActivityIdPatchErrors = {
+  /**
+   * Unauthorized or Token invalid
+   */
+  401: ErrorResponseModel;
+  /**
+   * Permission Denied
+   */
+  403: ErrorResponseModel;
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type UpdateApiV1AdminGeneralActivitiesActivityIdPatchError =
+  UpdateApiV1AdminGeneralActivitiesActivityIdPatchErrors[keyof UpdateApiV1AdminGeneralActivitiesActivityIdPatchErrors];
+
+export type UpdateApiV1AdminGeneralActivitiesActivityIdPatchResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type UpdateApiV1AdminGeneralActivitiesActivityIdPatchResponse =
+  UpdateApiV1AdminGeneralActivitiesActivityIdPatchResponses[keyof UpdateApiV1AdminGeneralActivitiesActivityIdPatchResponses];
+
+export type GetApiV1GeneralActivitiesActivityIdGetData = {
+  body?: never;
+  path: {
+    /**
+     * Activity Id
+     */
+    activity_id: number;
+  };
+  query?: never;
+  url: '/api/v1/general-activities/{activity_id}';
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetErrors = {
+  /**
+   * Validation Error
+   */
+  422: HttpValidationError;
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetError =
+  GetApiV1GeneralActivitiesActivityIdGetErrors[keyof GetApiV1GeneralActivitiesActivityIdGetErrors];
+
+export type GetApiV1GeneralActivitiesActivityIdGetResponses = {
+  /**
+   * Successful Response
+   */
+  200: GeneralActivityInfo;
+};
+
+export type GetApiV1GeneralActivitiesActivityIdGetResponse =
+  GetApiV1GeneralActivitiesActivityIdGetResponses[keyof GetApiV1GeneralActivitiesActivityIdGetResponses];
 
 export type ListActivitiesApiV1GeneralActivitiesGetData = {
   body?: never;
@@ -1230,125 +1590,100 @@ export type ListActivitiesApiV1GeneralActivitiesGetResponses = {
 export type ListActivitiesApiV1GeneralActivitiesGetResponse =
   ListActivitiesApiV1GeneralActivitiesGetResponses[keyof ListActivitiesApiV1GeneralActivitiesGetResponses];
 
-export type CreateApiV1GeneralActivitiesPostData = {
-  body: GeneralActivityCreate;
-  path?: never;
-  query?: never;
-  url: '/api/v1/general-activities/';
-};
-
-export type CreateApiV1GeneralActivitiesPostErrors = {
-  /**
-   * Validation Error
-   */
-  422: HttpValidationError;
-};
-
-export type CreateApiV1GeneralActivitiesPostError =
-  CreateApiV1GeneralActivitiesPostErrors[keyof CreateApiV1GeneralActivitiesPostErrors];
-
-export type CreateApiV1GeneralActivitiesPostResponses = {
-  /**
-   * Successful Response
-   */
-  200: GeneralActivityInfo;
-};
-
-export type CreateApiV1GeneralActivitiesPostResponse =
-  CreateApiV1GeneralActivitiesPostResponses[keyof CreateApiV1GeneralActivitiesPostResponses];
-
-export type DeleteApiV1GeneralActivitiesActivityIdDeleteData = {
+export type GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetData = {
   body?: never;
   path: {
     /**
-     * Activity Id
+     * Club Id
      */
-    activity_id: number;
+    club_id: number;
   };
   query?: never;
-  url: '/api/v1/general-activities/{activity_id}';
+  url: '/api/v1/clubs/{club_id}/general-activities/';
 };
 
-export type DeleteApiV1GeneralActivitiesActivityIdDeleteErrors = {
+export type GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type DeleteApiV1GeneralActivitiesActivityIdDeleteError =
-  DeleteApiV1GeneralActivitiesActivityIdDeleteErrors[keyof DeleteApiV1GeneralActivitiesActivityIdDeleteErrors];
+export type GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetError =
+  GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetErrors[keyof GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetErrors];
 
-export type DeleteApiV1GeneralActivitiesActivityIdDeleteResponses = {
+export type GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetResponses = {
   /**
+   * Response Get Club General Activities Api V1 Clubs  Club Id  General Activities  Get
+   *
    * Successful Response
    */
-  200: GeneralActivityInfo;
+  200: Array<ClubGeneralActivityInfo>;
 };
 
-export type DeleteApiV1GeneralActivitiesActivityIdDeleteResponse =
-  DeleteApiV1GeneralActivitiesActivityIdDeleteResponses[keyof DeleteApiV1GeneralActivitiesActivityIdDeleteResponses];
+export type GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetResponse =
+  GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetResponses[keyof GetClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesGetResponses];
 
-export type GetApiV1GeneralActivitiesActivityIdGetData = {
-  body?: never;
+export type UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchData = {
+  body: ClubGeneralActivityUpdate;
   path: {
     /**
-     * Activity Id
+     * Club Id
      */
-    activity_id: number;
+    club_id: number;
   };
   query?: never;
-  url: '/api/v1/general-activities/{activity_id}';
+  url: '/api/v1/clubs/{club_id}/general-activities/';
 };
 
-export type GetApiV1GeneralActivitiesActivityIdGetErrors = {
+export type UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type GetApiV1GeneralActivitiesActivityIdGetError =
-  GetApiV1GeneralActivitiesActivityIdGetErrors[keyof GetApiV1GeneralActivitiesActivityIdGetErrors];
+export type UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchError =
+  UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchErrors[keyof UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchErrors];
 
-export type GetApiV1GeneralActivitiesActivityIdGetResponses = {
+export type UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchResponses = {
   /**
    * Successful Response
    */
-  200: GeneralActivityInfo;
+  200: ClubGeneralActivityInfo;
 };
 
-export type GetApiV1GeneralActivitiesActivityIdGetResponse =
-  GetApiV1GeneralActivitiesActivityIdGetResponses[keyof GetApiV1GeneralActivitiesActivityIdGetResponses];
+export type UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchResponse =
+  UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchResponses[keyof UpdateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPatchResponses];
 
-export type UpdateApiV1GeneralActivitiesActivityIdPatchData = {
-  body: GeneralActivityUpdate;
+export type CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostData = {
+  body: ClubGeneralActivityCreate;
   path: {
     /**
-     * Activity Id
+     * Club Id
      */
-    activity_id: number;
+    club_id: number;
   };
   query?: never;
-  url: '/api/v1/general-activities/{activity_id}';
+  url: '/api/v1/clubs/{club_id}/general-activities/';
 };
 
-export type UpdateApiV1GeneralActivitiesActivityIdPatchErrors = {
+export type CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostErrors = {
   /**
    * Validation Error
    */
   422: HttpValidationError;
 };
 
-export type UpdateApiV1GeneralActivitiesActivityIdPatchError =
-  UpdateApiV1GeneralActivitiesActivityIdPatchErrors[keyof UpdateApiV1GeneralActivitiesActivityIdPatchErrors];
+export type CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostError =
+  CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostErrors[keyof CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostErrors];
 
-export type UpdateApiV1GeneralActivitiesActivityIdPatchResponses = {
+export type CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostResponses = {
   /**
    * Successful Response
    */
-  200: GeneralActivityInfo;
+  201: ClubGeneralActivityInfo;
 };
 
-export type UpdateApiV1GeneralActivitiesActivityIdPatchResponse =
-  UpdateApiV1GeneralActivitiesActivityIdPatchResponses[keyof UpdateApiV1GeneralActivitiesActivityIdPatchResponses];
+export type CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostResponse =
+  CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostResponses[keyof CreateClubGeneralActivitiesApiV1ClubsClubIdGeneralActivitiesPostResponses];

@@ -41,7 +41,7 @@ const handleLogin = async () => {
     }
 
     if (data && data.access_token) {
-      localStorage.setItem('token', data.access_token);
+      userStore.setToken(data.access_token);
       await userStore.fetchUser();
       void router.push('/');
     }

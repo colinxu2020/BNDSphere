@@ -27,6 +27,12 @@ const routes = [
     meta: { layout: 'main', requiresAuth: true, title: '开发测试' },
   },
   {
+    path: '/admin',
+    name: 'AdminDashboard',
+    component: () => import('@/views/admin/AdminDashboard.vue'),
+    meta: { layout: 'main', requiresAuth: true, title: '后台管理' },
+  },
+  {
     path: '/activities',
     meta: { layout: 'main', requiresAuth: true, title: '活动列表' },
     children: [
@@ -76,6 +82,19 @@ const routes = [
     path: '/',
     component: () => import('@/views/GuestIndex.vue'),
     meta: { layout: 'guest', title: '首页' }, // 使用访客布局
+  },
+  {
+    path: '/clubs/discover',
+    name: 'ClubDiscover',
+    component: () => import('@/views/Club/ClubDiscover.vue'),
+    meta: { layout: 'guest', title: '发现社团' },
+  },
+  {
+    path: '/club/:id/manage',
+    name: 'ClubManage',
+    component: () => import('@/views/Club/ClubManage.vue'),
+    meta: { layout: 'main', requiresAuth: true, title: '社团管理' },
+    props: true,
   },
   {
     path: '/club/:id',
