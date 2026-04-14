@@ -1,0 +1,1864 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "BNDSphere API",
+    "description": "Backend Service for BNDSphere",
+    "version": "0.1.0"
+  },
+  "paths": {
+    "/api/v1/users/me": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get Current User Info",
+        "description": "Get public profile of current user.",
+        "operationId": "get_current_user_info_api_v1_users_me_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      },
+      "patch": {
+        "tags": ["users"],
+        "summary": "Update User Profile",
+        "description": "Modify user profile of current user.\n\nNote that username cannot be changed, and email must be unique.",
+        "operationId": "update_user_profile_api_v1_users_me_patch",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserUpdate" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Email already exists",
+            "content": { "application/json": { "example": { "detail": "Email already exists" } } }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
+    "/api/v1/users/{user_id}": {
+      "get": {
+        "tags": ["users"],
+        "summary": "Get User Profile",
+        "description": "Get public profile of a user by user id.",
+        "operationId": "get_user_profile_api_v1_users__user_id__get",
+        "parameters": [
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "User Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/register": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Register",
+        "description": "Register a new user. Username must be unique.",
+        "operationId": "register_api_v1_auth_register_post",
+        "requestBody": {
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+            }
+          },
+          "409": {
+            "description": "Username already exists",
+            "content": {
+              "application/json": { "example": { "detail": "Username already exists" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/auth/login": {
+      "post": {
+        "tags": ["auth"],
+        "summary": "Login",
+        "description": "Login with username and password. Returns a JWT token if successful.\n\nNote that all optional fields in the form data are ignored.",
+        "operationId": "login_api_v1_auth_login_post",
+        "requestBody": {
+          "content": {
+            "application/x-www-form-urlencoded": {
+              "schema": { "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Token" } }
+            }
+          },
+          "401": {
+            "description": "Incorrect username or password",
+            "content": {
+              "application/json": { "example": { "detail": "Incorrect username or password" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}": {
+      "get": {
+        "tags": ["clubs"],
+        "summary": "Get Club Info",
+        "description": "Get information of a club by club id.",
+        "operationId": "get_club_info_api_v1_clubs__club_id__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["clubs"],
+        "summary": "Update Club Info",
+        "description": "Get information of a club by club id.",
+        "operationId": "update_club_info_api_v1_clubs__club_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ClubUpdate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/": {
+      "post": {
+        "tags": ["clubs"],
+        "summary": "Create Club",
+        "description": "Create a new club. Club name must be unique among non-archived clubs.",
+        "operationId": "create_club_api_v1_clubs__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ClubCreate" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "409": {
+            "description": "Club with the same name already exists",
+            "content": {
+              "application/json": { "example": { "detail": "Club with name HCC already exists." } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "get": {
+        "tags": ["clubs"],
+        "summary": "List Clubs",
+        "description": "Search Clubs.",
+        "operationId": "list_clubs_api_v1_clubs__get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "category",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "$ref": "#/components/schemas/ClubCategoryEnum" }, { "type": "null" }],
+              "title": "Category"
+            }
+          },
+          {
+            "name": "status",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [{ "$ref": "#/components/schemas/ClubStatusEnum" }, { "type": "null" }],
+              "title": "Status"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/members": {
+      "post": {
+        "tags": ["clubs"],
+        "summary": "Join Club",
+        "description": "Join a club.",
+        "operationId": "join_club_api_v1_clubs__club_id__members_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubMemberInfo" } }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/members/me": {
+      "delete": {
+        "tags": ["clubs"],
+        "summary": "Leave Club",
+        "description": "Leave a club.",
+        "operationId": "leave_club_api_v1_clubs__club_id__members_me_delete",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/activities/": {
+      "get": {
+        "tags": ["club_activities"],
+        "summary": "Get Club Activities",
+        "operationId": "get_club_activities_api_v1_clubs__club_id__activities__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "title": "Offset" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": true,
+            "schema": { "type": "integer", "title": "Limit" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_ActivityInfo_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["club_activities"],
+        "summary": "Create Club Activity",
+        "operationId": "create_club_activity_api_v1_clubs__club_id__activities__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ActivityCreate" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/academic-terms/": {
+      "get": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "List Terms",
+        "operationId": "list_terms_api_v1_admin_academic_terms__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_AcademicTermInfo_" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "Create Term",
+        "operationId": "create_term_api_v1_admin_academic_terms__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermCreate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/academic-terms/{term_id}": {
+      "get": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "Get Term",
+        "operationId": "get_term_api_v1_admin_academic_terms__term_id__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "term_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Term Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "Update Term",
+        "operationId": "update_term_api_v1_admin_academic_terms__term_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "term_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Term Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermUpdate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "Delete Term",
+        "operationId": "delete_term_api_v1_admin_academic_terms__term_id__delete",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "term_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Term Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/academic-terms/{term_id}/set-current": {
+      "post": {
+        "tags": ["admin", "Academic Terms"],
+        "summary": "Set Current Term",
+        "operationId": "set_current_term_api_v1_admin_academic_terms__term_id__set_current_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "term_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Term Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/admin/general-activities/": {
+      "post": {
+        "tags": ["admin", "general activities"],
+        "summary": "Create",
+        "operationId": "create_api_v1_admin_general_activities__post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GeneralActivityCreate" }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GeneralActivityInfo" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
+    "/api/v1/admin/general-activities/{activity_id}": {
+      "patch": {
+        "tags": ["admin", "general activities"],
+        "summary": "Update",
+        "operationId": "update_api_v1_admin_general_activities__activity_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/GeneralActivityUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GeneralActivityInfo" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["admin", "general activities"],
+        "summary": "Delete",
+        "operationId": "delete_api_v1_admin_general_activities__activity_id__delete",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GeneralActivityInfo" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/general-activities/{activity_id}": {
+      "get": {
+        "tags": ["general activities"],
+        "summary": "Get",
+        "operationId": "get_api_v1_general_activities__activity_id__get",
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/GeneralActivityInfo" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/general-activities/": {
+      "get": {
+        "tags": ["general activities"],
+        "summary": "List Activities",
+        "operationId": "list_activities_api_v1_general_activities__get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
+                { "type": "null" }
+              ],
+              "title": "Level"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/GeneralActivityInfo" },
+                  "title": "Response List Activities Api V1 General Activities  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/general-activities/": {
+      "get": {
+        "tags": ["club_general_activities"],
+        "summary": "Get Club General Activities",
+        "operationId": "get_club_general_activities_api_v1_clubs__club_id__general_activities__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
+                  "title": "Response Get Club General Activities Api V1 Clubs  Club Id  General Activities  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["club_general_activities"],
+        "summary": "Create Club General Activities",
+        "operationId": "create_club_general_activities_api_v1_clubs__club_id__general_activities__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubGeneralActivityCreate" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["club_general_activities"],
+        "summary": "Update Club General Activities",
+        "operationId": "update_club_general_activities_api_v1_clubs__club_id__general_activities__patch",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubGeneralActivityUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AcademicTermCreate": {
+        "properties": {
+          "term_name": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Term Name"
+          },
+          "start_date": { "type": "string", "format": "date", "title": "Start Date" },
+          "end_date": { "type": "string", "format": "date", "title": "End Date" },
+          "is_current": { "type": "boolean", "title": "Is Current" }
+        },
+        "type": "object",
+        "required": ["start_date", "end_date", "is_current"],
+        "title": "AcademicTermCreate"
+      },
+      "AcademicTermInfo": {
+        "properties": {
+          "term_name": { "type": "string", "maxLength": 50, "title": "Term Name" },
+          "start_date": { "type": "string", "format": "date", "title": "Start Date" },
+          "end_date": { "type": "string", "format": "date", "title": "End Date" },
+          "is_current": { "type": "boolean", "title": "Is Current" }
+        },
+        "type": "object",
+        "required": ["term_name", "start_date", "end_date", "is_current"],
+        "title": "AcademicTermInfo"
+      },
+      "AcademicTermUpdate": {
+        "properties": {
+          "term_name": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Term Name"
+          },
+          "start_date": {
+            "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }],
+            "title": "Start Date"
+          },
+          "end_date": {
+            "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }],
+            "title": "End Date"
+          }
+        },
+        "type": "object",
+        "title": "AcademicTermUpdate"
+      },
+      "ActivityCreate": {
+        "properties": {
+          "name": { "type": "string", "maxLength": 64, "title": "Name" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
+          "end_time": { "type": "string", "format": "date-time", "title": "End Time" }
+        },
+        "type": "object",
+        "required": ["name", "description", "location", "start_time", "end_time"],
+        "title": "ActivityCreate"
+      },
+      "ActivityInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 64, "title": "Name" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
+          "end_time": { "type": "string", "format": "date-time", "title": "End Time" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "picture_urls": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Picture Urls"
+          },
+          "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "location",
+          "start_time",
+          "end_time",
+          "club_id",
+          "picture_urls",
+          "academic_term"
+        ],
+        "title": "ActivityInfo"
+      },
+      "AuditStatusEnum": {
+        "type": "string",
+        "enum": ["pending", "approved", "rejected"],
+        "title": "AuditStatusEnum"
+      },
+      "Body_login_api_v1_auth_login_post": {
+        "properties": {
+          "grant_type": {
+            "anyOf": [{ "type": "string", "pattern": "^password$" }, { "type": "null" }],
+            "title": "Grant Type"
+          },
+          "username": { "type": "string", "title": "Username" },
+          "password": { "type": "string", "format": "password", "title": "Password" },
+          "scope": { "type": "string", "title": "Scope", "default": "" },
+          "client_id": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Client Id"
+          },
+          "client_secret": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "format": "password",
+            "title": "Client Secret"
+          }
+        },
+        "type": "object",
+        "required": ["username", "password"],
+        "title": "Body_login_api_v1_auth_login_post"
+      },
+      "ClubCategoryEnum": {
+        "type": "string",
+        "enum": ["sports", "humanity", "arts", "science", "charity", "business", "campus", "other"],
+        "title": "ClubCategoryEnum"
+      },
+      "ClubCreate": {
+        "properties": {
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          }
+        },
+        "type": "object",
+        "required": ["name", "category", "summary", "description"],
+        "title": "ClubCreate"
+      },
+      "ClubGeneralActivityCreate": {
+        "properties": {
+          "activity_id": { "type": "integer", "title": "Activity Id" },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
+          "proof_files": {
+            "anyOf": [{ "items": { "type": "string" }, "type": "array" }, { "type": "null" }],
+            "title": "Proof Files"
+          },
+          "requested_score": { "type": "integer", "title": "Requested Score" }
+        },
+        "type": "object",
+        "required": ["activity_id", "participation_type", "requested_score"],
+        "title": "ClubGeneralActivityCreate"
+      },
+      "ClubGeneralActivityInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "audit_status": { "$ref": "#/components/schemas/AuditStatusEnum" },
+          "requested_score": { "type": "integer", "title": "Requested Score" },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
+          "met_conditions": {
+            "items": { "$ref": "#/components/schemas/RecordConditionDetail" },
+            "type": "array",
+            "title": "Met Conditions"
+          },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "activity_id": { "type": "integer", "title": "Activity Id" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "proof_files",
+          "created_at",
+          "audit_status",
+          "requested_score",
+          "participation_type",
+          "met_conditions",
+          "club_id",
+          "activity_id"
+        ],
+        "title": "ClubGeneralActivityInfo"
+      },
+      "ClubGeneralActivityUpdate": {
+        "properties": {
+          "activity_id": { "type": "integer", "title": "Activity Id" },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
+          "proof_files": {
+            "anyOf": [{ "items": { "type": "string" }, "type": "array" }, { "type": "null" }],
+            "title": "Proof Files"
+          },
+          "requested_score": { "type": "integer", "title": "Requested Score" }
+        },
+        "type": "object",
+        "required": ["activity_id", "participation_type", "requested_score"],
+        "title": "ClubGeneralActivityUpdate"
+      },
+      "ClubInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
+          "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" },
+          "members": {
+            "items": { "$ref": "#/components/schemas/ClubMemberInfo" },
+            "type": "array",
+            "title": "Members"
+          },
+          "activities": {
+            "items": { "$ref": "#/components/schemas/ActivityInfo" },
+            "type": "array",
+            "title": "Activities"
+          },
+          "general_activity_records": {
+            "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
+            "type": "array",
+            "title": "General Activity Records"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "summary",
+          "description",
+          "created_at",
+          "status",
+          "star_level",
+          "members",
+          "activities",
+          "general_activity_records"
+        ],
+        "title": "ClubInfo"
+      },
+      "ClubMemberInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "user_id": { "type": "integer", "title": "User Id" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "membership": { "$ref": "#/components/schemas/ClubMembershipEnum" },
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" }
+        },
+        "type": "object",
+        "required": ["id", "user_id", "club_id", "membership", "updated_at"],
+        "title": "ClubMemberInfo"
+      },
+      "ClubMembershipEnum": {
+        "type": "string",
+        "enum": ["pending", "member", "president", "vice president", "left"],
+        "title": "ClubMembershipEnum"
+      },
+      "ClubStarLevelEnum": {
+        "type": "string",
+        "enum": [
+          "none",
+          "one_star",
+          "two_star",
+          "three_star",
+          "four_star",
+          "five_star",
+          "honorary"
+        ],
+        "title": "ClubStarLevelEnum"
+      },
+      "ClubStatusEnum": {
+        "type": "string",
+        "enum": ["unreviewed", "normal", "archived"],
+        "title": "ClubStatusEnum"
+      },
+      "ClubUpdate": {
+        "properties": {
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          }
+        },
+        "type": "object",
+        "required": ["summary", "description"],
+        "title": "ClubUpdate"
+      },
+      "ErrorResponseModel": {
+        "properties": {
+          "message_key": {
+            "type": "string",
+            "title": "Message Key",
+            "description": "i18n translate key"
+          },
+          "error_code": { "type": "string", "title": "Error Code", "description": "error code" },
+          "details": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Details",
+            "description": "extra context"
+          }
+        },
+        "type": "object",
+        "required": ["message_key", "error_code"],
+        "title": "ErrorResponseModel"
+      },
+      "GeneralActivityCreate": {
+        "properties": {
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "level": { "$ref": "#/components/schemas/GeneralActivityLevelEnum" }
+        },
+        "type": "object",
+        "required": ["name", "description", "level"],
+        "title": "GeneralActivityCreate"
+      },
+      "GeneralActivityInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "level": { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "club_records": {
+            "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
+            "type": "array",
+            "title": "Club Records"
+          },
+          "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "level",
+          "created_at",
+          "club_records",
+          "academic_term"
+        ],
+        "title": "GeneralActivityInfo"
+      },
+      "GeneralActivityLevelEnum": {
+        "type": "string",
+        "enum": ["school", "large", "sua"],
+        "title": "GeneralActivityLevelEnum"
+      },
+      "GeneralActivityUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [{ "type": "string", "maxLength": 128 }, { "type": "null" }],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "level": {
+            "anyOf": [
+              { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
+              { "type": "null" }
+            ]
+          }
+        },
+        "type": "object",
+        "title": "GeneralActivityUpdate"
+      },
+      "HTTPValidationError": {
+        "properties": {
+          "detail": {
+            "items": { "$ref": "#/components/schemas/ValidationError" },
+            "type": "array",
+            "title": "Detail"
+          }
+        },
+        "type": "object",
+        "title": "HTTPValidationError"
+      },
+      "Page_AcademicTermInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/AcademicTermInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[AcademicTermInfo]"
+      },
+      "Page_ActivityInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ActivityInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ActivityInfo]"
+      },
+      "Page_ClubInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubInfo]"
+      },
+      "ParticipationTypeEnum": {
+        "type": "string",
+        "enum": ["participate_only", "organize"],
+        "title": "ParticipationTypeEnum"
+      },
+      "RecordConditionDetail": {
+        "properties": {
+          "is_met": { "type": "boolean", "title": "Is Met" },
+          "record_id": { "type": "integer", "title": "Record Id" },
+          "condition_id": { "type": "integer", "title": "Condition Id" }
+        },
+        "type": "object",
+        "required": ["is_met", "record_id", "condition_id"],
+        "title": "RecordConditionDetail"
+      },
+      "RoleEnum": {
+        "type": "string",
+        "enum": ["ban", "user", "union of associations", "admin", "dev"],
+        "title": "RoleEnum"
+      },
+      "Token": {
+        "properties": {
+          "access_token": { "type": "string", "title": "Access Token" },
+          "token_type": { "type": "string", "title": "Token Type" }
+        },
+        "type": "object",
+        "required": ["access_token", "token_type"],
+        "title": "Token"
+      },
+      "UserCreate": {
+        "properties": {
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "password": { "type": "string", "minLength": 6, "title": "Password" }
+        },
+        "type": "object",
+        "required": ["username", "password"],
+        "title": "UserCreate"
+      },
+      "UserInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "email": {
+            "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
+            "title": "Email"
+          },
+          "avatar_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Avatar Uri"
+          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "role": { "$ref": "#/components/schemas/RoleEnum" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
+        },
+        "type": "object",
+        "required": ["id", "username", "email", "avatar_uri", "description", "role", "created_at"],
+        "title": "UserInfo"
+      },
+      "UserUpdate": {
+        "properties": {
+          "email": {
+            "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
+            "title": "Email"
+          },
+          "avatar_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Avatar Uri"
+          },
+          "description": {
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
+            "title": "Description"
+          }
+        },
+        "type": "object",
+        "title": "UserUpdate"
+      },
+      "ValidationError": {
+        "properties": {
+          "loc": {
+            "items": { "anyOf": [{ "type": "string" }, { "type": "integer" }] },
+            "type": "array",
+            "title": "Location"
+          },
+          "msg": { "type": "string", "title": "Message" },
+          "type": { "type": "string", "title": "Error Type" },
+          "input": { "title": "Input" },
+          "ctx": { "type": "object", "title": "Context" }
+        },
+        "type": "object",
+        "required": ["loc", "msg", "type"],
+        "title": "ValidationError"
+      }
+    },
+    "securitySchemes": {
+      "OAuth2PasswordBearer": {
+        "type": "oauth2",
+        "flows": { "password": { "scopes": {}, "tokenUrl": "/api/v1/auth/login" } }
+      }
+    }
+  }
+}
