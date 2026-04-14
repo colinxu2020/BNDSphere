@@ -2,10 +2,16 @@
 import ClubDirectoryPanel from '@/components/GuestMainPage/ClubDirectoryPanel.vue';
 import { useUserStore } from '@/lib/auth/userStore';
 import { computed } from 'vue';
+import { useRouter } from 'vue-router';
 import { CATEGORY_MAP, useClubDirectory } from '@/lib/club/useClubDirectory.js';
 
 const userStore = useUserStore();
 const isLogin = computed(() => userStore.isLogin);
+const router = useRouter();
+
+function goToCreateClub() {
+  void router.push('/clubs/create');
+}
 
 const {
   clubs,
@@ -31,6 +37,14 @@ const {
     <div class="mt-12">
       <h1 class="text-4xl font-bold text-gray-800 tracking-wide mb-3">发现社团</h1>
       <p class="text-gray-500">浏览并搜索感兴趣的社团，选择你想加入的组织。</p>
+      <div v-if="isLogin" class="mt-4">
+        <button
+          class="rounded-md bg-slate-900 px-4 py-2 text-sm text-white transition hover:bg-slate-700"
+          @click="goToCreateClub"
+        >
+          新建社团
+        </button>
+      </div>
     </div>
 
     <div class="mt-8">

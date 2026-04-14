@@ -90,6 +90,12 @@ const routes = [
     meta: { layout: 'guest', title: '发现社团' },
   },
   {
+    path: '/clubs/create',
+    name: 'ClubCreate',
+    component: () => import('@/views/Club/ClubCreate.vue'),
+    meta: { layout: 'main', requiresAuth: true, title: '新建社团' },
+  },
+  {
     path: '/club/:id/manage',
     name: 'ClubManage',
     component: () => import('@/views/Club/ClubManage.vue'),
