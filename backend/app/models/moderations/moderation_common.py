@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ModerateStateEnum(StrEnum):
+class ModerateStatusEnum(StrEnum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
@@ -18,9 +18,9 @@ class ModerateStateEnum(StrEnum):
 class ModerateMixin:
     @declared_attr
     @classmethod
-    def moderate_status(cls) -> Mapped[ModerateStateEnum]:
+    def moderate_status(cls) -> Mapped[ModerateStatusEnum]:
         return mapped_column(
-            default=ModerateStateEnum.pending,
+            default=ModerateStatusEnum.pending,
         )
 
     @declared_attr

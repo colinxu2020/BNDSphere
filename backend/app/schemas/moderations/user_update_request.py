@@ -1,6 +1,6 @@
 from pydantic import ConfigDict, Field, HttpUrl, model_validator
 
-from app.models.moderations.moderation_common import ModerateStateEnum
+from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.schemas.generic import BaseModel, IdMixin
 from app.services.errors import RequestIsNullError
 
@@ -34,10 +34,10 @@ class UserUpdateRequestInfo(IdMixin, BaseModel):
     avatar_url: HttpUrl | None = Field(None)
     description: str | None = Field(None)
 
-    moderate_status: ModerateStateEnum = Field(...)
+    moderate_status: ModerateStatusEnum = Field(...)
 
 
 class ModerateUserUpdateRequest(IdMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    moderate_state: ModerateStateEnum = Field(...)
+    moderate_status: ModerateStatusEnum = Field(...)
