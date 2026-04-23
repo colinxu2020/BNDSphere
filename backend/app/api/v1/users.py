@@ -1,10 +1,19 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends
+from starlette import status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
-from app.api.dependencies import UserServiceDep, get_current_user
+from app.api.dependencies import (
+    UserServiceDep,
+    UserUpdateRequestServiceDep,
+    get_current_user,
+)
 from app.models.user import User
+from app.schemas.moderations.user_update_request import (
+    UserUpdateRequestCreate,
+    UserUpdateRequestInfo,
+)
 from app.schemas.user import UserInfo, UserUpdate
 from app.services.errors import ResourceNotFoundError
 
@@ -49,6 +58,7 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
             },
         },
     },
+    deprecated=True,
 )
 async def update_user_profile(
     current_user: Annotated[User, Depends(get_current_user)],
@@ -60,3 +70,17 @@ async def update_user_profile(
     Note that username cannot be changed, and email must be unique.
     """
     return UserInfo.model_validate(await service.update(current_user, update))
+
+
+@router.post(
+    "/profile-update",
+    status_code=status.HTTP_201_CREATED,
+)
+async def request_update_profile(
+    service: UserUpdateRequestServiceDep,
+    obj_in: UserUpdateRequestCreate,
+    user: Annotated[User, Depends(get_current_user)],
+) -> UserUpdateRequestInfo:
+    return UserUpdateRequestInfo.model_validate(
+        await service.create(obj_in, user_id=user.id),
+    )

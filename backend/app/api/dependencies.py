@@ -25,7 +25,7 @@ from app.services.general_activities import (
 )
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
-from app.services.user import UserService
+from app.services.user import UserService, UserUpdateRequestService
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -90,6 +90,10 @@ type ClubMemberServiceDep = Annotated[
     Depends(ServiceFactory(ClubMemberService)),
 ]
 type UserServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
+type UserUpdateRequestServiceDep = Annotated[
+    UserUpdateRequestService,
+    Depends(ServiceFactory(UserUpdateRequestService)),
+]
 type ActivityServiceDep = Annotated[
     ActivityService,
     Depends(ServiceFactory(ActivityService)),

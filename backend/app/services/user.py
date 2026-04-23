@@ -4,7 +4,12 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
+from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import User
+from app.schemas.moderations.user_update_request import (
+    ModerateUserUpdateRequest,
+    UserUpdateRequestCreate,
+)
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
 from app.services.errors import (
@@ -60,3 +65,13 @@ class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
                 error_code="DUPLICATE_EMAIL",
                 details={"email": obj_in.email},
             ) from None
+
+
+class UserUpdateRequestService(
+    ServiceBase[
+        UserUpdateRequest,
+        UserUpdateRequestCreate,
+        ModerateUserUpdateRequest,
+    ],
+):
+    model = UserUpdateRequest

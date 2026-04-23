@@ -29,6 +29,16 @@ class AuthenticationError(BusinessError):
         )
 
 
+class RequestIsNullError(BusinessError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+        details: dict | None = None,
+    ) -> None:
+        super().__init__(message_key, 400, error_code, details)
+
+
 class ResourceNotFoundError(BusinessError):
     def __init__(
         self,
