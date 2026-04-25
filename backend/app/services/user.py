@@ -1,14 +1,17 @@
 from typing import override
 
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
+from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import User
 from app.schemas.moderations.user_update_request import (
-    ModerateUserUpdateRequest,
     UserUpdateRequestCreate,
+    UserUpdateRequestModerate,
 )
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
@@ -71,7 +74,13 @@ class UserUpdateRequestService(
     ServiceBase[
         UserUpdateRequest,
         UserUpdateRequestCreate,
-        ModerateUserUpdateRequest,
+        UserUpdateRequestModerate,
     ],
 ):
     model = UserUpdateRequest
+
+    async def get_pending_requests(self) -> Page[UserUpdateRequest]:
+        stmt = select(self.model).where(
+            self.model.moderate_status == ModerateStatusEnum.pending,
+        )
+        return await apaginate(self.db, stmt)

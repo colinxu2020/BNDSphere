@@ -17,7 +17,7 @@ class UserUpdateRequest(Base, ModerateMixin):
     )
 
     username: Mapped[str | None] = mapped_column(Text, default=None)
-    avatar_url: Mapped[HttpUrl | None] = mapped_column(
+    avatar_uri: Mapped[HttpUrl | None] = mapped_column(
         HttpUrlType,
         default=None,
     )

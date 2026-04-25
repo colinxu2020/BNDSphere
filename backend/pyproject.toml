@@ -19,7 +19,9 @@ dependencies = [
 ]
 
 [dependency-groups]
-dev = []
+dev = [
+    "ruff>=0.15.12",
+]
 
 [tool.mypy]
 strict = true

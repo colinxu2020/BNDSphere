@@ -9,14 +9,14 @@ class UserUpdateRequestCreate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     username: str | None = Field(None)
-    avatar_url: HttpUrl | None = Field(None)
+    avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
 
     @model_validator(mode="after")
     def validate_not_null(self) -> UserUpdateRequestCreate:
         if (
             self.username is None
-            and self.avatar_url is None
+            and self.avatar_uri is None
             and self.description is None
         ):
             raise RequestIsNullError(
@@ -31,13 +31,17 @@ class UserUpdateRequestInfo(IdMixin, BaseModel):
 
     user_id: int = Field(...)
     username: str | None = Field(None)
-    avatar_url: HttpUrl | None = Field(None)
+    avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
 
     moderate_status: ModerateStatusEnum = Field(...)
 
 
-class ModerateUserUpdateRequest(IdMixin, BaseModel):
+class UserUpdateRequestModeratePublic(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     moderate_status: ModerateStatusEnum = Field(...)
+
+
+class UserUpdateRequestModerate(UserUpdateRequestModeratePublic):
+    moderator_id: int
