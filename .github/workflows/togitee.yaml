@@ -1,4 +1,7 @@
 name: Sync to Gitee
+permissions:
+  contents: read
+
 on:
   push:
     branches: [ "**" ]  
