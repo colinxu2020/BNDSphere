@@ -85,7 +85,7 @@
                 variant="outline"
                 class="text-[10px]"
               >
-                {{ record.club_name }}
+                {{ record.club_id }}
               </Badge>
             </div>
           </div>
