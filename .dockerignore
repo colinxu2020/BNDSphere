@@ -1,0 +1,11 @@
+.git/
+.idea/
+.vscode/
+
+frontend/node_modules/
+frontend/dist/
+
+logs/
+*.log
+npm-debug.log*
+.env.*
