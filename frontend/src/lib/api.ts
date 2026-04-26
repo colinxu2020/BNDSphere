@@ -1,9 +1,9 @@
 import { client } from '@/client/client.gen';
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
+export const API_BASE_URL = '/';
 
 client.setConfig({
-  baseUrl: API_BASE_URL,
+  baseUrl: '/',
 });
 
 client.interceptors.request.use((request, options) => {
