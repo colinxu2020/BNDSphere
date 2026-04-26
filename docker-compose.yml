@@ -34,7 +34,27 @@ services:
     networks:
       - postgres-network
 
+  alembic-migration:
+    image: bndsphere-backend
+    env_file:
+      - .env.backend
+      - .env.docker
+    command: ["/backend/.venv/bin/alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres-network
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:exec,mode=1777
+
   backend:
+    image: bndsphere-backend
     build:
       context: ./backend
       network: host
@@ -45,6 +65,8 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+      alembic-migration:
+        condition: service_completed_successfully
     networks:
       - postgres-network
       - backend-network
