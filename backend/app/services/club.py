@@ -1,9 +1,9 @@
 from collections.abc import Sequence
-from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select
+from sqlalchemy import func, or_, select
+from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
@@ -16,7 +16,6 @@ from app.services.errors import (
     DuplicateClubNameError,
     ResourceForbiddenError,
 )
-from app.utils.crud_utils import apply_fulltext_search, get_dialect, get_upsert_insert
 
 
 class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
@@ -52,18 +51,21 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
     ) -> Page[Club]:
         stmt = select(Club)
         if search is not None and search.strip():
-            dialect = get_dialect(self.db)
-            search_fields = {
-                Club.name: 1.0,
-                Club.summary: 0.5,
-                Club.description: 0.3,
-            }
-            stmt = apply_fulltext_search(
-                stmt=stmt,
-                dialect=dialect,
-                search=search,
-                search_fields=search_fields,
-                default_order_by=self.model.id.desc(),
+            score_func = (
+                func.similarity(Club.name, search) * 1.0
+                + func.similarity(Club.summary, search) * 0.5
+                + func.similarity(Club.description, search) * 0.3
+            )
+            stmt = (
+                select(Club, score_func)
+                .where(
+                    or_(
+                        Club.name.bool_op("%")(search),
+                        Club.summary.bool_op("%")(search),
+                        Club.description.bool_op("%")(search),
+                    ),
+                )
+                .order_by(score_func.desc())
             )
         else:
             stmt = stmt.order_by(self.model.id.desc())
@@ -94,12 +96,14 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         user: User,
         membership: ClubMembershipEnum,
     ) -> ClubMember:
-        stmt = get_upsert_insert(
-            self.db,
-            self.model,
-            [self.model.club_id, self.model.user_id],
-            {"membership": membership},
+        stmt = (
+            insert(self.model)
+            .on_conflict_do_update(
+                index_elements=[self.model.club_id, self.model.user_id],
+                set_={"membership": membership},
+            )
+            .values(user_id=user.id, club_id=club.id, membership=membership)
+            .returning(user)
         )
-        stmt = stmt.values(user_id=user.id, club_id=club.id, membership=membership)
-        await self.db.execute(stmt)
-        return cast("ClubMember", await self.get_by_club_user(club, user))
+        result = await self.db.execute(stmt)
+        return result.scalar_one()
