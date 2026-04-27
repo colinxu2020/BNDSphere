@@ -8,8 +8,7 @@ from app.core.database import Base
 class ServiceBase[
     ModelType: Base,
     CreateSchemaType: BaseModel,
-    UpdateSchemaType: BaseModel,
-]:  # fmt: skip
+    UpdateSchemaType: BaseModel]:  # fmt: skip
     model: type[ModelType]
     db: AsyncSession
 
