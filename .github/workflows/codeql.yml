@@ -39,6 +39,9 @@ jobs:
       actions: read
       contents: read
 
+    env:
+      CODEQL_EXTRACTOR_PYTHON_ANALYSIS_VERSION: "3.12"
+
     strategy:
       fail-fast: false
       matrix:
@@ -66,6 +69,11 @@ jobs:
     # or others). This is typically only required for manual builds.
     # - name: Setup runtime (example)
     #   uses: actions/setup-example@v1
+    - name: Set up Python 3.12
+      if: matrix.language == 'python'
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.12'
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -73,8 +81,6 @@ jobs:
       with:
         languages: ${{ matrix.language }}
         build-mode: ${{ matrix.build-mode }}
-      env:
-        CODEQL_EXTRACTOR_PYTHON_ANALYSIS_VERSION: '3.14'
         # If you wish to specify custom queries, you can do so here or in a config file.
         # By default, queries listed here will override any specified in a config file.
         # Prefix the list here with "+" to use these queries and those in the config file.
