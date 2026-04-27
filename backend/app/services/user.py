@@ -5,14 +5,14 @@ from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
 from app.models.user import User
-from app.schemas.user import AdminUserUpdate, UserCreate
+from app.schemas.user import UserCreate, UserUpdate
 from app.services.base import ServiceBase
 from app.services.errors import (
     DuplicateResourceError,
 )
 
 
-class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
+class UserService(ServiceBase[User, UserCreate, UserUpdate]):
     model = User
 
     async def get_by_email(self, email: str) -> User | None:
@@ -51,7 +51,7 @@ class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
             return db_obj
 
     @override
-    async def update(self, db_obj: User, obj_in: AdminUserUpdate) -> User:
+    async def update(self, db_obj: User, obj_in: UserUpdate) -> User:
         try:
             return await super().update(db_obj, obj_in)
         except IntegrityError:

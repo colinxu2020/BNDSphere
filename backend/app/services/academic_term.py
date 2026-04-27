@@ -1,4 +1,4 @@
-from typing import override
+from typing import cast, override
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -23,7 +23,7 @@ class AcademicTermService(
 
     async def get_multi(self) -> Page[AcademicTerm]:
         stmt = select(AcademicTerm).order_by(AcademicTerm.start_date.desc())
-        return await apaginate(self.db, stmt)
+        return cast("Page[AcademicTerm]", await apaginate(self.db, stmt))
 
     async def set_current(self, term: AcademicTerm) -> AcademicTerm:
         await self._clear_current_term()

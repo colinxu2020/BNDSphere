@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -75,7 +76,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         if status is not None:
             stmt = stmt.where(Club.status == status)
 
-        return await apaginate(self.db, stmt)
+        return cast("Page[Club]", await apaginate(self.db, stmt))
 
 
 class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpdate]):
@@ -103,7 +104,7 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
                 set_={"membership": membership},
             )
             .values(user_id=user.id, club_id=club.id, membership=membership)
-            .returning(user)
+            .returning(self.model)
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()

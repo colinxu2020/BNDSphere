@@ -16,4 +16,6 @@ async def update_record(
     club_general_activities_service: ClubGeneralActivityServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> ClubGeneralActivityInfo:
-    return await club_general_activities_service.review_record(record_id, obj_in, user)
+    return ClubGeneralActivityInfo.model_validate(
+        await club_general_activities_service.review_record(record_id, obj_in, user),
+    )
