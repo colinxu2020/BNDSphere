@@ -1,10 +1,13 @@
+from typing import Any
+
+
 class BusinessError(Exception):
     def __init__(
         self,
         message_key: str,
         status_code: int,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
         headers: dict[str, str] | None = None,
     ) -> None:
         self.message_key = message_key
@@ -44,7 +47,7 @@ class ResourceNotFoundError(BusinessError):
         self,
         message_key: str,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 404, error_code, details)
 
@@ -63,7 +66,7 @@ class BusinessPermissionError(BusinessError):
         self,
         message_key: str,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 403, error_code, details)
 
@@ -109,7 +112,7 @@ class DuplicateResourceError(BusinessError):
         self,
         message_key: str,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 409, error_code, details)
 
@@ -119,7 +122,7 @@ class ResourceForbiddenError(BusinessError):
         self,
         message_key: str,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 403, error_code, details)
 

@@ -25,7 +25,8 @@ def upgrade() -> None:
         batch_op.alter_column('proof_files',
                existing_type=sa.TEXT(),
                type_=sa.JSON(),
-               nullable=False)
+               nullable=False,
+               postgresql_using='proof_files::json')
 
     # ### end Alembic commands ###
 

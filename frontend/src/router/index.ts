@@ -1,6 +1,8 @@
-import { createRouter, createWebHistory } from 'vue-router';
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router';
 import { checkAuth } from '@/lib/auth/utils'; // 导入认证检查函数
-const routes = [
+
+// 明确指定 routes 为 RouteRecordRaw 数组类型
+const routes: Array<RouteRecordRaw> = [
   {
     path: '/user/:id',
     name: 'UserProfile',
@@ -19,12 +21,6 @@ const routes = [
         meta: { title: '个人设置' },
       },
     ],
-  },
-  {
-    path: '/dev/test',
-    name: 'DevTest',
-    component: () => import('@/views/dev/Test.vue'),
-    meta: { layout: 'main', requiresAuth: true, title: '开发测试' },
   },
   {
     path: '/admin',
@@ -109,36 +105,6 @@ const routes = [
     meta: { layout: 'main', requiresAuth: true, title: '社团详情' }, // 使用主布局
     props: true,
   },
-  // {
-  //   path: '/',
-  //   component: () => import('@/views/GuestIndex.vue'),
-  //   meta: { layout: 'main', requiresAuth: true }, // 使用主布局
-  // },
-  // {
-  //   path: '/user/:id',
-  //   name: 'User',
-  //   component: () => import('../views/User.vue'),
-  //   meta: { layout: 'main' },
-  //   props: true,
-  // },
-  //   {
-  //     path: '/',
-  //     redirect: '/dashboard',
-  //     children: [
-  //       {
-  //         path: 'dashboard',
-  //         name: 'Dashboard',
-  //         component: () => import('@/views/dashboard/index.vue'),
-  //         meta: { title: '控制台', icon: 'home', requiresAuth: true }
-  //       },
-  //       {
-  //         path: 'users',
-  //         name: 'UserList',
-  //         component: () => import('@/views/system/Users.vue'),
-  //         meta: { title: '用户管理', requiresAuth: true, role: 'admin' }
-  //       }
-  //     ]
-  //   }
 ];
 
 const router = createRouter({
@@ -147,6 +113,7 @@ const router = createRouter({
 });
 
 router.beforeEach(async (to) => {
+  // to.meta.requiresAuth 会自动推断
   if (to.meta.requiresAuth) {
     const isAuthenticated = await checkAuth();
     if (!isAuthenticated) {

@@ -1,3 +1,4 @@
+from collections.abc import Callable
 from typing import Final
 
 from sqlalchemy import Constraint, Index, MetaData, Table
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
+from sqlalchemy.sql.schema import ColumnCollectionConstraint
 
 from .settings import settings
 
@@ -22,19 +24,19 @@ SessionLocal: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
 
 def all_column_names(constraint: Constraint | Index, table: Table) -> str:
     column_names = []
-    # noinspection PyTypeChecker
-    for col in constraint.columns:
-        if hasattr(col, "name") and col.name:
-            column_names.append(col.name)
-        else:
-            raise ValueError(
-                f"Naming convention execution failed for table '{table.name}':\n"
-                f"You MUST explicitly pass a 'name' parameter.",
-            )
+    if isinstance(constraint, (Index, ColumnCollectionConstraint)):
+        for col in constraint.columns:
+            if hasattr(col, "name") and col.name:
+                column_names.append(col.name)
+            else:
+                raise ValueError(
+                    f"Naming convention execution failed for table '{table.name}':\n"
+                    f"You MUST explicitly pass a 'name' parameter.",
+                )
     return "_".join(column_names)
 
 
-convention = {
+convention: Final[dict[str, str | Callable[[Constraint | Index, Table], str]]] = {
     "all_cols": all_column_names,
     "ix": "ix_%(table_name)s_%(all_cols)s",
     "uq": "uq_%(table_name)s_%(all_cols)s",

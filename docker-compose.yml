@@ -1,0 +1,117 @@
+name: bndsphere
+
+services:
+  postgres:
+    image: postgres:18
+    restart: unless-stopped
+
+    env_file:
+      - .env.docker
+
+    volumes:
+      - pgdata:/var/lib/postgresql
+
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /var/run/postgresql
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - SETUID
+      - SETGID
+      - FOWNER
+      - DAC_OVERRIDE
+
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+
+    networks:
+      - postgres-network
+
+  alembic-migration:
+    image: bndsphere-backend
+    env_file:
+      - .env.backend
+      - .env.docker
+    command: ["/backend/.venv/bin/alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres-network
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:exec,mode=1777
+
+  backend:
+    image: bndsphere-backend
+    build:
+      context: ./backend
+      network: host
+    restart: unless-stopped
+    env_file:
+      - .env.backend
+      - .env.docker
+    depends_on:
+      postgres:
+        condition: service_healthy
+      alembic-migration:
+        condition: service_completed_successfully
+    networks:
+      - postgres-network
+      - backend-network
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:exec,mode=1777
+
+  caddy:
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.Caddy
+      network: host
+    restart: unless-stopped
+    ports:
+      - "${caddy_port:-80}:8080"
+    volumes:
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - backend
+    networks:
+      - backend-network
+    read_only: true
+    cap_drop:
+      - ALL
+    cap_add:
+      - NET_BIND_SERVICE
+    security_opt:
+      - no-new-privileges:true
+    tmpfs:
+      - /tmp
+    environment:
+      - NO_PROXY=backend
+
+networks:
+  postgres-network:
+    driver: bridge
+  backend-network:
+    driver: bridge
+
+volumes:
+  pgdata:
+  caddy_data:
+  caddy_config:

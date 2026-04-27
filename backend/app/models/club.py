@@ -97,23 +97,17 @@ class Club(Base):
             "name",
             postgresql_using="gin",
             postgresql_ops={"name": "gin_trgm_ops"},
-            mysql_prefix="FULLTEXT",
-            mysql_with_parser="ngram",
         ),
         Index(
             "ix_clubs_summary_trgm",
             "summary",
             postgresql_using="gin",
             postgresql_ops={"summary": "gin_trgm_ops"},
-            mysql_prefix="FULLTEXT",
-            mysql_with_parser="ngram",
         ),
         Index(
             "ix_clubs_description_trgm",
             "description",
             postgresql_using="gin",
             postgresql_ops={"description": "gin_trgm_ops"},
-            mysql_prefix="FULLTEXT",
-            mysql_with_parser="ngram",
         ),
     )
