@@ -9,7 +9,7 @@ class ServiceBase[
     ModelType: Base,
     CreateSchemaType: BaseModel,
     UpdateSchemaType: BaseModel,
-]:
+]:  # fmt: skip
     model: type[ModelType]
     db: AsyncSession
 
