@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
@@ -22,7 +24,7 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
             .order_by(Activity.start_time.desc(), Activity.id.desc())
             .options(selectinload(Activity.participators))
         )
-        return await apaginate(self.db, stmt)
+        return cast("Page[Activity]", await apaginate(self.db, stmt))
 
     async def create_club_activity(
         self,

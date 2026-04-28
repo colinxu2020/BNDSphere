@@ -64,14 +64,18 @@ async def create_club(
 ) -> ClubInfo:
     """Create a new club. Club name must be unique among non-archived clubs."""
     try:
-        club = await service.create(club)
+        club_created = await service.create(club)
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",
             error_code="DUPLICAE_CLUB_NAME",
         ) from None
-    await membership_service.set_relationship(club, user, ClubMembershipEnum.president)
-    return ClubInfo.model_validate(club)
+    await membership_service.set_relationship(
+        club_created,
+        user,
+        ClubMembershipEnum.president,
+    )
+    return ClubInfo.model_validate(club_created)
 
 
 @router.patch(
@@ -178,7 +182,7 @@ async def leave_club(
     club = await service.ensure_club_normal(club_id)
 
     relationship = await membership_service.get_by_club_user(club, user)
-    if relationship is None or relationship == ClubMembershipEnum.left:
+    if relationship is None or relationship.membership == ClubMembershipEnum.left:
         raise ResourceNotFoundError(
             message_key="error.club.is_not_member",
             error_code="IS_NOT_MEMBER",

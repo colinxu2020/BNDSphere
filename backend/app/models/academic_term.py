@@ -49,7 +49,7 @@ class AcademicTerm(Base):
 
 @event.listens_for(AcademicTerm, "before_insert")
 def handle_term_insert(
-    mapper: Mapper,  # noqa: ARG001
+    mapper: Mapper[AcademicTerm],  # noqa: ARG001
     connection: Connection,  # noqa: ARG001
     target: AcademicTerm,
 ) -> None:
@@ -59,7 +59,7 @@ def handle_term_insert(
 
 @event.listens_for(AcademicTerm, "before_update")
 def handle_term_update(
-    mapper: Mapper,  # noqa: ARG001
+    mapper: Mapper[AcademicTerm],  # noqa: ARG001
     connection: Connection,  # noqa: ARG001
     target: AcademicTerm,
 ) -> None:

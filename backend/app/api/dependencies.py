@@ -76,7 +76,7 @@ class RoleChecker:
         return user
 
 
-class ServiceFactory[Service: ServiceBase]:
+class ServiceFactory[Service: ServiceBase]:  # type: ignore[type-arg]
     def __init__(self, typ: type[Service]) -> None:
         self.typ = typ
 

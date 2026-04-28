@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
@@ -58,7 +60,7 @@ class ClubUpdateRequestService(
             .where(self.model.audit_status == AuditStatusEnum.pending)
             .order_by(self.model.created_at.desc())
         )
-        return await apaginate(self.db, stmt)
+        return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
 
     async def get_requests_by_club(self, club_id: int) -> Page[ClubUpdateRequest]:
         """Get all update requests for a specific club (paginated)."""
@@ -67,7 +69,7 @@ class ClubUpdateRequestService(
             .where(self.model.club_id == club_id)
             .order_by(self.model.created_at.desc())
         )
-        return await apaginate(self.db, stmt)
+        return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
 
     async def ensure_request(self, request_id: int) -> ClubUpdateRequest:
         """Get a request by id, raise if not found."""

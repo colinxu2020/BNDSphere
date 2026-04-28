@@ -1,3 +1,5 @@
+from typing import cast
+
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
@@ -39,7 +41,7 @@ class GeneralActivityService(
             stmt = stmt.where(self.model.level == level)
         if search is not None:
             stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
-        return await apaginate(self.db, stmt)
+        return cast("Page[GeneralActivity]", await apaginate(self.db, stmt))
 
 
 class ClubGeneralActivityService(
@@ -87,7 +89,7 @@ class ClubGeneralActivityService(
 
     async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)
-        return await apaginate(self.db, stmt)
+        return cast("Page[ClubGeneralActivityRecord]", await apaginate(self.db, stmt))
 
     async def get_by_club_activity(
         self,
