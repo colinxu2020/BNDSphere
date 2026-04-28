@@ -37,7 +37,7 @@ class RequestIsNullError(BusinessError):
         self,
         message_key: str,
         error_code: str,
-        details: dict | None = None,
+        details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 400, error_code, details)
 

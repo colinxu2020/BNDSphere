@@ -1,7 +1,7 @@
-from pydantic import ConfigDict, Field, HttpUrl, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.models.moderations.moderation_common import ModerateStatusEnum
-from app.schemas.generic import BaseModel, IdMixin
+from app.schemas.generic import IdMixin
 from app.services.errors import RequestIsNullError
 
 
