@@ -1,4 +1,4 @@
-from typing import override
+from typing import cast, override
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -83,4 +83,4 @@ class UserUpdateRequestService(
         stmt = select(self.model).where(
             self.model.moderate_status == ModerateStatusEnum.pending,
         )
-        return await apaginate(self.db, stmt)
+        return cast("Page[UserUpdateRequest]", await apaginate(self.db, stmt))
