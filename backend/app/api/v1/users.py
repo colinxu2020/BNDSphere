@@ -14,7 +14,7 @@ from app.schemas.moderations.user_update_request import (
     UserUpdateRequestCreate,
     UserUpdateRequestInfo,
 )
-from app.schemas.user import UserInfo, UserUpdate
+from app.schemas.user import AdminUserUpdate, UserInfo, UserUpdate
 from app.services.errors import ResourceNotFoundError
 
 router = APIRouter(tags=["users"])
@@ -69,18 +69,22 @@ async def update_user_profile(
 
     Note that username cannot be changed, and email must be unique.
     """
-    return UserInfo.model_validate(await service.update(current_user, update))
+    return UserInfo.model_validate(
+        await service.update(current_user, AdminUserUpdate(**update.model_dump())),
+    )
 
 
 @router.post(
     "/profile-update",
     status_code=status.HTTP_201_CREATED,
+    responses=TOKEN_INVALID_RESPONSE,
 )
 async def request_update_profile(
     service: UserUpdateRequestServiceDep,
     obj_in: UserUpdateRequestCreate,
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserUpdateRequestInfo:
+    """Request update user profile of current user."""
     return UserUpdateRequestInfo.model_validate(
         await service.create(obj_in, user_id=user.id),
     )

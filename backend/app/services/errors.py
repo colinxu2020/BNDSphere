@@ -80,6 +80,15 @@ class StarLevelApplicationUpdateDeniedError(BusinessPermissionError):
         )
 
 
+class UserNotFoundError(ResourceNotFoundError):
+    def __init__(self, user_id: int) -> None:
+        super().__init__(
+            "error.user.not_found",
+            "USER_NOT_FOUND",
+            {"user_id": user_id},
+        )
+
+
 class ClubNotFoundError(ResourceNotFoundError):
     def __init__(self, club_id: int) -> None:
         super().__init__(

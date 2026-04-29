@@ -3,6 +3,7 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 
+from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     UserServiceDep,
     UserUpdateRequestServiceDep,
@@ -12,16 +13,22 @@ from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.user import User
 from app.schemas.moderations.user_update_request import (
     UserUpdateRequestInfo,
-    UserUpdateRequestModerate,
     UserUpdateRequestModeratePublic,
 )
 from app.schemas.user import AdminUserUpdate
-from app.services.errors import ResourceForbiddenError, ResourceNotFoundError
+from app.services.errors import (
+    ResourceForbiddenError,
+    ResourceNotFoundError,
+    UserNotFoundError,
+)
 
 router = APIRouter(tags=["users"])
 
 
-@router.get("/profile-update")
+@router.get(
+    "/profile-update",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
 async def get_user_profile_update_requests(
     service: UserUpdateRequestServiceDep,
 ) -> Page[UserUpdateRequestInfo]:
@@ -31,7 +38,10 @@ async def get_user_profile_update_requests(
     )
 
 
-@router.patch("/profile-update/{request_id}")
+@router.patch(
+    "/profile-update/{request_id}",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
 async def moderate_user_profile_update_request(
     request_id: int,
     obj_in: UserUpdateRequestModeratePublic,
@@ -44,35 +54,20 @@ async def moderate_user_profile_update_request(
         raise ResourceNotFoundError(
             "error.user_update_request.not_found",
             "USER_UPDATE_REQUEST_NOT_FOUND",
-        )
+        ) from None
     if request.moderate_status is not ModerateStatusEnum.pending:
         raise ResourceForbiddenError(
-            "error.user_update_request.moderate_approved",
-            "USER_UPDATE_REQUEST_MODERATE_APPROVED",
-        )
-    ret = await service.update(
-        request,
-        UserUpdateRequestModerate(
-            **obj_in.model_dump(),
-            moderator_id=user.id,
-        ),
-    )
+            "error.user_update_request.moderated",
+            "USER_UPDATE_REQUEST_MODERATED",
+        ) from None
 
-    dct = {}
-    if ret.username:
-        dct["username"] = ret.username
-    if ret.avatar_uri:
-        dct["avatar_uri"] = ret.avatar_uri
-    if ret.description:
-        dct["description"] = ret.description
+    request_user = await user_service.get(request.user_id)
+    if request_user is None:
+        raise UserNotFoundError(request.user_id) from None
+
+    ret, dct = await service.moderate_request(request, obj_in, user)
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
-        request_user = await user_service.get(ret.user_id)
-        if request_user is None:
-            raise ResourceNotFoundError(
-                "error.user.not_found",
-                "USER_NOT_FOUND",
-            )
         await user_service.update(request_user, AdminUserUpdate.model_validate(dct))
 
     return UserUpdateRequestInfo.model_validate(ret)

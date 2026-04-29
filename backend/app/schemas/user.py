@@ -26,6 +26,7 @@ class UserInfo(UserBase, IdMixin):
 
 
 class UserUpdate(BaseModel):
+    username: str | None = Field(None)
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: HttpUrl | None = Field(None, max_length=255)
     description: str | None = Field(
