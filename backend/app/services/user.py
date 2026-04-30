@@ -10,10 +10,12 @@ from app.core.security import get_password_hash, verify_password
 from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import User
+from app.schemas.moderations.moderation_common import (
+    RequestModerate,
+    RequestModeratePublic,
+)
 from app.schemas.moderations.user_update_request import (
     UserUpdateRequestCreate,
-    UserUpdateRequestModerate,
-    UserUpdateRequestModeratePublic,
 )
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
@@ -76,7 +78,7 @@ class UserUpdateRequestService(
     ServiceBase[
         UserUpdateRequest,
         UserUpdateRequestCreate,
-        UserUpdateRequestModerate,
+        RequestModerate,
     ],
 ):
     model = UserUpdateRequest
@@ -90,13 +92,13 @@ class UserUpdateRequestService(
     async def moderate_request(
         self,
         request: UserUpdateRequest,
-        moderation: UserUpdateRequestModeratePublic,
+        moderation: RequestModeratePublic,
         moderator: User,
     ) -> tuple[UserUpdateRequest, dict[str, Any]]:
 
         ret = await self.update(
             request,
-            UserUpdateRequestModerate(
+            RequestModerate(
                 **moderation.model_dump(),
                 moderator_id=moderator.id,
                 moderate_at=datetime.now(tz=UTC),

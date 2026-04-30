@@ -11,9 +11,9 @@ from app.api.dependencies import (
 )
 from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.user import User
+from app.schemas.moderations.moderation_common import RequestModeratePublic
 from app.schemas.moderations.user_update_request import (
     UserUpdateRequestInfo,
-    UserUpdateRequestModeratePublic,
 )
 from app.schemas.user import AdminUserUpdate
 from app.services.errors import (
@@ -44,7 +44,7 @@ async def get_user_profile_update_requests(
 )
 async def moderate_user_profile_update_request(
     request_id: int,
-    obj_in: UserUpdateRequestModeratePublic,
+    obj_in: RequestModeratePublic,
     service: UserUpdateRequestServiceDep,
     user_service: UserServiceDep,
     user: Annotated[User, Depends(get_current_user)],

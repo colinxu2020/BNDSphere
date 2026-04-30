@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import RoleChecker
+from app.api.v1.moderations.club_activities import router as club_activity_router
 from app.api.v1.moderations.users import router as users_router
 from app.models.user import RoleEnum
 
@@ -13,3 +14,4 @@ router = APIRouter(
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )
 router.include_router(users_router, prefix="/users")
+router.include_router(club_activity_router, prefix="/club_activities")

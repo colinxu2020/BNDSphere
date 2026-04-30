@@ -10,7 +10,7 @@ from app.core.security import verify_access_token
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.services.academic_term import AcademicTermService
-from app.services.activity import ActivityService
+from app.services.activity import ActivityService, ClubActivityCreateRequestService
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService
 from app.services.club_update_request import ClubUpdateRequestService
@@ -97,6 +97,10 @@ type UserUpdateRequestServiceDep = Annotated[
 type ActivityServiceDep = Annotated[
     ActivityService,
     Depends(ServiceFactory(ActivityService)),
+]
+type ClubActivityCreateRequestServiceDep = Annotated[
+    ClubActivityCreateRequestService,
+    Depends(ServiceFactory(ClubActivityCreateRequestService)),
 ]
 type AcademicTermServiceDep = Annotated[
     AcademicTermService,

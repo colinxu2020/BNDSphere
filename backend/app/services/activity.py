@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import cast
 
 from fastapi_pagination import Page
@@ -5,9 +6,16 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
-from app.models import Club
+from app.models import Club, User
 from app.models.activity import Activity
+from app.models.moderations.club_activity import ClubActivityCreateRequest
+from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.schemas.activity import ActivityCreate, ActivityUpdate
+from app.schemas.moderations.club_activity import ClubActivityCreateRequestCreate
+from app.schemas.moderations.moderation_common import (
+    RequestModerate,
+    RequestModeratePublic,
+)
 from app.services.base import ServiceBase
 
 
@@ -36,3 +44,34 @@ class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
         await self.db.flush()
         await self.db.refresh(db_activity)
         return db_activity
+
+
+class ClubActivityCreateRequestService(
+    ServiceBase[
+        ClubActivityCreateRequest,
+        ClubActivityCreateRequestCreate,
+        RequestModerate,
+    ],
+):
+    model = ClubActivityCreateRequest
+
+    async def get_pending_request(self) -> Page[ClubActivityCreateRequest]:
+        stmt = select(self.model).where(
+            self.model.moderate_status == ModerateStatusEnum.pending,
+        )
+        return cast("Page[ClubActivityCreateRequest]", await apaginate(self.db, stmt))
+
+    async def moderate_request(
+        self,
+        request: ClubActivityCreateRequest,
+        moderation: RequestModeratePublic,
+        moderator: User,
+    ) -> ClubActivityCreateRequest:
+        return await self.update(
+            request,
+            RequestModerate(
+                **moderation.model_dump(),
+                moderator_id=moderator.id,
+                moderate_at=datetime.now(tz=UTC),
+            ),
+        )

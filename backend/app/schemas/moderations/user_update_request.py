@@ -1,5 +1,3 @@
-from datetime import datetime
-
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.models.moderations.moderation_common import ModerateStatusEnum
@@ -37,14 +35,3 @@ class UserUpdateRequestInfo(IdMixin, BaseModel):
     description: str | None = Field(None)
 
     moderate_status: ModerateStatusEnum = Field(...)
-
-
-class UserUpdateRequestModeratePublic(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    moderate_status: ModerateStatusEnum = Field(...)
-
-
-class UserUpdateRequestModerate(UserUpdateRequestModeratePublic):
-    moderator_id: int
-    moderate_at: datetime
