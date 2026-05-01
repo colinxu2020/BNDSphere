@@ -17,7 +17,6 @@ from app.services.activity import (
 )
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService
-from app.services.club_update_request import ClubUpdateRequestService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -125,10 +124,6 @@ type ClubGeneralActivityServiceDep = Annotated[
 type StarLevelServiceDep = Annotated[
     StarLevelService,
     Depends(ServiceFactory(StarLevelService)),
-]
-type ClubUpdateRequestServiceDep = Annotated[
-    ClubUpdateRequestService,
-    Depends(ServiceFactory(ClubUpdateRequestService)),
 ]
 type StarRatingServiceDep = Annotated[
     StarRatingService,
