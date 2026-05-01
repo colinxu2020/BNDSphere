@@ -7,6 +7,7 @@ from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_R
 from app.api.dependencies import (
     ActivityServiceDep,
     ClubActivityCreateRequestServiceDep,
+    ClubActivityUpdateRequestServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
     get_current_user,
@@ -18,8 +19,11 @@ from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityCreateRequestCreatePublic,
     ClubActivityCreateRequestInfo,
+    ClubActivityUpdateRequestCreate,
+    ClubActivityUpdateRequestCreatePublic,
+    ClubActivityUpdateRequestInfo,
 )
-from app.services.errors import ClubNotFoundError
+from app.services.errors import ClubActivityNotFoundError, ClubNotFoundError
 
 router = APIRouter(tags=["Club Activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
@@ -90,6 +94,40 @@ async def create_club_activity_request(
             ClubActivityCreateRequestCreate(
                 **obj_in.model_dump(),
                 club_id=club_id,
+                requestor_id=requestor.id,
+            ),
+        ),
+    )
+
+
+@router.post(
+    "/update-request/{activity_id}",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+            ),
+        ),
+    ],
+)
+async def update_club_activity_request(
+    activity_id: int,
+    obj_in: ClubActivityUpdateRequestCreatePublic,
+    service: ClubActivityUpdateRequestServiceDep,
+    club_activity_service: ActivityServiceDep,
+    requestor: Annotated[User, Depends(get_current_user)],
+) -> ClubActivityUpdateRequestInfo:
+    """Request to update a club activity."""
+    activity = await club_activity_service.get(activity_id)
+    if activity is None:
+        raise ClubActivityNotFoundError(activity_id) from None
+
+    return ClubActivityUpdateRequestInfo.model_validate(
+        await service.create(
+            ClubActivityUpdateRequestCreate(
+                **obj_in.model_dump(),
+                club_activity_id=activity_id,
                 requestor_id=requestor.id,
             ),
         ),

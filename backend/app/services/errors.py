@@ -98,6 +98,15 @@ class ClubNotFoundError(ResourceNotFoundError):
         )
 
 
+class ClubActivityNotFoundError(ResourceNotFoundError):
+    def __init__(self, activity_id: int) -> None:
+        super().__init__(
+            "error.club_activity.not_found",
+            "CLUB_ACTIVITY_NOT_FOUND",
+            {"club_activity_id": activity_id},
+        )
+
+
 class GeneralActivityNotFoundError(ResourceNotFoundError):
     def __init__(self, activity_id: int) -> None:
         super().__init__(
