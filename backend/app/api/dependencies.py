@@ -16,7 +16,7 @@ from app.services.activity import (
     ClubActivityUpdateRequestService,
 )
 from app.services.base import ServiceBase
-from app.services.club import ClubMemberService, ClubService
+from app.services.club import ClubMemberService, ClubService, ClubUpdateRequestService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -91,6 +91,10 @@ type ClubServiceDep = Annotated[ClubService, Depends(ServiceFactory(ClubService)
 type ClubMemberServiceDep = Annotated[
     ClubMemberService,
     Depends(ServiceFactory(ClubMemberService)),
+]
+type ClubUpdateRequestServiceDep = Annotated[
+    ClubUpdateRequestService,
+    Depends(ServiceFactory(ClubUpdateRequestService)),
 ]
 type UserServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
 type UserUpdateRequestServiceDep = Annotated[

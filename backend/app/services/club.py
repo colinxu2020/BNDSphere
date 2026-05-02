@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import cast
 
 from fastapi_pagination import Page
@@ -9,8 +10,15 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
+from app.models.moderations.club import ClubUpdateRequest
+from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.user import User
 from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
+from app.schemas.moderations.club import ClubUpdateRequestCreate
+from app.schemas.moderations.moderation_common import (
+    RequestModerate,
+    RequestModeratePublic,
+)
 from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
@@ -108,3 +116,34 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()
+
+
+class ClubUpdateRequestService(
+    ServiceBase[
+        ClubUpdateRequest,
+        ClubUpdateRequestCreate,
+        RequestModerate,
+    ],
+):
+    model = ClubUpdateRequest
+
+    async def get_pending_request(self) -> Page[ClubUpdateRequest]:
+        stmt = select(self.model).where(
+            self.model.moderate_status == ModerateStatusEnum.pending,
+        )
+        return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
+
+    async def moderate_request(
+        self,
+        request: ClubUpdateRequest,
+        moderation: RequestModeratePublic,
+        moderator: User,
+    ) -> ClubUpdateRequest:
+        return await self.update(
+            request,
+            RequestModerate(
+                **moderation.model_dump(),
+                moderator_id=moderator.id,
+                moderate_at=datetime.now(tz=UTC),
+            ),
+        )

@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey
+from sqlalchemy import DateTime, ForeignKey, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 if TYPE_CHECKING:
@@ -42,4 +42,26 @@ class ModerateMixin:
         return mapped_column(
             DateTime(timezone=True),
             default=None,
+        )
+
+
+class RequestMixin:
+    @declared_attr
+    @classmethod
+    def requestor_id(cls) -> Mapped[int]:
+        return mapped_column(
+            ForeignKey("users.id"),
+        )
+
+    @declared_attr
+    @classmethod
+    def requestor(cls) -> Mapped[User]:
+        return relationship("User", foreign_keys=[cls.requestor_id])
+
+    @declared_attr
+    @classmethod
+    def request_at(cls) -> Mapped[datetime]:
+        return mapped_column(
+            DateTime(timezone=True),
+            server_default=func.now(),
         )

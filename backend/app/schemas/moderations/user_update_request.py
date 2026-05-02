@@ -1,7 +1,6 @@
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
-from app.models.moderations.moderation_common import ModerateStatusEnum
-from app.schemas.generic import IdMixin
+from app.schemas.moderations.moderation_common import RequestInfoBase
 from app.services.errors import RequestIsNullError
 
 
@@ -26,12 +25,8 @@ class UserUpdateRequestCreate(BaseModel):
         return self
 
 
-class UserUpdateRequestInfo(IdMixin, BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
+class UserUpdateRequestInfo(RequestInfoBase):
     user_id: int = Field(...)
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
-
-    moderate_status: ModerateStatusEnum = Field(...)

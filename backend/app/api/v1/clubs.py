@@ -3,10 +3,12 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
-from app.api.common_responses import TOKEN_INVALID_RESPONSE
+from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ClubMemberServiceDep,
+    ClubRoleChecker,
     ClubServiceDep,
+    ClubUpdateRequestServiceDep,
     get_current_user,
 )
 from app.models.club import ClubCategoryEnum, ClubStatusEnum
@@ -17,7 +19,13 @@ from app.schemas.club import (
     ClubInfo,
     ClubMemberInfo,
 )
+from app.schemas.moderations.club import (
+    ClubUpdateRequestCreate,
+    ClubUpdateRequestCreatePublic,
+    ClubUpdateRequestInfo,
+)
 from app.services.errors import (
+    ClubNotFoundError,
     DuplicateClubNameError,
     DuplicateResourceError,
     ResourceForbiddenError,
@@ -71,6 +79,39 @@ async def create_club(
         ClubMembershipEnum.president,
     )
     return ClubInfo.model_validate(club_created)
+
+
+@router.post(
+    "/{club_id}/update-request",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+            ),
+        ),
+    ],
+)
+async def update_request(
+    club_id: int,
+    obj_in: ClubUpdateRequestCreatePublic,
+    service: ClubUpdateRequestServiceDep,
+    club_service: ClubServiceDep,
+    requestor: Annotated[User, Depends(get_current_user)],
+) -> ClubUpdateRequestInfo:
+    club = club_service.get(club_id)
+    if club is None:
+        raise ClubNotFoundError(club_id) from None
+
+    return ClubUpdateRequestInfo.model_validate(
+        await service.create(
+            ClubUpdateRequestCreate(
+                **obj_in.model_dump(),
+                club_id=club_id,
+                requestor_id=requestor.id,
+            ),
+        ),
+    )
 
 
 @router.get(

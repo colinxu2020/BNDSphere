@@ -2,7 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.generic import IdMixin
+from app.schemas.moderations.moderation_common import RequestInfoBase
 
 
 class ClubActivityCreateRequestBase(BaseModel):
@@ -13,9 +13,7 @@ class ClubActivityCreateRequestBase(BaseModel):
     location: str = Field(...)
 
 
-class ClubActivityCreateRequestInfo(IdMixin, ClubActivityCreateRequestBase):
-    model_config = ConfigDict(from_attributes=True)
-
+class ClubActivityCreateRequestInfo(RequestInfoBase, ClubActivityCreateRequestBase):
     club_id: int = Field(...)
 
 
@@ -38,9 +36,7 @@ class ClubActivityUpdateRequestBase(BaseModel):
     location: str | None = Field(None)
 
 
-class ClubActivityUpdateRequestInfo(IdMixin, ClubActivityUpdateRequestBase):
-    model_config = ConfigDict(from_attributes=True)
-
+class ClubActivityUpdateRequestInfo(RequestInfoBase, ClubActivityUpdateRequestBase):
     club_activity_id: int = Field(...)
 
 
