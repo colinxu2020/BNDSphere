@@ -82,7 +82,7 @@ async def create_club(
 
 
 @router.post(
-    "/{club_id}/update-request",
+    "/{club_id}/update-requests",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
         Depends(
@@ -99,7 +99,7 @@ async def update_request(
     club_service: ClubServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubUpdateRequestInfo:
-    club = club_service.get(club_id)
+    club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
 

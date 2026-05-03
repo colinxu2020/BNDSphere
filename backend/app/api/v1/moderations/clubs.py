@@ -21,11 +21,11 @@ from app.services.errors import (
     ResourceNotFoundError,
 )
 
-router = APIRouter(tags=["clubs"])
+router = APIRouter(tags=["Moderation: Clubs"])
 
 
 @router.get(
-    "/update-request",
+    "/update-requests",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def get_pending_update_request(
@@ -38,7 +38,7 @@ async def get_pending_update_request(
 
 
 @router.patch(
-    "/update-request/{request_id}",
+    "/update-requests/{request_id}",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def moderate_update_request(

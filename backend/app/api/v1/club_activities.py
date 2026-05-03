@@ -73,7 +73,7 @@ async def create_club_activity(
 
 
 @router.post(
-    "/create-request",
+    "/create-requests",
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
@@ -101,7 +101,7 @@ async def create_club_activity_request(
 
 
 @router.post(
-    "/update-request/{activity_id}",
+    "/update-requests/{activity_id}",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
         Depends(
@@ -112,13 +112,19 @@ async def create_club_activity_request(
     ],
 )
 async def update_club_activity_request(
+    club_id: int,
     activity_id: int,
     obj_in: ClubActivityUpdateRequestCreatePublic,
     service: ClubActivityUpdateRequestServiceDep,
+    club_service: ClubServiceDep,
     club_activity_service: ActivityServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Request to update a club activity."""
+    club = await club_service.get(club_id)
+    if club is None:
+        raise ClubNotFoundError(club_id) from None
+
     activity = await club_activity_service.get(activity_id)
     if activity is None:
         raise ClubActivityNotFoundError(activity_id) from None

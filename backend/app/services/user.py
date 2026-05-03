@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from typing import Any, cast, override
+from typing import cast, override
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
@@ -94,9 +94,8 @@ class UserUpdateRequestService(
         request: UserUpdateRequest,
         moderation: RequestModeratePublic,
         moderator: User,
-    ) -> tuple[UserUpdateRequest, dict[str, Any]]:
-
-        ret = await self.update(
+    ) -> UserUpdateRequest:
+        return await self.update(
             request,
             RequestModerate(
                 **moderation.model_dump(),
@@ -104,13 +103,3 @@ class UserUpdateRequestService(
                 moderate_at=datetime.now(tz=UTC),
             ),
         )
-
-        dct = dict[str, Any]()
-        if ret.username:
-            dct["username"] = ret.username
-        if ret.avatar_uri:
-            dct["avatar_uri"] = ret.avatar_uri
-        if ret.description:
-            dct["description"] = ret.description
-
-        return ret, dct

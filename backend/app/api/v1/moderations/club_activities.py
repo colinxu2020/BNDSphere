@@ -26,12 +26,11 @@ from app.services.errors import (
     ResourceNotFoundError,
 )
 
-router = APIRouter(tags=["Club Activities"])
+router = APIRouter(tags=["Moderation: Club Activities"])
 
 
 @router.get(
-    "/create-request",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    "/create-requests",
 )
 async def get_pending_create_request(
     service: ClubActivityCreateRequestServiceDep,
@@ -43,8 +42,7 @@ async def get_pending_create_request(
 
 
 @router.patch(
-    "/create-request/{request_id}",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    "/create-requests/{request_id}",
 )
 async def moderate_create_request(
     request_id: int,
@@ -89,8 +87,7 @@ async def moderate_create_request(
 
 
 @router.get(
-    "/update-request",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    "/update-requests",
 )
 async def get_pending_update_request(
     service: ClubActivityUpdateRequestServiceDep,
@@ -102,7 +99,7 @@ async def get_pending_update_request(
 
 
 @router.patch(
-    "/update-request/{request_id}",
+    "/update-requests/{request_id}",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def moderate_update_request(
@@ -138,6 +135,7 @@ async def moderate_update_request(
                 "start_time",
                 "end_time",
                 "location",
+                "picture_urls",
             ]
             if getattr(request, k) is not None
         }

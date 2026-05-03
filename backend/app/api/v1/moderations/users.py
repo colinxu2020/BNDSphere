@@ -22,11 +22,11 @@ from app.services.errors import (
     UserNotFoundError,
 )
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["Moderation: Users"])
 
 
 @router.get(
-    "/profile-update",
+    "/update-requests",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def get_user_profile_update_requests(
@@ -39,7 +39,7 @@ async def get_user_profile_update_requests(
 
 
 @router.patch(
-    "/profile-update/{request_id}",
+    "/update-requests/{request_id}",
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def moderate_user_profile_update_request(
@@ -55,7 +55,7 @@ async def moderate_user_profile_update_request(
             "error.user_update_request.not_found",
             "USER_UPDATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status is not ModerateStatusEnum.pending:
+    if request.moderate_status != ModerateStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.user_update_request.moderated",
             "USER_UPDATE_REQUEST_MODERATED",
@@ -65,9 +65,20 @@ async def moderate_user_profile_update_request(
     if request_user is None:
         raise UserNotFoundError(request.user_id) from None
 
-    ret, dct = await service.moderate_request(request, obj_in, user)
+    ret = await service.moderate_request(request, obj_in, user)
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
-        await user_service.update(request_user, AdminUserUpdate.model_validate(dct))
+        update_data_dict = {
+            k: getattr(request, k)
+            for k in [
+                "username",
+                "avatar_uri",
+                "description",
+            ]
+        }
+        await user_service.update(
+            request_user,
+            AdminUserUpdate.model_validate(update_data_dict),
+        )
 
     return UserUpdateRequestInfo.model_validate(ret)

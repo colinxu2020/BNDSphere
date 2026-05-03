@@ -1,7 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
-from starlette import status
+from fastapi import APIRouter, Depends, status
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -75,7 +74,7 @@ async def update_user_profile(
 
 
 @router.post(
-    "/profile-update",
+    "/update-requests",
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE,
 )
