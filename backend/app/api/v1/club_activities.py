@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -26,6 +27,7 @@ from app.schemas.moderations.club_activity import (
 from app.services.errors import (
     ClubActivityNotFoundError,
     ClubNotFoundError,
+    DuplicatePendingRequestError,
     ResourceForbiddenError,
 )
 
@@ -65,18 +67,24 @@ async def create_club_activity_request(
     club_id: int,
     obj_in: ClubActivityCreateRequestCreatePublic,
     service: ClubActivityCreateRequestServiceDep,
+    club_service: ClubServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityCreateRequestInfo:
     """Create a new club activity request."""
-    return ClubActivityCreateRequestInfo.model_validate(
-        await service.create(
-            ClubActivityCreateRequestCreate(
-                **obj_in.model_dump(),
-                club_id=club_id,
-                requestor_id=requestor.id,
+    await club_service.ensure_club_normal(club_id)
+
+    try:
+        return ClubActivityCreateRequestInfo.model_validate(
+            await service.create(
+                ClubActivityCreateRequestCreate(
+                    **obj_in.model_dump(),
+                    club_id=club_id,
+                    requestor_id=requestor.id,
+                ),
             ),
-        ),
-    )
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None
 
 
 @router.post(
@@ -100,9 +108,7 @@ async def update_club_activity_request(
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Request to update a club activity."""
-    club = await club_service.get(club_id)
-    if club is None:
-        raise ClubNotFoundError(club_id) from None
+    await club_service.ensure_club_normal(club_id)
 
     activity = await club_activity_service.get(activity_id)
     if activity is None:

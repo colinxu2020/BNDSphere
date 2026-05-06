@@ -2,6 +2,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -25,8 +26,8 @@ from app.schemas.moderations.club import (
     ClubUpdateRequestInfo,
 )
 from app.services.errors import (
-    ClubNotFoundError,
     DuplicateClubNameError,
+    DuplicatePendingRequestError,
     DuplicateResourceError,
     ResourceForbiddenError,
     ResourceNotFoundError,
@@ -99,21 +100,22 @@ async def update_request(
     club_service: ClubServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubUpdateRequestInfo:
-    club = await club_service.get(club_id)
-    if club is None:
-        raise ClubNotFoundError(club_id) from None
+    await club_service.ensure_club_normal(club_id)
 
     await service.supersede_pending_requests_by_club(club_id)
 
-    return ClubUpdateRequestInfo.model_validate(
-        await service.create(
-            ClubUpdateRequestCreate(
-                **obj_in.model_dump(),
-                club_id=club_id,
-                requestor_id=requestor.id,
+    try:
+        return ClubUpdateRequestInfo.model_validate(
+            await service.create(
+                ClubUpdateRequestCreate(
+                    **obj_in.model_dump(),
+                    club_id=club_id,
+                    requestor_id=requestor.id,
+                ),
             ),
-        ),
-    )
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None
 
 
 @router.get(
