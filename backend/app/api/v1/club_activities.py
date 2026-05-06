@@ -14,7 +14,7 @@ from app.api.dependencies import (
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.activity import ActivityCreate, ActivityInfo
+from app.schemas.activity import ActivityInfo
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityCreateRequestCreatePublic,
@@ -23,7 +23,10 @@ from app.schemas.moderations.club_activity import (
     ClubActivityUpdateRequestCreatePublic,
     ClubActivityUpdateRequestInfo,
 )
-from app.services.errors import ClubActivityNotFoundError, ClubNotFoundError
+from app.services.errors import (
+    ClubActivityNotFoundError,
+    ClubNotFoundError,
+)
 
 router = APIRouter(tags=["Club Activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
@@ -45,31 +48,6 @@ async def get_club_activities(
     if club is None:
         raise ClubNotFoundError(club_id) from None
     return Page[ActivityInfo].model_validate(await service.get_club_activities(club))
-
-
-@router.post(
-    "/",
-    response_model=ActivityInfo,
-    status_code=status.HTTP_201_CREATED,
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
-    dependencies=[
-        Depends(
-            ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
-        ),
-    ],
-    deprecated=True,
-)
-async def create_club_activity(
-    club_id: int,
-    activity: ActivityCreate,
-    activity_service: ActivityServiceDep,
-) -> ActivityInfo:
-    """Create a new activity for the given club.
-    Only club president and vice president can perform this operation.
-    """
-    return ActivityInfo.model_validate(
-        await activity_service.create(activity, club_id=club_id),
-    )
 
 
 @router.post(

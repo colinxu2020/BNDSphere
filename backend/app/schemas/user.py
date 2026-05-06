@@ -25,7 +25,7 @@ class UserInfo(UserBase, IdMixin):
     created_at: datetime
 
 
-class UserUpdate(BaseModel):
+class AdminUserUpdate(BaseModel):
     username: str | None = Field(None)
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: HttpUrl | None = Field(None, max_length=255)
@@ -33,9 +33,6 @@ class UserUpdate(BaseModel):
         None,
         max_length=constants.USER_MAX_DESCRIPTION_LENGTH,
     )
-
-
-class AdminUserUpdate(UserUpdate):
     role: RoleEnum | None = Field(None)
 
 

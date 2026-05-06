@@ -13,7 +13,7 @@ from app.schemas.moderations.user_update_request import (
     UserUpdateRequestInfo,
     UserUpdateUpdateRequestCreate,
 )
-from app.schemas.user import AdminUserUpdate, UserInfo, UserUpdate
+from app.schemas.user import UserInfo
 from app.services.errors import ResourceNotFoundError
 
 router = APIRouter(tags=["users"])
@@ -43,34 +43,6 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
             details={"user_id": user_id},
         ) from None
     return UserInfo.model_validate(user)
-
-
-@router.patch(
-    "/me",
-    response_model=UserInfo,
-    responses=TOKEN_INVALID_RESPONSE
-    | {
-        409: {
-            "description": "Email already exists",
-            "content": {
-                "application/json": {"example": {"detail": "Email already exists"}},
-            },
-        },
-    },
-    deprecated=True,
-)
-async def update_user_profile(
-    current_user: Annotated[User, Depends(get_current_user)],
-    service: UserServiceDep,
-    update: UserUpdate,
-) -> UserInfo:
-    """Modify user profile of current user.
-
-    Note that username cannot be changed, and email must be unique.
-    """
-    return UserInfo.model_validate(
-        await service.update(current_user, AdminUserUpdate(**update.model_dump())),
-    )
 
 
 @router.post(
