@@ -1,6 +1,7 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
@@ -14,7 +15,7 @@ from app.schemas.moderations.user_update_request import (
     UserUpdateUpdateRequestCreate,
 )
 from app.schemas.user import UserInfo
-from app.services.errors import ResourceNotFoundError
+from app.services.errors import DuplicatePendingRequestError, ResourceNotFoundError
 
 router = APIRouter(tags=["users"])
 
@@ -56,8 +57,11 @@ async def request_update_profile(
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserUpdateRequestInfo:
     """Request update user profile of current user."""
-    await service.supersede_pending_requests_by_user(user.id)
+    try:
+        await service.supersede_pending_requests_by_user(user.id)
 
-    return UserUpdateRequestInfo.model_validate(
-        await service.create(obj_in, user_id=user.id),
-    )
+        return UserUpdateRequestInfo.model_validate(
+            await service.create(obj_in, user_id=user.id),
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None

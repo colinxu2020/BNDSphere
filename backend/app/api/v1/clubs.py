@@ -102,9 +102,9 @@ async def update_request(
 ) -> ClubUpdateRequestInfo:
     await club_service.ensure_club_normal(club_id)
 
-    await service.supersede_pending_requests_by_club(club_id)
-
     try:
+        await service.supersede_pending_requests_by_club(club_id)
+
         return ClubUpdateRequestInfo.model_validate(
             await service.create(
                 ClubUpdateRequestCreate(

@@ -73,18 +73,15 @@ async def create_club_activity_request(
     """Create a new club activity request."""
     await club_service.ensure_club_normal(club_id)
 
-    try:
-        return ClubActivityCreateRequestInfo.model_validate(
-            await service.create(
-                ClubActivityCreateRequestCreate(
-                    **obj_in.model_dump(),
-                    club_id=club_id,
-                    requestor_id=requestor.id,
-                ),
+    return ClubActivityCreateRequestInfo.model_validate(
+        await service.create(
+            ClubActivityCreateRequestCreate(
+                **obj_in.model_dump(),
+                club_id=club_id,
+                requestor_id=requestor.id,
             ),
-        )
-    except IntegrityError:
-        raise DuplicatePendingRequestError from None
+        ),
+    )
 
 
 @router.post(
@@ -120,14 +117,17 @@ async def update_club_activity_request(
             "CLUB_ACTIVITY_WRONG_BELONG",
         )
 
-    await service.supersede_pending_requests_by_activity(activity_id)
+    try:
+        await service.supersede_pending_requests_by_activity(activity_id)
 
-    return ClubActivityUpdateRequestInfo.model_validate(
-        await service.create(
-            ClubActivityUpdateRequestCreate(
-                **obj_in.model_dump(),
-                club_activity_id=activity_id,
-                requestor_id=requestor.id,
+        return ClubActivityUpdateRequestInfo.model_validate(
+            await service.create(
+                ClubActivityUpdateRequestCreate(
+                    **obj_in.model_dump(),
+                    club_activity_id=activity_id,
+                    requestor_id=requestor.id,
+                ),
             ),
-        ),
-    )
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None
