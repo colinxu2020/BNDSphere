@@ -49,6 +49,8 @@ class ScfClubUpdate(ClubUpdate):
 
 
 class AdminClubUpdate(ScfClubUpdate):
+    model_config = ConfigDict(from_attributes=True)
+
     status: ClubStatusEnum | None = Field(None)
 
 

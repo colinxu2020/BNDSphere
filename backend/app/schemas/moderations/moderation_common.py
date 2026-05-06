@@ -13,10 +13,13 @@ class RequestModeratePublic(BaseModel):
 
     @model_validator(mode="after")
     def validate_moderate_status(self) -> RequestModeratePublic:
-        if self.moderate_status == ModerateStatusEnum.pending:
+        if self.moderate_status not in {
+            ModerateStatusEnum.approved,
+            ModerateStatusEnum.rejected,
+        }:
             raise BadRequestError(
-                "error.request_moderate.moderate_to_pending",
-                "MODERATE_TO_PENDING",
+                "error.request_moderate.invalid_moderate_status",
+                "INVALID_MODERATE_STATUS",
             )
         return self
 

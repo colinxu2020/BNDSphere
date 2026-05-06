@@ -62,12 +62,12 @@ async def moderate_user_profile_update_request(
     if request_user is None:
         raise UserNotFoundError(request.user_id) from None
 
-    ret = await service.moderate_request(request, obj_in, user)
-
     if obj_in.moderate_status == ModerateStatusEnum.approved:
         await user_service.update(
             request_user,
             AdminUserUpdate.model_validate(request),
         )
 
-    return UserUpdateRequestInfo.model_validate(ret)
+    return UserUpdateRequestInfo.model_validate(
+        await service.moderate_request(request, obj_in, user),
+    )
