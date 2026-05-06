@@ -63,7 +63,7 @@ class ClubActivityCreateRequestService(
 ):
     model = ClubActivityCreateRequest
 
-    async def get_pending_request(self) -> Page[ClubActivityCreateRequest]:
+    async def get_pending_requests(self) -> Page[ClubActivityCreateRequest]:
         stmt = select(self.model).where(
             self.model.moderate_status == ModerateStatusEnum.pending,
         )
@@ -94,7 +94,7 @@ class ClubActivityUpdateRequestService(
 ):
     model = ClubActivityUpdateRequest
 
-    async def get_pending_request(self) -> Page[ClubActivityUpdateRequest]:
+    async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         stmt = select(self.model).where(
             self.model.moderate_status == ModerateStatusEnum.pending,
         )

@@ -37,7 +37,7 @@ async def get_pending_create_request(
 ) -> Page[ClubActivityCreateRequestInfo]:
     """Get pending club activity create request."""
     return Page[ClubActivityCreateRequestInfo].model_validate(
-        await service.get_pending_request(),
+        await service.get_pending_requests(),
     )
 
 
@@ -94,7 +94,7 @@ async def get_pending_update_request(
 ) -> Page[ClubActivityUpdateRequestInfo]:
     """Get pending club activity update request."""
     return Page[ClubActivityUpdateRequestInfo].model_validate(
-        await service.get_pending_request(),
+        await service.get_pending_requests(),
     )
 
 

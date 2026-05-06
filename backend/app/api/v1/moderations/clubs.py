@@ -31,7 +31,7 @@ async def get_pending_update_request(
 ) -> Page[ClubUpdateRequestInfo]:
     """Get pending club update request."""
     return Page[ClubUpdateRequestInfo].model_validate(
-        await service.get_pending_request(),
+        await service.get_pending_requests(),
     )
 
 

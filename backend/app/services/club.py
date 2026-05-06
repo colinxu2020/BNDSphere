@@ -128,7 +128,7 @@ class ClubUpdateRequestService(
 ):
     model = ClubUpdateRequest
 
-    async def get_pending_request(self) -> Page[ClubUpdateRequest]:
+    async def get_pending_requests(self) -> Page[ClubUpdateRequest]:
         stmt = select(self.model).where(
             self.model.moderate_status == ModerateStatusEnum.pending,
         )
