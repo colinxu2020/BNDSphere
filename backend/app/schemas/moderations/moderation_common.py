@@ -1,13 +1,24 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.schemas.generic import IdMixin
+from app.services.errors import BadRequestError, RequestIsNullError
 
 
 class RequestModeratePublic(BaseModel):
     moderate_status: ModerateStatusEnum = Field(...)
+
+    @model_validator(mode="after")
+    def validate_moderate_status(self) -> RequestModeratePublic:
+        if self.moderate_status == ModerateStatusEnum.pending:
+            raise BadRequestError(
+                "error.request_moderate.moderate_to_pending",
+                "MODERATE_TO_PENDING",
+            )
+        return self
 
 
 class RequestModerate(RequestModeratePublic):
@@ -25,3 +36,32 @@ class RequestInfoBase(IdMixin, BaseModel):
 
     requestor_id: int = Field(...)
     request_at: datetime = Field(...)
+
+
+class UpdateRequestCreateBase(BaseModel):
+    """Moderate Request 校验基类."""
+
+    @model_validator(mode="after")
+    def validate_any_payload_provided(self) -> Self:
+        exclude_system_fields = {
+            "moderator_id",
+            "moderate_at",
+            "requestor_id",
+            "request_at",
+            "user_id",
+            "club_id",
+            "club_activity_id",
+        }
+
+        valid_payload = self.model_dump(
+            exclude_none=True,
+            exclude=exclude_system_fields,
+        )
+
+        if not valid_payload:
+            raise RequestIsNullError(
+                "error.update_request.is_null",
+                "UPDATE_REQUEST_IS_NULL",
+            )
+
+        return self

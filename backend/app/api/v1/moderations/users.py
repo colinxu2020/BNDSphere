@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 
-from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     UserServiceDep,
     UserUpdateRequestServiceDep,
@@ -27,7 +26,6 @@ router = APIRouter(tags=["Moderation: Users"])
 
 @router.get(
     "/update-requests",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def get_user_profile_update_requests(
     service: UserUpdateRequestServiceDep,
@@ -40,7 +38,6 @@ async def get_user_profile_update_requests(
 
 @router.patch(
     "/update-requests/{request_id}",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def moderate_user_profile_update_request(
     request_id: int,
@@ -49,7 +46,7 @@ async def moderate_user_profile_update_request(
     user_service: UserServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserUpdateRequestInfo:
-    request = await service.get(request_id)
+    request = await service.get_with_lock(request_id)
     if request is None:
         raise ResourceNotFoundError(
             "error.user_update_request.not_found",
@@ -68,17 +65,9 @@ async def moderate_user_profile_update_request(
     ret = await service.moderate_request(request, obj_in, user)
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
-        update_data_dict = {
-            k: getattr(request, k)
-            for k in [
-                "username",
-                "avatar_uri",
-                "description",
-            ]
-        }
         await user_service.update(
             request_user,
-            AdminUserUpdate.model_validate(update_data_dict),
+            AdminUserUpdate.model_validate(request),
         )
 
     return UserUpdateRequestInfo.model_validate(ret)

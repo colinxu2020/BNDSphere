@@ -13,6 +13,7 @@ class ModerateStatusEnum(StrEnum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
+    superseded = "superseded"
 
 
 class ModerateMixin:

@@ -4,7 +4,7 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
@@ -23,6 +23,7 @@ from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
     DuplicateClubNameError,
+    DuplicatePendingRequestError,
     ResourceForbiddenError,
 )
 
@@ -147,3 +148,18 @@ class ClubUpdateRequestService(
                 moderate_at=datetime.now(tz=UTC),
             ),
         )
+
+    async def supersede_pending_requests_by_club(self, club_id: int) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.club_id == club_id,
+            )
+            .values(moderate_status=ModerateStatusEnum.superseded)
+        )
+        try:
+            await self.db.execute(stmt)
+            await self.db.flush()
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None

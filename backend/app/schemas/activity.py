@@ -28,6 +28,8 @@ class ActivityCreate(ActivityBase):
 
 
 class ActivityUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     name: str | None = Field(None, max_length=constants.ACTIVITY_MAX_NAME_LENGTH)
     description: str | None = Field(
         None,

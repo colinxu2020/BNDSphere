@@ -3,7 +3,7 @@ from typing import cast, override
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
@@ -15,11 +15,12 @@ from app.schemas.moderations.moderation_common import (
     RequestModeratePublic,
 )
 from app.schemas.moderations.user_update_request import (
-    UserUpdateRequestCreate,
+    UserUpdateUpdateRequestCreate,
 )
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
 from app.services.errors import (
+    DuplicatePendingRequestError,
     DuplicateResourceError,
 )
 
@@ -77,7 +78,7 @@ class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
 class UserUpdateRequestService(
     ServiceBase[
         UserUpdateRequest,
-        UserUpdateRequestCreate,
+        UserUpdateUpdateRequestCreate,
         RequestModerate,
     ],
 ):
@@ -103,3 +104,18 @@ class UserUpdateRequestService(
                 moderate_at=datetime.now(tz=UTC),
             ),
         )
+
+    async def supersede_pending_requests_by_user(self, user_id: int) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.user_id == user_id,
+            )
+            .values(moderate_status=ModerateStatusEnum.superseded)
+        )
+        try:
+            await self.db.execute(stmt)
+            await self.db.flush()
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None

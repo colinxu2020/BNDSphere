@@ -1,6 +1,9 @@
 from pydantic import BaseModel, Field, HttpUrl
 
-from app.schemas.moderations.moderation_common import RequestInfoBase
+from app.schemas.moderations.moderation_common import (
+    RequestInfoBase,
+    UpdateRequestCreateBase,
+)
 
 
 class ClubUpdateRequestBase(BaseModel):
@@ -13,7 +16,7 @@ class ClubUpdateRequestInfo(RequestInfoBase, ClubUpdateRequestBase):
     club_id: int = Field(...)
 
 
-class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase):
+class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase, UpdateRequestCreateBase):
     pass
 
 

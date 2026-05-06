@@ -1,11 +1,15 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, String, Text
-from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core import constants
 from app.core.database import Base
-from app.models.moderations.moderation_common import ModerateMixin, RequestMixin
+from app.models.moderations.moderation_common import (
+    ModerateMixin,
+    ModerateStatusEnum,
+    RequestMixin,
+)
 
 
 class ClubActivityCreateRequest(Base, ModerateMixin, RequestMixin):
@@ -51,3 +55,18 @@ class ClubActivityUpdateRequest(Base, ModerateMixin, RequestMixin):
     location: Mapped[str | None] = mapped_column(Text, default=None)
 
     picture_urls: Mapped[list[str] | None] = mapped_column(JSON, default=None)
+
+    @declared_attr.directive
+    @classmethod
+    def __table_args__(cls) -> tuple[Index]:
+        """定义数据库表的级联参数和索引."""
+        return (
+            Index(
+                "ix_single_pending_club_activity_update_request",
+                "club_activity_id",
+                unique=True,
+                postgresql_where=(
+                    cls.moderate_status == ModerateStatusEnum.pending.value
+                ),
+            ),
+        )

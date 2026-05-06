@@ -32,7 +32,7 @@ class AuthenticationError(BusinessError):
         )
 
 
-class RequestIsNullError(BusinessError):
+class BadRequestError(BusinessError):
     def __init__(
         self,
         message_key: str,
@@ -40,6 +40,16 @@ class RequestIsNullError(BusinessError):
         details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 400, error_code, details)
+
+
+class RequestIsNullError(BadRequestError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message_key, error_code, details)
 
 
 class ResourceNotFoundError(BusinessError):
@@ -133,6 +143,18 @@ class DuplicateResourceError(BusinessError):
         details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 409, error_code, details)
+
+
+class DuplicatePendingRequestError(DuplicateResourceError):
+    def __init__(
+        self,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            "error.moderation.duplicate_pending_request",
+            "DUPLICATE_PENDING_REQUEST",
+            details,
+        )
 
 
 class ResourceForbiddenError(BusinessError):

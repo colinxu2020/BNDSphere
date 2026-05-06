@@ -10,8 +10,8 @@ from app.api.dependencies import (
 )
 from app.models.user import User
 from app.schemas.moderations.user_update_request import (
-    UserUpdateRequestCreate,
     UserUpdateRequestInfo,
+    UserUpdateUpdateRequestCreate,
 )
 from app.schemas.user import AdminUserUpdate, UserInfo, UserUpdate
 from app.services.errors import ResourceNotFoundError
@@ -80,10 +80,12 @@ async def update_user_profile(
 )
 async def request_update_profile(
     service: UserUpdateRequestServiceDep,
-    obj_in: UserUpdateRequestCreate,
+    obj_in: UserUpdateUpdateRequestCreate,
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserUpdateRequestInfo:
     """Request update user profile of current user."""
+    await service.supersede_pending_requests_by_user(user.id)
+
     return UserUpdateRequestInfo.model_validate(
         await service.create(obj_in, user_id=user.id),
     )

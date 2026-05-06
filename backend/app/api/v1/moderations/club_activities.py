@@ -53,7 +53,7 @@ async def moderate_create_request(
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityCreateRequestInfo:
     """Moderate club activity create request."""
-    request = await service.get(request_id)
+    request = await service.get_with_lock(request_id)
     if request is None:
         raise ResourceNotFoundError(
             "error.club_activity_create_request.not_found",
@@ -70,15 +70,15 @@ async def moderate_create_request(
         raise ClubNotFoundError(request.club_id) from None
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
+        data_dict = {
+            k: getattr(request, k)
+            for k in ActivityCreate.model_fields
+            if hasattr(request, k) and getattr(request, k) is not None
+        }
+
         await club_activity_service.create_club_activity(
             club.id,
-            ActivityCreate(
-                name=request.name,
-                description=request.description,
-                start_time=request.start_time,
-                end_time=request.end_time,
-                location=request.location,
-            ),
+            ActivityCreate.model_validate(data_dict),
         )
 
     return ClubActivityCreateRequestInfo.model_validate(
@@ -110,7 +110,7 @@ async def moderate_update_request(
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Moderate club activity update request."""
-    request = await service.get(request_id)
+    request = await service.get_with_lock(request_id)
     if request is None:
         raise ResourceNotFoundError(
             "error.club_activity_update_request.not_found",
@@ -127,21 +127,9 @@ async def moderate_update_request(
         raise ClubActivityNotFoundError(request.club_activity_id) from None
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
-        update_data_dict = {
-            k: getattr(request, k)
-            for k in [
-                "name",
-                "description",
-                "start_time",
-                "end_time",
-                "location",
-                "picture_urls",
-            ]
-            if getattr(request, k) is not None
-        }
         await club_activity_service.update(
             activity,
-            ActivityUpdate.model_validate(update_data_dict),
+            ActivityUpdate.model_validate(request),
         )
 
     return ClubActivityUpdateRequestInfo.model_validate(

@@ -103,6 +103,8 @@ async def update_request(
     if club is None:
         raise ClubNotFoundError(club_id) from None
 
+    await service.supersede_pending_requests_by_club(club_id)
+
     return ClubUpdateRequestInfo.model_validate(
         await service.create(
             ClubUpdateRequestCreate(

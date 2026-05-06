@@ -19,6 +19,13 @@ class ServiceBase[
         result = await self.db.execute(select(self.model).filter(self.model.id == id_))
         return result.scalars().first()
 
+    async def get_with_lock(self, id_: int) -> ModelType | None:
+        """获取资源, 并在事务级别加排他锁."""
+        result = await self.db.execute(
+            select(self.model).filter(self.model.id == id_).with_for_update(),
+        )
+        return result.scalars().first()
+
     async def create(self, obj_in: CreateSchemaType, **kwargs: object) -> ModelType:
         db_obj = self.model(**obj_in.model_dump(), **kwargs)
         self.db.add(db_obj)

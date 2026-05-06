@@ -3,7 +3,8 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select
+from sqlalchemy import select, update
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.models import Club, User
@@ -23,6 +24,7 @@ from app.schemas.moderations.moderation_common import (
     RequestModeratePublic,
 )
 from app.services.base import ServiceBase
+from app.services.errors import DuplicatePendingRequestError
 
 
 class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
@@ -112,3 +114,21 @@ class ClubActivityUpdateRequestService(
                 moderate_at=datetime.now(tz=UTC),
             ),
         )
+
+    async def supersede_pending_requests_by_activity(
+        self,
+        club_activity_id: int,
+    ) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.club_activity_id == club_activity_id,
+            )
+            .values(moderate_status=ModerateStatusEnum.superseded)
+        )
+        try:
+            await self.db.execute(stmt)
+            await self.db.flush()
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None

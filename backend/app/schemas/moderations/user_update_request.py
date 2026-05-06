@@ -1,31 +1,28 @@
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from datetime import datetime
 
-from app.schemas.moderations.moderation_common import RequestInfoBase
-from app.services.errors import RequestIsNullError
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+
+from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.schemas.generic import IdMixin
+from app.schemas.moderations.moderation_common import UpdateRequestCreateBase
 
 
-class UserUpdateRequestCreate(BaseModel):
+class UserUpdateUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
 
-    @model_validator(mode="after")
-    def validate_not_null(self) -> UserUpdateRequestCreate:
-        if (
-            self.username is None
-            and self.avatar_uri is None
-            and self.description is None
-        ):
-            raise RequestIsNullError(
-                "user.update_request.is_null",
-                "USER_UPDATE_REQUEST_IS_NULL",
-            )
-        return self
 
+class UserUpdateRequestInfo(IdMixin, BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-class UserUpdateRequestInfo(RequestInfoBase):
+    moderate_status: ModerateStatusEnum = Field(...)
+    moderate_at: datetime | None = Field(None)
+
+    request_at: datetime = Field(...)
+
     user_id: int = Field(...)
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)

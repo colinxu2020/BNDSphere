@@ -129,6 +129,8 @@ async def update_club_activity_request(
     if activity is None:
         raise ClubActivityNotFoundError(activity_id) from None
 
+    await service.supersede_pending_requests_by_activity(activity_id)
+
     return ClubActivityUpdateRequestInfo.model_validate(
         await service.create(
             ClubActivityUpdateRequestCreate(

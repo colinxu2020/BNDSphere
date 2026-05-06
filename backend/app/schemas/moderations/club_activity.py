@@ -2,7 +2,10 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from app.schemas.moderations.moderation_common import RequestInfoBase
+from app.schemas.moderations.moderation_common import (
+    RequestInfoBase,
+    UpdateRequestCreateBase,
+)
 
 
 class ClubActivityCreateRequestBase(BaseModel):
@@ -40,7 +43,10 @@ class ClubActivityUpdateRequestInfo(RequestInfoBase, ClubActivityUpdateRequestBa
     club_activity_id: int = Field(...)
 
 
-class ClubActivityUpdateRequestCreatePublic(ClubActivityUpdateRequestBase):
+class ClubActivityUpdateRequestCreatePublic(
+    ClubActivityUpdateRequestBase,
+    UpdateRequestCreateBase,
+):
     pass
 
 

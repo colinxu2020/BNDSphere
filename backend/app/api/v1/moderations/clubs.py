@@ -3,7 +3,6 @@ from typing import Annotated
 from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 
-from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ClubServiceDep,
     ClubUpdateRequestServiceDep,
@@ -26,7 +25,6 @@ router = APIRouter(tags=["Moderation: Clubs"])
 
 @router.get(
     "/update-requests",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def get_pending_update_request(
     service: ClubUpdateRequestServiceDep,
@@ -39,7 +37,6 @@ async def get_pending_update_request(
 
 @router.patch(
     "/update-requests/{request_id}",
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def moderate_update_request(
     request_id: int,
@@ -49,7 +46,7 @@ async def moderate_update_request(
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubUpdateRequestInfo:
     """Moderate club update request."""
-    request = await service.get(request_id)
+    request = await service.get_with_lock(request_id)
     if request is None:
         raise ResourceNotFoundError(
             "error.club_update_request.not_found",
@@ -66,18 +63,9 @@ async def moderate_update_request(
         raise ClubNotFoundError(request.club_id) from None
 
     if obj_in.moderate_status == ModerateStatusEnum.approved:
-        update_data_dict = {
-            k: getattr(request, k)
-            for k in [
-                "summary",
-                "description",
-                "logo_uri",
-            ]
-            if getattr(request, k) is not None
-        }
         await club_service.update(
             club,
-            AdminClubUpdate.model_validate(update_data_dict),
+            AdminClubUpdate.model_validate(request),
         )
 
     return ClubUpdateRequestInfo.model_validate(
