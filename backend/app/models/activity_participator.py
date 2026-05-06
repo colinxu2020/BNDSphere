@@ -2,7 +2,6 @@ from sqlalchemy import Column, ForeignKey, Table
 
 from app.core.database import Base
 
-
 activity_participator_table = Table(
     "activity_participators",
     Base.metadata,
