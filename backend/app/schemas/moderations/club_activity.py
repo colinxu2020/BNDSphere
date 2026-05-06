@@ -37,6 +37,7 @@ class ClubActivityUpdateRequestBase(BaseModel):
     start_time: datetime | None = Field(None)
     end_time: datetime | None = Field(None)
     location: str | None = Field(None)
+    picture_urls: list[str] | None = Field(None)
 
 
 class ClubActivityUpdateRequestInfo(RequestInfoBase, ClubActivityUpdateRequestBase):

@@ -26,6 +26,7 @@ from app.schemas.moderations.club_activity import (
 from app.services.errors import (
     ClubActivityNotFoundError,
     ClubNotFoundError,
+    ResourceForbiddenError,
 )
 
 router = APIRouter(tags=["Club Activities"])
@@ -106,6 +107,12 @@ async def update_club_activity_request(
     activity = await club_activity_service.get(activity_id)
     if activity is None:
         raise ClubActivityNotFoundError(activity_id) from None
+
+    if activity.club_id != club_id:
+        raise ResourceForbiddenError(
+            "error.club_activity.wrong_belong",
+            "CLUB_ACTIVITY_WRONG_BELONG",
+        )
 
     await service.supersede_pending_requests_by_activity(activity_id)
 
