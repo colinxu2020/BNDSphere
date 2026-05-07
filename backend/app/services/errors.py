@@ -32,6 +32,26 @@ class AuthenticationError(BusinessError):
         )
 
 
+class BadRequestError(BusinessError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message_key, 400, error_code, details)
+
+
+class RequestIsNullError(BadRequestError):
+    def __init__(
+        self,
+        message_key: str,
+        error_code: str,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(message_key, error_code, details)
+
+
 class ResourceNotFoundError(BusinessError):
     def __init__(
         self,
@@ -70,12 +90,30 @@ class StarLevelApplicationUpdateDeniedError(BusinessPermissionError):
         )
 
 
+class UserNotFoundError(ResourceNotFoundError):
+    def __init__(self, user_id: int) -> None:
+        super().__init__(
+            "error.user.not_found",
+            "USER_NOT_FOUND",
+            {"user_id": user_id},
+        )
+
+
 class ClubNotFoundError(ResourceNotFoundError):
     def __init__(self, club_id: int) -> None:
         super().__init__(
             "error.club.not_found",
             "CLUB_NOT_FOUND",
             {"club_id": club_id},
+        )
+
+
+class ClubActivityNotFoundError(ResourceNotFoundError):
+    def __init__(self, activity_id: int) -> None:
+        super().__init__(
+            "error.club_activity.not_found",
+            "CLUB_ACTIVITY_NOT_FOUND",
+            {"club_activity_id": activity_id},
         )
 
 
@@ -105,6 +143,18 @@ class DuplicateResourceError(BusinessError):
         details: dict[str, Any] | None = None,
     ) -> None:
         super().__init__(message_key, 409, error_code, details)
+
+
+class DuplicatePendingRequestError(DuplicateResourceError):
+    def __init__(
+        self,
+        details: dict[str, Any] | None = None,
+    ) -> None:
+        super().__init__(
+            "error.moderation.duplicate_pending_request",
+            "DUPLICATE_PENDING_REQUEST",
+            details,
+        )
 
 
 class ResourceForbiddenError(BusinessError):
