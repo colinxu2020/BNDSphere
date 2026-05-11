@@ -14,5 +14,5 @@ jobs:
         run: |
           git clone --mirror https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git repo-mirror
           cd repo-mirror
-          git remote set-url --push origin https://oauth2:${{ secrets.GITEE_PAT }}@gitee.com/bjbnds/BNDSphere.git
-          git push --prune origin '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*' '+refs/pull/*:refs/pull/*'
+          git remote add gitee https://oauth2:${{ secrets.GITEE_PAT }}@gitee.com/bjbnds/BNDSphere.git
+          git push --prune gitee '+refs/heads/*:refs/heads/*' '+refs/tags/*:refs/tags/*'
