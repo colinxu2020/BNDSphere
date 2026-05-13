@@ -1,6 +1,6 @@
-from fastapi import APIRouter
-from starlette import status
+from fastapi import APIRouter, status
 
+from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import GeneralActivityServiceDep
 from app.schemas.general_activities import (
     GeneralActivityCreate,
@@ -21,7 +21,10 @@ async def create(
     return GeneralActivityInfo.model_validate(await service.create(obj))
 
 
-@router.patch("/{activity_id}")
+@router.patch(
+    "/{activity_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def update(
     activity_id: int,
     update: GeneralActivityUpdate,
@@ -34,7 +37,10 @@ async def update(
     return GeneralActivityInfo.model_validate(service.update(activity, update))
 
 
-@router.delete("/{activity_id}")
+@router.delete(
+    "/{activity_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def delete(
     activity_id: int,
     service: GeneralActivityServiceDep,

@@ -31,3 +31,35 @@ PERMISSION_DENIED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+
+RESOURCE_NOT_FOUND_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    404: {
+        "model": ErrorResponseModel,
+        "description": "Resource Not Found",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.user.user_not_found",
+                    "error_code": "USER_NOT_FOUND",
+                    "detail": {
+                        "user_id": 1,
+                    },
+                },
+            },
+        },
+    },
+}
+
+DUPLICATE_REQUEST_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    409: {
+        "description": "Conflict - A pending request already exists.",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.moderation.duplicate_pending_request",
+                    "error_code": "DUPLICATE_PENDING_REQUEST",
+                },
+            },
+        },
+    },
+}

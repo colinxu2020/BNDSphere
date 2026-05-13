@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import UserServiceDep
 from app.schemas.user import AdminUserUpdate, UserInfo
 from app.services.errors import ResourceNotFoundError
@@ -7,7 +8,10 @@ from app.services.errors import ResourceNotFoundError
 router = APIRouter(tags=["users"])
 
 
-@router.patch("/{user_id}")
+@router.patch(
+    "/{user_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def admin_update_user(
     user_id: int,
     obj_in: AdminUserUpdate,
