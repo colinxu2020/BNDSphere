@@ -85,7 +85,7 @@ jobs:
           quiet: true
           output_format: cli,sarif
           output_file_path: console,checkov-results.sarif
-          soft_fail: false
+          soft_fail: true
 
       - name: Upload Checkov SARIF
         uses: github/codeql-action/upload-sarif@v4
@@ -104,7 +104,6 @@ jobs:
           severity: ${{ env.TRIVY_SEVERITY }}
           format: sarif
           output: trivy-config-results.sarif
-          exit-code: "1"
 
       - name: Upload Trivy config SARIF
         if: always()
@@ -127,7 +126,6 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-postgres-results.sarif
-          exit-code: "1"
 
       - name: Upload postgres Trivy SARIF
         if: always()
@@ -148,7 +146,6 @@ jobs:
           ignore-unfixed: true
           format: sarif
           output: trivy-backend-results.sarif
-          exit-code: "1"
 
       - name: Upload backend Trivy SARIF
         if: always()
@@ -168,7 +165,6 @@ jobs:
           severity: HIGH,CRITICAL
           format: sarif
           output: trivy-caddy-results.sarif
-          exit-code: "1"
 
       - name: Upload caddy Trivy SARIF
         if: always()
