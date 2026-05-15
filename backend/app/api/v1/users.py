@@ -1,12 +1,21 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import TOKEN_INVALID_RESPONSE
-from app.api.dependencies import UserServiceDep, get_current_user
+from app.api.dependencies import (
+    UserServiceDep,
+    UserUpdateRequestServiceDep,
+    get_current_user,
+)
 from app.models.user import User
-from app.schemas.user import UserInfo, UserUpdate
-from app.services.errors import ResourceNotFoundError
+from app.schemas.moderations.user_update_request import (
+    UserUpdateRequestInfo,
+    UserUpdateUpdateRequestCreate,
+)
+from app.schemas.user import UserInfo
+from app.services.errors import DuplicatePendingRequestError, ResourceNotFoundError
 
 router = APIRouter(tags=["users"])
 
@@ -37,26 +46,22 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
     return UserInfo.model_validate(user)
 
 
-@router.patch(
-    "/me",
-    response_model=UserInfo,
-    responses=TOKEN_INVALID_RESPONSE
-    | {
-        409: {
-            "description": "Email already exists",
-            "content": {
-                "application/json": {"example": {"detail": "Email already exists"}},
-            },
-        },
-    },
+@router.post(
+    "/update-requests",
+    status_code=status.HTTP_201_CREATED,
+    responses=TOKEN_INVALID_RESPONSE,
 )
-async def update_user_profile(
-    current_user: Annotated[User, Depends(get_current_user)],
-    service: UserServiceDep,
-    update: UserUpdate,
-) -> UserInfo:
-    """Modify user profile of current user.
+async def request_update_profile(
+    service: UserUpdateRequestServiceDep,
+    obj_in: UserUpdateUpdateRequestCreate,
+    user: Annotated[User, Depends(get_current_user)],
+) -> UserUpdateRequestInfo:
+    """Request update user profile of current user."""
+    try:
+        await service.supersede_pending_requests_by_user(user.id)
 
-    Note that username cannot be changed, and email must be unique.
-    """
-    return UserInfo.model_validate(await service.update(current_user, update))
+        return UserUpdateRequestInfo.model_validate(
+            await service.create(obj_in, user_id=user.id),
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None
