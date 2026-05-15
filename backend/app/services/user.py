@@ -1,18 +1,31 @@
-from typing import override
+from datetime import UTC, datetime
+from typing import cast, override
 
-from sqlalchemy import select
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from sqlalchemy import select, update
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
+from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import User
-from app.schemas.user import UserCreate, UserUpdate
+from app.schemas.moderations.moderation_common import (
+    RequestModerate,
+    RequestModeratePublic,
+)
+from app.schemas.moderations.user_update_request import (
+    UserUpdateUpdateRequestCreate,
+)
+from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
 from app.services.errors import (
+    DuplicatePendingRequestError,
     DuplicateResourceError,
 )
 
 
-class UserService(ServiceBase[User, UserCreate, UserUpdate]):
+class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
     model = User
 
     async def get_by_email(self, email: str) -> User | None:
@@ -51,7 +64,7 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
             return db_obj
 
     @override
-    async def update(self, db_obj: User, obj_in: UserUpdate) -> User:
+    async def update(self, db_obj: User, obj_in: AdminUserUpdate) -> User:
         try:
             return await super().update(db_obj, obj_in)
         except IntegrityError:
@@ -60,3 +73,49 @@ class UserService(ServiceBase[User, UserCreate, UserUpdate]):
                 error_code="DUPLICATE_EMAIL",
                 details={"email": obj_in.email},
             ) from None
+
+
+class UserUpdateRequestService(
+    ServiceBase[
+        UserUpdateRequest,
+        UserUpdateUpdateRequestCreate,
+        RequestModerate,
+    ],
+):
+    model = UserUpdateRequest
+
+    async def get_pending_requests(self) -> Page[UserUpdateRequest]:
+        stmt = select(self.model).where(
+            self.model.moderate_status == ModerateStatusEnum.pending,
+        )
+        return cast("Page[UserUpdateRequest]", await apaginate(self.db, stmt))
+
+    async def moderate_request(
+        self,
+        request: UserUpdateRequest,
+        moderation: RequestModeratePublic,
+        moderator: User,
+    ) -> UserUpdateRequest:
+        return await self.update(
+            request,
+            RequestModerate(
+                **moderation.model_dump(),
+                moderator_id=moderator.id,
+                moderate_at=datetime.now(tz=UTC),
+            ),
+        )
+
+    async def supersede_pending_requests_by_user(self, user_id: int) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.user_id == user_id,
+            )
+            .values(moderate_status=ModerateStatusEnum.superseded)
+        )
+        try:
+            await self.db.execute(stmt)
+            await self.db.flush()
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None

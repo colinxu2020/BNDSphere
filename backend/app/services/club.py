@@ -1,20 +1,29 @@
 from collections.abc import Sequence
+from datetime import UTC, datetime
 from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select
+from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import IntegrityError
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
+from app.models.moderations.club import ClubUpdateRequest
+from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.user import User
 from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
+from app.schemas.moderations.club import ClubUpdateRequestCreate
+from app.schemas.moderations.moderation_common import (
+    RequestModerate,
+    RequestModeratePublic,
+)
 from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
     DuplicateClubNameError,
+    DuplicatePendingRequestError,
     ResourceForbiddenError,
 )
 
@@ -108,3 +117,49 @@ class ClubMemberService(ServiceBase[ClubMember, ClubMemberUpdate, ClubMemberUpda
         )
         result = await self.db.execute(stmt)
         return result.scalar_one()
+
+
+class ClubUpdateRequestService(
+    ServiceBase[
+        ClubUpdateRequest,
+        ClubUpdateRequestCreate,
+        RequestModerate,
+    ],
+):
+    model = ClubUpdateRequest
+
+    async def get_pending_requests(self) -> Page[ClubUpdateRequest]:
+        stmt = select(self.model).where(
+            self.model.moderate_status == ModerateStatusEnum.pending,
+        )
+        return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
+
+    async def moderate_request(
+        self,
+        request: ClubUpdateRequest,
+        moderation: RequestModeratePublic,
+        moderator: User,
+    ) -> ClubUpdateRequest:
+        return await self.update(
+            request,
+            RequestModerate(
+                **moderation.model_dump(),
+                moderator_id=moderator.id,
+                moderate_at=datetime.now(tz=UTC),
+            ),
+        )
+
+    async def supersede_pending_requests_by_club(self, club_id: int) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.club_id == club_id,
+            )
+            .values(moderate_status=ModerateStatusEnum.superseded)
+        )
+        try:
+            await self.db.execute(stmt)
+            await self.db.flush()
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None

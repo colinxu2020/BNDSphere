@@ -10,10 +10,13 @@ from app.core.security import verify_access_token
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.services.academic_term import AcademicTermService
-from app.services.activity import ActivityService
+from app.services.activity import (
+    ActivityService,
+    ClubActivityCreateRequestService,
+    ClubActivityUpdateRequestService,
+)
 from app.services.base import ServiceBase
-from app.services.club import ClubMemberService, ClubService
-from app.services.club_update_request import ClubUpdateRequestService
+from app.services.club import ClubMemberService, ClubService, ClubUpdateRequestService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -25,7 +28,7 @@ from app.services.general_activities import (
 )
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
-from app.services.user import UserService
+from app.services.user import UserService, UserUpdateRequestService
 
 oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
 
@@ -89,10 +92,26 @@ type ClubMemberServiceDep = Annotated[
     ClubMemberService,
     Depends(ServiceFactory(ClubMemberService)),
 ]
+type ClubUpdateRequestServiceDep = Annotated[
+    ClubUpdateRequestService,
+    Depends(ServiceFactory(ClubUpdateRequestService)),
+]
 type UserServiceDep = Annotated[UserService, Depends(ServiceFactory(UserService))]
+type UserUpdateRequestServiceDep = Annotated[
+    UserUpdateRequestService,
+    Depends(ServiceFactory(UserUpdateRequestService)),
+]
 type ActivityServiceDep = Annotated[
     ActivityService,
     Depends(ServiceFactory(ActivityService)),
+]
+type ClubActivityCreateRequestServiceDep = Annotated[
+    ClubActivityCreateRequestService,
+    Depends(ServiceFactory(ClubActivityCreateRequestService)),
+]
+type ClubActivityUpdateRequestServiceDep = Annotated[
+    ClubActivityUpdateRequestService,
+    Depends(ServiceFactory(ClubActivityUpdateRequestService)),
 ]
 type AcademicTermServiceDep = Annotated[
     AcademicTermService,
@@ -109,10 +128,6 @@ type ClubGeneralActivityServiceDep = Annotated[
 type StarLevelServiceDep = Annotated[
     StarLevelService,
     Depends(ServiceFactory(StarLevelService)),
-]
-type ClubUpdateRequestServiceDep = Annotated[
-    ClubUpdateRequestService,
-    Depends(ServiceFactory(ClubUpdateRequestService)),
 ]
 type StarRatingServiceDep = Annotated[
     StarRatingService,

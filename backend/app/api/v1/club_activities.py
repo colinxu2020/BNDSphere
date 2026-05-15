@@ -2,17 +2,34 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
+from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
     ActivityServiceDep,
+    ClubActivityCreateRequestServiceDep,
+    ClubActivityUpdateRequestServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
+    get_current_user,
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.activity import ActivityCreate, ActivityInfo
-from app.services.errors import ClubNotFoundError
+from app.schemas.activity import ActivityInfo
+from app.schemas.moderations.club_activity import (
+    ClubActivityCreateRequestCreate,
+    ClubActivityCreateRequestCreatePublic,
+    ClubActivityCreateRequestInfo,
+    ClubActivityUpdateRequestCreate,
+    ClubActivityUpdateRequestCreatePublic,
+    ClubActivityUpdateRequestInfo,
+)
+from app.services.errors import (
+    ClubActivityNotFoundError,
+    ClubNotFoundError,
+    DuplicatePendingRequestError,
+    ResourceForbiddenError,
+)
 
 router = APIRouter(tags=["Club Activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
@@ -37,24 +54,80 @@ async def get_club_activities(
 
 
 @router.post(
-    "/",
-    response_model=ActivityInfo,
+    "/create-requests",
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
         Depends(
-            ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
+            ClubRoleChecker([ClubMembershipEnum.president, ClubMembershipEnum.vice]),
         ),
     ],
 )
-async def create_club_activity(
+async def create_club_activity_request(
     club_id: int,
-    activity: ActivityCreate,
-    activity_service: ActivityServiceDep,
-) -> ActivityInfo:
-    """Create a new activity for the given club.
-    Only club president and vice president can perform this operation.
-    """
-    return ActivityInfo.model_validate(
-        await activity_service.create(activity, club_id=club_id),
+    obj_in: ClubActivityCreateRequestCreatePublic,
+    service: ClubActivityCreateRequestServiceDep,
+    club_service: ClubServiceDep,
+    requestor: Annotated[User, Depends(get_current_user)],
+) -> ClubActivityCreateRequestInfo:
+    """Create a new club activity request."""
+    await club_service.ensure_club_normal(club_id)
+
+    return ClubActivityCreateRequestInfo.model_validate(
+        await service.create(
+            ClubActivityCreateRequestCreate(
+                **obj_in.model_dump(),
+                club_id=club_id,
+                requestor_id=requestor.id,
+            ),
+        ),
     )
+
+
+@router.post(
+    "/update-requests/{activity_id}",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+            ),
+        ),
+    ],
+)
+async def update_club_activity_request(
+    club_id: int,
+    activity_id: int,
+    obj_in: ClubActivityUpdateRequestCreatePublic,
+    service: ClubActivityUpdateRequestServiceDep,
+    club_service: ClubServiceDep,
+    club_activity_service: ActivityServiceDep,
+    requestor: Annotated[User, Depends(get_current_user)],
+) -> ClubActivityUpdateRequestInfo:
+    """Request to update a club activity."""
+    await club_service.ensure_club_normal(club_id)
+
+    activity = await club_activity_service.get(activity_id)
+    if activity is None:
+        raise ClubActivityNotFoundError(activity_id) from None
+
+    if activity.club_id != club_id:
+        raise ResourceForbiddenError(
+            "error.club_activity.wrong_belong",
+            "CLUB_ACTIVITY_WRONG_BELONG",
+        )
+
+    try:
+        await service.supersede_pending_requests_by_activity(activity_id)
+
+        return ClubActivityUpdateRequestInfo.model_validate(
+            await service.create(
+                ClubActivityUpdateRequestCreate(
+                    **obj_in.model_dump(),
+                    club_activity_id=activity_id,
+                    requestor_id=requestor.id,
+                ),
+            ),
+        )
+    except IntegrityError:
+        raise DuplicatePendingRequestError from None

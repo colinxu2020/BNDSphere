@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 class RoleEnum(StrEnum):
     ban = "ban"
     user = "user"
+    moderator = "moderator"
     scf = "staff of club federation"
     admin = "admin"
     dev = "dev"

@@ -8,6 +8,7 @@ from app.api.v1.club_general_activities import router as club_general_activities
 from app.api.v1.club_star_level import router as club_star_level_router
 from app.api.v1.clubs import router as clubs_router
 from app.api.v1.general_activities import router as general_activities_router
+from app.api.v1.moderations import router as moderation_router
 from app.api.v1.star_level import router as star_level_router
 from app.api.v1.star_rating import router as star_rating_router
 from app.api.v1.users import router as users_router
@@ -36,3 +37,4 @@ router.include_router(
     prefix="/star-level",
 )
 router.include_router(club_federation_router, prefix="/club-federation")
+router.include_router(moderation_router, prefix="/moderations")
