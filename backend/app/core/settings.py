@@ -23,7 +23,7 @@ class Settings(BaseSettings):
 
         return f"postgresql+psycopg://{self.postgres_user}:{safe_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 
-    model_config = SettingsConfigDict(secrets_dir="/run/secrets")
+    model_config = SettingsConfigDict(secrets_dir="/run/secrets", env_file=".env")
 
 
 # noinspection PyArgumentList

@@ -1,5 +1,6 @@
 import asyncio
 from logging.config import fileConfig
+import sys
 
 from sqlalchemy import pool, text
 from sqlalchemy.engine import Connection
@@ -10,6 +11,9 @@ from alembic import context
 from app.core.database import Base
 from app.core.settings import settings
 import app.main
+
+if sys.platform == "win32":
+    asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -78,6 +82,7 @@ async def run_async_migrations() -> None:
 
     async with connectable.connect() as connection:
         await connection.execute(text("SET ROLE app_owner"))
+        await connection.commit()
         await connection.run_sync(do_run_migrations)
 
     await connectable.dispose()

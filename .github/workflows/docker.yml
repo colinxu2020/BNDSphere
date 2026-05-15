@@ -6,6 +6,7 @@ on:
       - "docker-compose.yml"
       - "backend/**"
       - "infra/**"
+      - "frontend/**"
       - ".github/workflows/docker.yml"
 
   push:
@@ -15,6 +16,7 @@ on:
       - "docker-compose.yml"
       - "backend/**"
       - "infra/**"
+      - "frontend/**"
       - ".github/workflows/docker.yml"
 
   workflow_dispatch:

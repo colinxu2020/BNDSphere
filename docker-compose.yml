@@ -121,6 +121,36 @@ services:
     environment:
       - NO_PROXY=backend
 
+  alembic-autorevision:
+    image: bndsphere-backend
+    profiles:
+      - autorevision
+    environment:
+      - POSTGRES_USER=migration_user
+      - POSTGRES_DB=bndsphere
+    env_file:
+      - .env.backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres-network
+    cap_drop:
+      - ALL
+    security_opt:
+      - no-new-privileges:true
+    read_only: true
+    tmpfs:
+      - /tmp:noexec,nosuid,nodev
+    secrets:
+      - source: migration_password
+        target: postgres_password
+
+    volumes:
+      - ./backend/migrations/versions:/backend/migrations/versions
+
+    command: ["/backend/.venv/bin/alembic","revision","--autogenerate","-m","$${MESSAGE:-auto revision}"]
+
 networks:
   postgres-network:
     driver: bridge
