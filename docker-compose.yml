@@ -107,6 +107,7 @@ services:
       - /tmp:noexec,nosuid,nodev
 
   caddy:
+    image: bndsphere-caddy
     build:
       context: .
       dockerfile: infra/Dockerfile.Caddy
