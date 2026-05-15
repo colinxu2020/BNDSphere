@@ -38,12 +38,6 @@ services:
     security_opt:
       - no-new-privileges:true
 
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER:-postgres} -d $${POSTGRES_DB:-postgres}"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
     networks:
       - postgres-network
 
@@ -98,11 +92,6 @@ services:
     secrets:
       - source: app_password
         target: postgres_password
-    healthcheck:
-      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health')"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
     tmpfs:
       - /tmp:noexec,nosuid,nodev
 

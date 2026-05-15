@@ -74,6 +74,25 @@ jobs:
           dockerfile: infra/Dockerfile.Caddy
           failure-threshold: warning
 
+      - name: Scan Dockerfiles with Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: dockerfile
+          quiet: true
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+          soft_fail: false
+
+      - name: Upload Checkov SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: success() || failure()
+        continue-on-error: true
+        with:
+          sarif_file: checkov-results.sarif
+
+
       - name: Scan repo config with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
