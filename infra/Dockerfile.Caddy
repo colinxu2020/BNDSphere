@@ -13,8 +13,9 @@ RUN npm run build
 FROM caddy:2-alpine
 
 RUN addgroup -S caddygroup && adduser -S -G caddygroup caddyuser
-RUN mkdir -p /config/caddy /data/caddy /etc/caddy /srv && \
-    chown -R caddyuser:caddygroup /config /data /etc/caddy /srv
+RUN setcap -r /usr/bin/caddy || true
+RUN mkdir -p /data/caddy /etc/caddy /srv && \
+    chown -R caddyuser:caddygroup /data /etc/caddy /srv
 COPY --from=builder --chown=caddyuser:caddygroup /app/dist /srv
 COPY --chown=caddyuser:caddygroup ./infra/Caddyfile /etc/caddy/Caddyfile
 USER caddyuser

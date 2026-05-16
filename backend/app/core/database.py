@@ -47,5 +47,5 @@ convention: Final[dict[str, str | Callable[[Constraint | Index, Table], str]]] =
 
 
 class Base(DeclarativeBase):
-    metadata = MetaData(naming_convention=convention)
+    metadata = MetaData(naming_convention=convention, schema="app")
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)

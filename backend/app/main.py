@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi_pagination import add_pagination
 from starlette.requests import Request
@@ -44,3 +44,8 @@ async def business_exception_handler(
         },
         headers=exc.headers,
     )
+
+
+@app.get("/health", status_code=status.HTTP_204_NO_CONTENT)
+async def health_check() -> None:
+    pass
