@@ -52,13 +52,13 @@ GRANT CONNECT ON DATABASE :"db_name" TO migration_user;
 
 GRANT CONNECT, CREATE ON DATABASE :"db_name" TO app_owner;
 
-
+CREATE SCHEMA IF NOT EXISTS db_meta AUTHORIZATION app_owner;
 CREATE SCHEMA IF NOT EXISTS app AUTHORIZATION app_owner;
 CREATE SCHEMA IF NOT EXISTS extensions AUTHORIZATION app_owner;
 
+ALTER SCHEMA db_meta OWNER TO app_owner;
 ALTER SCHEMA app OWNER TO app_owner;
 ALTER SCHEMA extensions OWNER TO app_owner;
-
 
 REVOKE CREATE ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM app_user;
@@ -81,7 +81,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA extensions
 GRANT EXECUTE ON FUNCTIONS TO app_user;
 
 ALTER ROLE migration_user IN DATABASE :"db_name"
-SET search_path = app, extensions, public;
+SET search_path = db_meta, app, extensions, public;
 
 ALTER ROLE app_user IN DATABASE :"db_name"
 SET search_path = app, extensions, public;
