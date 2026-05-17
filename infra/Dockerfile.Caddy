@@ -5,6 +5,8 @@ RUN mkdir -p /data/caddy /etc/caddy /srv && \
     chown -R caddyuser:caddygroup /data /etc/caddy /srv
 USER caddyuser
 EXPOSE 8080
+HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
+    CMD wget -q --spider http://localhost:8080/ || exit 1
 
 FROM base AS dev
 

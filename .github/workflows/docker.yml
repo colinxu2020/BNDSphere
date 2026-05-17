@@ -56,7 +56,7 @@ jobs:
           } > .env.backend
 
       - name: Validate Docker Compose file
-        run: docker compose -f "${COMPOSE_FILE}" config --quiet
+        run: docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet
 
       - name: Lint Postgres Dockerfile with Hadolint
         uses: hadolint/hadolint-action@v3.3.0
@@ -114,7 +114,7 @@ jobs:
 
       - name: Build Docker Compose images
         run: |
-          docker compose -f "${COMPOSE_FILE}" build --pull postgres backend caddy
+          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull postgres backend caddy
 
       - name: Scan postgres image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
