@@ -1,0 +1,23 @@
+name: bndsphere
+
+services:
+  postgres:
+    image: bndsphere-postgres
+    build:
+      context: ./infra
+      dockerfile: Dockerfile.Postgres
+
+  backend:
+    image: bndsphere-backend
+    build:
+      context: ./backend
+      network: host
+      target: prod
+
+  caddy:
+    image: bndsphere-caddy
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.Caddy
+      network: host
+      target: prod

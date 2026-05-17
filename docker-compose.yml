@@ -3,9 +3,6 @@ name: bndsphere
 services:
   postgres:
     image: bndsphere-postgres
-    build:
-      context: ./infra
-      dockerfile: Dockerfile.Postgres
     restart: unless-stopped
 
     environment:
@@ -67,9 +64,6 @@ services:
 
   backend:
     image: bndsphere-backend
-    build:
-      context: ./backend
-      network: host
     environment:
       - POSTGRES_USER=app_user
       - POSTGRES_DB=bndsphere
@@ -97,10 +91,6 @@ services:
 
   caddy:
     image: bndsphere-caddy
-    build:
-      context: .
-      dockerfile: infra/Dockerfile.Caddy
-      network: host
     restart: unless-stopped
     ports:
       - "${CADDY_PORT:-80}:8080"
@@ -149,7 +139,7 @@ services:
     volumes:
       - ./backend/migrations/versions:/backend/migrations/versions
 
-    command: ["/backend/.venv/bin/alembic","revision","--autogenerate","-m","$${MESSAGE:-auto revision}"]
+    command: ["/backend/.venv/bin/alembic","revision","--autogenerate","-m","${MESSAGE:-auto revision}"]
 
 networks:
   postgres-network:
