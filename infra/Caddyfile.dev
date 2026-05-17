@@ -1,4 +1,6 @@
-# infra/Caddyfile.dev
+{
+    persist_config off
+}
 
 :8080 {
     handle /api/* {
