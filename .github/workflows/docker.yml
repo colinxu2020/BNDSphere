@@ -1,0 +1,175 @@
+name: Docker Security
+
+on:
+  pull_request:
+    paths:
+      - "docker-compose.yml"
+      - "backend/**"
+      - "infra/**"
+      - "frontend/**"
+      - ".github/workflows/docker.yml"
+
+  push:
+    branches:
+      - master
+    paths:
+      - "docker-compose.yml"
+      - "backend/**"
+      - "infra/**"
+      - "frontend/**"
+      - ".github/workflows/docker.yml"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  security-events: write
+  actions: read
+
+env:
+  COMPOSE_FILE: docker-compose.yml
+  TRIVY_SEVERITY: HIGH,CRITICAL
+
+jobs:
+  docker-security:
+    name: Docker security checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Prepare dummy local files for Compose parsing
+        shell: bash
+        run: |
+          mkdir -p secrets
+
+          printf 'ci-postgres-password\n' > secrets/postgres_password.txt
+          printf 'ci-app-password\n' > secrets/app_db_password.txt
+          printf 'ci-migration-password\n' > secrets/migration_db_password.txt
+
+          {
+            echo "debug=1"
+            echo "echo_sql=1"
+            echo "cors_origin=*"
+            echo "secret_key=${SECRET_KEY}"
+          } > .env.backend
+
+      - name: Validate Docker Compose file
+        run: docker compose -f "${COMPOSE_FILE}" config --quiet
+
+      - name: Lint Postgres Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: infra/Dockerfile.Postgres
+          failure-threshold: warning
+
+      - name: Lint Backend Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: backend/Dockerfile
+          failure-threshold: warning
+
+      - name: Lint Caddy Dockerfile with Hadolint
+        uses: hadolint/hadolint-action@v3.3.0
+        with:
+          dockerfile: infra/Dockerfile.Caddy
+          failure-threshold: warning
+
+      - name: Scan Dockerfiles with Checkov
+        id: checkov
+        uses: bridgecrewio/checkov-action@v12
+        with:
+          directory: .
+          framework: dockerfile
+          quiet: true
+          output_format: cli,sarif
+          output_file_path: console,checkov-results.sarif
+          soft_fail: true
+
+      - name: Upload Checkov SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: success() || failure()
+        continue-on-error: true
+        with:
+          sarif_file: checkov-results.sarif
+
+
+      - name: Scan repo config with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: config
+          scan-ref: .
+          scanners: misconfig,secret
+          severity: ${{ env.TRIVY_SEVERITY }}
+          format: sarif
+          output: trivy-config-results.sarif
+
+      - name: Upload Trivy config SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: trivy-config-results.sarif
+
+      - name: Build Docker Compose images
+        run: |
+          docker compose -f "${COMPOSE_FILE}" build --pull postgres backend caddy
+
+      - name: Scan postgres image with Trivy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: bndsphere-postgres
+          scanners: vuln,secret
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-postgres-results.sarif
+
+      - name: Upload postgres Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: trivy-postgres-results.sarif
+          category: trivy-postgres
+
+      - name: Scan backend image with Trivy
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: bndsphere-backend
+          scanners: vuln,secret
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          format: sarif
+          output: trivy-backend-results.sarif
+
+      - name: Upload backend Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: trivy-backend-results.sarif
+          category: trivy-backend
+
+      - name: Scan caddy image with Trivy
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: bndsphere-caddy
+          scanners: vuln,secret
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          format: sarif
+          output: trivy-caddy-results.sarif
+
+      - name: Upload caddy Trivy SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v4
+        continue-on-error: true
+        with:
+          sarif_file: trivy-caddy-results.sarif
+          category: trivy-caddy

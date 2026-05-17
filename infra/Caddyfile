@@ -1,5 +1,11 @@
+{
+    admin off
+    persist_config off
+}
+
 :8080 {
     root * /srv
+    encode
 
     handle /api/* {
         reverse_proxy http://backend:8000
