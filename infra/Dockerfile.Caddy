@@ -21,4 +21,3 @@ FROM base AS prod
 
 COPY --from=builder --chown=caddyuser:caddygroup /app/dist /srv
 COPY --chown=caddyuser:caddygroup ./infra/Caddyfile /etc/caddy/Caddyfile
-USER caddyuser
