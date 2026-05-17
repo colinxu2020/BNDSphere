@@ -4,7 +4,11 @@ from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
-from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
+from app.api.common_responses import (
+    PERMISSION_DENIED_RESPONSE,
+    RESOURCE_NOT_FOUND_RESPONSE,
+    TOKEN_INVALID_RESPONSE,
+)
 from app.api.dependencies import (
     ClubMemberServiceDep,
     ClubRoleChecker,
@@ -164,7 +168,7 @@ async def join_club(
 @router.delete(
     "/{club_id}/members/me",
     status_code=status.HTTP_204_NO_CONTENT,
-    responses=TOKEN_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE | RESOURCE_NOT_FOUND_RESPONSE,
 )
 async def leave_club(
     club_id: int,

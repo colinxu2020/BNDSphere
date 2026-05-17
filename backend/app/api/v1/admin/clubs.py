@@ -1,5 +1,6 @@
 from fastapi import APIRouter
 
+from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import (
     ClubServiceDep,
 )
@@ -16,6 +17,7 @@ router = APIRouter(tags=["clubs"])
 @router.patch(
     "/{club_id}",
     response_model=ClubInfo,
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
 )
 async def admin_update_club_info(
     club_id: int,

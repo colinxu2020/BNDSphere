@@ -1,7 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from fastapi_pagination import Page
-from starlette.status import HTTP_201_CREATED
 
+from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import AcademicTermServiceDep
 from app.schemas.academic_terms import (
     AcademicTermCreate,
@@ -19,7 +19,7 @@ async def list_terms(service: AcademicTermServiceDep) -> Page[AcademicTermInfo]:
     return Page[AcademicTermInfo].model_validate(await service.get_multi())
 
 
-@router.post("/", status_code=HTTP_201_CREATED)
+@router.post("/", status_code=status.HTTP_201_CREATED)
 async def create_term(
     term: AcademicTermCreate,
     service: AcademicTermServiceDep,
@@ -28,7 +28,10 @@ async def create_term(
     return AcademicTermInfo.model_validate(await service.create(term))
 
 
-@router.get("/{term_id}")
+@router.get(
+    "/{term_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def get_term(term_id: int, service: AcademicTermServiceDep) -> AcademicTermInfo:
     """Get the academic term with the given ID."""
     result = await service.get(term_id)
@@ -37,7 +40,10 @@ async def get_term(term_id: int, service: AcademicTermServiceDep) -> AcademicTer
     return AcademicTermInfo.model_validate(result)
 
 
-@router.patch("/{term_id}")
+@router.patch(
+    "/{term_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def update_term(
     term_id: int,
     term: AcademicTermUpdate,
@@ -50,7 +56,10 @@ async def update_term(
     return AcademicTermInfo.model_validate(await service.update(db_term, term))
 
 
-@router.delete("/{term_id}")
+@router.delete(
+    "/{term_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def delete_term(
     term_id: int,
     service: AcademicTermServiceDep,
@@ -63,7 +72,10 @@ async def delete_term(
     return AcademicTermInfo.model_validate(db_term)
 
 
-@router.post("/{term_id}/set-current")
+@router.post(
+    "/{term_id}/set-current",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
+)
 async def set_current_term(
     term_id: int,
     service: AcademicTermServiceDep,

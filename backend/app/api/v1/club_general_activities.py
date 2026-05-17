@@ -1,7 +1,11 @@
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
-from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
+from app.api.common_responses import (
+    PERMISSION_DENIED_RESPONSE,
+    RESOURCE_NOT_FOUND_RESPONSE,
+    TOKEN_INVALID_RESPONSE,
+)
 from app.api.dependencies import (
     ClubGeneralActivityServiceDep,
     ClubRoleChecker,
@@ -74,7 +78,9 @@ async def create_club_general_activities(
             ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
         ),
     ],
-    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE
+    | PERMISSION_DENIED_RESPONSE
+    | RESOURCE_NOT_FOUND_RESPONSE,
 )
 async def update_club_general_activities(
     club_id: int,

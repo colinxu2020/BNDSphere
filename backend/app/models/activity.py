@@ -9,6 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import constants
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
+from app.models.activity_participator import activity_participator_table
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -36,7 +37,7 @@ class Activity(Base, AcademicTermMixin):
 
     participators: Mapped[list[User]] = relationship(
         back_populates="participated_activities",
-        secondary="activity_participators",
+        secondary=activity_participator_table,
     )
 
     __table_args__ = (

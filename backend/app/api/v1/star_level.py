@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from app.api.common_responses import TOKEN_INVALID_RESPONSE
+from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import StarLevelServiceDep
 from app.models.user import AuditStatusEnum
 from app.schemas.star_level import StarLevelApplicationInfo, StarLevelApplicationUpdate
@@ -25,7 +25,7 @@ async def get_by_id(
 
 @router.patch(
     "/{star_level_id}",
-    responses=TOKEN_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE | RESOURCE_NOT_FOUND_RESPONSE,
 )
 async def update_application(
     star_level_id: int,

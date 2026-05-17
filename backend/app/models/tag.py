@@ -6,6 +6,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
+from app.models.clubtag import club_tag_table
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -27,5 +28,5 @@ class Tag(Base):
     status: Mapped[TagStatusEnum] = mapped_column(default=TagStatusEnum.normal)
     clubs: Mapped[list[Club]] = relationship(
         back_populates="tags",
-        secondary="club_tags",
+        secondary=club_tag_table,
     )
