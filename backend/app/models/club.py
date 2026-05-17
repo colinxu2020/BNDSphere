@@ -10,6 +10,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
+from app.models.clubtag import club_tag_table
 from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
@@ -71,7 +72,7 @@ class Club(Base):
     )
     tags: Mapped[list[Tag]] = relationship(
         back_populates="clubs",
-        secondary="club_tags",
+        secondary=club_tag_table,
     )
     activities: Mapped[list[Activity]] = relationship(
         back_populates="club",

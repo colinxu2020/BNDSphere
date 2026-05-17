@@ -36,6 +36,25 @@ target_metadata = Base.metadata
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
 
+_ALLOWED_SCHEMAS = {"app", "db_meta"}
+
+
+def _get_object_schema(obj) -> str | None:
+    schema = getattr(obj, "schema", None)
+    if schema:
+        return schema
+    table = getattr(obj, "table", None)
+    if table is not None:
+        return getattr(table, "schema", None)
+    return None
+
+
+def include_object(obj, name, type_, reflected, compare_to):
+    schema = _get_object_schema(obj)
+    if schema is None:
+        return True
+    return schema in _ALLOWED_SCHEMAS
+
 
 def run_migrations_offline() -> None:
     """Run migrations in 'offline' mode.
@@ -55,6 +74,9 @@ def run_migrations_offline() -> None:
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
+        include_schemas=True,
+        version_table_schema="db_meta",
+        include_object=include_object,
     )
 
     with context.begin_transaction():
@@ -62,7 +84,13 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection: Connection) -> None:
-    context.configure(connection=connection, target_metadata=target_metadata, include_schemas=True, version_table_schema="db_meta")
+    context.configure(
+        connection=connection,
+        target_metadata=target_metadata,
+        include_schemas=True,
+        version_table_schema="db_meta",
+        include_object=include_object,
+    )
 
     with context.begin_transaction():
         context.run_migrations()
@@ -82,6 +110,7 @@ async def run_async_migrations() -> None:
 
     async with connectable.connect() as connection:
         await connection.execute(text("SET ROLE app_owner"))
+        await connection.execute(text("SET search_path TO app, db_meta, extensions, public"))
         await connection.commit()
         await connection.run_sync(do_run_migrations)
 

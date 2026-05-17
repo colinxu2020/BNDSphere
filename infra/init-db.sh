@@ -81,7 +81,7 @@ ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA extensions
 GRANT EXECUTE ON FUNCTIONS TO app_user;
 
 ALTER ROLE migration_user IN DATABASE :"db_name"
-SET search_path = db_meta, app, extensions, public;
+SET search_path = app, db_meta, extensions, public;
 
 ALTER ROLE app_user IN DATABASE :"db_name"
 SET search_path = app, extensions, public;

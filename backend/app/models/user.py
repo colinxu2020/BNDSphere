@@ -7,6 +7,7 @@ from sqlalchemy import DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.core.database import Base
+from app.models.activity_participator import activity_participator_table
 from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
@@ -60,7 +61,7 @@ class User(Base):
     club_memberships: Mapped[list[ClubMember]] = relationship(back_populates="user")
     participated_activities: Mapped[list[Activity]] = relationship(
         back_populates="participators",
-        secondary="activity_participators",
+        secondary=activity_participator_table,
     )
 
 
