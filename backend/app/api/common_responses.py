@@ -39,10 +39,10 @@ RESOURCE_NOT_FOUND_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
         "content": {
             "application/json": {
                 "example": {
-                    "message_key": "error.user.user_not_found",
-                    "error_code": "USER_NOT_FOUND",
+                    "message_key": "error.resource.not_found",
+                    "error_code": "RESOURCE_NOT_FOUND",
                     "detail": {
-                        "user_id": 1,
+                        "resource": "requested_resource",
                     },
                 },
             },
@@ -52,6 +52,7 @@ RESOURCE_NOT_FOUND_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
 
 DUPLICATE_REQUEST_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     409: {
+        "model": ErrorResponseModel,
         "description": "Conflict - A pending request already exists.",
         "content": {
             "application/json": {

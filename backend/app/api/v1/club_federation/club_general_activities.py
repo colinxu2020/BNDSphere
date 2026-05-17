@@ -21,7 +21,7 @@ async def update_record(
     club_general_activities_service: ClubGeneralActivityServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> ClubGeneralActivityInfo:
-    record = club_general_activities_service.get(record_id)
+    record = await club_general_activities_service.get(record_id)
     if record is None:
         raise ResourceNotFoundError(
             "error.club_general_activity_record.not_found",
