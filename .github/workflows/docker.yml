@@ -4,6 +4,7 @@ on:
   pull_request:
     paths:
       - "docker-compose.yml"
+      - "docker-compose.*.yml"
       - "backend/**"
       - "infra/**"
       - "frontend/**"
@@ -14,6 +15,7 @@ on:
       - master
     paths:
       - "docker-compose.yml"
+      - "docker-compose.*.yml"
       - "backend/**"
       - "infra/**"
       - "frontend/**"
@@ -27,7 +29,6 @@ permissions:
   actions: read
 
 env:
-  COMPOSE_FILE: docker-compose.yml
   TRIVY_SEVERITY: HIGH,CRITICAL
 
 jobs:
