@@ -43,8 +43,6 @@ services:
     environment:
       - POSTGRES_USER=migration_user
       - POSTGRES_DB=bndsphere
-    env_file:
-      - .env.backend
     command: ["/backend/.venv/bin/alembic", "upgrade", "head"]
     depends_on:
       postgres:
@@ -67,9 +65,8 @@ services:
     environment:
       - POSTGRES_USER=app_user
       - POSTGRES_DB=bndsphere
+      - CORS_ORIGIN=${CORS_ORIGIN}
     restart: unless-stopped
-    env_file:
-      - .env.backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -86,6 +83,7 @@ services:
     secrets:
       - source: app_password
         target: postgres_password
+      - secret_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
 
@@ -118,8 +116,6 @@ services:
     environment:
       - POSTGRES_USER=migration_user
       - POSTGRES_DB=bndsphere
-    env_file:
-      - .env.backend
     depends_on:
       postgres:
         condition: service_healthy
@@ -159,3 +155,5 @@ secrets:
     file: ./secrets/app_db_password.txt
   migration_password:
     file: ./secrets/migration_db_password.txt
+  secret_key:
+    file: ./secrets/app_secret_key.txt

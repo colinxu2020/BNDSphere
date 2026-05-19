@@ -9,8 +9,10 @@ from sqlalchemy.ext.asyncio import async_engine_from_config
 from alembic import context
 
 from app.core.database import Base
-from app.core.settings import settings
-import app.main
+from app.core.settings import db_settings
+import app.models
+
+settings = db_settings()
 
 if sys.platform == "win32":
     asyncio.set_event_loop_policy(asyncio.WindowsSelectorEventLoopPolicy())

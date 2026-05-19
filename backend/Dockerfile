@@ -22,9 +22,11 @@ HEALTHCHECK --interval=10s --timeout=5s --retries=5 \
 
 FROM base AS dev
 RUN uv sync --frozen --no-cache
+ENV DEBUG=true
 CMD ["/backend/.venv/bin/fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM base AS prod
 RUN uv sync --frozen --no-dev --no-cache
 COPY --chown=appuser:appuser . .
+ENV DEBUG=false
 CMD ["/backend/.venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
