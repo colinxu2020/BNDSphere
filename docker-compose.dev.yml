@@ -1,0 +1,53 @@
+name: bndsphere
+
+services:
+  postgres:
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  backend:
+    image: bndsphere-backend:dev
+    build:
+      target: dev
+    read_only: false
+    volumes:
+      - ./backend:/backend
+      - backend-venv:/backend/.venv
+
+  frontend:
+    image: node:24-alpine
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host 0.0.0.0 --port 5173"
+    volumes:
+      - ./frontend:/app
+      - frontend-node_modules:/app/node_modules
+    networks:
+      - backend-network
+
+  caddy:
+    image: bndsphere-caddy:dev
+    build:
+      target: dev
+    depends_on:
+      backend:
+        condition: service_healthy
+      frontend:
+        condition: service_started
+    volumes:
+      - ./infra/Caddyfile.dev:/etc/caddy/Caddyfile:ro
+
+  alembic-migration:
+    image: bndsphere-backend:dev
+    volumes:
+      - ./backend:/backend
+      - backend-venv:/backend/.venv
+
+  alembic-autorevision:
+    image: bndsphere-backend:dev
+    volumes:
+      - ./backend:/backend
+      - backend-venv:/backend/.venv
+
+volumes:
+  backend-venv:
+  frontend-node_modules:

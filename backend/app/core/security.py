@@ -4,8 +4,9 @@ from typing import Any
 import jwt
 from passlib.context import CryptContext
 
-from .settings import settings
+from .settings import web_settings
 
+settings = web_settings()
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
 

@@ -11,7 +11,9 @@ from sqlalchemy.ext.asyncio import (
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 from sqlalchemy.sql.schema import ColumnCollectionConstraint
 
-from .settings import settings
+from .settings import db_settings
+
+settings = db_settings()
 
 engine: Final[AsyncEngine] = create_async_engine(settings.database_url)
 SessionLocal: Final[async_sessionmaker[AsyncSession]] = async_sessionmaker(
