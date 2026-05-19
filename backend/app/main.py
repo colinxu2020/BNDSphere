@@ -6,8 +6,10 @@ from starlette.responses import JSONResponse
 
 import app.models as _  # noqa: F401
 from app.api.v1 import router as v1_router
-from app.core.settings import settings
+from app.core.settings import web_settings
 from app.services.errors import BusinessError
+
+settings = web_settings()
 
 app = FastAPI(
     title="BNDSphere API",

@@ -65,6 +65,7 @@ services:
     environment:
       - POSTGRES_USER=app_user
       - POSTGRES_DB=bndsphere
+      - CORS_ORIGIN=${CORS_ORIGIN}
     restart: unless-stopped
     depends_on:
       postgres:
