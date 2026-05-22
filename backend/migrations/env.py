@@ -52,6 +52,13 @@ def _get_object_schema(obj) -> str | None:
 
 
 def include_object(obj, name, type_, reflected, compare_to):
+    # Never operate on Alembic's own version table — it's managed by Alembic itself.
+    # Without this guard, autogenerate will see a stale alembic_version table left
+    # behind in a previously-configured schema (e.g. "app") and emit op.drop_table().
+    if type_ == "table" and name == context.config.get_main_option(
+        "version_table", "alembic_version"
+    ):
+        return False
     schema = _get_object_schema(obj)
     if schema is None:
         return True
