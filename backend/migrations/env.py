@@ -95,57 +95,6 @@ def _fk_columns_equal(fk1, fk2) -> bool:
     return True
 
 
-def _fk_signature(fk) -> "tuple | None":
-    """Return a structural signature for a FK constraint — stable regardless
-    of schema or PostgreSQL identifier truncation.
-
-    Used to cross-reference unpaired FKs whose names don't match (Alembic
-    pairs by name).  Two FKs with the same signature are structurally
-    identical; if their names are also truncation variants they can be
-    safely excluded from the diff.
-    """
-    cols = tuple(sorted(c.name for c in fk.columns))
-    try:
-        ref_table = fk.elements[0].column.table.name
-        ref_cols = tuple(sorted(e.column.name for e in fk.elements))
-    except (IndexError, AttributeError):
-        return None
-    ondelete = fk.ondelete or ""
-    onupdate = fk.onupdate or ""
-    return (cols, ref_table, ref_cols, ondelete, onupdate)
-
-
-def _fk_names_truncated(name1: str, name2: str) -> bool:
-    """Check whether two FK names differ only because PostgreSQL truncated a
-    63+ character identifier.
-
-    PostgreSQL replaces the tail of overlong identifiers with a hash suffix,
-    so the stored name is a substring of the model-generated name plus an
-    opaque suffix.  This returns True when the shorter name is a prefix of
-    the longer one and the length difference is small (< 15 chars), which is
-    characteristic of truncation — not a genuine rename.
-    """
-    shorter = name1 if len(name1) <= len(name2) else name2
-    longer = name2 if len(name1) <= len(name2) else name1
-    diff = len(longer) - len(shorter)
-    if diff <= 0 or diff > 15:
-        return False
-    return longer.startswith(shorter[: len(shorter) - 4])
-
-
-# When Alembic cannot pair two FK constraints by name (e.g. PostgreSQL
-# truncated a 63+ char identifier), compare_to is None for both sides.
-# We accumulate structural signatures here so the other side can find its
-# match.  Only signatures with names that are clearly truncation variants
-# (checked via _fk_names_truncated) are paired — genuinely new/removed FKs
-# always pass through.
-#
-# Safety: the registry is reset at the first FK sighting so stale entries
-# from a prior partial run cannot leak into a fresh comparison.
-_fk_pending: dict[bool, list[tuple[tuple, str]]] = {True: [], False: []}
-_fk_pending_seen: bool = False
-
-
 def include_object(obj, name, type_, reflected, compare_to):
     # Never operate on Alembic's own version table — it's managed by Alembic itself.
     # Without this guard, autogenerate will see a stale alembic_version table left
@@ -156,51 +105,104 @@ def include_object(obj, name, type_, reflected, compare_to):
         return False
 
     # During autogenerate comparison, skip FK constraints that are structurally
-    # identical but whose schema representation (include_schemas=True) or
-    # PostgreSQL-truncated name causes a spurious diff.
+    # identical but whose schema representation differs (include_schemas=True
+    # vs reflected FK not carrying explicit schema).  Only paired FKs are
+    # checked — unpaired FKs pass through to the normal schema filter.
     #
-    # Two cases:
-    # 1. Paired by name (compare_to is not None): schema mismatch — check
-    #    structural equality; skip the pair if identical.
-    # 2. Unpaired (compare_to is None): name mismatch (truncation) — accumulate
-    #    the FK's structural signature and its name.  When the matching side
-    #    arrives AND the names are truncation variants, exclude both.
-    #    Genuinely new/removed FKs (unique signature, or non-truncated names)
-    #    always pass through.
-    if type_ == "foreign_key_constraint":
-        global _fk_pending_seen
-        if not _fk_pending_seen:
-            _fk_pending[True].clear()
-            _fk_pending[False].clear()
-            _fk_pending_seen = True
-
-        if compare_to is not None:
-            if _fk_columns_equal(obj, compare_to):
-                return False  # Paired — structurally identical, skip.
-
-        else:
-            sig = _fk_signature(obj)
-            if sig is None:
-                pass  # Fall through to schema check.
-            else:
-                other_side = not reflected
-                for i, (other_sig, other_name) in enumerate(
-                    _fk_pending[other_side]
-                ):
-                    if other_sig == sig and _fk_names_truncated(
-                        name, other_name
-                    ):
-                        del _fk_pending[other_side][i]
-                        return False  # Matched truncation pair — exclude.
-
-                # Store for the other side to match.
-                _fk_pending[reflected].append((sig, name))
-                return False  # Defer decision — exclude, wait for match.
+    # Name-truncation noise (PostgreSQL 63-char limit) is handled separately
+    # in process_revision_directives() below, which has access to the full
+    # operation list.
+    if type_ == "foreign_key_constraint" and compare_to is not None:
+        if _fk_columns_equal(obj, compare_to):
+            return False  # Structurally identical — exclude from diff.
 
     schema = _get_object_schema(obj)
     if schema is None:
         return True
     return schema in _ALLOWED_SCHEMAS
+
+
+def _names_truncated_pair(name_a: str, name_b: str) -> bool:
+    """Check whether two FK names differ only due to PostgreSQL 63-char
+    identifier truncation.
+
+    PostgreSQL truncates overlong identifiers by keeping a prefix and
+    appending an underscore + hash suffix.  The shorter name, minus its
+    trailing suffix, should be a prefix of the longer name.  Length gap
+    must be small (< 15 chars) to avoid false positives on genuine renames.
+    """
+    shorter = name_a if len(name_a) <= len(name_b) else name_b
+    longer = name_b if len(name_a) <= len(name_b) else name_a
+    diff = len(longer) - len(shorter)
+    if diff <= 0 or diff > 15:
+        return False
+    # Peel off the hash suffix — try 4 or 5 chars.
+    for suffix_len in (5, 4):
+        if len(shorter) <= suffix_len:
+            continue
+        base = shorter[:-suffix_len]
+        if longer.startswith(base):
+            return True
+    return False
+
+
+def process_revision_directives(context, revision, directives):
+    """Post-process autogenerated migration operations.
+
+    Removes FK drop+create pairs whose only difference is a PostgreSQL-
+    truncated constraint name (63-char identifier limit).  The autogenerate
+    comparison sees the truncated DB name and the full model name as
+    different FKs → emits a spurious drop+recreate.  By the time this hook
+    fires the full operation list is available, so we can safely identify
+    and remove those pairs without risking suppression of genuinely new or
+    removed FKs.
+    """
+    for directive in directives:
+        for ops in (getattr(directive, "upgrade_ops", None),
+                     getattr(directive, "downgrade_ops", None)):
+            if ops is None:
+                continue
+            _strip_truncated_fk_pairs(ops)
+
+
+def _strip_truncated_fk_pairs(ops):
+    """Remove spurious drop+create FK pairs from an operation list.
+
+    Walks the nested operation tree (ModifyTableOps → ops) and removes
+    adjacent (drop_constraint, create_foreign_key) pairs where the only
+    difference is a truncated name.
+    """
+    from alembic.operations.ops import (
+        CreateForeignKeyOp,
+        DropConstraintOp,
+        ModifyTableOps,
+    )
+
+    for container in ops.ops:
+        if not isinstance(container, ModifyTableOps):
+            continue
+        table_ops = container.ops
+        i = 0
+        while i < len(table_ops) - 1:
+            drop_op = table_ops[i]
+            create_op = table_ops[i + 1]
+            if not (isinstance(drop_op, DropConstraintOp)
+                    and isinstance(create_op, CreateForeignKeyOp)):
+                i += 1
+                continue
+            if (drop_op.table_name != create_op.source_table
+                    or not drop_op.constraint_name
+                    or not create_op.constraint_name):
+                i += 1
+                continue
+            drop_name: str = drop_op.constraint_name  # type: ignore[assignment]
+            create_name: str = create_op.constraint_name  # type: ignore[assignment]
+            # Same table — check if this is a truncated-name rename.
+            if _names_truncated_pair(drop_name, create_name):
+                del table_ops[i:i + 2]  # Remove both.
+                # Don't advance i — the next pair slides into position.
+                continue
+            i += 1
 
 
 def run_migrations_offline() -> None:
@@ -224,6 +226,7 @@ def run_migrations_offline() -> None:
         include_schemas=True,
         version_table_schema="db_meta",
         include_object=include_object,
+        process_revision_directives=process_revision_directives,
     )
 
     with context.begin_transaction():
@@ -237,6 +240,7 @@ def do_run_migrations(connection: Connection) -> None:
         include_schemas=True,
         version_table_schema="db_meta",
         include_object=include_object,
+        process_revision_directives=process_revision_directives,
     )
 
     with context.begin_transaction():
