@@ -7,7 +7,6 @@ from sqlalchemy import (
     ForeignKey,
     Index,
     String,
-    case,
     event,
     inspect,
     select,
@@ -38,11 +37,9 @@ class AcademicTerm(Base):
     __table_args__ = (
         Index(
             "ix_only_one_current",
-            case(
-                (is_current, True),
-                else_=None,
-            ),
+            "is_current",
             unique=True,
+            postgresql_where=is_current.is_(True),
         ),
     )
 
