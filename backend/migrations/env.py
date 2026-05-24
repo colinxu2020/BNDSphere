@@ -62,9 +62,9 @@ def _fk_columns_equal(fk1, fk2) -> bool:
     *only* in schema, so we can safely exclude them from the autogenerate
     diff.
     """
-    # Constrained columns must match.
-    cols1 = sorted(c.name for c in fk1.columns)
-    cols2 = sorted(c.name for c in fk2.columns)
+    # Constrained columns must match (order matters for composite FKs).
+    cols1 = [c.name for c in fk1.columns]
+    cols2 = [c.name for c in fk2.columns]
     if cols1 != cols2:
         return False
 
@@ -77,10 +77,10 @@ def _fk_columns_equal(fk1, fk2) -> bool:
     if ref_table1 != ref_table2:
         return False
 
-    # Referred columns must match.
+    # Referred columns must match (order matters for composite FKs).
     try:
-        ref_cols1 = sorted(e.column.name for e in fk1.elements)
-        ref_cols2 = sorted(e.column.name for e in fk2.elements)
+        ref_cols1 = [e.column.name for e in fk1.elements]
+        ref_cols2 = [e.column.name for e in fk2.elements]
     except AttributeError:
         return False
     if ref_cols1 != ref_cols2:
