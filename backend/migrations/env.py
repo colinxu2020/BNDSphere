@@ -97,7 +97,13 @@ def _fk_columns_equal(fk1, fk2) -> bool:
 
 def _fk_signature(fk) -> "tuple | None":
     """Return a structural signature for a FK constraint — stable regardless
-    of schema or PostgreSQL identifier truncation."""
+    of schema or PostgreSQL identifier truncation.
+
+    Used to cross-reference unpaired FKs whose names don't match (Alembic
+    pairs by name).  Two FKs with the same signature are structurally
+    identical; if their names are also truncation variants they can be
+    safely excluded from the diff.
+    """
     cols = tuple(sorted(c.name for c in fk.columns))
     try:
         ref_table = fk.elements[0].column.table.name
@@ -109,15 +115,35 @@ def _fk_signature(fk) -> "tuple | None":
     return (cols, ref_table, ref_cols, ondelete, onupdate)
 
 
-# During autogenerate comparison, FK constraints whose names differ *only*
-# because of PostgreSQL's 63-character identifier truncation cannot be paired
-# by Alembic (pairing is name-based).  We accumulate unpaired FKs here so that
-# when a structurally identical FK appears on the other side, both can be
-# excluded.
-_fk_pending: dict[bool, dict[tuple, list]] = {
-    True: {},   # reflected-side unpaired FKs, keyed by signature
-    False: {},  # model-side unpaired FKs, keyed by signature
-}
+def _fk_names_truncated(name1: str, name2: str) -> bool:
+    """Check whether two FK names differ only because PostgreSQL truncated a
+    63+ character identifier.
+
+    PostgreSQL replaces the tail of overlong identifiers with a hash suffix,
+    so the stored name is a substring of the model-generated name plus an
+    opaque suffix.  This returns True when the shorter name is a prefix of
+    the longer one and the length difference is small (< 15 chars), which is
+    characteristic of truncation — not a genuine rename.
+    """
+    shorter = name1 if len(name1) <= len(name2) else name2
+    longer = name2 if len(name1) <= len(name2) else name1
+    diff = len(longer) - len(shorter)
+    if diff <= 0 or diff > 15:
+        return False
+    return longer.startswith(shorter[: len(shorter) - 4])
+
+
+# When Alembic cannot pair two FK constraints by name (e.g. PostgreSQL
+# truncated a 63+ char identifier), compare_to is None for both sides.
+# We accumulate structural signatures here so the other side can find its
+# match.  Only signatures with names that are clearly truncation variants
+# (checked via _fk_names_truncated) are paired — genuinely new/removed FKs
+# always pass through.
+#
+# Safety: the registry is reset at the first FK sighting so stale entries
+# from a prior partial run cannot leak into a fresh comparison.
+_fk_pending: dict[bool, list[tuple[tuple, str]]] = {True: [], False: []}
+_fk_pending_seen: bool = False
 
 
 def include_object(obj, name, type_, reflected, compare_to):
@@ -130,43 +156,46 @@ def include_object(obj, name, type_, reflected, compare_to):
         return False
 
     # During autogenerate comparison, skip FK constraints that are structurally
-    # identical (differing only in schema representation or truncated names).
-    # This prevents spurious drop+recreate of every FK when include_schemas=True
-    # sees a mismatch between reflected and model FKs.
+    # identical but whose schema representation (include_schemas=True) or
+    # PostgreSQL-truncated name causes a spurious diff.
     #
     # Two cases:
-    # 1. Paired (compare_to is not None): Alembic matched them by name — check
-    #    if structures are equal and skip the pair if so.
-    # 2. Unpaired (compare_to is None): Alembic couldn't match by name (e.g.
-    #    PostgreSQL truncated a 63+ char identifier).  Accumulate the FK in a
-    #    pending registry; when the matching FK from the other side shows up,
-    #    both are excluded.
+    # 1. Paired by name (compare_to is not None): schema mismatch — check
+    #    structural equality; skip the pair if identical.
+    # 2. Unpaired (compare_to is None): name mismatch (truncation) — accumulate
+    #    the FK's structural signature and its name.  When the matching side
+    #    arrives AND the names are truncation variants, exclude both.
+    #    Genuinely new/removed FKs (unique signature, or non-truncated names)
+    #    always pass through.
     if type_ == "foreign_key_constraint":
+        global _fk_pending_seen
+        if not _fk_pending_seen:
+            _fk_pending[True].clear()
+            _fk_pending[False].clear()
+            _fk_pending_seen = True
+
         if compare_to is not None:
             if _fk_columns_equal(obj, compare_to):
-                return False  # Exclude from diff — identical FK, just schema noise.
+                return False  # Paired — structurally identical, skip.
+
         else:
             sig = _fk_signature(obj)
             if sig is None:
-                schema = _get_object_schema(obj)
-                if schema is None:
-                    return True
-                return schema in _ALLOWED_SCHEMAS
-
-            other_side = not reflected
-            pending = _fk_pending[other_side]
-            if sig in pending:
-                # Found the matching FK from the other side — exclude both.
-                pending[sig].pop()  # Remove one pending item
-                if not pending[sig]:
-                    del pending[sig]
-                return False
+                pass  # Fall through to schema check.
             else:
-                # First time seeing this signature — exclude it now.
-                # When the matching FK from the other side shows up, it will
-                # also be excluded, resulting in no diff for this pair.
-                _fk_pending[reflected].setdefault(sig, []).append(name)
-                return False
+                other_side = not reflected
+                for i, (other_sig, other_name) in enumerate(
+                    _fk_pending[other_side]
+                ):
+                    if other_sig == sig and _fk_names_truncated(
+                        name, other_name
+                    ):
+                        del _fk_pending[other_side][i]
+                        return False  # Matched truncation pair — exclude.
+
+                # Store for the other side to match.
+                _fk_pending[reflected].append((sig, name))
+                return False  # Defer decision — exclude, wait for match.
 
     schema = _get_object_schema(obj)
     if schema is None:
