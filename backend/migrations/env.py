@@ -86,10 +86,14 @@ def _fk_columns_equal(fk1, fk2) -> bool:
     if ref_cols1 != ref_cols2:
         return False
 
-    # ondelete / onupdate must match.
+    # ondelete / onupdate / deferrable / initially must match.
     if fk1.ondelete != fk2.ondelete:
         return False
     if fk1.onupdate != fk2.onupdate:
+        return False
+    if getattr(fk1, "deferrable", None) != getattr(fk2, "deferrable", None):
+        return False
+    if getattr(fk1, "initially", None) != getattr(fk2, "initially", None):
         return False
 
     return True
@@ -170,7 +174,15 @@ def _strip_truncated_fk_pairs(ops):
 
     Walks the nested operation tree (ModifyTableOps → ops) and removes
     adjacent (drop_constraint, create_foreign_key) pairs where the only
-    difference is a truncated name.
+    difference is a PostgreSQL-truncated name.
+
+    Safety: only removes pairs that share the same source columns (when the
+    drop side carries that information).  Full structural comparison is not
+    possible because DropConstraintOp does not carry the referred table or
+    FK options for the DB-side constraint.  In practice this is safe: two
+    different FKs on the same table cannot share the same column set AND
+    have truncation-variant names — the naming convention includes column
+    names, so different columns produce different base names.
     """
     from alembic.operations.ops import (
         CreateForeignKeyOp,
@@ -197,12 +209,20 @@ def _strip_truncated_fk_pairs(ops):
                 continue
             drop_name: str = drop_op.constraint_name  # type: ignore[assignment]
             create_name: str = create_op.constraint_name  # type: ignore[assignment]
-            # Same table — check if this is a truncated-name rename.
-            if _names_truncated_pair(drop_name, create_name):
-                del table_ops[i:i + 2]  # Remove both.
-                # Don't advance i — the next pair slides into position.
+            # Same table + truncation-variant names?
+            if not _names_truncated_pair(drop_name, create_name):
+                i += 1
                 continue
-            i += 1
+            # Verify same columns when the drop side carries them.
+            drop_cols = getattr(drop_op, "columns", None)
+            if drop_cols is not None:
+                create_cols = list(create_op.source_columns)
+                if sorted(drop_cols) != sorted(create_cols):
+                    i += 1
+                    continue
+            # Sufficient evidence this is a spurious rename — remove both.
+            del table_ops[i:i + 2]
+            # Don't advance i — the next pair slides into position.
 
 
 def run_migrations_offline() -> None:
