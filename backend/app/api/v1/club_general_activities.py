@@ -98,7 +98,10 @@ async def update_club_general_activities(
     activity = await general_activity_service.get(obj.activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(obj.activity_id) from None
-    record = await club_general_activity_service.get_by_club_activity(club, activity)
+    record = await club_general_activity_service.get_by_club_and_activity(
+        club,
+        activity,
+    )
     if record.audit_status != AuditStatusEnum.pending:
         raise ResourceForbiddenError(
             message_key="error.general_activity.record_reviewed",

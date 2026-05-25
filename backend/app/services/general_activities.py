@@ -91,7 +91,7 @@ class ClubGeneralActivityService(
         stmt = select(self.model).where(self.model.club == club)
         return cast("Page[ClubGeneralActivityRecord]", await apaginate(self.db, stmt))
 
-    async def get_by_club_activity(
+    async def get_by_club_and_activity(
         self,
         club: Club,
         activity: GeneralActivity,
