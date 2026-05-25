@@ -7,7 +7,7 @@ from app.schemas.generic import IdMixin
 from app.schemas.moderations.moderation_common import UpdateRequestCreateBase
 
 
-class UserUpdateUpdateRequestCreate(UpdateRequestCreateBase):
+class UserUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
     username: str | None = Field(None)

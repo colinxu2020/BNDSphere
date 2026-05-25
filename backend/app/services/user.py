@@ -15,7 +15,7 @@ from app.schemas.moderations.moderation_common import (
     RequestModeratePublic,
 )
 from app.schemas.moderations.user_update_request import (
-    UserUpdateUpdateRequestCreate,
+    UserUpdateRequestCreate,
 )
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
@@ -78,7 +78,7 @@ class UserService(ServiceBase[User, UserCreate, AdminUserUpdate]):
 class UserUpdateRequestService(
     ServiceBase[
         UserUpdateRequest,
-        UserUpdateUpdateRequestCreate,
+        UserUpdateRequestCreate,
         RequestModerate,
     ],
 ):
