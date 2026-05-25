@@ -1,8 +1,7 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from starlette import status
 
 from app.api.dependencies import UserServiceDep
 from app.core.security import create_access_token
