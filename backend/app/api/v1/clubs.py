@@ -92,7 +92,7 @@ async def create_club(
     dependencies=[
         Depends(
             ClubRoleChecker(
-                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
             ),
         ),
     ],
@@ -186,7 +186,7 @@ async def leave_club(
             error_code="IS_NOT_MEMBER",
         ) from None
     if relationship.membership in {
-        ClubMembershipEnum.vice,
+        ClubMembershipEnum.vice_president,
         ClubMembershipEnum.president,
     }:
         raise ResourceForbiddenError(

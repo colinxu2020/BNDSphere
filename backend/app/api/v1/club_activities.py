@@ -34,7 +34,11 @@ from app.services.errors import (
 router = APIRouter(tags=["Club Activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
     User,
-    Depends(ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president])),
+    Depends(
+        ClubRoleChecker(
+            [ClubMembershipEnum.vice_president, ClubMembershipEnum.president],
+        ),
+    ),
 ]
 
 
@@ -61,7 +65,9 @@ async def get_club_activities(
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
         Depends(
-            ClubRoleChecker([ClubMembershipEnum.president, ClubMembershipEnum.vice]),
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
+            ),
         ),
     ],
 )
@@ -92,7 +98,7 @@ async def create_club_activity_request(
     dependencies=[
         Depends(
             ClubRoleChecker(
-                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
             ),
         ),
     ],

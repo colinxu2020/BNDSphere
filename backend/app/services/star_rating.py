@@ -99,7 +99,7 @@ class StarRatingService:
             )
             .where(
                 ClubGeneralActivityRecord.club_id == club_id,
-                GeneralActivity.level == GeneralActivityLevelEnum.federation,
+                GeneralActivity.level == GeneralActivityLevelEnum.club_federation,
             )
             .limit(1)
         )

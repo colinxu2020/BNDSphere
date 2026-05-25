@@ -19,7 +19,7 @@ class RoleEnum(StrEnum):
     ban = "ban"
     user = "user"
     moderator = "moderator"
-    scf = "staff of club federation"
+    federation_staff = "federation_staff"
     admin = "admin"
     dev = "dev"
 

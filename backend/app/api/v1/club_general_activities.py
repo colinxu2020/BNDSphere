@@ -45,7 +45,9 @@ async def get_club_general_activities(
     status_code=status.HTTP_201_CREATED,
     dependencies=[
         Depends(
-            ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
+            ClubRoleChecker(
+                [ClubMembershipEnum.vice_president, ClubMembershipEnum.president],
+            ),
         ),
     ],
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
@@ -75,7 +77,9 @@ async def create_club_general_activities(
     "/",
     dependencies=[
         Depends(
-            ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president]),
+            ClubRoleChecker(
+                [ClubMembershipEnum.vice_president, ClubMembershipEnum.president],
+            ),
         ),
     ],
     responses=TOKEN_INVALID_RESPONSE
