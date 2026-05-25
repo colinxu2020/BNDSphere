@@ -10,7 +10,7 @@ from app.utils.custom_types import HttpUrlType
 
 
 class UserUpdateRequest(Base, ModerateMixin):
-    __tablename__ = "user_update_request"
+    __tablename__ = "user_update_requests"
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),

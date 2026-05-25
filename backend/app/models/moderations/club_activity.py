@@ -13,7 +13,7 @@ from app.models.moderations.moderation_common import (
 
 
 class ClubActivityCreateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_activity_create_request"
+    __tablename__ = "club_activity_create_requests"
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
@@ -33,7 +33,7 @@ class ClubActivityCreateRequest(Base, ModerateMixin, RequestMixin):
 
 
 class ClubActivityUpdateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_activity_update_request"
+    __tablename__ = "club_activity_update_requests"
 
     club_activity_id: Mapped[int] = mapped_column(
         ForeignKey("club_activities.id", ondelete="CASCADE"),

@@ -12,7 +12,7 @@ from app.utils.custom_types import HttpUrlType
 
 
 class ClubUpdateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_update_request"
+    __tablename__ = "club_update_requests"
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
