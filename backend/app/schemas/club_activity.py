@@ -7,7 +7,7 @@ from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
 
 
-class ActivityBase(BaseModel):
+class ClubActivityBase(BaseModel):
     name: str = Field(..., max_length=constants.ACTIVITY_MAX_NAME_LENGTH)
     description: str = Field(..., max_length=constants.ACTIVITY_MAX_DESCRIPTION_LENGTH)
     location: str = Field(..., max_length=constants.ACTIVITY_MAX_LOCATION_LENGTH)
@@ -15,7 +15,7 @@ class ActivityBase(BaseModel):
     end_time: datetime
 
 
-class ActivityInfo(ActivityBase, IdMixin):
+class ClubActivityInfo(ClubActivityBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     club_id: int
@@ -23,11 +23,11 @@ class ActivityInfo(ActivityBase, IdMixin):
     academic_term: AcademicTermInfo
 
 
-class ActivityCreate(ActivityBase):
+class ClubActivityCreate(ClubActivityBase):
     pass
 
 
-class ActivityUpdate(BaseModel):
+class ClubActivityUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     name: str | None = Field(None, max_length=constants.ACTIVITY_MAX_NAME_LENGTH)

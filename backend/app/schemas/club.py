@@ -7,7 +7,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
-from app.schemas.activity import ActivityInfo
+from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin
 
@@ -27,7 +27,7 @@ class ClubInfo(ClubBase, IdMixin):
     status: ClubStatusEnum
     star_level: ClubStarLevelEnum
     members: list[ClubMemberInfo]
-    activities: list[ActivityInfo]
+    club_activities: list[ClubActivityInfo]
     general_activity_records: list[ClubGeneralActivityInfo]
 
 

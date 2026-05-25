@@ -15,7 +15,7 @@ from app.api.dependencies import (
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.activity import ActivityInfo
+from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityCreateRequestCreatePublic,
@@ -45,12 +45,14 @@ async def get_club_activities(
     club_id: int,
     service: ActivityServiceDep,
     club_service: ClubServiceDep,
-) -> Page[ActivityInfo]:
+) -> Page[ClubActivityInfo]:
     """List all activities of the given club."""
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
-    return Page[ActivityInfo].model_validate(await service.get_club_activities(club))
+    return Page[ClubActivityInfo].model_validate(
+        await service.get_club_activities(club),
+    )
 
 
 @router.post(

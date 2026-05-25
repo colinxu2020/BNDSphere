@@ -14,7 +14,7 @@ from app.models.moderations.club_activity import (
     ClubActivityUpdateRequest,
 )
 from app.models.moderations.moderation_common import ModerateStatusEnum
-from app.schemas.activity import ActivityCreate, ActivityUpdate
+from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityUpdateRequestCreate,
@@ -27,7 +27,9 @@ from app.services.base import ServiceBase
 from app.services.errors import DuplicatePendingRequestError
 
 
-class ActivityService(ServiceBase[ClubActivity, ActivityCreate, ActivityUpdate]):
+class ClubActivityService(
+    ServiceBase[ClubActivity, ClubActivityCreate, ClubActivityUpdate],
+):
     model = ClubActivity
 
     async def get_club_activities(
@@ -45,7 +47,7 @@ class ActivityService(ServiceBase[ClubActivity, ActivityCreate, ActivityUpdate])
     async def create_club_activity(
         self,
         club_id: int,
-        obj_in: ActivityCreate,
+        obj_in: ClubActivityCreate,
     ) -> ClubActivity:
         db_activity = ClubActivity(**obj_in.model_dump(), club_id=club_id)
         self.db.add(db_activity)

@@ -13,7 +13,7 @@ from app.api.dependencies import (
 )
 from app.models.moderations.moderation_common import ModerateStatusEnum
 from app.models.user import User
-from app.schemas.activity import ActivityCreate, ActivityUpdate
+from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestInfo,
     ClubActivityUpdateRequestInfo,
@@ -72,13 +72,13 @@ async def moderate_create_request(
     if obj_in.moderate_status == ModerateStatusEnum.approved:
         data_dict = {
             k: getattr(request, k)
-            for k in ActivityCreate.model_fields
+            for k in ClubActivityCreate.model_fields
             if hasattr(request, k) and getattr(request, k) is not None
         }
 
         await club_activity_service.create_club_activity(
             club.id,
-            ActivityCreate.model_validate(data_dict),
+            ClubActivityCreate.model_validate(data_dict),
         )
 
     return ClubActivityCreateRequestInfo.model_validate(
@@ -129,7 +129,7 @@ async def moderate_update_request(
     if obj_in.moderate_status == ModerateStatusEnum.approved:
         await club_activity_service.update(
             activity,
-            ActivityUpdate.model_validate(request),
+            ClubActivityUpdate.model_validate(request),
         )
 
     return ClubActivityUpdateRequestInfo.model_validate(

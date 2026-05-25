@@ -10,13 +10,13 @@ from app.core.security import verify_access_token
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.services.academic_term import AcademicTermService
-from app.services.activity import (
-    ActivityService,
-    ClubActivityCreateRequestService,
-    ClubActivityUpdateRequestService,
-)
 from app.services.base import ServiceBase
 from app.services.club import ClubMemberService, ClubService, ClubUpdateRequestService
+from app.services.club_activity import (
+    ClubActivityCreateRequestService,
+    ClubActivityService,
+    ClubActivityUpdateRequestService,
+)
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -102,8 +102,8 @@ type UserUpdateRequestServiceDep = Annotated[
     Depends(ServiceFactory(UserUpdateRequestService)),
 ]
 type ActivityServiceDep = Annotated[
-    ActivityService,
-    Depends(ServiceFactory(ActivityService)),
+    ClubActivityService,
+    Depends(ServiceFactory(ClubActivityService)),
 ]
 type ClubActivityCreateRequestServiceDep = Annotated[
     ClubActivityCreateRequestService,
