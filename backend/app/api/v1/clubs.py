@@ -37,7 +37,7 @@ from app.services.errors import (
     ResourceNotFoundError,
 )
 
-router = APIRouter(tags=["clubs"])
+router = APIRouter(tags=["Clubs"])
 
 
 @router.get(

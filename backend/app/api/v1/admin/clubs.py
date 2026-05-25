@@ -11,7 +11,7 @@ from app.schemas.club import (
 )
 from app.services.errors import ClubNotFoundError
 
-router = APIRouter(tags=["clubs"])
+router = APIRouter(tags=["Admin: Clubs"])
 
 
 @router.patch(

@@ -8,7 +8,7 @@ from app.core.security import create_access_token
 from app.schemas.user import Token, UserCreate, UserInfo
 from app.services.errors import AuthenticationError
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["Auth"])
 
 
 @router.post(

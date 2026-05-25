@@ -21,7 +21,7 @@ from app.schemas.moderations.user_update_request import (
 from app.schemas.user import UserInfo
 from app.services.errors import DuplicatePendingRequestError, ResourceNotFoundError
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["Users"])
 
 
 @router.get(
