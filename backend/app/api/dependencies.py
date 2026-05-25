@@ -101,7 +101,7 @@ type UserUpdateRequestServiceDep = Annotated[
     UserUpdateRequestService,
     Depends(ServiceFactory(UserUpdateRequestService)),
 ]
-type ActivityServiceDep = Annotated[
+type ClubActivityServiceDep = Annotated[
     ClubActivityService,
     Depends(ServiceFactory(ClubActivityService)),
 ]

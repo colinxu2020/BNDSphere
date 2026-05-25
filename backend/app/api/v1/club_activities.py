@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
-    ActivityServiceDep,
     ClubActivityCreateRequestServiceDep,
+    ClubActivityServiceDep,
     ClubActivityUpdateRequestServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
@@ -43,7 +43,7 @@ ClubRoleCheckerRequiresPresidentVice = Annotated[
 )
 async def get_club_activities(
     club_id: int,
-    service: ActivityServiceDep,
+    service: ClubActivityServiceDep,
     club_service: ClubServiceDep,
 ) -> Page[ClubActivityInfo]:
     """List all activities of the given club."""
@@ -103,7 +103,7 @@ async def update_club_activity_request(
     obj_in: ClubActivityUpdateRequestCreatePublic,
     service: ClubActivityUpdateRequestServiceDep,
     club_service: ClubServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Request to update a club activity."""

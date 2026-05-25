@@ -5,8 +5,8 @@ from fastapi_pagination import Page
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
-    ActivityServiceDep,
     ClubActivityCreateRequestServiceDep,
+    ClubActivityServiceDep,
     ClubActivityUpdateRequestServiceDep,
     ClubServiceDep,
     get_current_user,
@@ -49,7 +49,7 @@ async def moderate_create_request(
     obj_in: RequestModeratePublic,
     service: ClubActivityCreateRequestServiceDep,
     club_service: ClubServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityCreateRequestInfo:
     """Moderate club activity create request."""
@@ -106,7 +106,7 @@ async def moderate_update_request(
     request_id: int,
     obj_in: RequestModeratePublic,
     service: ClubActivityUpdateRequestServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Moderate club activity update request."""
