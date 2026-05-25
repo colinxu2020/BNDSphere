@@ -44,11 +44,11 @@ class ClubUpdate(BaseModel):
     logo_uri: HttpUrl | None = Field(None, max_length=255)
 
 
-class ScfClubUpdate(ClubUpdate):
+class FederationClubUpdate(ClubUpdate):
     star_level: ClubStarLevelEnum | None = Field(None)
 
 
-class AdminClubUpdate(ScfClubUpdate):
+class AdminClubUpdate(FederationClubUpdate):
     model_config = ConfigDict(from_attributes=True)
 
     status: ClubStatusEnum | None = Field(None)

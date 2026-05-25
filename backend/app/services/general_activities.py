@@ -13,9 +13,9 @@ from app.models.general_activity import (
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityUpdate,
+    FederationRecordUpdate,
     GeneralActivityCreate,
     GeneralActivityUpdate,
-    ScfRecordUpdate,
 )
 from app.services.base import ServiceBase
 from app.services.errors import (
@@ -108,7 +108,7 @@ class ClubGeneralActivityService(
     async def review_record(
         self,
         record_id: int,
-        obj_in: ScfRecordUpdate,
+        obj_in: FederationRecordUpdate,
         auditor: User,
     ) -> ClubGeneralActivityRecord:
         db_obj = await self.get(record_id)
