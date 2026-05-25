@@ -10,7 +10,7 @@ from app.api.dependencies import (
 )
 from app.models import User
 from app.models.club import ClubStatusEnum
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.schemas.club import AdminClubUpdate
 from app.schemas.moderations.club import ClubUpdateRequestInfo
 from app.schemas.moderations.moderation_common import RequestModeratePublic
@@ -52,7 +52,7 @@ async def moderate_update_request(
             "error.club_update_request.not_found",
             "CLUB_UPDATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.club_update_request.moderated",
             "CLUB_UPDATE_REQUEST_MODERATED",
@@ -62,7 +62,7 @@ async def moderate_update_request(
     if club is None or club.status != ClubStatusEnum.normal:
         raise ClubNotFoundError(request.club_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         await club_service.update(
             club,
             AdminClubUpdate.model_validate(request),

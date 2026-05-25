@@ -13,7 +13,7 @@ from app.models.moderations.club_activity import (
     ClubActivityCreateRequest,
     ClubActivityUpdateRequest,
 )
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
@@ -40,7 +40,7 @@ class ClubActivityService(
             select(ClubActivity)
             .where(ClubActivity.club_id == club.id)
             .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc())
-            .options(selectinload(ClubActivity.participators))
+            .options(selectinload(ClubActivity.participants))
         )
         return cast("Page[ClubActivity]", await apaginate(self.db, stmt))
 
@@ -67,7 +67,7 @@ class ClubActivityCreateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubActivityCreateRequest]:
         stmt = select(self.model).where(
-            self.model.moderate_status == ModerateStatusEnum.pending,
+            self.model.moderation_status == ModerationStatusEnum.pending,
         )
         return cast("Page[ClubActivityCreateRequest]", await apaginate(self.db, stmt))
 
@@ -98,7 +98,7 @@ class ClubActivityUpdateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         stmt = select(self.model).where(
-            self.model.moderate_status == ModerateStatusEnum.pending,
+            self.model.moderation_status == ModerationStatusEnum.pending,
         )
         return cast("Page[ClubActivityUpdateRequest]", await apaginate(self.db, stmt))
 
@@ -124,10 +124,10 @@ class ClubActivityUpdateRequestService(
         stmt = (
             update(self.model)
             .where(
-                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.moderation_status == ModerationStatusEnum.pending,
                 self.model.club_activity_id == club_activity_id,
             )
-            .values(moderate_status=ModerateStatusEnum.superseded)
+            .values(moderate_status=ModerationStatusEnum.superseded)
         )
         try:
             await self.db.execute(stmt)

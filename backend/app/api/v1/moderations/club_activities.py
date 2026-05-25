@@ -11,7 +11,7 @@ from app.api.dependencies import (
     ClubServiceDep,
     get_current_user,
 )
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
 from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
@@ -59,7 +59,7 @@ async def moderate_create_request(
             "error.club_activity_create_request.not_found",
             "CLUB_ACTIVITY_CREATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.club_activity_create_request.moderated",
             "CLUB_ACTIVITY_CREATE_REQUEST_MODERATED",
@@ -69,7 +69,7 @@ async def moderate_create_request(
     if club is None:
         raise ClubNotFoundError(request.club_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         data_dict = {
             k: getattr(request, k)
             for k in ClubActivityCreate.model_fields
@@ -116,7 +116,7 @@ async def moderate_update_request(
             "error.club_activity_update_request.not_found",
             "CLUB_ACTIVITY_UPDATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.club_activity_update_request.moderated",
             "CLUB_ACTIVITY_UPDATE_REQUEST_MODERATED",
@@ -126,7 +126,7 @@ async def moderate_update_request(
     if activity is None:
         raise ClubActivityNotFoundError(request.club_activity_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         await club_activity_service.update(
             activity,
             ClubActivityUpdate.model_validate(request),

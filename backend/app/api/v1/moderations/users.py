@@ -8,7 +8,7 @@ from app.api.dependencies import (
     UserUpdateRequestServiceDep,
     get_current_user,
 )
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
 from app.schemas.moderations.moderation_common import RequestModeratePublic
 from app.schemas.moderations.user_update_request import (
@@ -52,7 +52,7 @@ async def moderate_user_profile_update_request(
             "error.user_update_request.not_found",
             "USER_UPDATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.user_update_request.moderated",
             "USER_UPDATE_REQUEST_MODERATED",
@@ -62,7 +62,7 @@ async def moderate_user_profile_update_request(
     if request_user is None:
         raise UserNotFoundError(request.user_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         await user_service.update(
             request_user,
             AdminUserUpdate.model_validate(request),

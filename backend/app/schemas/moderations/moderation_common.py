@@ -3,19 +3,19 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.schemas.generic import IdMixin
 from app.services.errors import BadRequestError, RequestIsNullError
 
 
 class RequestModeratePublic(BaseModel):
-    moderate_status: ModerateStatusEnum = Field(...)
+    moderation_status: ModerationStatusEnum = Field(...)
 
     @model_validator(mode="after")
     def validate_moderate_status(self) -> RequestModeratePublic:
-        if self.moderate_status not in {
-            ModerateStatusEnum.approved,
-            ModerateStatusEnum.rejected,
+        if self.moderation_status not in {
+            ModerationStatusEnum.approved,
+            ModerationStatusEnum.rejected,
         }:
             raise BadRequestError(
                 "error.request_moderate.invalid_moderate_status",
@@ -34,7 +34,7 @@ class RequestModerate(RequestModeratePublic):
 class RequestInfoBase(IdMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    moderate_status: ModerateStatusEnum = Field(...)
+    moderation_status: ModerationStatusEnum = Field(...)
     moderate_at: datetime | None = Field(None)
 
     requestor_id: int = Field(...)
@@ -42,12 +42,12 @@ class RequestInfoBase(IdMixin, BaseModel):
 
 
 class UpdateRequestCreateBase(BaseModel):
-    """Moderate Request 校验基类."""
+    """Moderation Request 校验基类."""
 
     @model_validator(mode="after")
     def validate_any_payload_provided(self) -> Self:
         exclude_system_fields = {
-            "moderator_id",
+            "moderation_id",
             "moderate_at",
             "requestor_id",
             "request_at",
