@@ -9,7 +9,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import constants
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
-from app.models.club_activity_participator import club_activity_participator_table
+from app.models.club_activity_participant import club_activity_participant_table
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -35,9 +35,9 @@ class ClubActivity(Base, AcademicTermMixin):
     location: Mapped[str] = mapped_column(Text)
     picture_urls: Mapped[list[str]] = mapped_column(JSON, default=list)
 
-    participators: Mapped[list[User]] = relationship(
+    participants: Mapped[list[User]] = relationship(
         back_populates="participated_club_activities",
-        secondary=club_activity_participator_table,
+        secondary=club_activity_participant_table,
     )
 
     __table_args__ = (
