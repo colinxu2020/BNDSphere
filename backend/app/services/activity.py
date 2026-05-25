@@ -8,7 +8,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.models import Club, User
-from app.models.activity import Activity
+from app.models.club_activity import ClubActivity
 from app.models.moderations.club_activity import (
     ClubActivityCreateRequest,
     ClubActivityUpdateRequest,
@@ -27,27 +27,27 @@ from app.services.base import ServiceBase
 from app.services.errors import DuplicatePendingRequestError
 
 
-class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
-    model = Activity
+class ActivityService(ServiceBase[ClubActivity, ActivityCreate, ActivityUpdate]):
+    model = ClubActivity
 
     async def get_club_activities(
         self,
         club: Club,
-    ) -> Page[Activity]:
+    ) -> Page[ClubActivity]:
         stmt = (
-            select(Activity)
-            .where(Activity.club_id == club.id)
-            .order_by(Activity.start_time.desc(), Activity.id.desc())
-            .options(selectinload(Activity.participators))
+            select(ClubActivity)
+            .where(ClubActivity.club_id == club.id)
+            .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc())
+            .options(selectinload(ClubActivity.participators))
         )
-        return cast("Page[Activity]", await apaginate(self.db, stmt))
+        return cast("Page[ClubActivity]", await apaginate(self.db, stmt))
 
     async def create_club_activity(
         self,
         club_id: int,
         obj_in: ActivityCreate,
-    ) -> Activity:
-        db_activity = Activity(**obj_in.model_dump(), club_id=club_id)
+    ) -> ClubActivity:
+        db_activity = ClubActivity(**obj_in.model_dump(), club_id=club_id)
         self.db.add(db_activity)
         await self.db.flush()
         await self.db.refresh(db_activity)

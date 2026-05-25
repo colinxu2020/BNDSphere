@@ -14,7 +14,7 @@ from app.models.clubtag import club_tag_table
 from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
-    from app.models.activity import Activity
+    from app.models.club_activity import ClubActivity
     from app.models.clubmember import ClubMember
     from app.models.general_activity import ClubGeneralActivityRecord
     from app.models.tag import Tag
@@ -74,7 +74,7 @@ class Club(Base):
         back_populates="clubs",
         secondary=club_tag_table,
     )
-    activities: Mapped[list[Activity]] = relationship(
+    club_activities: Mapped[list[ClubActivity]] = relationship(
         back_populates="club",
         lazy="selectin",
     )

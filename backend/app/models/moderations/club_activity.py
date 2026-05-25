@@ -36,7 +36,7 @@ class ClubActivityUpdateRequest(Base, ModerateMixin, RequestMixin):
     __tablename__ = "club_activity_update_request"
 
     club_activity_id: Mapped[int] = mapped_column(
-        ForeignKey("activities.id", ondelete="CASCADE"),
+        ForeignKey("club_activities.id", ondelete="CASCADE"),
     )
 
     name: Mapped[str | None] = mapped_column(
