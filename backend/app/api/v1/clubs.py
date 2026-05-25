@@ -76,7 +76,7 @@ async def create_club(
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",
-            error_code="DUPLICAE_CLUB_NAME",
+            error_code="DUPLICATE_CLUB_NAME",
         ) from None
     await membership_service.set_relationship(
         club_created,
@@ -154,7 +154,7 @@ async def join_club(
     if relationship and relationship.membership != ClubMembershipEnum.left:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_join_request",
-            error_code="DUPLICAE_JOIN_REQUEST",
+            error_code="DUPLICATE_JOIN_REQUEST",
         ) from None
     return ClubMemberInfo.model_validate(
         await membership_service.set_relationship(
