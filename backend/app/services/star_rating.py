@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.academic_term import AcademicTerm
 from app.models.club import Club, ClubStarLevelEnum
 from app.models.club_activity import ClubActivity
-from app.models.clubmember import ClubMember
+from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivity,
@@ -18,9 +18,8 @@ from app.schemas.star_rating import StarRatingBreakdown, StarRatingResponse
 from app.services.errors import ClubNotFoundError
 
 _MEETING_ATTENDANCE_SCORE = 10
-_SECTION_2_1_CAP = 50  # 校级活动 + 大型活动 + 竞赛, 上限 50
-_INTERNAL_ACTIVITY_CAP = 30
-_SPECIAL_BONUSES_CAP = 10  # 成长故事 + 跨年级 + 历史, 上限 10
+_SECTION_2_1_CAP = 50
+_SPECIAL_BONUSES_CAP = 10
 _TOTAL_SCORE_CAP = 100
 _CLUB_HISTORY_MIN_YEARS = 2
 _GROWTH_STORY_SCORE = 5
@@ -28,6 +27,7 @@ _CROSS_GRADE_SCORE = 5
 _CLUB_HISTORY_SCORE = 5
 _ALL_GRADE_LEVELS = {7, 8, 9, 10, 11, 12}
 _CROSS_GRADE_MIN_MEMBERS = 25
+_COMPETITION_MAX = 13
 
 _INTERNAL_ACTIVITY_THRESHOLDS: list[tuple[int, int]] = [
     (15, 30),
@@ -68,16 +68,21 @@ class StarRatingService:
         meeting_score = _MEETING_ATTENDANCE_SCORE if has_federation else 0
 
         # 二.1 活动参与 (校级 + 大型)
-        activity_score = await self._calc_activity_participation_score(
+        raw_activity = await self._calc_activity_participation_score(
             club_id,
             current_term,
         )
 
-        # 二.1 竞赛得分 (从 StarLevelApplication)
-        competition_score = self._get_competition_score(application)
+        # 二.1 竞赛得分 — cap at rubric max of 13
+        raw_competition = self._get_competition_score(application)
+        competition_score = min(raw_competition, _COMPETITION_MAX)
 
         # 二.1 合计 (上限 50)
-        section_2_1 = min(activity_score + competition_score, _SECTION_2_1_CAP)
+        section_2_1 = min(raw_activity + competition_score, _SECTION_2_1_CAP)
+
+        # Split capped section into capped breakdown components
+        activity_participation = min(raw_activity, section_2_1)
+        competition_breakdown = section_2_1 - activity_participation
 
         # 二.2 内部活动
         internal_count = await self._count_internal_activities(
@@ -94,7 +99,7 @@ class StarRatingService:
         )
         age_years = self._club_age_years(club)
         history_score = (
-            _CLUB_HISTORY_SCORE if age_years > _CLUB_HISTORY_MIN_YEARS else 0
+            _CLUB_HISTORY_SCORE if age_years >= _CLUB_HISTORY_MIN_YEARS else 0
         )
         special_bonuses = min(
             growth_story + cross_grade + history_score,
@@ -115,8 +120,8 @@ class StarRatingService:
             star_level=star_level,
             breakdown=StarRatingBreakdown(
                 meeting_attendance=meeting_score,
-                activity_participation=activity_score,
-                competition=competition_score,
+                activity_participation=activity_participation,
+                competition=competition_breakdown,
                 section_2_1_total=section_2_1,
                 internal_activities=internal_score,
                 growth_story=growth_story,
@@ -165,7 +170,11 @@ class StarRatingService:
     def _get_growth_story_score(
         application: StarLevelApplication | None,
     ) -> int:
-        if application is None or not application.growth_story_approved:
+        if (
+            application is None
+            or application.audit_status != AuditStatusEnum.approved
+            or not application.growth_story_approved
+        ):
             return 0
         return _GROWTH_STORY_SCORE
 
@@ -217,8 +226,17 @@ class StarRatingService:
         stmt = (
             select(User.grade, func.count())
             .join(ClubMember, ClubMember.user_id == User.id)
-            .where(ClubMember.club_id == club_id)
-            .where(User.grade.isnot(None))
+            .where(
+                ClubMember.club_id == club_id,
+                ClubMember.membership.in_(
+                    [
+                        ClubMembershipEnum.member,
+                        ClubMembershipEnum.president,
+                        ClubMembershipEnum.vice_president,
+                    ],
+                ),
+                User.grade.isnot(None),
+            )
             .group_by(User.grade)
         )
         result = await self.db.execute(stmt)
