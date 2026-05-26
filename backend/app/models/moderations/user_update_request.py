@@ -9,6 +9,7 @@ from app.models.moderations.moderation_common import (
     ModerationMixin,
     ModerationStatusEnum,
 )
+from app.models.user import UserGradeEnum
 from app.utils.custom_types import HttpUrlType
 
 
@@ -25,6 +26,7 @@ class UserUpdateRequest(Base, ModerationMixin):
         default=None,
     )
     description: Mapped[str | None] = mapped_column(Text, default=None)
+    grade: Mapped[UserGradeEnum | None] = mapped_column(default=None)
 
     request_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
