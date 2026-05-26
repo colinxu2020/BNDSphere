@@ -47,7 +47,7 @@ class UpdateRequestCreateBase(BaseModel):
     @model_validator(mode="after")
     def validate_any_payload_provided(self) -> Self:
         exclude_system_fields = {
-            "moderation_id",
+            "moderator_id",
             "moderate_at",
             "requestor_id",
             "request_at",
