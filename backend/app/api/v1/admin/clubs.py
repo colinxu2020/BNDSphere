@@ -32,6 +32,7 @@ async def list_clubs(
 
 @router.get(
     "/{club_id}",
+    responses=RESOURCE_NOT_FOUND_RESPONSE,
 )
 async def get_club_info(club_id: int, service: ClubServiceDep) -> ClubInfo:
     """Get information of a club by club id. For admin."""
