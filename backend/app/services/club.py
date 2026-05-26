@@ -156,7 +156,7 @@ class ClubUpdateRequestService(
                 self.model.moderation_status == ModerationStatusEnum.pending,
                 self.model.club_id == club_id,
             )
-            .values(moderate_status=ModerationStatusEnum.superseded)
+            .values(moderation_status=ModerationStatusEnum.superseded)
         )
         try:
             await self.db.execute(stmt)

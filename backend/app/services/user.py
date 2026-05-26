@@ -112,7 +112,7 @@ class UserUpdateRequestService(
                 self.model.moderation_status == ModerationStatusEnum.pending,
                 self.model.user_id == user_id,
             )
-            .values(moderate_status=ModerationStatusEnum.superseded)
+            .values(moderation_status=ModerationStatusEnum.superseded)
         )
         try:
             await self.db.execute(stmt)
