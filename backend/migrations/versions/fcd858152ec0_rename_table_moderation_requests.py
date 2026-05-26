@@ -58,9 +58,9 @@ def upgrade() -> None:
     # 2. Rename each table + its PK constraint
     for old_name, new_name in _RENAMES:
         op.rename_table(old_name, new_name, schema="app")
-        # PK index naming: pk_<table_name>
+        # PK constraint naming: pk_<table_name>
         op.execute(
-            f"ALTER INDEX app.pk_{old_name} RENAME TO pk_{new_name}"
+            f"ALTER TABLE app.{new_name} RENAME CONSTRAINT pk_{old_name} TO pk_{new_name}"
         )
 
     # 3. Recreate partial unique indexes on new tables
@@ -93,7 +93,7 @@ def downgrade() -> None:
     for old_name, new_name in _RENAMES:
         op.rename_table(new_name, old_name, schema="app")
         op.execute(
-            f"ALTER INDEX app.pk_{new_name} RENAME TO pk_{old_name}"
+            f"ALTER TABLE app.{old_name} RENAME CONSTRAINT pk_{new_name} TO pk_{old_name}"
         )
 
     # 3. Recreate partial unique indexes on old (singular) tables

@@ -48,10 +48,10 @@ def upgrade() -> None:
     )
     op.create_foreign_key(op.f('fk_club_activity_update_request_club_activity_id_club_activities'), 'club_activity_update_request', 'club_activities', ['club_activity_id'], ['id'], source_schema='app', referent_schema='app', ondelete='CASCADE')
 
-    op.drop_table('activity_participators')
-    op.drop_constraint(op.f('fk_club_activity_update_request_club_activity_id_activities'), 'club_activity_update_request', type_='foreignkey')
-    op.drop_index(op.f('ix_activities_name'), table_name='activities')
-    op.drop_table('activities')
+    op.drop_table('activity_participators', schema='app')
+    op.drop_constraint(op.f('fk_club_activity_update_request_club_activity_id_activities'), 'club_activity_update_request', type_='foreignkey', schema='app')
+    op.drop_index(op.f('ix_activities_name'), table_name='activities', schema='app')
+    op.drop_table('activities', schema='app')
     # ### end Alembic commands ###
 
 
@@ -76,15 +76,17 @@ def downgrade() -> None:
     sa.CheckConstraint('end_time > start_time', name=op.f('ck_activities_check_start_end_time')),
     sa.ForeignKeyConstraint(['academic_term_id'], ['academic_term.id'], name=op.f('fk_activities_academic_term_id_academic_term')),
     sa.ForeignKeyConstraint(['club_id'], ['clubs.id'], name=op.f('fk_activities_club_id_clubs')),
-    sa.PrimaryKeyConstraint('id', name=op.f('pk_activities'))
+    sa.PrimaryKeyConstraint('id', name=op.f('pk_activities')),
+    schema='app'
     )
-    op.create_index(op.f('ix_activities_name'), 'activities', ['name'], unique=False)
-    op.create_foreign_key(op.f('fk_club_activity_update_request_club_activity_id_activities'), 'club_activity_update_request', 'activities', ['club_activity_id'], ['id'], ondelete='CASCADE')
+    op.create_index(op.f('ix_activities_name'), 'activities', ['name'], unique=False, schema='app')
+    op.create_foreign_key(op.f('fk_club_activity_update_request_club_activity_id_activities'), 'club_activity_update_request', 'activities', ['club_activity_id'], ['id'], source_schema='app', referent_schema='app', ondelete='CASCADE')
     op.create_table('activity_participators',
     sa.Column('user_id', sa.INTEGER(), autoincrement=False, nullable=False),
     sa.Column('activity_id', sa.INTEGER(), autoincrement=False, nullable=False),
     sa.ForeignKeyConstraint(['activity_id'], ['activities.id'], name=op.f('fk_activity_participators_activity_id_activities')),
     sa.ForeignKeyConstraint(['user_id'], ['users.id'], name=op.f('fk_activity_participators_user_id_users')),
-    sa.PrimaryKeyConstraint('user_id', 'activity_id', name=op.f('pk_activity_participators'))
+    sa.PrimaryKeyConstraint('user_id', 'activity_id', name=op.f('pk_activity_participators')),
+    schema='app'
     )
     # ### end Alembic commands ###

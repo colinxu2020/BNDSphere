@@ -28,8 +28,9 @@ def upgrade() -> None:
     )
 
     op.execute(
-        "ALTER INDEX app.pk_club_activity_participators "
-        "RENAME TO pk_club_activity_participants"
+        "ALTER TABLE app.club_activity_participants "
+        "RENAME CONSTRAINT pk_club_activity_participators "
+        "TO pk_club_activity_participants"
     )
 
 
@@ -43,6 +44,7 @@ def downgrade() -> None:
     )
 
     op.execute(
-        "ALTER INDEX app.pk_club_activity_participants "
-        "RENAME TO pk_club_activity_participators"
+        "ALTER TABLE app.club_activity_participators "
+        "RENAME CONSTRAINT pk_club_activity_participants "
+        "TO pk_club_activity_participators"
     )

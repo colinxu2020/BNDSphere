@@ -59,7 +59,7 @@ def upgrade() -> None:
     op.rename_table("academic_term", "academic_terms", schema="app")
 
     # 4. Rename PK and unique constraint to match new table name
-    op.execute("ALTER INDEX app.pk_academic_term RENAME TO pk_academic_terms")
+    op.execute("ALTER TABLE app.academic_terms RENAME CONSTRAINT pk_academic_term TO pk_academic_terms")
     op.execute(
         "ALTER TABLE app.academic_terms RENAME CONSTRAINT uq_academic_term_term_name TO uq_academic_terms_term_name"
     )
@@ -108,7 +108,7 @@ def downgrade() -> None:
     op.rename_table("academic_terms", "academic_term", schema="app")
 
     # 4. Rename PK and unique constraint back
-    op.execute("ALTER INDEX app.pk_academic_terms RENAME TO pk_academic_term")
+    op.execute("ALTER TABLE app.academic_term RENAME CONSTRAINT pk_academic_terms TO pk_academic_term")
     op.execute(
         "ALTER TABLE app.academic_term RENAME CONSTRAINT uq_academic_terms_term_name TO uq_academic_term_term_name"
     )
