@@ -66,6 +66,8 @@ services:
       - POSTGRES_USER=app_user
       - POSTGRES_DB=bndsphere
       - CORS_ORIGIN=${CORS_ORIGIN}
+      - OSS_ENDPOINT_URL=${OSS_ENDPOINT_URL}
+      - OSS_BUCKET=${OSS_BUCKET}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -84,6 +86,8 @@ services:
       - source: app_password
         target: postgres_password
       - secret_key
+      - oss_access_key_id
+      - oss_access_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
 
@@ -157,3 +161,7 @@ secrets:
     file: ./secrets/migration_db_password.txt
   secret_key:
     file: ./secrets/app_secret_key.txt
+  oss_access_key_id:
+    file: ./secrets/oss_access_key_id.txt
+  oss_access_key:
+    file: ./secrets/oss_access_key.txt
