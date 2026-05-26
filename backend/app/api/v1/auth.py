@@ -1,15 +1,14 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, status
 from fastapi.security import OAuth2PasswordRequestForm
-from starlette import status
 
 from app.api.dependencies import UserServiceDep
 from app.core.security import create_access_token
 from app.schemas.user import Token, UserCreate, UserInfo
 from app.services.errors import AuthenticationError
 
-router = APIRouter(tags=["auth"])
+router = APIRouter(tags=["Auth"])
 
 
 @router.post(

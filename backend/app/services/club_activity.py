@@ -8,13 +8,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import selectinload
 
 from app.models import Club, User
-from app.models.activity import Activity
+from app.models.club_activity import ClubActivity
 from app.models.moderations.club_activity import (
     ClubActivityCreateRequest,
     ClubActivityUpdateRequest,
 )
-from app.models.moderations.moderation_common import ModerateStatusEnum
-from app.schemas.activity import ActivityCreate, ActivityUpdate
+from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityUpdateRequestCreate,
@@ -27,27 +27,29 @@ from app.services.base import ServiceBase
 from app.services.errors import DuplicatePendingRequestError
 
 
-class ActivityService(ServiceBase[Activity, ActivityCreate, ActivityUpdate]):
-    model = Activity
+class ClubActivityService(
+    ServiceBase[ClubActivity, ClubActivityCreate, ClubActivityUpdate],
+):
+    model = ClubActivity
 
     async def get_club_activities(
         self,
         club: Club,
-    ) -> Page[Activity]:
+    ) -> Page[ClubActivity]:
         stmt = (
-            select(Activity)
-            .where(Activity.club_id == club.id)
-            .order_by(Activity.start_time.desc(), Activity.id.desc())
-            .options(selectinload(Activity.participators))
+            select(ClubActivity)
+            .where(ClubActivity.club_id == club.id)
+            .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc())
+            .options(selectinload(ClubActivity.participants))
         )
-        return cast("Page[Activity]", await apaginate(self.db, stmt))
+        return cast("Page[ClubActivity]", await apaginate(self.db, stmt))
 
     async def create_club_activity(
         self,
         club_id: int,
-        obj_in: ActivityCreate,
-    ) -> Activity:
-        db_activity = Activity(**obj_in.model_dump(), club_id=club_id)
+        obj_in: ClubActivityCreate,
+    ) -> ClubActivity:
+        db_activity = ClubActivity(**obj_in.model_dump(), club_id=club_id)
         self.db.add(db_activity)
         await self.db.flush()
         await self.db.refresh(db_activity)
@@ -65,7 +67,7 @@ class ClubActivityCreateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubActivityCreateRequest]:
         stmt = select(self.model).where(
-            self.model.moderate_status == ModerateStatusEnum.pending,
+            self.model.moderation_status == ModerationStatusEnum.pending,
         )
         return cast("Page[ClubActivityCreateRequest]", await apaginate(self.db, stmt))
 
@@ -96,7 +98,7 @@ class ClubActivityUpdateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         stmt = select(self.model).where(
-            self.model.moderate_status == ModerateStatusEnum.pending,
+            self.model.moderation_status == ModerationStatusEnum.pending,
         )
         return cast("Page[ClubActivityUpdateRequest]", await apaginate(self.db, stmt))
 
@@ -122,10 +124,10 @@ class ClubActivityUpdateRequestService(
         stmt = (
             update(self.model)
             .where(
-                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.moderation_status == ModerationStatusEnum.pending,
                 self.model.club_activity_id == club_activity_id,
             )
-            .values(moderate_status=ModerateStatusEnum.superseded)
+            .values(moderation_status=ModerationStatusEnum.superseded)
         )
         try:
             await self.db.execute(stmt)

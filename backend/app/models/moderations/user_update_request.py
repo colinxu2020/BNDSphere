@@ -5,12 +5,15 @@ from sqlalchemy import DateTime, ForeignKey, Index, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core.database import Base
-from app.models.moderations.moderation_common import ModerateMixin, ModerateStatusEnum
+from app.models.moderations.moderation_common import (
+    ModerationMixin,
+    ModerationStatusEnum,
+)
 from app.utils.custom_types import HttpUrlType
 
 
-class UserUpdateRequest(Base, ModerateMixin):
-    __tablename__ = "user_update_request"
+class UserUpdateRequest(Base, ModerationMixin):
+    __tablename__ = "user_update_requests"
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
@@ -38,7 +41,7 @@ class UserUpdateRequest(Base, ModerateMixin):
                 "user_id",
                 unique=True,
                 postgresql_where=(
-                    cls.moderate_status == ModerateStatusEnum.pending.value
+                    cls.moderation_status == ModerationStatusEnum.pending.value
                 ),
             ),
         )

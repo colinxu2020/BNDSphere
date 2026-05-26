@@ -9,19 +9,19 @@ if TYPE_CHECKING:
     from app.models.user import User
 
 
-class ModerateStatusEnum(StrEnum):
+class ModerationStatusEnum(StrEnum):
     pending = "pending"
     approved = "approved"
     rejected = "rejected"
     superseded = "superseded"
 
 
-class ModerateMixin:
+class ModerationMixin:
     @declared_attr
     @classmethod
-    def moderate_status(cls) -> Mapped[ModerateStatusEnum]:
+    def moderation_status(cls) -> Mapped[ModerationStatusEnum]:
         return mapped_column(
-            default=ModerateStatusEnum.pending,
+            default=ModerationStatusEnum.pending,
         )
 
     @declared_attr
@@ -46,7 +46,7 @@ class ModerateMixin:
         )
 
 
-class RequestMixin:
+class RequestorMixin:
     @declared_attr
     @classmethod
     def requestor_id(cls) -> Mapped[int]:

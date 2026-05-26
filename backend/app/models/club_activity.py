@@ -9,15 +9,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import constants
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
-from app.models.activity_participator import activity_participator_table
+from app.models.club_activity_participant import club_activity_participant_table
 
 if TYPE_CHECKING:
     from app.models.club import Club
     from app.models.user import User
 
 
-class Activity(Base, AcademicTermMixin):
-    __tablename__ = "activities"
+class ClubActivity(Base, AcademicTermMixin):
+    __tablename__ = "club_activities"
 
     name: Mapped[str] = mapped_column(
         String(constants.ACTIVITY_MAX_NAME_LENGTH),
@@ -25,7 +25,7 @@ class Activity(Base, AcademicTermMixin):
     )
     description: Mapped[str] = mapped_column(Text)
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"))
-    club: Mapped[Club] = relationship(back_populates="activities")
+    club: Mapped[Club] = relationship(back_populates="club_activities")
     start_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
     )
@@ -35,9 +35,9 @@ class Activity(Base, AcademicTermMixin):
     location: Mapped[str] = mapped_column(Text)
     picture_urls: Mapped[list[str]] = mapped_column(JSON, default=list)
 
-    participators: Mapped[list[User]] = relationship(
-        back_populates="participated_activities",
-        secondary=activity_participator_table,
+    participants: Mapped[list[User]] = relationship(
+        back_populates="participated_club_activities",
+        secondary=club_activity_participant_table,
     )
 
     __table_args__ = (

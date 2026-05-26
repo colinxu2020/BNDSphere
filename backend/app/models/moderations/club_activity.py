@@ -6,14 +6,14 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 from app.core import constants
 from app.core.database import Base
 from app.models.moderations.moderation_common import (
-    ModerateMixin,
-    ModerateStatusEnum,
-    RequestMixin,
+    ModerationMixin,
+    ModerationStatusEnum,
+    RequestorMixin,
 )
 
 
-class ClubActivityCreateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_activity_create_request"
+class ClubActivityCreateRequest(Base, ModerationMixin, RequestorMixin):
+    __tablename__ = "club_activity_create_requests"
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
@@ -32,11 +32,11 @@ class ClubActivityCreateRequest(Base, ModerateMixin, RequestMixin):
     location: Mapped[str] = mapped_column(Text)
 
 
-class ClubActivityUpdateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_activity_update_request"
+class ClubActivityUpdateRequest(Base, ModerationMixin, RequestorMixin):
+    __tablename__ = "club_activity_update_requests"
 
     club_activity_id: Mapped[int] = mapped_column(
-        ForeignKey("activities.id", ondelete="CASCADE"),
+        ForeignKey("club_activities.id", ondelete="CASCADE"),
     )
 
     name: Mapped[str | None] = mapped_column(
@@ -66,7 +66,7 @@ class ClubActivityUpdateRequest(Base, ModerateMixin, RequestMixin):
                 "club_activity_id",
                 unique=True,
                 postgresql_where=(
-                    cls.moderate_status == ModerateStatusEnum.pending.value
+                    cls.moderation_status == ModerationStatusEnum.pending.value
                 ),
             ),
         )

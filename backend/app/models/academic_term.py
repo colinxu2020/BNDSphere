@@ -18,7 +18,7 @@ from app.core.database import Base
 
 
 class AcademicTerm(Base):
-    __tablename__ = "academic_term"
+    __tablename__ = "academic_terms"
 
     term_name: Mapped[str] = mapped_column(
         String(constants.ACADEMIC_TERM_MAX_LENGTH),
@@ -72,7 +72,7 @@ class AcademicTermMixin:
     @classmethod
     def academic_term_id(cls) -> Mapped[int]:
         return mapped_column(
-            ForeignKey("academic_term.id"),
+            ForeignKey("academic_terms.id"),
             default=select(AcademicTerm.id)
             .where(AcademicTerm.is_current.is_(True))
             .scalar_subquery(),

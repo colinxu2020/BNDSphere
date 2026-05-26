@@ -4,8 +4,8 @@ from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models.academic_term import AcademicTerm
-from app.models.activity import Activity
 from app.models.club import Club
+from app.models.club_activity import ClubActivity
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivity,
@@ -99,7 +99,7 @@ class StarRatingService:
             )
             .where(
                 ClubGeneralActivityRecord.club_id == club_id,
-                GeneralActivity.level == GeneralActivityLevelEnum.federation,
+                GeneralActivity.level == GeneralActivityLevelEnum.club_federation,
             )
             .limit(1)
         )
@@ -145,13 +145,13 @@ class StarRatingService:
         """Count the club's own activities in the current term."""
         stmt = (
             select(func.count())
-            .select_from(Activity)
+            .select_from(ClubActivity)
             .where(
-                Activity.club_id == club_id,
+                ClubActivity.club_id == club_id,
             )
         )
         if term is not None:
-            stmt = stmt.where(Activity.academic_term_id == term.id)
+            stmt = stmt.where(ClubActivity.academic_term_id == term.id)
         result = await self.db.execute(stmt)
         return result.scalar_one()
 

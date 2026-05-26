@@ -8,7 +8,6 @@ from app.api.v1.admin.users import router as users_router
 from app.models.user import RoleEnum
 
 router = APIRouter(
-    tags=["admin"],
     dependencies=[Depends(RoleChecker([RoleEnum.dev, RoleEnum.admin]))],
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )

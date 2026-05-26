@@ -8,7 +8,7 @@ from app.schemas.general_activities import (
 )
 from app.services.errors import GeneralActivityNotFoundError
 
-router = APIRouter(tags=["general activities"])
+router = APIRouter(tags=["General Activities"])
 
 
 @router.get("/{activity_id}")

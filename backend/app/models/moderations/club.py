@@ -4,15 +4,15 @@ from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core.database import Base
 from app.models.moderations.moderation_common import (
-    ModerateMixin,
-    ModerateStatusEnum,
-    RequestMixin,
+    ModerationMixin,
+    ModerationStatusEnum,
+    RequestorMixin,
 )
 from app.utils.custom_types import HttpUrlType
 
 
-class ClubUpdateRequest(Base, ModerateMixin, RequestMixin):
-    __tablename__ = "club_update_request"
+class ClubUpdateRequest(Base, ModerationMixin, RequestorMixin):
+    __tablename__ = "club_update_requests"
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
@@ -32,7 +32,7 @@ class ClubUpdateRequest(Base, ModerateMixin, RequestMixin):
                 "club_id",
                 unique=True,
                 postgresql_where=(
-                    cls.moderate_status == ModerateStatusEnum.pending.value
+                    cls.moderation_status == ModerationStatusEnum.pending.value
                 ),
             ),
         )

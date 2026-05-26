@@ -10,7 +10,7 @@ from app.schemas.academic_terms import (
 )
 from app.services.errors import AcademicTermNotFoundError
 
-router = APIRouter(tags=["Academic Terms"])
+router = APIRouter(tags=["Admin: Academic Terms"])
 
 
 @router.get("/")

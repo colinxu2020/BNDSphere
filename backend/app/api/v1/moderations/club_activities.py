@@ -5,15 +5,15 @@ from fastapi_pagination import Page
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
-    ActivityServiceDep,
     ClubActivityCreateRequestServiceDep,
+    ClubActivityServiceDep,
     ClubActivityUpdateRequestServiceDep,
     ClubServiceDep,
     get_current_user,
 )
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
-from app.schemas.activity import ActivityCreate, ActivityUpdate
+from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestInfo,
     ClubActivityUpdateRequestInfo,
@@ -49,7 +49,7 @@ async def moderate_create_request(
     obj_in: RequestModeratePublic,
     service: ClubActivityCreateRequestServiceDep,
     club_service: ClubServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityCreateRequestInfo:
     """Moderate club activity create request."""
@@ -59,7 +59,7 @@ async def moderate_create_request(
             "error.club_activity_create_request.not_found",
             "CLUB_ACTIVITY_CREATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.club_activity_create_request.moderated",
             "CLUB_ACTIVITY_CREATE_REQUEST_MODERATED",
@@ -69,16 +69,16 @@ async def moderate_create_request(
     if club is None:
         raise ClubNotFoundError(request.club_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         data_dict = {
             k: getattr(request, k)
-            for k in ActivityCreate.model_fields
+            for k in ClubActivityCreate.model_fields
             if hasattr(request, k) and getattr(request, k) is not None
         }
 
         await club_activity_service.create_club_activity(
             club.id,
-            ActivityCreate.model_validate(data_dict),
+            ClubActivityCreate.model_validate(data_dict),
         )
 
     return ClubActivityCreateRequestInfo.model_validate(
@@ -106,7 +106,7 @@ async def moderate_update_request(
     request_id: int,
     obj_in: RequestModeratePublic,
     service: ClubActivityUpdateRequestServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     moderator: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Moderate club activity update request."""
@@ -116,7 +116,7 @@ async def moderate_update_request(
             "error.club_activity_update_request.not_found",
             "CLUB_ACTIVITY_UPDATE_REQUEST_NOT_FOUND",
         ) from None
-    if request.moderate_status != ModerateStatusEnum.pending:
+    if request.moderation_status != ModerationStatusEnum.pending:
         raise ResourceForbiddenError(
             "error.club_activity_update_request.moderated",
             "CLUB_ACTIVITY_UPDATE_REQUEST_MODERATED",
@@ -126,10 +126,10 @@ async def moderate_update_request(
     if activity is None:
         raise ClubActivityNotFoundError(request.club_activity_id) from None
 
-    if obj_in.moderate_status == ModerateStatusEnum.approved:
+    if obj_in.moderation_status == ModerationStatusEnum.approved:
         await club_activity_service.update(
             activity,
-            ActivityUpdate.model_validate(request),
+            ClubActivityUpdate.model_validate(request),
         )
 
     return ClubActivityUpdateRequestInfo.model_validate(

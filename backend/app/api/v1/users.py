@@ -15,13 +15,13 @@ from app.api.dependencies import (
 )
 from app.models.user import User
 from app.schemas.moderations.user_update_request import (
+    UserUpdateRequestCreate,
     UserUpdateRequestInfo,
-    UserUpdateUpdateRequestCreate,
 )
 from app.schemas.user import UserInfo
 from app.services.errors import DuplicatePendingRequestError, ResourceNotFoundError
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["Users"])
 
 
 @router.get(
@@ -58,7 +58,7 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
 )
 async def request_update_profile(
     service: UserUpdateRequestServiceDep,
-    obj_in: UserUpdateUpdateRequestCreate,
+    obj_in: UserUpdateRequestCreate,
     user: Annotated[User, Depends(get_current_user)],
 ) -> UserUpdateRequestInfo:
     """Request update user profile of current user."""

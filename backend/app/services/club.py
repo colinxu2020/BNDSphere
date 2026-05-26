@@ -11,7 +11,7 @@ from sqlalchemy.exc import IntegrityError
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
-from app.models.moderations.moderation_common import ModerateStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
 from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
 from app.schemas.moderations.club import ClubUpdateRequestCreate
@@ -130,7 +130,7 @@ class ClubUpdateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubUpdateRequest]:
         stmt = select(self.model).where(
-            self.model.moderate_status == ModerateStatusEnum.pending,
+            self.model.moderation_status == ModerationStatusEnum.pending,
         )
         return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
 
@@ -153,10 +153,10 @@ class ClubUpdateRequestService(
         stmt = (
             update(self.model)
             .where(
-                self.model.moderate_status == ModerateStatusEnum.pending,
+                self.model.moderation_status == ModerationStatusEnum.pending,
                 self.model.club_id == club_id,
             )
-            .values(moderate_status=ModerateStatusEnum.superseded)
+            .values(moderation_status=ModerationStatusEnum.superseded)
         )
         try:
             await self.db.execute(stmt)

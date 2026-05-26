@@ -37,7 +37,7 @@ from app.services.errors import (
     ResourceNotFoundError,
 )
 
-router = APIRouter(tags=["clubs"])
+router = APIRouter(tags=["Clubs"])
 
 
 @router.get(
@@ -76,7 +76,7 @@ async def create_club(
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",
-            error_code="DUPLICAE_CLUB_NAME",
+            error_code="DUPLICATE_CLUB_NAME",
         ) from None
     await membership_service.set_relationship(
         club_created,
@@ -92,7 +92,7 @@ async def create_club(
     dependencies=[
         Depends(
             ClubRoleChecker(
-                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
             ),
         ),
     ],
@@ -154,7 +154,7 @@ async def join_club(
     if relationship and relationship.membership != ClubMembershipEnum.left:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_join_request",
-            error_code="DUPLICAE_JOIN_REQUEST",
+            error_code="DUPLICATE_JOIN_REQUEST",
         ) from None
     return ClubMemberInfo.model_validate(
         await membership_service.set_relationship(
@@ -186,7 +186,7 @@ async def leave_club(
             error_code="IS_NOT_MEMBER",
         ) from None
     if relationship.membership in {
-        ClubMembershipEnum.vice,
+        ClubMembershipEnum.vice_president,
         ClubMembershipEnum.president,
     }:
         raise ResourceForbiddenError(

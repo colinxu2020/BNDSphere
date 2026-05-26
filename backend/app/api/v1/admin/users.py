@@ -5,7 +5,7 @@ from app.api.dependencies import UserServiceDep
 from app.schemas.user import AdminUserUpdate, UserInfo
 from app.services.errors import ResourceNotFoundError
 
-router = APIRouter(tags=["users"])
+router = APIRouter(tags=["Admin: Users"])
 
 
 @router.patch(

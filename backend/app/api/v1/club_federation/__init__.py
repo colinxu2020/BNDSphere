@@ -11,8 +11,9 @@ from app.api.v1.club_federation.general_activities import (
 from app.models.user import RoleEnum
 
 router = APIRouter(
-    tags=["Club Federation", "admin"],
-    dependencies=[Depends(RoleChecker([RoleEnum.dev, RoleEnum.admin, RoleEnum.scf]))],
+    dependencies=[
+        Depends(RoleChecker([RoleEnum.dev, RoleEnum.admin, RoleEnum.federation_staff])),
+    ],
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )
 router.include_router(general_activity_router, prefix="/general-activity")

@@ -6,8 +6,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import (
-    ActivityServiceDep,
     ClubActivityCreateRequestServiceDep,
+    ClubActivityServiceDep,
     ClubActivityUpdateRequestServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
@@ -15,7 +15,7 @@ from app.api.dependencies import (
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.activity import ActivityInfo
+from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityCreateRequestCreatePublic,
@@ -34,7 +34,11 @@ from app.services.errors import (
 router = APIRouter(tags=["Club Activities"])
 ClubRoleCheckerRequiresPresidentVice = Annotated[
     User,
-    Depends(ClubRoleChecker([ClubMembershipEnum.vice, ClubMembershipEnum.president])),
+    Depends(
+        ClubRoleChecker(
+            [ClubMembershipEnum.vice_president, ClubMembershipEnum.president],
+        ),
+    ),
 ]
 
 
@@ -43,14 +47,16 @@ ClubRoleCheckerRequiresPresidentVice = Annotated[
 )
 async def get_club_activities(
     club_id: int,
-    service: ActivityServiceDep,
+    service: ClubActivityServiceDep,
     club_service: ClubServiceDep,
-) -> Page[ActivityInfo]:
+) -> Page[ClubActivityInfo]:
     """List all activities of the given club."""
     club = await club_service.get(club_id)
     if club is None:
         raise ClubNotFoundError(club_id) from None
-    return Page[ActivityInfo].model_validate(await service.get_club_activities(club))
+    return Page[ClubActivityInfo].model_validate(
+        await service.get_club_activities(club),
+    )
 
 
 @router.post(
@@ -59,7 +65,9 @@ async def get_club_activities(
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
     dependencies=[
         Depends(
-            ClubRoleChecker([ClubMembershipEnum.president, ClubMembershipEnum.vice]),
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
+            ),
         ),
     ],
 )
@@ -90,7 +98,7 @@ async def create_club_activity_request(
     dependencies=[
         Depends(
             ClubRoleChecker(
-                [ClubMembershipEnum.president, ClubMembershipEnum.vice],
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
             ),
         ),
     ],
@@ -101,7 +109,7 @@ async def update_club_activity_request(
     obj_in: ClubActivityUpdateRequestCreatePublic,
     service: ClubActivityUpdateRequestServiceDep,
     club_service: ClubServiceDep,
-    club_activity_service: ActivityServiceDep,
+    club_activity_service: ClubActivityServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubActivityUpdateRequestInfo:
     """Request to update a club activity."""
