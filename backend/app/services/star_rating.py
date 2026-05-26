@@ -77,12 +77,14 @@ class StarRatingService:
         raw_competition = self._get_competition_score(application)
         competition_score = min(raw_competition, _COMPETITION_MAX)
 
-        # 二.1 合计 (上限 50)
-        section_2_1 = min(raw_activity + competition_score, _SECTION_2_1_CAP)
-
-        # Split capped section into capped breakdown components
-        activity_participation = min(raw_activity, section_2_1)
-        competition_breakdown = section_2_1 - activity_participation
+        # 二.1 合计 (上限 50); competition is counted first so it's
+        # never zeroed in the breakdown, then activity fills remainder.
+        competition_breakdown = competition_score
+        activity_participation = min(
+            raw_activity,
+            _SECTION_2_1_CAP - competition_breakdown,
+        )
+        section_2_1 = activity_participation + competition_breakdown
 
         # 二.2 内部活动
         internal_count = await self._count_internal_activities(
@@ -194,7 +196,10 @@ class StarRatingService:
         # 获取活跃成员的年级分布
         grade_counts = await self._count_members_by_grade_level(club_id)
 
-        if application is not None:
+        if (
+            application is not None
+            and application.audit_status == AuditStatusEnum.approved
+        ):
             target_grades = {
                 g
                 for g in (application.target_grade_1, application.target_grade_2)
@@ -246,7 +251,10 @@ class StarRatingService:
 
         counts: dict[int, int] = {}
         for grade_enum_value, count in rows:
-            level = UserGradeEnum(grade_enum_value).grade_level
+            if isinstance(grade_enum_value, UserGradeEnum):
+                level = grade_enum_value.grade_level
+            else:
+                level = UserGradeEnum(grade_enum_value).grade_level
             counts[level] = counts.get(level, 0) + count
         return counts
 
