@@ -55,7 +55,6 @@ class ObjectStorageService:
                 ClientMethod="put_object",
                 Params=params,
                 ExpiresIn=expires_seconds,
-                HttpMethod="PUT",
             )
             if inspect.isawaitable(result):
                 result = await result

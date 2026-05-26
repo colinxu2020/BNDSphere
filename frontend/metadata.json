@@ -1,0 +1,6 @@
+{
+  "name": "BNDSphere",
+  "description": "BNDSphere is the new club platform designed for Beijing National Day School, featuring a youthful, modern, and agile layout.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
