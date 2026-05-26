@@ -1,5 +1,5 @@
-import createClient from 'openapi-fetch';
-import type { paths } from './schema';
+import createClient from "openapi-fetch";
+import type { paths } from "./schema";
 
 export const client = createClient<paths>({
   // Pointing to current origin; in a real app this might be an external backend
@@ -9,10 +9,10 @@ export const client = createClient<paths>({
 // Interceptor to attach auth token if available
 client.use({
   onRequest({ request }) {
-    const token = localStorage.getItem('bnd_token');
+    const token = localStorage.getItem("bnd_token");
     if (token) {
-      request.headers.set('Authorization', `Bearer ${token}`);
+      request.headers.set("Authorization", `Bearer ${token}`);
     }
     return request;
-  }
+  },
 });

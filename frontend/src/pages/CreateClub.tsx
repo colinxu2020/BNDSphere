@@ -1,10 +1,10 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { Building2, Save } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { client } from '../api/client';
-import type { components } from '../api/schema';
-import { CATEGORY_OPTIONS } from '../lib/labels';
+import React, { useState } from "react";
+import { motion } from "motion/react";
+import { Building2, Save } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { client } from "../api/client";
+import type { components } from "../api/schema";
+import { CATEGORY_OPTIONS } from "../lib/labels";
 import {
   Field,
   PageHeader,
@@ -15,21 +15,21 @@ import {
   inputClassName,
   selectClassName,
   textareaClassName,
-} from '../components/ui/AppPrimitives';
-import { FileUploadField } from '../components/ui/FileUploadField';
+} from "../components/ui/AppPrimitives";
+import { FileUploadField } from "../components/ui/FileUploadField";
 
-type Category = components['schemas']['ClubCategoryEnum'];
+type Category = components["schemas"]["ClubCategoryEnum"];
 
 export function CreateClub() {
   const navigate = useNavigate();
-  const [name, setName] = useState('');
-  const [category, setCategory] = useState<Category>('science');
-  const [summary, setSummary] = useState('');
-  const [description, setDescription] = useState('');
-  const [logoUri, setLogoUri] = useState('');
+  const [name, setName] = useState("");
+  const [category, setCategory] = useState<Category>("science");
+  const [summary, setSummary] = useState("");
+  const [description, setDescription] = useState("");
+  const [logoUri, setLogoUri] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<'error' | 'success'>('error');
+  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -37,7 +37,7 @@ export function CreateClub() {
     setMessage(null);
 
     try {
-      const { data, error } = await client.POST('/api/v1/clubs/', {
+      const { data, error } = await client.POST("/api/v1/clubs/", {
         body: {
           name,
           category,
@@ -48,18 +48,18 @@ export function CreateClub() {
       });
 
       if (error) {
-        setMessageTone('error');
+        setMessageTone("error");
         setMessage(error);
         return;
       }
 
-      setMessageTone('success');
+      setMessageTone("success");
       setMessage(data);
       if (data?.id) {
         navigate(`/club/${data.id}`);
       }
     } catch (error) {
-      setMessageTone('error');
+      setMessageTone("error");
       setMessage(error);
     } finally {
       setIsSubmitting(false);
@@ -86,12 +86,15 @@ export function CreateClub() {
           description="名称、类别、简介和展示图会出现在社团探索与详情页。"
         />
 
-        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+        <form
+          onSubmit={submit}
+          className="grid grid-cols-1 md:grid-cols-2 gap-5"
+        >
           <Field label="社团名称">
             <input
               className={inputClassName}
               value={name}
-              onChange={event => setName(event.target.value)}
+              onChange={(event) => setName(event.target.value)}
               maxLength={128}
               required
             />
@@ -101,9 +104,9 @@ export function CreateClub() {
             <select
               className={selectClassName}
               value={category}
-              onChange={event => setCategory(event.target.value as Category)}
+              onChange={(event) => setCategory(event.target.value as Category)}
             >
-              {CATEGORY_OPTIONS.map(option => (
+              {CATEGORY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
                 </option>
@@ -116,7 +119,7 @@ export function CreateClub() {
               <input
                 className={inputClassName}
                 value={summary}
-                onChange={event => setSummary(event.target.value)}
+                onChange={(event) => setSummary(event.target.value)}
                 maxLength={50}
                 required
               />
@@ -128,7 +131,7 @@ export function CreateClub() {
               <textarea
                 className={textareaClassName}
                 value={description}
-                onChange={event => setDescription(event.target.value)}
+                onChange={(event) => setDescription(event.target.value)}
                 maxLength={400}
                 required
               />

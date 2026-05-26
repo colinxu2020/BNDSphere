@@ -1,16 +1,16 @@
-import type { ButtonHTMLAttributes, ReactNode } from 'react';
-import { AlertCircle, Inbox } from 'lucide-react';
-import { cn } from '../../lib/utils';
-import { stringifyBackendValue } from '../../lib/format';
+import type { ButtonHTMLAttributes, ReactNode } from "react";
+import { AlertCircle, Inbox } from "lucide-react";
+import { cn } from "../../lib/utils";
+import { stringifyBackendValue } from "../../lib/format";
 
 export const inputClassName =
-  'w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400';
+  "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400";
 
 export const selectClassName =
-  'w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900';
+  "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900";
 
 export const textareaClassName =
-  'w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400 min-h-[120px] resize-none';
+  "w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400 min-h-[120px] resize-none";
 
 export function PageHeader({
   eyebrow,
@@ -34,19 +34,27 @@ export function PageHeader({
         <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 tracking-tight">
           {title}
         </h1>
-        {description && <p className="text-slate-500 text-lg max-w-2xl">{description}</p>}
+        {description && (
+          <p className="text-slate-500 text-lg max-w-2xl">{description}</p>
+        )}
       </div>
       {action}
     </div>
   );
 }
 
-export function Surface({ children, className }: { children: ReactNode; className?: string }) {
+export function Surface({
+  children,
+  className,
+}: {
+  children: ReactNode;
+  className?: string;
+}) {
   return (
     <section
       className={cn(
-        'bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04)] p-6 md:p-8',
-        className
+        "bg-white rounded-[2rem] border border-slate-100 shadow-[0_8px_30px_-4px_rgba(0,0,0,0.04)] p-6 md:p-8",
+        className,
       )}
     >
       {children}
@@ -71,8 +79,12 @@ export function SectionTitle({
         </div>
       )}
       <div>
-        <h2 className="text-xl font-display font-bold text-slate-900">{title}</h2>
-        {description && <p className="text-sm text-slate-500 mt-1">{description}</p>}
+        <h2 className="text-xl font-display font-bold text-slate-900">
+          {title}
+        </h2>
+        {description && (
+          <p className="text-sm text-slate-500 mt-1">{description}</p>
+        )}
       </div>
     </div>
   );
@@ -89,9 +101,13 @@ export function Field({
 }) {
   return (
     <label className="block">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">{label}</span>
+      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+        {label}
+      </span>
       {children}
-      {hint && <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>}
+      {hint && (
+        <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>
+      )}
     </label>
   );
 }
@@ -107,11 +123,11 @@ export function PrimaryButton({
       {...props}
       disabled={props.disabled || loading}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-all shadow-md shadow-primary-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed',
-        className
+        "inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-all shadow-md shadow-primary-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed",
+        className,
       )}
     >
-      {loading ? '处理中...' : children}
+      {loading ? "处理中..." : children}
     </button>
   );
 }
@@ -125,8 +141,8 @@ export function SecondaryButton({
     <button
       {...props}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed',
-        className
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        className,
       )}
     >
       {children}
@@ -143,8 +159,8 @@ export function DangerButton({
     <button
       {...props}
       className={cn(
-        'inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-100 text-red-700 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed',
-        className
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-100 text-red-700 font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        className,
       )}
     >
       {children}
@@ -154,22 +170,27 @@ export function DangerButton({
 
 export function StatusMessage({
   value,
-  tone = 'error',
+  tone = "error",
 }: {
   value?: unknown;
-  tone?: 'error' | 'success' | 'info';
+  tone?: "error" | "success" | "info";
 }) {
   const text = stringifyBackendValue(value);
   if (!text) return null;
 
   const toneClass = {
-    error: 'bg-red-50 text-red-700 border-red-100',
-    success: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    info: 'bg-slate-50 text-slate-600 border-slate-100',
+    error: "bg-red-50 text-red-700 border-red-100",
+    success: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    info: "bg-slate-50 text-slate-600 border-slate-100",
   }[tone];
 
   return (
-    <div className={cn('rounded-xl border p-4 text-sm font-medium whitespace-pre-wrap', toneClass)}>
+    <div
+      className={cn(
+        "rounded-xl border p-4 text-sm font-medium whitespace-pre-wrap",
+        toneClass,
+      )}
+    >
       {text}
     </div>
   );
@@ -189,8 +210,12 @@ export function EmptyState({
       <div className="bg-slate-50 w-14 h-14 rounded-full flex items-center justify-center mb-4 text-slate-400">
         {icon || <Inbox size={24} />}
       </div>
-      <h3 className="text-lg font-display font-semibold text-slate-800">{title}</h3>
-      {description && <p className="text-sm text-slate-500 max-w-sm mt-2">{description}</p>}
+      <h3 className="text-lg font-display font-semibold text-slate-800">
+        {title}
+      </h3>
+      {description && (
+        <p className="text-sm text-slate-500 max-w-sm mt-2">{description}</p>
+      )}
     </div>
   );
 }
@@ -208,22 +233,27 @@ export function InlineError({ value }: { value?: unknown }) {
 
 export function Badge({
   children,
-  tone = 'slate',
+  tone = "slate",
 }: {
   children: ReactNode;
-  tone?: 'slate' | 'primary' | 'yellow' | 'green' | 'red' | 'blue';
+  tone?: "slate" | "primary" | "yellow" | "green" | "red" | "blue";
 }) {
   const toneClass = {
-    slate: 'bg-slate-50 text-slate-600 border-slate-100',
-    primary: 'bg-primary-50 text-primary-700 border-primary-100',
-    yellow: 'bg-yellow-50 text-yellow-700 border-yellow-100',
-    green: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-    red: 'bg-red-50 text-red-700 border-red-100',
-    blue: 'bg-secondary-50 text-secondary-600 border-secondary-100',
+    slate: "bg-slate-50 text-slate-600 border-slate-100",
+    primary: "bg-primary-50 text-primary-700 border-primary-100",
+    yellow: "bg-yellow-50 text-yellow-700 border-yellow-100",
+    green: "bg-emerald-50 text-emerald-700 border-emerald-100",
+    red: "bg-red-50 text-red-700 border-red-100",
+    blue: "bg-secondary-50 text-secondary-600 border-secondary-100",
   }[tone];
 
   return (
-    <span className={cn('inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold', toneClass)}>
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 rounded-lg border px-2.5 py-1 text-xs font-bold",
+        toneClass,
+      )}
+    >
       {children}
     </span>
   );

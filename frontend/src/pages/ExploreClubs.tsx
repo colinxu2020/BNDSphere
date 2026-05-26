@@ -1,33 +1,33 @@
-import { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
-import { Plus, Search, Filter, Hash, Sparkles } from 'lucide-react';
-import { client } from '../api/client';
-import { Link } from 'react-router-dom';
-import { cn } from '../lib/utils';
-import type { components } from '../api/schema';
-import { CATEGORY_MAP } from '../lib/labels';
-import { StatusMessage } from '../components/ui/AppPrimitives';
+import { useState, useEffect } from "react";
+import { motion } from "motion/react";
+import { Plus, Search, Filter, Hash, Sparkles } from "lucide-react";
+import { client } from "../api/client";
+import { Link } from "react-router-dom";
+import { cn } from "../lib/utils";
+import type { components } from "../api/schema";
+import { CATEGORY_MAP } from "../lib/labels";
+import { StatusMessage } from "../components/ui/AppPrimitives";
 
-type ClubInfo = components['schemas']['ClubInfo'];
-type Category = components['schemas']['ClubCategoryEnum'];
+type ClubInfo = components["schemas"]["ClubInfo"];
+type Category = components["schemas"]["ClubCategoryEnum"];
 
-const CATEGORIES: { label: string, value: Category | 'all' }[] = [
-  { label: '全部', value: 'all' },
-  { label: '科学', value: 'science' },
-  { label: '人文', value: 'humanity' },
-  { label: '艺术', value: 'arts' },
-  { label: '体育', value: 'sports' },
-  { label: '商务', value: 'business' },
-  { label: '公益', value: 'charity' },
-  { label: '校园', value: 'campus' },
-  { label: '其他', value: 'other' },
+const CATEGORIES: { label: string; value: Category | "all" }[] = [
+  { label: "全部", value: "all" },
+  { label: "科学", value: "science" },
+  { label: "人文", value: "humanity" },
+  { label: "艺术", value: "arts" },
+  { label: "体育", value: "sports" },
+  { label: "商务", value: "business" },
+  { label: "公益", value: "charity" },
+  { label: "校园", value: "campus" },
+  { label: "其他", value: "other" },
 ];
 
 export function ExploreClubs() {
   const [clubs, setClubs] = useState<ClubInfo[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
-  const [activeCategory, setActiveCategory] = useState<Category | 'all'>('all');
+  const [search, setSearch] = useState("");
+  const [activeCategory, setActiveCategory] = useState<Category | "all">("all");
   const [error, setError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -35,16 +35,16 @@ export function ExploreClubs() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await client.GET('/api/v1/clubs/', {
+        const { data, error } = await client.GET("/api/v1/clubs/", {
           params: {
             query: {
               size: 50,
               search: search || undefined,
-              category: activeCategory !== 'all' ? activeCategory : undefined
-            }
-          }
+              category: activeCategory !== "all" ? activeCategory : undefined,
+            },
+          },
         });
-        
+
         if (error) {
           setError(error);
           setClubs([]);
@@ -65,7 +65,7 @@ export function ExploreClubs() {
   }, [search, activeCategory]);
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -107,15 +107,15 @@ export function ExploreClubs() {
         {/* Categories */}
         <div className="w-full overflow-x-auto hide-scrollbar">
           <div className="flex gap-2 min-w-max pb-2">
-            {CATEGORIES.map(cat => (
+            {CATEGORIES.map((cat) => (
               <button
                 key={cat.value}
                 onClick={() => setActiveCategory(cat.value)}
                 className={cn(
                   "px-4 py-2 rounded-xl text-sm font-semibold transition-all shadow-sm whitespace-nowrap",
-                  activeCategory === cat.value 
-                    ? "bg-slate-900 text-white shadow-slate-900/10" 
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50"
+                  activeCategory === cat.value
+                    ? "bg-slate-900 text-white shadow-slate-900/10"
+                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
                 )}
               >
                 {cat.label}
@@ -130,7 +130,10 @@ export function ExploreClubs() {
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {[...Array(6)].map((_, i) => (
-            <div key={i} className="animate-pulse bg-white/50 h-32 rounded-3xl border border-slate-100 flex items-center p-6 gap-4">
+            <div
+              key={i}
+              className="animate-pulse bg-white/50 h-32 rounded-3xl border border-slate-100 flex items-center p-6 gap-4"
+            >
               <div className="w-16 h-16 bg-slate-200 rounded-2xl shrink-0"></div>
               <div className="flex flex-col gap-2 w-full">
                 <div className="h-4 bg-slate-200 rounded-md w-1/3"></div>
@@ -149,23 +152,27 @@ export function ExploreClubs() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05, duration: 0.3 }}
             >
-              <Link 
+              <Link
                 to={`/club/${club.id}`}
                 className="group flex items-start gap-4 p-5 bg-white rounded-3xl border border-slate-200/60 shadow-sm hover:shadow-[0_8px_30px_-4px_rgba(0,0,0,0.06)] hover:border-primary-100 transition-all duration-300 h-full"
               >
                 <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                   {club.logo_uri ? (
-                     <img src={club.logo_uri} alt={club.name} className="w-full h-full object-cover" />
-                   ) : (
-                     <Hash className="text-slate-400 stroke-[1.5]" size={28} />
-                   )}
+                  {club.logo_uri ? (
+                    <img
+                      src={club.logo_uri}
+                      alt={club.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Hash className="text-slate-400 stroke-[1.5]" size={28} />
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <div className="flex gap-2 items-center mb-1">
                     <span className="text-[10px] font-bold tracking-wider uppercase text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-full">
                       {CATEGORY_MAP[club.category] || club.category}
                     </span>
-                    {club.star_level !== 'none' && (
+                    {club.star_level !== "none" && (
                       <span className="flex text-yellow-400 bg-yellow-50 p-0.5 rounded-full">
                         <Sparkles size={12} className="fill-yellow-400" />
                       </span>
@@ -185,14 +192,19 @@ export function ExploreClubs() {
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-100 border-dashed rounded-[3rem]">
           <div className="bg-slate-50 w-16 h-16 rounded-full flex items-center justify-center mb-4">
-             <Filter className="text-slate-400" size={24} />
+            <Filter className="text-slate-400" size={24} />
           </div>
-          <h3 className="text-xl font-display font-semibold text-slate-800 mb-2">未找到社团</h3>
+          <h3 className="text-xl font-display font-semibold text-slate-800 mb-2">
+            未找到社团
+          </h3>
           <p className="text-slate-500 max-w-sm">
             我们找不到与当前条件匹配的社团。请尝试调整搜索关键字或社团类别。
           </p>
-          <button 
-            onClick={() => {setSearch(''); setActiveCategory('all');}}
+          <button
+            onClick={() => {
+              setSearch("");
+              setActiveCategory("all");
+            }}
             className="mt-6 px-6 py-2.5 bg-slate-900 text-white rounded-xl font-medium shadow-sm hover:bg-slate-800 transition-all active:scale-95"
           >
             清除筛选条件

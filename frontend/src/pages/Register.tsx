@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { motion } from 'motion/react';
-import { UserPlus } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { client } from '../api/client';
-import { StatusMessage } from '../components/ui/AppPrimitives';
+import React, { useState } from "react";
+import { motion } from "motion/react";
+import { UserPlus } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { client } from "../api/client";
+import { StatusMessage } from "../components/ui/AppPrimitives";
 
 export function Register() {
   const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -18,19 +18,22 @@ export function Register() {
     setError(null);
 
     if (password !== confirmPassword) {
-      setError('两次输入的密码不一致。');
+      setError("两次输入的密码不一致。");
       return;
     }
 
     setIsLoading(true);
 
     try {
-      const { data, error: apiError } = await client.POST('/api/v1/auth/register', {
-        body: {
-          username,
-          password
-        }
-      });
+      const { data, error: apiError } = await client.POST(
+        "/api/v1/auth/register",
+        {
+          body: {
+            username,
+            password,
+          },
+        },
+      );
 
       if (apiError) {
         setError(apiError);
@@ -39,7 +42,7 @@ export function Register() {
 
       if (data) {
         // Automatically login after register or redirect to login page
-        navigate('/login');
+        navigate("/login");
       }
     } catch (err: any) {
       setError(err);
@@ -49,7 +52,7 @@ export function Register() {
   };
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
@@ -60,57 +63,78 @@ export function Register() {
           <div className="mx-auto bg-primary-50 p-3 rounded-2xl text-primary-600 mb-2">
             <UserPlus size={28} />
           </div>
-          <h1 className="text-2xl font-display font-bold text-slate-900">注册 BNDSphere</h1>
+          <h1 className="text-2xl font-display font-bold text-slate-900">
+            注册 BNDSphere
+          </h1>
           <p className="text-slate-500 text-sm">创建您的新账号</p>
         </div>
 
-        {error && <div className="mb-6 relative z-10"><StatusMessage value={error} /></div>}
+        {error && (
+          <div className="mb-6 relative z-10">
+            <StatusMessage value={error} />
+          </div>
+        )}
 
-        <form onSubmit={handleRegister} className="flex flex-col gap-5 relative z-10">
+        <form
+          onSubmit={handleRegister}
+          className="flex flex-col gap-5 relative z-10"
+        >
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">用户名</label>
-            <input 
-              type="text" 
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+              用户名
+            </label>
+            <input
+              type="text"
               value={username}
-              onChange={e => setUsername(e.target.value)}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
               placeholder="您的用户名"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">密码</label>
-            <input 
-              type="password" 
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+              密码
+            </label>
+            <input
+              type="password"
               value={password}
-              onChange={e => setPassword(e.target.value)}
+              onChange={(e) => setPassword(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
               placeholder="••••••••"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">确认密码</label>
-            <input 
-              type="password" 
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+              确认密码
+            </label>
+            <input
+              type="password"
               value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
+              onChange={(e) => setConfirmPassword(e.target.value)}
               className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
               placeholder="••••••••"
               required
             />
           </div>
 
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={isLoading}
             className="mt-4 w-full py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-xl transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-500/20"
           >
-            {isLoading ? '正在注册...' : '注册'}
+            {isLoading ? "正在注册..." : "注册"}
           </button>
-          
+
           <div className="mt-4 text-center text-sm text-slate-500">
-            已有账号？ <span onClick={() => navigate('/login')} className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer">返回登录</span>
+            已有账号？{" "}
+            <span
+              onClick={() => navigate("/login")}
+              className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+            >
+              返回登录
+            </span>
           </div>
         </form>
       </div>

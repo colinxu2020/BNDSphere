@@ -1,6 +1,6 @@
 export function stringifyBackendValue(value: unknown): string {
-  if (value == null) return '';
-  if (typeof value === 'string') return value;
+  if (value == null) return "";
+  if (typeof value === "string") return value;
   if (value instanceof Error) return value.message;
   try {
     return JSON.stringify(value, null, 2);
@@ -10,24 +10,26 @@ export function stringifyBackendValue(value: unknown): string {
 }
 
 export function formatDate(value?: string | null): string {
-  if (!value) return '未设置';
+  if (!value) return "未设置";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleDateString();
 }
 
 export function formatDateTime(value?: string | null): string {
-  if (!value) return '未设置';
+  if (!value) return "未设置";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return value;
   return date.toLocaleString();
 }
 
 export function toDateTimeLocalValue(value?: string | null): string {
-  if (!value) return '';
+  if (!value) return "";
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return '';
-  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  if (Number.isNaN(date.getTime())) return "";
+  const offsetDate = new Date(
+    date.getTime() - date.getTimezoneOffset() * 60000,
+  );
   return offsetDate.toISOString().slice(0, 16);
 }
 
@@ -55,7 +57,7 @@ export function nullableText(value: string): string | null {
 export function splitLines(value: string): string[] | null {
   const items = value
     .split(/\r?\n/)
-    .map(item => item.trim())
+    .map((item) => item.trim())
     .filter(Boolean);
   return items.length ? items : null;
 }

@@ -1,25 +1,25 @@
-import { createBrowserRouter, RouterProvider, Outlet } from 'react-router-dom';
-import { RootLayout } from './components/layout/RootLayout';
-import { Home } from './pages/Home';
-import { ExploreClubs } from './pages/ExploreClubs';
-import { ClubDetail } from './pages/ClubDetail';
-import { Profile } from './pages/Profile';
-import { Login } from './pages/Login';
-import { Register } from './pages/Register';
-import { CreateClub } from './pages/CreateClub';
-import { UserProfile } from './pages/UserProfile';
-import { GeneralActivities } from './pages/GeneralActivities';
-import { GeneralActivityDetail } from './pages/GeneralActivityDetail';
-import { ClubWorkspace } from './pages/ClubWorkspace';
-import { Workspace } from './pages/Workspace';
-import { Moderation } from './pages/Moderation';
-import { Admin } from './pages/Admin';
-import { Federation } from './pages/Federation';
+import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { RootLayout } from "./components/layout/RootLayout";
+import { Home } from "./pages/Home";
+import { ExploreClubs } from "./pages/ExploreClubs";
+import { ClubDetail } from "./pages/ClubDetail";
+import { Profile } from "./pages/Profile";
+import { Login } from "./pages/Login";
+import { Register } from "./pages/Register";
+import { CreateClub } from "./pages/CreateClub";
+import { UserProfile } from "./pages/UserProfile";
+import { GeneralActivities } from "./pages/GeneralActivities";
+import { GeneralActivityDetail } from "./pages/GeneralActivityDetail";
+import { ClubWorkspace } from "./pages/ClubWorkspace";
+import { Workspace } from "./pages/Workspace";
+import { Moderation } from "./pages/Moderation";
+import { Admin } from "./pages/Admin";
+import { Federation } from "./pages/Federation";
 
 function LayoutWrapper() {
   return (
     <RootLayout>
-       <Outlet />
+      <Outlet />
     </RootLayout>
   );
 }
@@ -31,66 +31,66 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
-        element: <Home />
+        element: <Home />,
       },
       {
         path: "explore",
-        element: <ExploreClubs />
+        element: <ExploreClubs />,
       },
       {
         path: "club/:id",
-        element: <ClubDetail />
+        element: <ClubDetail />,
       },
       {
         path: "club/:id/manage",
-        element: <ClubWorkspace />
+        element: <ClubWorkspace />,
       },
       {
         path: "clubs/new",
-        element: <CreateClub />
+        element: <CreateClub />,
       },
       {
         path: "activities",
-        element: <GeneralActivities />
+        element: <GeneralActivities />,
       },
       {
         path: "activities/:id",
-        element: <GeneralActivityDetail />
+        element: <GeneralActivityDetail />,
       },
       {
         path: "users/:id",
-        element: <UserProfile />
+        element: <UserProfile />,
       },
       {
         path: "workspace",
-        element: <Workspace />
+        element: <Workspace />,
       },
       {
         path: "moderation",
-        element: <Moderation />
+        element: <Moderation />,
       },
       {
         path: "admin",
-        element: <Admin />
+        element: <Admin />,
       },
       {
         path: "federation",
-        element: <Federation />
+        element: <Federation />,
       },
       {
         path: "profile",
-        element: <Profile />
+        element: <Profile />,
       },
       {
         path: "login",
-        element: <Login />
+        element: <Login />,
       },
       {
         path: "register",
-        element: <Register />
-      }
-    ]
-  }
+        element: <Register />,
+      },
+    ],
+  },
 ]);
 
 export default function App() {

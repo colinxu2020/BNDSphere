@@ -1,18 +1,37 @@
-import { useEffect, useState } from 'react';
-import { motion } from 'motion/react';
-import { Activity, ArrowLeft, CalendarDays, CheckCircle2, FileText } from 'lucide-react';
-import { Link, useParams } from 'react-router-dom';
-import { client } from '../api/client';
-import type { components } from '../api/schema';
-import { ACTIVITY_LEVEL_MAP, AUDIT_STATUS_MAP, PARTICIPATION_MAP } from '../lib/labels';
-import { formatDate, formatDateTime } from '../lib/format';
-import { Badge, EmptyState, PageHeader, SectionTitle, StatusMessage, Surface } from '../components/ui/AppPrimitives';
+import { useEffect, useState } from "react";
+import { motion } from "motion/react";
+import {
+  Activity,
+  ArrowLeft,
+  CalendarDays,
+  CheckCircle2,
+  FileText,
+} from "lucide-react";
+import { Link, useParams } from "react-router-dom";
+import { client } from "../api/client";
+import type { components } from "../api/schema";
+import {
+  ACTIVITY_LEVEL_MAP,
+  AUDIT_STATUS_MAP,
+  PARTICIPATION_MAP,
+} from "../lib/labels";
+import { formatDate, formatDateTime } from "../lib/format";
+import {
+  Badge,
+  EmptyState,
+  PageHeader,
+  SectionTitle,
+  StatusMessage,
+  Surface,
+} from "../components/ui/AppPrimitives";
 
-type GeneralActivity = components['schemas']['GeneralActivityInfo'];
+type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 
 export function GeneralActivityDetail() {
   const { id } = useParams<{ id: string }>();
-  const [activityInfo, setActivityInfo] = useState<GeneralActivity | null>(null);
+  const [activityInfo, setActivityInfo] = useState<GeneralActivity | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
@@ -21,9 +40,12 @@ export function GeneralActivityDetail() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await client.GET('/api/v1/general-activities/{activity_id}', {
-          params: { path: { activity_id: Number(id) } },
-        });
+        const { data, error } = await client.GET(
+          "/api/v1/general-activities/{activity_id}",
+          {
+            params: { path: { activity_id: Number(id) } },
+          },
+        );
         if (error) {
           setError(error);
           setActivityInfo(null);
@@ -48,7 +70,10 @@ export function GeneralActivityDetail() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col gap-8 pb-20"
     >
-      <Link to="/activities" className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors">
+      <Link
+        to="/activities"
+        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
+      >
         <ArrowLeft size={18} /> 返回活动
       </Link>
 
@@ -71,10 +96,12 @@ export function GeneralActivityDetail() {
               />
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-8 text-sm font-medium text-slate-500">
                 <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
-                  <CalendarDays size={16} /> 创建于 {formatDate(activityInfo.created_at)}
+                  <CalendarDays size={16} /> 创建于{" "}
+                  {formatDate(activityInfo.created_at)}
                 </div>
                 <div className="flex items-center gap-2 bg-slate-50 rounded-xl px-3 py-2 border border-slate-100">
-                  <FileText size={16} /> 当前学期 {activityInfo.academic_term?.term_name || '未设置'}
+                  <FileText size={16} /> 当前学期{" "}
+                  {activityInfo.academic_term?.term_name || "未设置"}
                 </div>
               </div>
             </div>
@@ -88,19 +115,35 @@ export function GeneralActivityDetail() {
             />
             {activityInfo.club_records?.length ? (
               <div className="grid gap-4">
-                {activityInfo.club_records.map(record => (
-                  <div key={record.id} className="rounded-2xl border border-slate-100 bg-slate-50 p-5">
+                {activityInfo.club_records.map((record) => (
+                  <div
+                    key={record.id}
+                    className="rounded-2xl border border-slate-100 bg-slate-50 p-5"
+                  >
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge tone={record.audit_status === 'approved' ? 'green' : record.audit_status === 'rejected' ? 'red' : 'yellow'}>
+                          <Badge
+                            tone={
+                              record.audit_status === "approved"
+                                ? "green"
+                                : record.audit_status === "rejected"
+                                  ? "red"
+                                  : "yellow"
+                            }
+                          >
                             {AUDIT_STATUS_MAP[record.audit_status]}
                           </Badge>
-                          <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
+                          <Badge>
+                            {PARTICIPATION_MAP[record.participation_type]}
+                          </Badge>
                         </div>
-                        <h3 className="font-semibold text-slate-900 mt-3">社团 #{record.club_id}</h3>
+                        <h3 className="font-semibold text-slate-900 mt-3">
+                          社团 #{record.club_id}
+                        </h3>
                         <p className="text-sm text-slate-500 mt-1">
-                          申请分值 {record.requested_score}，提交于 {formatDateTime(record.created_at)}
+                          申请分值 {record.requested_score}，提交于{" "}
+                          {formatDateTime(record.created_at)}
                         </p>
                       </div>
                       <Link
@@ -112,7 +155,7 @@ export function GeneralActivityDetail() {
                     </div>
                     {record.proof_files?.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
-                        {record.proof_files.map(file => (
+                        {record.proof_files.map((file) => (
                           <a
                             key={file}
                             href={file}

@@ -1,14 +1,17 @@
-import { client } from './client';
-import type { components } from './schema';
+import { client } from "./client";
+import type { components } from "./schema";
 
 const PUBLIC_BUCKET_BASE =
-  'https://e0ded02d5f8685e44bebe5e8e35cb561.r2.cloudflarestorage.com/bndsphere/';
+  "https://e0ded02d5f8685e44bebe5e8e35cb561.r2.cloudflarestorage.com/bndsphere/";
 
-export type UploadScene = components['schemas']['UploadScene'];
+export type UploadScene = components["schemas"]["UploadScene"];
 
-export async function uploadFile(file: File, scene: UploadScene): Promise<string> {
-  const contentType = file.type || 'application/octet-stream';
-  const { data, error } = await client.POST('/api/v1/uploads/initiate', {
+export async function uploadFile(
+  file: File,
+  scene: UploadScene,
+): Promise<string> {
+  const contentType = file.type || "application/octet-stream";
+  const { data, error } = await client.POST("/api/v1/uploads/initiate", {
     body: {
       scene,
       filename: file.name,
@@ -22,13 +25,13 @@ export async function uploadFile(file: File, scene: UploadScene): Promise<string
   }
 
   if (!data) {
-    throw new Error('Upload initiate response is empty.');
+    throw new Error("Upload initiate response is empty.");
   }
 
   const response = await fetch(data.upload_url, {
-    method: 'PUT',
+    method: "PUT",
     headers: {
-      'Content-Type': contentType,
+      "Content-Type": contentType,
     },
     body: file,
   });
