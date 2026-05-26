@@ -26,15 +26,18 @@ class StarRatingBreakdown(BaseModel):
     )
     growth_story: int = Field(
         ...,
-        description="三、成长故事 (0 或 5)",
+        description=(
+            "三、成长故事 (0 或 5, 上限前原始值; "
+            "此三项之和可能超过 special_bonuses 上限)"
+        ),
     )
     cross_grade_influence: int = Field(
         ...,
-        description="三、跨年级影响力 (0 或 5)",
+        description="三、跨年级影响力 (0 或 5, 上限前原始值)",
     )
     club_history: int = Field(
         ...,
-        description="三、社团历史 ≥2年 (0 或 5)",
+        description="三、社团历史 >=2年 (0 或 5, 上限前原始值)",
     )
     special_bonuses: int = Field(
         ...,

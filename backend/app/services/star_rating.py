@@ -101,6 +101,8 @@ class StarRatingService:
         history_score = (
             _CLUB_HISTORY_SCORE if age_years >= _CLUB_HISTORY_MIN_YEARS else 0
         )
+        # 三、特色加分 — components are pre-cap raw values;
+        # their sum may exceed special_bonuses (capped at 10).
         special_bonuses = min(
             growth_story + cross_grade + history_score,
             _SPECIAL_BONUSES_CAP,

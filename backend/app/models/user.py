@@ -24,6 +24,20 @@ class RoleEnum(StrEnum):
     dev = "dev"
 
 
+_GRADE_LEVEL_MAP: dict[str, int] = {
+    "grade_7": 7,
+    "grade_8": 8,
+    "grade_9": 9,
+    "grade_10": 10,
+    "grade_11": 11,
+    "grade_12": 12,
+    "inter_grade_9": 9,
+    "inter_grade_10": 10,
+    "inter_grade_11": 11,
+    "inter_grade_12": 12,
+}
+
+
 class UserGradeEnum(StrEnum):
     grade_7 = "grade_7"
     grade_8 = "grade_8"
@@ -38,20 +52,7 @@ class UserGradeEnum(StrEnum):
 
     @property
     def grade_level(self) -> int:
-        """Map all grade variants to a numeric grade level (7-12)."""
-        mapping = {
-            "grade_7": 7,
-            "grade_8": 8,
-            "grade_9": 9,
-            "grade_10": 10,
-            "grade_11": 11,
-            "grade_12": 12,
-            "inter_grade_9": 9,
-            "inter_grade_10": 10,
-            "inter_grade_11": 11,
-            "inter_grade_12": 12,
-        }
-        return mapping[self.value]
+        return _GRADE_LEVEL_MAP[self.value]
 
 
 class AuditStatusEnum(StrEnum):
