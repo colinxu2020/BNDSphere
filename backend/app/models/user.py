@@ -24,6 +24,37 @@ class RoleEnum(StrEnum):
     dev = "dev"
 
 
+_GRADE_LEVEL_MAP: dict[str, int] = {
+    "grade_7": 7,
+    "grade_8": 8,
+    "grade_9": 9,
+    "grade_10": 10,
+    "grade_11": 11,
+    "grade_12": 12,
+    "inter_grade_9": 9,
+    "inter_grade_10": 10,
+    "inter_grade_11": 11,
+    "inter_grade_12": 12,
+}
+
+
+class UserGradeEnum(StrEnum):
+    grade_7 = "grade_7"
+    grade_8 = "grade_8"
+    grade_9 = "grade_9"
+    grade_10 = "grade_10"
+    grade_11 = "grade_11"
+    grade_12 = "grade_12"
+    inter_grade_9 = "inter_grade_9"
+    inter_grade_10 = "inter_grade_10"
+    inter_grade_11 = "inter_grade_11"
+    inter_grade_12 = "inter_grade_12"
+
+    @property
+    def grade_level(self) -> int:
+        return _GRADE_LEVEL_MAP[self.value]
+
+
 class AuditStatusEnum(StrEnum):
     pending = "pending"
     approved = "approved"
@@ -54,6 +85,7 @@ class User(Base):
         index=True,
         default=None,
     )
+    grade: Mapped[UserGradeEnum | None] = mapped_column(default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

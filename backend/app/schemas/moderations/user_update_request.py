@@ -3,6 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.user import UserGradeEnum
 from app.schemas.generic import IdMixin
 from app.schemas.moderations.moderation_common import UpdateRequestCreateBase
 
@@ -13,6 +14,7 @@ class UserUpdateRequestCreate(UpdateRequestCreateBase):
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
+    grade: UserGradeEnum | None = Field(None)
 
 
 class UserUpdateRequestInfo(IdMixin, BaseModel):
@@ -27,3 +29,4 @@ class UserUpdateRequestInfo(IdMixin, BaseModel):
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
+    grade: UserGradeEnum | None = Field(None)

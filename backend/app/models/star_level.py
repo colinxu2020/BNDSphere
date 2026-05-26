@@ -15,7 +15,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
 from app.models.club import ClubStarLevelEnum
-from app.models.user import AuditMixin
+from app.models.user import AuditMixin, UserGradeEnum
 from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
@@ -33,6 +33,14 @@ class StarLevelApplication(Base, AcademicTermMixin, AuditMixin):
     final_contest_score: Mapped[int | None] = mapped_column()
     uniqueness_statement: Mapped[str | None] = mapped_column(Text)
     uniqueness_approved: Mapped[bool | None] = mapped_column(Boolean)
+
+    # 三、特色加分 — 成长故事
+    growth_story_url: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
+    growth_story_approved: Mapped[bool | None] = mapped_column(Boolean, default=None)
+
+    # 三、特色加分 — 跨年级影响力 (目标级部)
+    target_grade_1: Mapped[UserGradeEnum | None] = mapped_column(default=None)
+    target_grade_2: Mapped[UserGradeEnum | None] = mapped_column(default=None)
 
     approved_score: Mapped[int | None] = mapped_column()
     approved_level: Mapped[ClubStarLevelEnum | None] = mapped_column()

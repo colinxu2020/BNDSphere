@@ -3,7 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
 from app.core import constants
-from app.models.user import RoleEnum
+from app.models.user import RoleEnum, UserGradeEnum
 from app.schemas.generic import IdMixin
 
 
@@ -22,6 +22,7 @@ class UserInfo(UserBase, IdMixin):
     avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)
     role: RoleEnum
+    grade: UserGradeEnum | None
     created_at: datetime
 
 
@@ -36,6 +37,7 @@ class AdminUserUpdate(BaseModel):
         max_length=constants.USER_MAX_DESCRIPTION_LENGTH,
     )
     role: RoleEnum | None = Field(None)
+    grade: UserGradeEnum | None = Field(None)
 
 
 class Token(BaseModel):
