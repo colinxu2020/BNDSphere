@@ -2,7 +2,7 @@ import { client } from "./client";
 import type { components } from "./schema";
 
 const PUBLIC_BUCKET_BASE =
-  "https://e0ded02d5f8685e44bebe5e8e35cb561.r2.cloudflarestorage.com/bndsphere/";
+  "https://r2.pulldown.dev";
 
 export type UploadScene = components["schemas"]["UploadScene"];
 
@@ -41,5 +41,5 @@ export async function uploadFile(
     throw new Error(text || `Upload failed with HTTP ${response.status}`);
   }
 
-  return `${PUBLIC_BUCKET_BASE}${data.object_key}`;
+  return `${PUBLIC_BUCKET_BASE}/${data.object_key}`;
 }
