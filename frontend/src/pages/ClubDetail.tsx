@@ -52,6 +52,14 @@ export function ClubDetail() {
   const [actionTone, setActionTone] = useState<"error" | "success">("error");
   const [isActionLoading, setIsActionLoading] = useState(false);
 
+  const requireLogin = () => {
+    if (localStorage.getItem("bnd_token")) return true;
+
+    setActionTone("error");
+    setActionMessage("请先登录");
+    return false;
+  };
+
   useEffect(() => {
     const fetchClubInfo = async () => {
       setIsLoading(true);
@@ -78,6 +86,8 @@ export function ClubDetail() {
   }, [id]);
 
   const joinClub = async () => {
+    if (!requireLogin()) return;
+
     setIsActionLoading(true);
     setActionMessage(null);
     try {
@@ -103,6 +113,8 @@ export function ClubDetail() {
   };
 
   const leaveClub = async () => {
+    if (!requireLogin()) return;
+
     setIsActionLoading(true);
     setActionMessage(null);
     try {
