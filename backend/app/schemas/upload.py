@@ -28,7 +28,7 @@ class UploadScene(StrEnum):
 
 class InitiateUploadRequest(BaseModel):
     scene: UploadScene
-    filename: str = Field(..., min_length=1)
+    filename: str = Field(..., min_length=1, max_length=256)
     content_type: str
     size: int = Field(..., gt=0)
 

@@ -7,10 +7,8 @@ import aioboto3  # type: ignore[import-untyped]
 from botocore.config import Config  # type: ignore[import-untyped]
 from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
-from app.core.settings import OSSSettings
 from app.core.settings import oss_settings as get_oss_settings
 
-OSS_SETTINGS: Final[OSSSettings] = get_oss_settings()
 S3_NOT_FOUND_CODES: Final[frozenset[str]] = frozenset({"404", "NoSuchKey", "NotFound"})
 
 
@@ -22,9 +20,10 @@ class S3Client(Protocol):
 
 class ObjectStorageService:
     def __init__(self) -> None:
+        self.settings = get_oss_settings()
         self._session = aioboto3.Session(
-            aws_access_key_id=OSS_SETTINGS.oss_access_key_id,
-            aws_secret_access_key=OSS_SETTINGS.oss_access_key,
+            aws_access_key_id=self.settings.oss_access_key_id,
+            aws_secret_access_key=self.settings.oss_access_key,
             region_name="auto",
         )
         self._client_config = Config(signature_version="s3v4")
@@ -33,7 +32,7 @@ class ObjectStorageService:
     async def _client(self) -> AsyncIterator[S3Client]:
         async with self._session.client(
             "s3",
-            endpoint_url=OSS_SETTINGS.oss_endpoint_url,
+            endpoint_url=self.settings.oss_endpoint_url,
             config=self._client_config,
         ) as client:
             yield cast("S3Client", client)
@@ -45,7 +44,7 @@ class ObjectStorageService:
         expires_seconds: int,
     ) -> str:
         params = {
-            "Bucket": OSS_SETTINGS.oss_bucket,
+            "Bucket": self.settings.oss_bucket,
             "Key": object_key,
             "ContentType": content_type,
         }
@@ -65,7 +64,7 @@ class ObjectStorageService:
         async with self._client() as client:
             try:
                 result = await client.head_object(
-                    Bucket=OSS_SETTINGS.oss_bucket,
+                    Bucket=self.settings.oss_bucket,
                     Key=object_key,
                 )
             except ClientError as exc:
