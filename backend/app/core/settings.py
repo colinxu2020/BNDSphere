@@ -32,6 +32,13 @@ class DatabaseSettings(_AppBaseSettings):
     model_config = SettingsConfigDict(secrets_dir="/run/secrets")
 
 
+class OSSSettings(_AppBaseSettings):
+    oss_endpoint_url: str
+    oss_access_key_id: str
+    oss_access_key: str
+    oss_bucket: str
+
+
 @cache
 def db_settings() -> DatabaseSettings:
     return DatabaseSettings()  # type: ignore[call-arg]
@@ -40,3 +47,8 @@ def db_settings() -> DatabaseSettings:
 @cache
 def web_settings() -> WebSettings:
     return WebSettings()  # type: ignore[call-arg]
+
+
+@cache
+def oss_settings() -> OSSSettings:
+    return OSSSettings()  # type: ignore[call-arg]
