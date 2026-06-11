@@ -1,19 +1,9 @@
 from datetime import UTC, datetime
 
-from sqlalchemy import func, select
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.models.academic_term import AcademicTerm
 from app.models.club import Club, ClubStarLevelEnum
-from app.models.club_activity import ClubActivity
-from app.models.clubmember import ClubMember, ClubMembershipEnum
-from app.models.general_activity import (
-    ClubGeneralActivityRecord,
-    GeneralActivity,
-    GeneralActivityLevelEnum,
-)
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum, User, UserGradeEnum
+from app.models.user import AuditStatusEnum
+from app.repositories.star_rating import StarRatingRepository
 from app.schemas.star_rating import StarRatingBreakdown, StarRatingResponse
 from app.services.errors import ClubNotFoundError
 
@@ -47,38 +37,31 @@ _STAR_LEVEL_THRESHOLDS: list[tuple[int, ClubStarLevelEnum]] = [
 
 
 class StarRatingService:
-    def __init__(self, db: AsyncSession) -> None:
-        self.db = db
+    def __init__(self, repository: StarRatingRepository) -> None:
+        self.repository = repository
 
     async def calculate_score(self, club_id: int) -> StarRatingResponse:
-        club = await self.db.get(Club, club_id)
+        club = await self.repository.get_club(club_id)
         if club is None:
             raise ClubNotFoundError(club_id)
 
-        current_term = await self._get_current_term()
+        current_term = await self.repository.get_current_term()
+        application = await self.repository.get_application(club_id, current_term)
 
-        # 获取本学期的星级评价申请
-        application = await self._get_application(club_id, current_term)
-
-        # 一、会议出勤 (0 或 10)
-        has_federation = await self._has_federation_participation(
+        has_federation = await self.repository.has_federation_participation(
             club_id,
             current_term,
         )
         meeting_score = _MEETING_ATTENDANCE_SCORE if has_federation else 0
 
-        # 二.1 活动参与 (校级 + 大型)
-        raw_activity = await self._calc_activity_participation_score(
+        raw_activity = await self.repository.sum_approved_activity_scores(
             club_id,
             current_term,
         )
 
-        # 二.1 竞赛得分 — cap at rubric max of 13
         raw_competition = self._get_competition_score(application)
         competition_score = min(raw_competition, _COMPETITION_MAX)
 
-        # 二.1 合计 (上限 50); competition is counted first so it's
-        # never zeroed in the breakdown, then activity fills remainder.
         competition_breakdown = competition_score
         activity_participation = min(
             raw_activity,
@@ -86,14 +69,12 @@ class StarRatingService:
         )
         section_2_1 = activity_participation + competition_breakdown
 
-        # 二.2 内部活动
-        internal_count = await self._count_internal_activities(
+        internal_count = await self.repository.count_internal_activities(
             club_id,
             current_term,
         )
         internal_score = self._internal_activity_score(internal_count)
 
-        # 三、特色加分
         growth_story = self._get_growth_story_score(application)
         cross_grade = await self._calc_cross_grade_influence(
             club_id,
@@ -103,14 +84,11 @@ class StarRatingService:
         history_score = (
             _CLUB_HISTORY_SCORE if age_years >= _CLUB_HISTORY_MIN_YEARS else 0
         )
-        # 三、特色加分 — components are pre-cap raw values;
-        # their sum may exceed special_bonuses (capped at 10).
         special_bonuses = min(
             growth_story + cross_grade + history_score,
             _SPECIAL_BONUSES_CAP,
         )
 
-        # 总分
         total = min(
             meeting_score + section_2_1 + internal_score + special_bonuses,
             _TOTAL_SCORE_CAP,
@@ -137,29 +115,6 @@ class StarRatingService:
             has_federation_participation=has_federation,
             club_age_years=round(age_years, 2),
         )
-
-    # ── helpers ──────────────────────────────────────────────
-
-    async def _get_current_term(self) -> AcademicTerm | None:
-        result = await self.db.execute(
-            select(AcademicTerm).where(AcademicTerm.is_current.is_(True)),
-        )
-        return result.scalars().first()
-
-    async def _get_application(
-        self,
-        club_id: int,
-        term: AcademicTerm | None,
-    ) -> StarLevelApplication | None:
-        if term is None:
-            return None
-        result = await self.db.execute(
-            select(StarLevelApplication).where(
-                StarLevelApplication.club_id == club_id,
-                StarLevelApplication.academic_term_id == term.id,
-            ),
-        )
-        return result.scalars().first()
 
     @staticmethod
     def _get_competition_score(
@@ -190,23 +145,25 @@ class StarRatingService:
         """计算跨年级影响力得分.
 
         两种方式:
-        1. 设置了目标级部 → 目标级部成员 ≥25 人
-        2. 未设置目标级部 → 成员覆盖全部 6 个年级
+        1. 设置了目标级部 -> 目标级部成员 >=25 人
+        2. 未设置目标级部 -> 成员覆盖全部 6 个年级
         """
-        # 获取活跃成员的年级分布
-        grade_counts = await self._count_members_by_grade_level(club_id)
+        grade_counts = await self.repository.count_members_by_grade_level(club_id)
 
         if (
             application is not None
             and application.audit_status == AuditStatusEnum.approved
         ):
             target_grades = {
-                g
-                for g in (application.target_grade_1, application.target_grade_2)
-                if g is not None
+                grade
+                for grade in (
+                    application.target_grade_1,
+                    application.target_grade_2,
+                )
+                if grade is not None
             }
             if target_grades:
-                target_levels = {g.grade_level for g in target_grades}
+                target_levels = {grade.grade_level for grade in target_grades}
                 total_in_target = sum(
                     count
                     for level, count in grade_counts.items()
@@ -216,117 +173,10 @@ class StarRatingService:
                     return _CROSS_GRADE_SCORE
                 return 0
 
-        # 未设置目标级部: 检查是否覆盖全部 6 个年级
         if set(grade_counts.keys()) >= _ALL_GRADE_LEVELS:
             return _CROSS_GRADE_SCORE
 
         return 0
-
-    async def _count_members_by_grade_level(
-        self,
-        club_id: int,
-    ) -> dict[int, int]:
-        """统计社团活跃成员的年级分布 (按 grade_level 分组).
-
-        Returns: {grade_level: count}, e.g. {7: 10, 8: 15, ...}
-        """
-        stmt = (
-            select(User.grade, func.count())
-            .join(ClubMember, ClubMember.user_id == User.id)
-            .where(
-                ClubMember.club_id == club_id,
-                ClubMember.membership.in_(
-                    [
-                        ClubMembershipEnum.member,
-                        ClubMembershipEnum.president,
-                        ClubMembershipEnum.vice_president,
-                    ],
-                ),
-                User.grade.isnot(None),
-            )
-            .group_by(User.grade)
-        )
-        result = await self.db.execute(stmt)
-        rows = result.all()
-
-        counts: dict[int, int] = {}
-        for grade_enum_value, count in rows:
-            if isinstance(grade_enum_value, UserGradeEnum):
-                level = grade_enum_value.grade_level
-            else:
-                level = UserGradeEnum(grade_enum_value).grade_level
-            counts[level] = counts.get(level, 0) + count
-        return counts
-
-    async def _has_federation_participation(
-        self,
-        club_id: int,
-        term: AcademicTerm | None,
-    ) -> bool:
-        """Check if the club participated in any club_federation activity."""
-        stmt = (
-            select(ClubGeneralActivityRecord.id)
-            .join(
-                GeneralActivity,
-                ClubGeneralActivityRecord.activity_id == GeneralActivity.id,
-            )
-            .where(
-                ClubGeneralActivityRecord.club_id == club_id,
-                GeneralActivity.level == GeneralActivityLevelEnum.club_federation,
-            )
-            .limit(1)
-        )
-        if term is not None:
-            stmt = stmt.where(GeneralActivity.academic_term_id == term.id)
-        result = await self.db.execute(stmt)
-        return result.first() is not None
-
-    async def _calc_activity_participation_score(
-        self,
-        club_id: int,
-        term: AcademicTerm | None,
-    ) -> int:
-        """Sum final_score of approved school/large activity records."""
-        stmt = (
-            select(func.coalesce(func.sum(ClubGeneralActivityRecord.final_score), 0))
-            .join(
-                GeneralActivity,
-                ClubGeneralActivityRecord.activity_id == GeneralActivity.id,
-            )
-            .where(
-                ClubGeneralActivityRecord.club_id == club_id,
-                ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
-                GeneralActivity.level.in_(
-                    [
-                        GeneralActivityLevelEnum.school,
-                        GeneralActivityLevelEnum.large,
-                    ],
-                ),
-            )
-        )
-        if term is not None:
-            stmt = stmt.where(GeneralActivity.academic_term_id == term.id)
-        result = await self.db.execute(stmt)
-        total: int = result.scalar_one()
-        return total
-
-    async def _count_internal_activities(
-        self,
-        club_id: int,
-        term: AcademicTerm | None,
-    ) -> int:
-        """Count the club's own activities in the current term."""
-        stmt = (
-            select(func.count())
-            .select_from(ClubActivity)
-            .where(
-                ClubActivity.club_id == club_id,
-            )
-        )
-        if term is not None:
-            stmt = stmt.where(ClubActivity.academic_term_id == term.id)
-        result = await self.db.execute(stmt)
-        return result.scalar_one()
 
     @staticmethod
     def _internal_activity_score(count: int) -> int:

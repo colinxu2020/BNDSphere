@@ -1,14 +1,14 @@
-from typing import cast
-
 from fastapi_pagination import Page
-from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError, OperationalError
 
 from app.models import Club, GeneralActivity, User
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
+)
+from app.repositories.general_activities import (
+    ClubGeneralActivityRepository,
+    GeneralActivityRepository,
 )
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
@@ -27,21 +27,20 @@ from app.services.errors import (
 
 
 class GeneralActivityService(
-    ServiceBase[GeneralActivity, GeneralActivityCreate, GeneralActivityUpdate],
+    ServiceBase[
+        GeneralActivity,
+        GeneralActivityCreate,
+        GeneralActivityUpdate,
+    ],
 ):
-    model = GeneralActivity
+    repository: GeneralActivityRepository
 
     async def get_multi(
         self,
         search: str | None = None,
         level: GeneralActivityLevelEnum | None = None,
     ) -> Page[GeneralActivity]:
-        stmt = select(self.model).order_by(GeneralActivity.created_at.desc())
-        if level is not None:
-            stmt = stmt.where(self.model.level == level)
-        if search is not None:
-            stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
-        return cast("Page[GeneralActivity]", await apaginate(self.db, stmt))
+        return await self.repository.get_multi(search, level)
 
 
 class ClubGeneralActivityService(
@@ -51,7 +50,7 @@ class ClubGeneralActivityService(
         ClubGeneralActivityUpdate,
     ],
 ):
-    model = ClubGeneralActivityRecord
+    repository: ClubGeneralActivityRepository
 
     async def create_club_general_activity(
         self,
@@ -59,11 +58,10 @@ class ClubGeneralActivityService(
         club_id: int,
     ) -> ClubGeneralActivityRecord:
         try:
-            stmt = select(self.model).where(
-                self.model.club_id == club_id,
-                self.model.activity_id == obj_in.activity_id,
+            existing = await self.repository.find_by_club_id_and_activity_id(
+                club_id,
+                obj_in.activity_id,
             )
-            existing = (await self.db.execute(stmt)).scalar_one_or_none()
             if existing:
                 raise DuplicateResourceError(
                     message_key="error.general_activity.club_requested",
@@ -88,19 +86,14 @@ class ClubGeneralActivityService(
             ) from None
 
     async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
-        stmt = select(self.model).where(self.model.club == club)
-        return cast("Page[ClubGeneralActivityRecord]", await apaginate(self.db, stmt))
+        return await self.repository.get_by_club(club)
 
     async def get_by_club_and_activity(
         self,
         club: Club,
         activity: GeneralActivity,
     ) -> ClubGeneralActivityRecord:
-        stmt = select(self.model).where(
-            self.model.club == club,
-            self.model.activity_id == activity.id,
-        )
-        result = (await self.db.execute(stmt)).scalar_one_or_none()
+        result = await self.repository.find_by_club_and_activity(club, activity)
         if result is None:
             raise GeneralActivityNotFoundError(activity.id) from None
         return result
@@ -119,12 +112,4 @@ class ClubGeneralActivityService(
                 {"record_id": record_id},
             )
 
-        for field, value in obj_in.model_dump(exclude_unset=True).items():
-            setattr(db_obj, field, value)
-        db_obj.auditor = auditor
-        db_obj.auditor_id = auditor.id
-
-        self.db.add(db_obj)
-        await self.db.flush()
-        await self.db.refresh(db_obj)
-        return db_obj
+        return await self.repository.review_record(db_obj, obj_in, auditor)
