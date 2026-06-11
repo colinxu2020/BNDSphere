@@ -5,6 +5,7 @@ description = "bnds club manage platform"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
+    "aioboto3>=15.5.0",
     "alembic>=1.18.4",
     "fastapi-pagination>=0.15.12",
     "fastapi[standard]>=0.135.1",

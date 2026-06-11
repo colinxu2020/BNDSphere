@@ -43,6 +43,7 @@ from app.services.general_activities import (
     ClubGeneralActivityService,
     GeneralActivityService,
 )
+from app.services.oss import ObjectStorageService
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
 from app.services.user import UserService, UserUpdateRequestService
@@ -147,6 +148,10 @@ type StarLevelServiceDep = Annotated[
 type StarRatingServiceDep = Annotated[
     StarRatingService,
     Depends(ServiceFactory(StarRatingService, StarRatingRepository)),
+]
+type ObjectStorageServiceDep = Annotated[
+    ObjectStorageService,
+    Depends(ObjectStorageService),
 ]
 
 
