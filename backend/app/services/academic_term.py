@@ -21,8 +21,9 @@ class AcademicTermService(
         return await self.repository.get_multi()
 
     async def set_current(self, term: AcademicTerm) -> AcademicTerm:
-        await self.repository.clear_current_term()
-        return await self.repository.set_current(term)
+        async with self.transaction():
+            await self.repository.clear_current_term()
+            return await self.repository.set_current(term)
 
     @override
     async def create(
@@ -30,6 +31,7 @@ class AcademicTermService(
         obj_in: AcademicTermCreate,
         **kwargs: object,
     ) -> AcademicTerm:
-        if obj_in.is_current:
-            await self.repository.clear_current_term()
-        return await super().create(obj_in, **kwargs)
+        async with self.transaction():
+            if obj_in.is_current:
+                await self.repository.clear_current_term()
+            return await super().create(obj_in, **kwargs)

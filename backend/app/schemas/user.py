@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator
 
 from app.core import constants
 from app.models.user import RoleEnum, UserGradeEnum
-from app.schemas.generic import IdMixin
+from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 
 
 class UserBase(BaseModel):
@@ -38,6 +39,14 @@ class AdminUserUpdate(BaseModel):
     )
     role: RoleEnum | None = Field(None)
     grade: UserGradeEnum | None = Field(None)
+
+    @model_validator(mode="after")
+    def validate_non_nullable_fields(self) -> Self:
+        ensure_non_nullable_fields_present(
+            self,
+            {"username", "description", "role"},
+        )
+        return self
 
 
 class Token(BaseModel):

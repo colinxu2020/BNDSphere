@@ -58,20 +58,21 @@ class ClubGeneralActivityService(
         club_id: int,
     ) -> ClubGeneralActivityRecord:
         try:
-            existing = await self.repository.find_by_club_id_and_activity_id(
-                club_id,
-                obj_in.activity_id,
-            )
-            if existing:
-                raise DuplicateResourceError(
-                    message_key="error.general_activity.club_requested",
-                    error_code="DUPLICATE_CLUB_REQUESTED",
-                    details={
-                        "club_id": club_id,
-                        "activity_id": obj_in.activity_id,
-                    },
+            async with self.transaction():
+                existing = await self.repository.find_by_club_id_and_activity_id(
+                    club_id,
+                    obj_in.activity_id,
                 )
-            return await self.create(obj_in, club_id=club_id)
+                if existing:
+                    raise DuplicateResourceError(
+                        message_key="error.general_activity.club_requested",
+                        error_code="DUPLICATE_CLUB_REQUESTED",
+                        details={
+                            "club_id": club_id,
+                            "activity_id": obj_in.activity_id,
+                        },
+                    )
+                return await self.create(obj_in, club_id=club_id)
         except IntegrityError:
             raise BusinessError(
                 message_key="error.database.conflict",
@@ -112,4 +113,5 @@ class ClubGeneralActivityService(
                 {"record_id": record_id},
             )
 
-        return await self.repository.review_record(db_obj, obj_in, auditor)
+        async with self.transaction():
+            return await self.repository.review_record(db_obj, obj_in, auditor)

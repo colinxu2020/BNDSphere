@@ -2,7 +2,6 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
-from sqlalchemy.exc import IntegrityError
 
 from app.api.common_responses import (
     PERMISSION_DENIED_RESPONSE,
@@ -10,10 +9,8 @@ from app.api.common_responses import (
     TOKEN_INVALID_RESPONSE,
 )
 from app.api.dependencies import (
-    ClubMemberServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
-    ClubUpdateRequestServiceDep,
     get_current_user,
 )
 from app.models.club import ClubCategoryEnum, ClubStatusEnum
@@ -25,16 +22,12 @@ from app.schemas.club import (
     ClubMemberInfo,
 )
 from app.schemas.moderations.club import (
-    ClubUpdateRequestCreate,
     ClubUpdateRequestCreatePublic,
     ClubUpdateRequestInfo,
 )
 from app.services.errors import (
     DuplicateClubNameError,
-    DuplicatePendingRequestError,
     DuplicateResourceError,
-    ResourceForbiddenError,
-    ResourceNotFoundError,
 )
 
 router = APIRouter(tags=["Clubs"])
@@ -67,22 +60,16 @@ async def get_club_info(club_id: int, service: ClubServiceDep) -> ClubInfo:
 async def create_club(
     club: ClubCreate,
     service: ClubServiceDep,
-    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> ClubInfo:
     """Create a new club. Club name must be unique among non-archived clubs."""
     try:
-        club_created = await service.create(club)
+        club_created = await service.create_club(club, user)
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",
             error_code="DUPLICATE_CLUB_NAME",
         ) from None
-    await membership_service.set_relationship(
-        club_created,
-        user,
-        ClubMembershipEnum.president,
-    )
     return ClubInfo.model_validate(club_created)
 
 
@@ -100,26 +87,12 @@ async def create_club(
 async def update_request(
     club_id: int,
     obj_in: ClubUpdateRequestCreatePublic,
-    service: ClubUpdateRequestServiceDep,
-    club_service: ClubServiceDep,
+    service: ClubServiceDep,
     requestor: Annotated[User, Depends(get_current_user)],
 ) -> ClubUpdateRequestInfo:
-    await club_service.ensure_club_normal(club_id)
-
-    try:
-        await service.supersede_pending_requests_by_club(club_id)
-
-        return ClubUpdateRequestInfo.model_validate(
-            await service.create(
-                ClubUpdateRequestCreate(
-                    **obj_in.model_dump(),
-                    club_id=club_id,
-                    requestor_id=requestor.id,
-                ),
-            ),
-        )
-    except IntegrityError:
-        raise DuplicatePendingRequestError from None
+    return ClubUpdateRequestInfo.model_validate(
+        await service.request_club_update(club_id, obj_in, requestor),
+    )
 
 
 @router.get(
@@ -145,24 +118,10 @@ async def list_clubs(
 async def join_club(
     club_id: int,
     service: ClubServiceDep,
-    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> ClubMemberInfo:
     """Join a club."""
-    club = await service.ensure_club_normal(club_id)
-    relationship = await membership_service.get_by_club_user(club, user)
-    if relationship and relationship.membership != ClubMembershipEnum.left:
-        raise DuplicateResourceError(
-            message_key="error.club.duplicate_join_request",
-            error_code="DUPLICATE_JOIN_REQUEST",
-        ) from None
-    return ClubMemberInfo.model_validate(
-        await membership_service.set_relationship(
-            club,
-            user,
-            ClubMembershipEnum.pending,
-        ),
-    )
+    return ClubMemberInfo.model_validate(await service.join_club(club_id, user))
 
 
 @router.delete(
@@ -173,29 +132,7 @@ async def join_club(
 async def leave_club(
     club_id: int,
     service: ClubServiceDep,
-    membership_service: ClubMemberServiceDep,
     user: Annotated[User, Depends(get_current_user)],
 ) -> None:
     """Leave a club."""
-    club = await service.ensure_club_normal(club_id)
-
-    relationship = await membership_service.get_by_club_user(club, user)
-    if relationship is None or relationship.membership == ClubMembershipEnum.left:
-        raise ResourceNotFoundError(
-            message_key="error.club.is_not_member",
-            error_code="IS_NOT_MEMBER",
-        ) from None
-    if relationship.membership in {
-        ClubMembershipEnum.vice_president,
-        ClubMembershipEnum.president,
-    }:
-        raise ResourceForbiddenError(
-            message_key="error.club.not_allowed_leave",
-            error_code="NOT_ALLOWED_LEAVE_CLUB",
-        ) from None
-
-    await membership_service.set_relationship(
-        club,
-        user,
-        ClubMembershipEnum.left,
-    )
+    await service.leave_club(club_id, user)

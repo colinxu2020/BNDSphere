@@ -1,7 +1,7 @@
 from datetime import datetime
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, ForeignKey, Index, Text, func
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core.database import Base
@@ -27,6 +27,7 @@ class UserUpdateRequest(Base, ModerationMixin):
     )
     description: Mapped[str | None] = mapped_column(Text, default=None)
     grade: Mapped[UserGradeEnum | None] = mapped_column(default=None)
+    update_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     request_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

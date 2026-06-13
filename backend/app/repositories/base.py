@@ -37,7 +37,6 @@ class RepositoryBase[
     async def update(self, db_obj: ModelType, obj_in: UpdateSchemaType) -> ModelType:
         for field, value in obj_in.model_dump(
             exclude_unset=True,
-            exclude_none=True,
         ).items():
             setattr(db_obj, field, value)
         self.db.add(db_obj)

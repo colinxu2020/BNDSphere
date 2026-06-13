@@ -1,7 +1,11 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from app.core import constants
+from app.schemas.club_activity import ensure_activity_time_range
+from app.schemas.generic import ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import (
     RequestInfoBase,
     UpdateRequestCreateBase,
@@ -9,11 +13,16 @@ from app.schemas.moderations.moderation_common import (
 
 
 class ClubActivityCreateRequestBase(BaseModel):
-    name: str = Field(...)
-    description: str = Field(...)
+    name: str = Field(..., max_length=constants.ACTIVITY_MAX_NAME_LENGTH)
+    description: str = Field(..., max_length=constants.ACTIVITY_MAX_DESCRIPTION_LENGTH)
     start_time: datetime = Field(...)
     end_time: datetime = Field(...)
-    location: str = Field(...)
+    location: str = Field(..., max_length=constants.ACTIVITY_MAX_LOCATION_LENGTH)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        ensure_activity_time_range(self.start_time, self.end_time)
+        return self
 
 
 class ClubActivityCreateRequestInfo(RequestInfoBase, ClubActivityCreateRequestBase):
@@ -32,12 +41,24 @@ class ClubActivityCreateRequestCreate(ClubActivityCreateRequestCreatePublic):
 
 
 class ClubActivityUpdateRequestBase(BaseModel):
-    name: str | None = Field(None)
-    description: str | None = Field(None)
+    name: str | None = Field(None, max_length=constants.ACTIVITY_MAX_NAME_LENGTH)
+    description: str | None = Field(
+        None,
+        max_length=constants.ACTIVITY_MAX_DESCRIPTION_LENGTH,
+    )
     start_time: datetime | None = Field(None)
     end_time: datetime | None = Field(None)
-    location: str | None = Field(None)
+    location: str | None = Field(
+        None,
+        max_length=constants.ACTIVITY_MAX_LOCATION_LENGTH,
+    )
     picture_urls: list[str] | None = Field(None)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        if self.start_time is not None and self.end_time is not None:
+            ensure_activity_time_range(self.start_time, self.end_time)
+        return self
 
 
 class ClubActivityUpdateRequestInfo(RequestInfoBase, ClubActivityUpdateRequestBase):
@@ -48,7 +69,20 @@ class ClubActivityUpdateRequestCreatePublic(
     ClubActivityUpdateRequestBase,
     UpdateRequestCreateBase,
 ):
-    pass
+    @model_validator(mode="after")
+    def validate_non_nullable_fields(self) -> Self:
+        ensure_non_nullable_fields_present(
+            self,
+            {
+                "name",
+                "description",
+                "start_time",
+                "end_time",
+                "location",
+                "picture_urls",
+            },
+        )
+        return self
 
 
 class ClubActivityUpdateRequestCreate(ClubActivityUpdateRequestCreatePublic):
@@ -56,3 +90,4 @@ class ClubActivityUpdateRequestCreate(ClubActivityUpdateRequestCreatePublic):
 
     club_activity_id: int = Field(...)
     requestor_id: int = Field(...)
+    update_fields: list[str] = Field(default_factory=list)

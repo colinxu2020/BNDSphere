@@ -37,13 +37,13 @@ from app.services.club_activity import (
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
-    ResourceForbiddenError,
 )
 from app.services.general_activities import (
     ClubGeneralActivityService,
     GeneralActivityService,
 )
 from app.services.oss import ObjectStorageService
+from app.services.policies import AccessPolicy
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
 from app.services.user import UserService, UserUpdateRequestService
@@ -55,10 +55,12 @@ async def get_db() -> AsyncGenerator[AsyncSession]:
     async with SessionLocal() as session:
         try:
             yield session
-            await session.commit()
         except Exception:
             await session.rollback()
             raise
+        finally:
+            if session.in_transaction():
+                await session.rollback()
 
 
 class RepositoryBuilder[Repository](Protocol):
@@ -174,6 +176,7 @@ async def get_current_user(
     if user is None:
         raise exc
 
+    AccessPolicy.ensure_user_active(user)
     return user
 
 
@@ -182,11 +185,7 @@ class RoleChecker:
         self.allowed_roles = allowed_roles
 
     async def __call__(self, user: Annotated[User, Depends(get_current_user)]) -> User:
-        if user.role not in self.allowed_roles and user.role != RoleEnum.dev:
-            raise ResourceForbiddenError(
-                "error.role.not_allowed",
-                "ROLE_NOT_ALLOWED",
-            ) from None
+        AccessPolicy.ensure_role_allowed(user, self.allowed_roles)
         return user
 
 
@@ -204,12 +203,11 @@ class ClubRoleChecker:
         club = await club_service.get(club_id)
         if club is None:
             raise ClubNotFoundError(club_id) from None
-        if user.role in (RoleEnum.dev, RoleEnum.admin):
-            return user
         membership = await club_member_service.get_by_club_user(club, user)
-        if membership is not None and membership.membership in self.allowed_roles:
-            return user
-        raise ResourceForbiddenError(
-            "error.club.role_not_allowed",
-            "CLUB_ROLE_NOT_ALLOWED",
-        ) from None
+        AccessPolicy.ensure_club_role_allowed(
+            user,
+            club,
+            membership,
+            self.allowed_roles,
+        )
+        return user

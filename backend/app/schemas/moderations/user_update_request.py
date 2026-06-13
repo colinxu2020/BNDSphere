@@ -1,10 +1,11 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import UserGradeEnum
-from app.schemas.generic import IdMixin
+from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import UpdateRequestCreateBase
 
 
@@ -15,6 +16,12 @@ class UserUpdateRequestCreate(UpdateRequestCreateBase):
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)
     grade: UserGradeEnum | None = Field(None)
+    update_fields: list[str] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def validate_non_nullable_fields(self) -> Self:
+        ensure_non_nullable_fields_present(self, {"username", "description"})
+        return self
 
 
 class UserUpdateRequestInfo(IdMixin, BaseModel):

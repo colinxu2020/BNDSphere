@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.schemas.generic import IdMixin
 from app.services.errors import BadRequestError, RequestIsNullError
+from app.services.moderation_payload import requested_update_fields
 
 
 class RequestModeratePublic(BaseModel):
@@ -46,22 +47,7 @@ class UpdateRequestCreateBase(BaseModel):
 
     @model_validator(mode="after")
     def validate_any_payload_provided(self) -> Self:
-        exclude_system_fields = {
-            "moderator_id",
-            "moderate_at",
-            "requestor_id",
-            "request_at",
-            "user_id",
-            "club_id",
-            "club_activity_id",
-        }
-
-        valid_payload = self.model_dump(
-            exclude_none=True,
-            exclude=exclude_system_fields,
-        )
-
-        if not valid_payload:
+        if not requested_update_fields(self):
             raise RequestIsNullError(
                 "error.update_request.is_null",
                 "UPDATE_REQUEST_IS_NULL",
