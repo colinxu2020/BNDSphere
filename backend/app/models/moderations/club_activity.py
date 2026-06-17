@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text
+from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, String, Text
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core import constants
@@ -31,6 +31,10 @@ class ClubActivityCreateRequest(Base, ModerationMixin, RequestorMixin):
     )
     location: Mapped[str] = mapped_column(Text)
 
+    __table_args__ = (
+        CheckConstraint("end_time > start_time", name="check_start_end_time"),
+    )
+
 
 class ClubActivityUpdateRequest(Base, ModerationMixin, RequestorMixin):
     __tablename__ = "club_activity_update_requests"
@@ -55,12 +59,17 @@ class ClubActivityUpdateRequest(Base, ModerationMixin, RequestorMixin):
     location: Mapped[str | None] = mapped_column(Text, default=None)
 
     picture_urls: Mapped[list[str] | None] = mapped_column(JSON, default=None)
+    update_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     @declared_attr.directive
     @classmethod
-    def __table_args__(cls) -> tuple[Index]:
+    def __table_args__(cls) -> tuple[Index | CheckConstraint, ...]:
         """定义数据库表的级联参数和索引."""
         return (
+            CheckConstraint(
+                "end_time IS NULL OR start_time IS NULL OR end_time > start_time",
+                name="check_start_end_time",
+            ),
             Index(
                 "ix_single_pending_club_activity_update_request",
                 "club_activity_id",
