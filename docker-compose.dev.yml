@@ -48,6 +48,32 @@ services:
       - ./backend:/backend
       - backend-venv:/backend/.venv
 
+  test:
+    image: bndsphere-backend:dev
+    profiles:
+      - test
+    environment:
+      - CORS_ORIGIN=*
+    read_only: false
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - postgres-network
+    volumes:
+      - ./backend:/backend
+      - backend-venv:/backend/.venv
+    secrets:
+      - source: postgres_password
+        target: postgres_password
+      - source: app_password
+        target: app_password
+      - source: migration_password
+        target: migration_password
+      - source: secret_key
+        target: secret_key
+    command: ["uv", "run", "pytest", "tests/"]
+
 volumes:
   backend-venv:
   frontend-node_modules:
