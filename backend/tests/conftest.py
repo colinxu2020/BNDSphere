@@ -16,6 +16,7 @@ import secrets
 import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from urllib.parse import quote_plus
 
 import psycopg
 import pytest
@@ -68,16 +69,21 @@ SUPERUSER_PASSWORD = _read_secret("POSTGRES_PASSWORD", "postgres_password")
 APP_PASSWORD = _read_secret("APP_DB_PASSWORD", "app_password")
 MIGRATION_PASSWORD = _read_secret("MIGRATION_DB_PASSWORD", "migration_password")
 
+# Passwords are URL-encoded (matches app.core.settings.database_url) so secrets
+# containing reserved characters (``@``, ``:``, ``/``) don't corrupt the URL.
+_SUPERUSER_PASSWORD_ENC = quote_plus(SUPERUSER_PASSWORD)
+_APP_PASSWORD_ENC = quote_plus(APP_PASSWORD)
+
 SUPERUSER_ROOT_URL = (
-    f"postgresql://postgres:{SUPERUSER_PASSWORD}"
+    f"postgresql://postgres:{_SUPERUSER_PASSWORD_ENC}"
     f"@{POSTGRES_HOST}:{POSTGRES_PORT}/postgres"
 )
 SUPERUSER_TEST_DB_URL = (
-    f"postgresql://postgres:{SUPERUSER_PASSWORD}"
+    f"postgresql://postgres:{_SUPERUSER_PASSWORD_ENC}"
     f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{TEST_DB_NAME}"
 )
 APP_URL = (
-    f"postgresql+psycopg://app_user:{APP_PASSWORD}"
+    f"postgresql+psycopg://app_user:{_APP_PASSWORD_ENC}"
     f"@{POSTGRES_HOST}:{POSTGRES_PORT}/{TEST_DB_NAME}"
 )
 
@@ -284,25 +290,30 @@ async def setup_class_users(
         yield
         return
 
-    if type(user_specs) is not list[dict]:
+    if not isinstance(user_specs, list) or not all(
+        isinstance(spec, dict) for spec in user_specs
+    ):
         pytest.fail("USER_SPECS must be a list[dict]")
 
     class_users = {}
 
     for user_data in user_specs:
         username = user_data["username"]
-        hashed_password = getattr(user_data, "hashed_password", None)
+        hashed_password = user_data.get("hashed_password")
         if hashed_password is None:
-            password = getattr(user_data, "password", None)
-            if password is None:
-                password = secrets.token_hex(8)
+            password = user_data.get("password") or secrets.token_hex(8)
             hashed_password = get_password_hash(password)
 
+        # Drop the raw password and inject the computed hash so the User is
+        # always constructed with its required ``hashed_password`` field.
         filtered_data = {k: v for k, v in user_data.items() if k != "password"}
+        filtered_data["hashed_password"] = hashed_password
 
         user = User(**filtered_data)
         db_session.add(user)
-        await db_session.commit()
+        # flush (not commit) keeps the row inside the class-scoped transaction
+        # so the outer rollback still isolates classes from each other.
+        await db_session.flush()
         await db_session.refresh(user)
 
         token = create_access_token({"sub": str(user.id)})

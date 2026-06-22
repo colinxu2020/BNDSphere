@@ -1,7 +1,7 @@
 from httpx import AsyncClient
 
 
-class TestAuthWorkFlow:
+class TestAuthWorkflow:
     async def test_create_user(self, client: AsyncClient) -> None:
         payload = {
             "username": "test_user_1",
