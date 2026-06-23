@@ -290,7 +290,7 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
 
 @pytest_asyncio.fixture(scope="class")
 async def setup_class_users(
-    request: object,
+    request: pytest.FixtureRequest,
     db_session: AsyncSession,
 ) -> AsyncGenerator[None]:
     user_specs = getattr(request.cls, "USER_SPECS", None)
