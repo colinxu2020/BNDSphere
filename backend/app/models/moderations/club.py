@@ -1,5 +1,5 @@
 from pydantic import HttpUrl
-from sqlalchemy import ForeignKey, Index, Text
+from sqlalchemy import JSON, ForeignKey, Index, Text
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column
 
 from app.core.database import Base
@@ -21,6 +21,7 @@ class ClubUpdateRequest(Base, ModerationMixin, RequestorMixin):
     summary: Mapped[str | None] = mapped_column(Text, default=None)
     description: Mapped[str | None] = mapped_column(Text, default=None)
     logo_uri: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
+    update_fields: Mapped[list[str]] = mapped_column(JSON, default=list)
 
     @declared_attr.directive
     @classmethod

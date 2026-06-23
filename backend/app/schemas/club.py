@@ -1,15 +1,16 @@
 from __future__ import annotations
 
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
-from app.schemas.generic import IdMixin
+from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 
 
 class ClubBase(BaseModel):
@@ -43,15 +44,30 @@ class ClubUpdate(BaseModel):
     )
     logo_uri: HttpUrl | None = Field(None, max_length=255)
 
+    @model_validator(mode="after")
+    def validate_non_nullable_fields(self) -> Self:
+        ensure_non_nullable_fields_present(self, {"summary", "description"})
+        return self
+
 
 class FederationClubUpdate(ClubUpdate):
     star_level: ClubStarLevelEnum | None = Field(None)
+
+    @model_validator(mode="after")
+    def validate_star_level(self) -> Self:
+        ensure_non_nullable_fields_present(self, {"star_level"})
+        return self
 
 
 class AdminClubUpdate(FederationClubUpdate):
     model_config = ConfigDict(from_attributes=True)
 
     status: ClubStatusEnum | None = Field(None)
+
+    @model_validator(mode="after")
+    def validate_status(self) -> Self:
+        ensure_non_nullable_fields_present(self, {"status"})
+        return self
 
 
 class ClubMemberInfo(IdMixin, BaseModel):

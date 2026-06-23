@@ -34,7 +34,7 @@ async def update(
     activity = await service.get(activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(activity_id)
-    return GeneralActivityInfo.model_validate(service.update(activity, update))
+    return GeneralActivityInfo.model_validate(await service.update(activity, update))
 
 
 @router.delete(

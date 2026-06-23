@@ -1,10 +1,20 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core import constants
 from app.schemas.academic_terms import AcademicTermInfo
-from app.schemas.generic import IdMixin
+from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
+from app.services.errors import BadRequestError
+
+
+def ensure_activity_time_range(start_time: datetime, end_time: datetime) -> None:
+    if end_time <= start_time:
+        raise BadRequestError(
+            "error.club_activity.invalid_time_range",
+            "CLUB_ACTIVITY_INVALID_TIME_RANGE",
+        )
 
 
 class ClubActivityBase(BaseModel):
@@ -13,6 +23,11 @@ class ClubActivityBase(BaseModel):
     location: str = Field(..., max_length=constants.ACTIVITY_MAX_LOCATION_LENGTH)
     start_time: datetime
     end_time: datetime
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        ensure_activity_time_range(self.start_time, self.end_time)
+        return self
 
 
 class ClubActivityInfo(ClubActivityBase, IdMixin):
@@ -42,3 +57,20 @@ class ClubActivityUpdate(BaseModel):
     start_time: datetime | None = Field(None)
     end_time: datetime | None = Field(None)
     picture_urls: list[str] | None = Field(None)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        ensure_non_nullable_fields_present(
+            self,
+            {
+                "name",
+                "description",
+                "location",
+                "start_time",
+                "end_time",
+                "picture_urls",
+            },
+        )
+        if self.start_time is not None and self.end_time is not None:
+            ensure_activity_time_range(self.start_time, self.end_time)
+        return self

@@ -1,5 +1,8 @@
-from pydantic import BaseModel, Field, HttpUrl
+from typing import Self
 
+from pydantic import BaseModel, Field, HttpUrl, model_validator
+
+from app.schemas.generic import ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import (
     RequestInfoBase,
     UpdateRequestCreateBase,
@@ -17,9 +20,13 @@ class ClubUpdateRequestInfo(RequestInfoBase, ClubUpdateRequestBase):
 
 
 class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase, UpdateRequestCreateBase):
-    pass
+    @model_validator(mode="after")
+    def validate_non_nullable_fields(self) -> Self:
+        ensure_non_nullable_fields_present(self, {"summary", "description"})
+        return self
 
 
 class ClubUpdateRequestCreate(ClubUpdateRequestCreatePublic):
     club_id: int = Field(...)
     requestor_id: int = Field(...)
+    update_fields: list[str] = Field(default_factory=list)
