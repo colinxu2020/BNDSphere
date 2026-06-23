@@ -56,6 +56,7 @@ def _read_secret(env_name: str, filename: str) -> str:
         f"Missing secret: env var {env_name!r} is not set and "
         f"neither /run/secrets/{filename} nor /run/secrets/{filename}.txt exist.\n"
         f"Set {env_name} or mount the secret file in the Docker container.",
+        returncode=1,
     )
 
 
@@ -104,17 +105,23 @@ TestSessionLocal = async_sessionmaker(
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def _initialize_test_database() -> AsyncGenerator[None]:
     """Create test database, set up per-DB grants, run alembic migrations."""
-    # 1. Create test database as superuser
+    # 1. (Re)create test database as superuser. Drop first so a crashed prior
+    #    run that skipped teardown can't leak leftover state into this one.
     conn = await psycopg.AsyncConnection.connect(SUPERUSER_ROOT_URL, autocommit=True)
     async with conn.cursor() as cur:
         await cur.execute(
-            "SELECT 1 FROM pg_database WHERE datname = %s",
-            (TEST_DB_NAME,),
+            sql.SQL(
+                "SELECT pg_terminate_backend(pg_stat_activity.pid) "
+                "FROM pg_stat_activity "
+                "WHERE pg_stat_activity.datname = {} AND pid <> pg_backend_pid()",
+            ).format(sql.Literal(TEST_DB_NAME)),
         )
-        if await cur.fetchone() is None:
-            await cur.execute(
-                sql.SQL("CREATE DATABASE {}").format(sql.Identifier(TEST_DB_NAME)),
-            )
+        await cur.execute(
+            sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(TEST_DB_NAME)),
+        )
+        await cur.execute(
+            sql.SQL("CREATE DATABASE {}").format(sql.Identifier(TEST_DB_NAME)),
+        )
     await conn.close()
 
     # 2. Per-database grants + schemas (roles already exist cluster-wide)
@@ -221,7 +228,7 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
     )
     _stdout, stderr = await proc.communicate()
     if proc.returncode != 0:
-        pytest.exit(f"alembic upgrade failed:\n{stderr.decode()}")
+        pytest.exit(f"alembic upgrade failed:\n{stderr.decode()}", returncode=1)
 
     yield
 
@@ -277,7 +284,8 @@ async def client(db_session: AsyncSession) -> AsyncGenerator[AsyncClient]:
     ) as ac:
         yield ac
 
-    app.dependency_overrides.clear()
+    # Remove only the override we added, leaving any others intact.
+    app.dependency_overrides.pop(get_db, None)
 
 
 @pytest_asyncio.fixture(scope="class")
