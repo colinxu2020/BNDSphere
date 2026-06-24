@@ -346,8 +346,14 @@ class ClubMembershipRequestService(
                 ) from None
 
             club = await self.club_repository.get(request.club_id)
-            if club is None or club.status != ClubStatusEnum.normal:
+            if club is None:
                 raise ClubNotFoundError(request.club_id) from None
+            if club.status != ClubStatusEnum.normal:
+                raise ResourceForbiddenError(
+                    "error.club.not_active",
+                    "CLUB_NOT_ACTIVE",
+                    {"club_id": request.club_id},
+                ) from None
 
             if verification.verification_status == VerificationStatusEnum.approved:
                 applicant = await self.user_repository.get(request.applicant_id)
