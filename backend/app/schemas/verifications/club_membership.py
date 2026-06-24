@@ -4,7 +4,9 @@ from app.schemas.verifications.verification_common import VerificationInfoBase
 
 
 class ClubMembershipRequestBase(BaseModel):
-    message: str | None = Field(None)
+    # Required field: clients must always send it, but an empty string is
+    # accepted (an applicant may apply without writing anything).
+    message: str = Field(...)
 
 
 class ClubMembershipRequestInfo(VerificationInfoBase, ClubMembershipRequestBase):

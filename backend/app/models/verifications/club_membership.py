@@ -16,7 +16,7 @@ class ClubMembershipRequest(Base, VerificationMixin, ApplicantMixin):
         ForeignKey("clubs.id", ondelete="CASCADE"),
     )
 
-    message: Mapped[str | None] = mapped_column(Text, default=None)
+    message: Mapped[str] = mapped_column(Text)
 
     @declared_attr.directive
     @classmethod

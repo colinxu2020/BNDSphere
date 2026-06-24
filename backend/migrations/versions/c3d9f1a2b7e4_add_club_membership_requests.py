@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table(
         "club_membership_requests",
         sa.Column("club_id", sa.Integer(), nullable=False),
-        sa.Column("message", sa.Text(), nullable=True),
+        sa.Column("message", sa.Text(), nullable=False),
         sa.Column(
             "verification_status",
             sa.Enum(
