@@ -23,6 +23,7 @@ import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from psycopg import sql
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.dependencies import get_db
@@ -260,10 +261,33 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
     Tests within the same class share state — e.g. a setup test creates
     a user, and a subsequent test in the same class can assert on it.
     Classes are isolated from each other.
+
+    The session is joined into the outer transaction through a SAVEPOINT that
+    is automatically reopened after every ``commit``/``rollback`` the
+    application code issues. Without this, an error-path test that triggers a
+    rollback (e.g. ``/auth/register`` hitting a duplicate-username
+    ``IntegrityError`` → ``UnitOfWork.__aexit__`` calling ``session.rollback``)
+    would unwind the *whole* outer transaction and wipe rows created earlier in
+    the class. With the savepoint, such a rollback only rewinds to the
+    savepoint, leaving prior shared class state intact; the outer transaction
+    is still rolled back wholesale at teardown to isolate classes.
     """
     async with engine.connect() as conn:
         await conn.begin()
+        await conn.begin_nested()
         async with TestSessionLocal(bind=conn) as session:
+
+            @event.listens_for(session.sync_session, "after_transaction_end")
+            def _restart_savepoint(_session: object, _transaction: object) -> None:
+                # The session ended a (savepoint) transaction; reopen one so the
+                # next statements run inside a fresh savepoint rather than the
+                # bare outer transaction.
+                sync_conn = conn.sync_connection
+                if sync_conn is None or conn.closed:
+                    return
+                if not conn.in_nested_transaction():
+                    sync_conn.begin_nested()
+
             yield session
         await conn.rollback()
 
