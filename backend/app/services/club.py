@@ -9,11 +9,15 @@ from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
+from app.models.verifications.club_membership import ClubMembershipRequest
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.club import (
     ClubMemberRepository,
+    ClubMembershipRequestRepository,
     ClubRepository,
     ClubUpdateRequestRepository,
 )
+from app.repositories.user import UserRepository
 from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
@@ -23,6 +27,14 @@ from app.schemas.moderations.moderation_common import (
     RequestModerate,
     RequestModeratePublic,
 )
+from app.schemas.verifications.club_membership import (
+    ClubMembershipRequestCreate,
+    ClubMembershipRequestCreatePublic,
+)
+from app.schemas.verifications.verification_common import (
+    RequestVerify,
+    RequestVerifyPublic,
+)
 from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
@@ -31,6 +43,7 @@ from app.services.errors import (
     DuplicateResourceError,
     ResourceForbiddenError,
     ResourceNotFoundError,
+    UserNotFoundError,
 )
 from app.services.moderation_payload import (
     build_update_payload,
@@ -46,6 +59,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         repository: ClubRepository,
         member_repository: ClubMemberRepository | None = None,
         update_request_repository: ClubUpdateRequestRepository | None = None,
+        membership_request_repository: ClubMembershipRequestRepository | None = None,
     ) -> None:
         super().__init__(repository)
         self.member_repository = member_repository or ClubMemberRepository(
@@ -53,6 +67,10 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         )
         self.update_request_repository = (
             update_request_repository or ClubUpdateRequestRepository(repository.db)
+        )
+        self.membership_request_repository = (
+            membership_request_repository
+            or ClubMembershipRequestRepository(repository.db)
         )
 
     async def create(self, obj_in: ClubCreate, **kwargs: object) -> Club:
@@ -117,21 +135,31 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         except IntegrityError:
             raise DuplicatePendingRequestError from None
 
-    async def join_club(self, club_id: int, user: User) -> ClubMember:
-        async with self.transaction():
-            club = await self.ensure_club_normal(club_id)
-            relationship = await self.member_repository.get_by_club_user(club, user)
-            if relationship and relationship.membership != ClubMembershipEnum.left:
-                raise DuplicateResourceError(
-                    message_key="error.club.duplicate_join_request",
-                    error_code="DUPLICATE_JOIN_REQUEST",
-                ) from None
+    async def request_join_club(
+        self,
+        club_id: int,
+        user: User,
+        obj_in: ClubMembershipRequestCreatePublic,
+    ) -> ClubMembershipRequest:
+        try:
+            async with self.transaction():
+                club = await self.ensure_club_normal(club_id)
+                relationship = await self.member_repository.get_by_club_user(club, user)
+                if relationship and relationship.membership != ClubMembershipEnum.left:
+                    raise DuplicateResourceError(
+                        message_key="error.club.duplicate_join_request",
+                        error_code="DUPLICATE_JOIN_REQUEST",
+                    ) from None
 
-            return await self.member_repository.set_relationship(
-                club,
-                user,
-                ClubMembershipEnum.pending,
-            )
+                return await self.membership_request_repository.create(
+                    ClubMembershipRequestCreate(
+                        **obj_in.model_dump(exclude_unset=True),
+                        club_id=club_id,
+                        applicant_id=user.id,
+                    ),
+                )
+        except IntegrityError:
+            raise DuplicatePendingRequestError from None
 
     async def leave_club(self, club_id: int, user: User) -> None:
         async with self.transaction():
@@ -251,3 +279,90 @@ class ClubUpdateRequestService(
                 await self.repository.supersede_pending_requests_by_club(club_id)
         except IntegrityError:
             raise DuplicatePendingRequestError from None
+
+
+class ClubMembershipRequestService(
+    ServiceBase[
+        ClubMembershipRequest,
+        ClubMembershipRequestCreate,
+        RequestVerify,
+    ],
+):
+    repository: ClubMembershipRequestRepository
+
+    def __init__(
+        self,
+        repository: ClubMembershipRequestRepository,
+        club_repository: ClubRepository | None = None,
+        member_repository: ClubMemberRepository | None = None,
+        user_repository: UserRepository | None = None,
+    ) -> None:
+        super().__init__(repository)
+        self.club_repository = club_repository or ClubRepository(repository.db)
+        self.member_repository = member_repository or ClubMemberRepository(
+            repository.db,
+        )
+        self.user_repository = user_repository or UserRepository(repository.db)
+
+    async def get_pending_requests(
+        self,
+        club_id: int,
+    ) -> Page[ClubMembershipRequest]:
+        return await self.repository.get_pending_requests(club_id)
+
+    async def verify_request(
+        self,
+        request: ClubMembershipRequest,
+        verification: RequestVerifyPublic,
+        verifier: User,
+    ) -> ClubMembershipRequest:
+        return await self.update(
+            request,
+            RequestVerify(
+                **verification.model_dump(),
+                verifier_id=verifier.id,
+                verify_at=datetime.now(tz=UTC),
+            ),
+        )
+
+    async def verify_membership_request(
+        self,
+        club_id: int,
+        request_id: int,
+        verification: RequestVerifyPublic,
+        verifier: User,
+    ) -> ClubMembershipRequest:
+        async with self.transaction():
+            request = await self._get_with_lock(request_id)
+            if request is None or request.club_id != club_id:
+                raise ResourceNotFoundError(
+                    "error.club_membership_request.not_found",
+                    "CLUB_MEMBERSHIP_REQUEST_NOT_FOUND",
+                ) from None
+            if request.verification_status != VerificationStatusEnum.pending:
+                raise ResourceForbiddenError(
+                    "error.club_membership_request.verified",
+                    "CLUB_MEMBERSHIP_REQUEST_VERIFIED",
+                ) from None
+
+            club = await self.club_repository.get(request.club_id)
+            if club is None:
+                raise ClubNotFoundError(request.club_id) from None
+            if club.status != ClubStatusEnum.normal:
+                raise ResourceForbiddenError(
+                    "error.club.not_active",
+                    "CLUB_NOT_ACTIVE",
+                    {"club_id": request.club_id},
+                ) from None
+
+            if verification.verification_status == VerificationStatusEnum.approved:
+                applicant = await self.user_repository.get(request.applicant_id)
+                if applicant is None:
+                    raise UserNotFoundError(request.applicant_id) from None
+                await self.member_repository.set_relationship(
+                    club,
+                    applicant,
+                    ClubMembershipEnum.member,
+                )
+
+            return await self.verify_request(request, verification, verifier)
