@@ -128,5 +128,5 @@ fabric.properties
 .env.*
 secrets
 .env
-
+.DS_Store
 .codegraph/
