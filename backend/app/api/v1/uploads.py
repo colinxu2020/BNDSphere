@@ -4,12 +4,12 @@ from fastapi import APIRouter, Depends, status
 from pydantic import HttpUrl
 
 from app.api.dependencies import ObjectStorageServiceDep, get_current_user
-from app.core.settings import oss_settings
 from app.schemas.upload import (
     ConfirmUploadRequest,
     ConfirmUploadResponse,
     InitiateUploadRequest,
     InitiateUploadResponse,
+    oss_public_base_url,
 )
 from app.services.upload_policy import (
     UPLOAD_POLICIES,
@@ -55,5 +55,5 @@ async def confirm_upload(
     policy = UPLOAD_POLICIES[req.scene]
     actual_size = await oss_service.stat_object(req.object_key)
     validate_confirmed_upload(policy, req.object_key, actual_size)
-    url = f"{oss_settings().oss_public_base_url}/{req.object_key}"
+    url = f"{oss_public_base_url()}/{req.object_key}"
     return ConfirmUploadResponse(url=HttpUrl(url))

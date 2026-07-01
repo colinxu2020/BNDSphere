@@ -5,7 +5,12 @@ from typing import Final
 
 from fastapi import HTTPException, status
 
-from app.schemas.upload import SCENE_OSS_DIRS, InitiateUploadRequest, UploadScene
+from app.schemas.upload import (
+    SCENE_OSS_DIRS,
+    InitiateUploadRequest,
+    UploadScene,
+    is_valid_object_key,
+)
 from app.services.errors import (
     UploadObjectNotFoundError,
     UploadObjectTooLargeError,
@@ -103,7 +108,7 @@ def validate_confirmed_upload(
     ``actual_size`` 来自 OSS 的 HEAD 请求, 不是客户端上报的 size, 因此能堵住
     ``initiate`` 阶段 size 校验被绕过 (预签名 URL 本身不限制实际上传大小) 的问题.
     """
-    if not object_key.startswith(f"{policy.oss_dir}/"):
+    if not is_valid_object_key(object_key, policy.oss_dir):
         raise UploadSceneMismatchError(policy.scene.value)
     if actual_size is None:
         raise UploadObjectNotFoundError(object_key)

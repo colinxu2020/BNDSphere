@@ -1,6 +1,7 @@
 from enum import StrEnum
 from types import MappingProxyType
 from typing import Annotated, Final
+from urllib.parse import unquote, urlsplit
 
 from pydantic import AfterValidator, BaseModel, Field, HttpUrl
 
@@ -42,6 +43,24 @@ SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
 )
 
 
+def oss_public_base_url() -> str:
+    """规范化后的公共访问域名 (去掉末尾的 '/', 避免拼接出双斜杠)."""
+    return oss_settings().oss_public_base_url.rstrip("/")
+
+
+def is_valid_object_key(object_key: str, oss_dir: str) -> bool:
+    """确认 object_key 落在 ``oss_dir`` 目录下, 且不包含穿越/空路径段.
+
+    仅比较原始字符串前缀无法防御 ``avatar/../application_files/x`` 这类请求 —
+    浏览器/CDN 通常会在转发前按 RFC 3986 折叠 ``..`` 路径段, 从而让请求实际落到
+    另一个 scene 的目录下。逐段校验 (拒绝空段、``.``、``..``) 才能堵住这个绕过。
+    """
+    segments = object_key.split("/")
+    if any(segment in ("", ".", "..") for segment in segments):
+        return False
+    return segments[0] == oss_dir
+
+
 def ensure_uploaded_object_url(
     scene: UploadScene,
     url: HttpUrl | None,
@@ -52,8 +71,21 @@ def ensure_uploaded_object_url(
     """
     if url is None:
         return url
-    prefix = f"{oss_settings().oss_public_base_url}/{SCENE_OSS_DIRS[scene]}/"
-    if not str(url).startswith(prefix):
+
+    base = urlsplit(oss_public_base_url())
+    target = urlsplit(str(url))
+    if (target.scheme, target.netloc) != (base.scheme, base.netloc):
+        raise ValueError(f"{scene.value} URL must be hosted on the OSS public domain")
+    if target.query or target.fragment:
+        raise ValueError(f"{scene.value} URL must not contain a query or fragment")
+
+    base_path = base.path
+    target_path = unquote(target.path)
+    if not target_path.startswith(f"{base_path}/"):
+        raise ValueError(f"{scene.value} URL must reference an uploaded object")
+
+    object_key = target_path[len(base_path) + 1 :]
+    if not is_valid_object_key(object_key, SCENE_OSS_DIRS[scene]):
         raise ValueError(f"{scene.value} URL must reference an uploaded object")
     return url
 
