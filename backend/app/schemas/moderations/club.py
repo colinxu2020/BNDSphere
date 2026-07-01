@@ -7,6 +7,7 @@ from app.schemas.moderations.moderation_common import (
     RequestInfoBase,
     UpdateRequestCreateBase,
 )
+from app.schemas.upload import LogoUri
 
 
 class ClubUpdateRequestBase(BaseModel):
@@ -20,6 +21,10 @@ class ClubUpdateRequestInfo(RequestInfoBase, ClubUpdateRequestBase):
 
 
 class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase, UpdateRequestCreateBase):
+    # Overrides ClubUpdateRequestBase.logo_uri: reject a non-uploaded URL at
+    # request time instead of only when a moderator later approves it.
+    logo_uri: LogoUri = Field(None)
+
     @model_validator(mode="after")
     def validate_non_nullable_fields(self) -> Self:
         ensure_non_nullable_fields_present(self, {"summary", "description"})

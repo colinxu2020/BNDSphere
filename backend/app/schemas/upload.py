@@ -1,7 +1,10 @@
 from enum import StrEnum
-from typing import Final
+from types import MappingProxyType
+from typing import Annotated, Final
 
-from pydantic import BaseModel, Field
+from pydantic import AfterValidator, BaseModel, Field, HttpUrl
+
+from app.core.settings import oss_settings
 
 SAFE_FILENAME_FALLBACK: Final[str] = "file"
 SAFE_FILENAME_ALLOWED_CHARS: Final[frozenset[str]] = frozenset({".", "-", "_"})
@@ -24,6 +27,47 @@ class UploadScene(StrEnum):
     AVATAR = "avatar"
     CLUB_LOGO = "club_logo"
     APPLICATION_FILE = "application_file"
+
+
+# Single source of truth for scene -> object-key prefix, shared by the upload
+# policies (services/upload_policy.py) and the URL validators below, so a
+# persisted avatar/logo URL always points into the directory it was actually
+# uploaded to.
+SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
+    {
+        UploadScene.AVATAR: "avatar",
+        UploadScene.CLUB_LOGO: "club_logo",
+        UploadScene.APPLICATION_FILE: "application_files",
+    },
+)
+
+
+def ensure_uploaded_object_url(
+    scene: UploadScene,
+    url: HttpUrl | None,
+) -> HttpUrl | None:
+    """限制字段只能引用通过 /uploads/initiate + /uploads/confirm 上传的对象.
+
+    否则用户可以绕过全部大小/类型校验, 直接把 avatar_uri/logo_uri 设为任意外部 URL.
+    """
+    if url is None:
+        return url
+    prefix = f"{oss_settings().oss_public_base_url}/{SCENE_OSS_DIRS[scene]}/"
+    if not str(url).startswith(prefix):
+        raise ValueError(f"{scene.value} URL must reference an uploaded object")
+    return url
+
+
+def _validate_avatar_uri(url: HttpUrl | None) -> HttpUrl | None:
+    return ensure_uploaded_object_url(UploadScene.AVATAR, url)
+
+
+def _validate_logo_uri(url: HttpUrl | None) -> HttpUrl | None:
+    return ensure_uploaded_object_url(UploadScene.CLUB_LOGO, url)
+
+
+AvatarUri = Annotated[HttpUrl | None, AfterValidator(_validate_avatar_uri)]
+LogoUri = Annotated[HttpUrl | None, AfterValidator(_validate_logo_uri)]
 
 
 class InitiateUploadRequest(BaseModel):
@@ -52,7 +96,15 @@ class InitiateUploadRequest(BaseModel):
 
 
 class InitiateUploadResponse(BaseModel):
-    file_id: str
     object_key: str
     upload_url: str
     expires_seconds: int
+
+
+class ConfirmUploadRequest(BaseModel):
+    scene: UploadScene
+    object_key: str = Field(..., min_length=1, max_length=512)
+
+
+class ConfirmUploadResponse(BaseModel):
+    url: HttpUrl

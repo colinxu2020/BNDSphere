@@ -186,3 +186,30 @@ class ClubUpdateRequestNotFoundError(ResourceNotFoundError):
             "CLUB_UPDATE_REQUEST_NOT_FOUND",
             {"request_id": request_id},
         )
+
+
+class UploadSceneMismatchError(BadRequestError):
+    def __init__(self, scene: str) -> None:
+        super().__init__(
+            "error.upload.scene_mismatch",
+            "UPLOAD_SCENE_MISMATCH",
+            {"scene": scene},
+        )
+
+
+class UploadObjectNotFoundError(ResourceNotFoundError):
+    def __init__(self, object_key: str) -> None:
+        super().__init__(
+            "error.upload.object_not_found",
+            "UPLOAD_OBJECT_NOT_FOUND",
+            {"object_key": object_key},
+        )
+
+
+class UploadObjectTooLargeError(BadRequestError):
+    def __init__(self, object_key: str, max_size: int) -> None:
+        super().__init__(
+            "error.upload.object_too_large",
+            "UPLOAD_OBJECT_TOO_LARGE",
+            {"object_key": object_key, "max_size": max_size},
+        )
