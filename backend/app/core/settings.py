@@ -37,6 +37,9 @@ class OSSSettings(_AppBaseSettings):
     oss_access_key_id: str
     oss_access_key: str
     oss_bucket: str
+    # Public (e.g. CDN-fronted) base URL objects are served from; distinct from
+    # oss_endpoint_url, which is only used for signing upload requests.
+    oss_public_base_url: str
 
 
 @cache
