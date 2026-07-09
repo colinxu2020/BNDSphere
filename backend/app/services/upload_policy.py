@@ -57,6 +57,10 @@ UPLOAD_POLICIES: Mapping[UploadScene, UploadPolicy] = MappingProxyType(
             scene=UploadScene.CLUB_LOGO,
             oss_dir="club_logo",
         ),
+        UploadScene.ACTIVITY_POSTER: image_upload_policy(
+            scene=UploadScene.ACTIVITY_POSTER,
+            oss_dir="activity_poster",
+        ),
         UploadScene.APPLICATION_FILE: UploadPolicy(
             scene=UploadScene.APPLICATION_FILE,
             max_size=APPLICATION_FILE_MAX_SIZE,

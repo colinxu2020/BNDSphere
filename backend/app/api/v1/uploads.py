@@ -20,7 +20,8 @@ async def initiate_upload(
 ) -> InitiateUploadResponse:
     policy = UPLOAD_POLICIES[req.scene]
     validate_file(policy, req)
-    object_key = f"{policy.oss_dir}/{uuid4().hex}/{req.sanitized_filename}"
+    file_id = uuid4().hex
+    object_key = f"{policy.oss_dir}/{file_id}/{req.storage_filename(file_id)}"
     upload_url = await oss_service.generate_put_presigned_url(
         object_key,
         req.content_type,
@@ -30,5 +31,5 @@ async def initiate_upload(
         object_key=object_key,
         upload_url=upload_url,
         expires_seconds=policy.expires_seconds,
-        file_id="N/A",
+        file_id=file_id,
     )

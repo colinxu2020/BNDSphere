@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError, OperationalError
 
@@ -39,8 +41,18 @@ class GeneralActivityService(
         self,
         search: str | None = None,
         level: GeneralActivityLevelEnum | None = None,
+        *,
+        starts_before: datetime | None = None,
+        ends_after: datetime | None = None,
+        has_poster: bool | None = None,
     ) -> Page[GeneralActivity]:
-        return await self.repository.get_multi(search, level)
+        return await self.repository.get_multi(
+            search,
+            level,
+            starts_before=starts_before,
+            ends_after=ends_after,
+            has_poster=has_poster,
+        )
 
 
 class ClubGeneralActivityService(

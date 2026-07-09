@@ -1,6 +1,7 @@
 from datetime import datetime
+from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core import constants
 from app.models.general_activity import (
@@ -10,12 +11,30 @@ from app.models.general_activity import (
 from app.models.user import AuditStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
+from app.services.errors import BadRequestError
 
 
 class GeneralActivityBase(BaseModel):
     name: str = Field(..., max_length=constants.GENERAL_ACTIVITY_MAX_NAME_LENGTH)
     description: str
     level: GeneralActivityLevelEnum
+    starts_at: datetime | None = Field(None)
+    ends_at: datetime | None = Field(None)
+    poster_uri: str | None = Field(None, max_length=2048)
+    article_url: str | None = Field(None, max_length=2048)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        if (
+            self.starts_at is not None
+            and self.ends_at is not None
+            and self.ends_at < self.starts_at
+        ):
+            raise BadRequestError(
+                "error.general_activity.invalid_time_range",
+                "GENERAL_ACTIVITY_INVALID_TIME_RANGE",
+            )
+        return self
 
 
 class GeneralActivityCreate(GeneralActivityBase):
@@ -31,12 +50,31 @@ class GeneralActivityInfo(GeneralActivityBase, IdMixin):
 
 
 class GeneralActivityUpdate(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     name: str | None = Field(
         None,
         max_length=constants.GENERAL_ACTIVITY_MAX_NAME_LENGTH,
     )
     description: str | None = Field(None)
     level: GeneralActivityLevelEnum | None = Field(None)
+    starts_at: datetime | None = Field(None)
+    ends_at: datetime | None = Field(None)
+    poster_uri: str | None = Field(None, max_length=2048)
+    article_url: str | None = Field(None, max_length=2048)
+
+    @model_validator(mode="after")
+    def validate_time_range(self) -> Self:
+        if (
+            self.starts_at is not None
+            and self.ends_at is not None
+            and self.ends_at < self.starts_at
+        ):
+            raise BadRequestError(
+                "error.general_activity.invalid_time_range",
+                "GENERAL_ACTIVITY_INVALID_TIME_RANGE",
+            )
+        return self
 
 
 class ClubGeneralActivityBase(BaseModel):
@@ -61,7 +99,7 @@ class ClubGeneralActivityCreate(BaseModel):
 
     activity_id: int
     participation_type: ParticipationTypeEnum
-    proof_files: list[str] | None = Field(None)
+    proof_files: list[str] = Field(default_factory=list)
     requested_score: int
 
 
@@ -70,7 +108,7 @@ class ClubGeneralActivityUpdate(BaseModel):
 
     activity_id: int
     participation_type: ParticipationTypeEnum
-    proof_files: list[str] | None = Field(None)
+    proof_files: list[str] = Field(default_factory=list)
     requested_score: int
 
 

@@ -10,15 +10,15 @@ class StarRatingBreakdown(BaseModel):
     )
     activity_participation: int = Field(
         ...,
-        description="二.1 校级/大型活动得分 (0-50)",
+        description="二.1 校级/大型活动得分 (0-45)",
     )
     competition: int = Field(
         ...,
-        description="二.1 竞赛得分 (0-13)",
+        description="二.1 竞赛得分 (与校级/大型活动合计上限 45)",
     )
     section_2_1_total: int = Field(
         ...,
-        description="二.1 合计 (活动+竞赛, 上限 50)",
+        description="二.1 合计 (活动+竞赛, 上限 45)",
     )
     internal_activities: int = Field(
         ...,

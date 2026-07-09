@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import cast
 
 from fastapi_pagination import Page
@@ -28,12 +29,28 @@ class GeneralActivityRepository(
         self,
         search: str | None = None,
         level: GeneralActivityLevelEnum | None = None,
+        *,
+        starts_before: datetime | None = None,
+        ends_after: datetime | None = None,
+        has_poster: bool | None = None,
     ) -> Page[GeneralActivity]:
-        stmt = select(self.model).order_by(GeneralActivity.created_at.desc())
+        stmt = select(self.model).order_by(
+            GeneralActivity.starts_at.desc().nullslast(),
+            GeneralActivity.created_at.desc(),
+        )
         if level is not None:
             stmt = stmt.where(self.model.level == level)
         if search is not None:
             stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
+        if starts_before is not None:
+            stmt = stmt.where(self.model.starts_at <= starts_before)
+        if ends_after is not None:
+            stmt = stmt.where(self.model.ends_at >= ends_after)
+        if has_poster is not None:
+            if has_poster:
+                stmt = stmt.where(self.model.poster_uri.is_not(None))
+            else:
+                stmt = stmt.where(self.model.poster_uri.is_(None))
         return cast("Page[GeneralActivity]", await apaginate(self.db, stmt))
 
 

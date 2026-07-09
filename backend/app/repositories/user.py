@@ -2,11 +2,11 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select, update
+from sqlalchemy import or_, select, update
 
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
-from app.models.user import User
+from app.models.user import RoleEnum, User
 from app.repositories.base import RepositoryBase
 from app.schemas.moderations.moderation_common import RequestModerate
 from app.schemas.moderations.user_update_request import UserUpdateRequestCreate
@@ -39,6 +39,25 @@ class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
         await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj
+
+    async def get_multi(
+        self,
+        search: str | None = None,
+        role: RoleEnum | None = None,
+    ) -> Page[User]:
+        stmt = select(User).order_by(User.created_at.desc(), User.id.desc())
+        if search is not None:
+            like_search = f"%{search}%"
+            stmt = stmt.where(
+                or_(
+                    User.username.ilike(like_search),
+                    User.email.ilike(like_search),
+                    User.real_name.ilike(like_search),
+                ),
+            )
+        if role is not None:
+            stmt = stmt.where(User.role == role)
+        return cast("Page[User]", await apaginate(self.db, stmt))
 
 
 class UserUpdateRequestRepository(

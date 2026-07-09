@@ -3,6 +3,7 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models import Club
 from app.models.star_level import StarLevelApplication
@@ -21,6 +22,20 @@ class StarLevelRepository(
     ],
 ):
     model = StarLevelApplication
+
+    async def list_public(self) -> Page[StarLevelApplication]:
+        return cast(
+            "Page[StarLevelApplication]",
+            await apaginate(
+                self.db,
+                select(self.model)
+                .options(
+                    selectinload(self.model.club),
+                    selectinload(self.model.academic_term),
+                )
+                .order_by(self.model.created_at.desc(), self.model.id.desc()),
+            ),
+        )
 
     async def list_by_club(self, club: Club) -> Page[StarLevelApplication]:
         return cast(
