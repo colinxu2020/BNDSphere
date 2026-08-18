@@ -10,6 +10,7 @@ import {
   Users,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
@@ -66,33 +67,23 @@ const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
 
 export function Admin() {
   const [activeSection, setActiveSection] = useState<SectionId>("users");
-  const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<Tone>("info");
+  const feedback = useActionFeedback("info");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  const setResult = (error: unknown, data: unknown) => {
-    setMessageTone(error ? "danger" : "success");
-    setMessage(error || data || "操作已完成");
-  };
-
   const checkHealth = async () => {
-    setMessage(null);
-    setMessageTone("info");
-    setMessage("正在检查服务状态...");
+    feedback.clear();
+    feedback.inform("正在检查服务状态...");
     try {
       const { error, response } = await client.GET("/health", {
         parseAs: "text",
       });
       if (response.ok) {
-        setMessageTone("success");
-        setMessage(`服务正常（HTTP ${response.status}）`);
+        feedback.succeed(`服务正常（HTTP ${response.status}）`);
       } else {
-        setMessageTone("danger");
-        setMessage(error || `健康检查失败（HTTP ${response.status}）`);
+        feedback.fail(error || `健康检查失败（HTTP ${response.status}）`);
       }
     } catch (error) {
-      setMessageTone("danger");
-      setMessage(error || "无法连接后端健康检查接口，请确认后端服务正在运行");
+      feedback.fail(error || "无法连接后端健康检查接口，请确认后端服务正在运行");
     }
   };
 
@@ -112,7 +103,7 @@ export function Admin() {
         }
       />
 
-      {message && <StatusMessage value={message} tone={messageTone} />}
+      {feedback.message && <StatusMessage value={feedback.message} tone={feedback.tone} />}
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
         <aside className="h-fit rounded-md border border-edge bg-surface p-2">
@@ -140,7 +131,7 @@ export function Admin() {
               isRefreshing,
               refreshStart: () => setIsRefreshing(true),
               refreshEnd: () => setIsRefreshing(false),
-              setResult,
+              setResult: feedback.report,
             }}
           >
             {activeSection === "users" && <UsersAdmin />}

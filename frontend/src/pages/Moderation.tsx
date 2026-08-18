@@ -8,6 +8,7 @@ import {
   X,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { MODERATION_STATUS_MAP } from "../lib/labels";
@@ -106,14 +107,13 @@ export function Moderation() {
   const [items, setItems] = useState<ModerationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
-  const [actionMessage, setActionMessage] = useState<unknown>(null);
-  const [actionTone, setActionTone] = useState<Tone>("danger");
+  const action = useActionFeedback();
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const fetchQueue = async () => {
     setIsLoading(true);
     setError(null);
-    setActionMessage(null);
+    action.clear();
 
     try {
       if (activeQueue === "users") {
@@ -176,7 +176,7 @@ export function Moderation() {
     moderationStatus: ModerationStatus,
   ) => {
     setBusyId(requestId);
-    setActionMessage(null);
+    action.clear();
     const body = { moderation_status: moderationStatus };
 
     try {
@@ -223,16 +223,13 @@ export function Moderation() {
       }
 
       if (result.error) {
-        setActionTone("danger");
-        setActionMessage(result.error);
+        action.fail(result.error);
       } else {
-        setActionTone("success");
-        setActionMessage(result.data);
+        action.succeed(result.data);
         fetchQueue();
       }
     } catch (requestError) {
-      setActionTone("danger");
-      setActionMessage(requestError);
+      action.fail(requestError);
     } finally {
       setBusyId(null);
     }
@@ -292,9 +289,9 @@ export function Moderation() {
           </div>
         </div>
 
-        {actionMessage && (
+        {action.message && (
           <div className="mb-5">
-            <StatusMessage value={actionMessage} tone={actionTone} />
+            <StatusMessage value={action.message} tone={action.tone} />
           </div>
         )}
         {error && (

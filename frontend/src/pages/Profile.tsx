@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
@@ -22,8 +23,7 @@ export function Profile() {
   const [updateDescription, setUpdateDescription] = useState("");
   const [updateAvatar, setUpdateAvatar] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [updateMessage, setUpdateMessage] = useState<unknown>(null);
-  const [updateTone, setUpdateTone] = useState<Tone>("danger");
+  const update = useActionFeedback();
   const [loadError, setLoadError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -64,7 +64,7 @@ export function Profile() {
   const submitUpdateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
-    setUpdateMessage(null);
+    update.clear();
 
     try {
       const { data, error } = await client.POST(
@@ -82,19 +82,16 @@ export function Profile() {
       );
 
       if (error) {
-        setUpdateTone("danger");
-        setUpdateMessage(error);
+        update.fail(error);
       } else {
-        setUpdateTone("success");
-        setUpdateMessage(data);
+        update.succeed(data);
         setTimeout(() => {
           setIsUpdateModalOpen(false);
-          setUpdateMessage(null);
+          update.clear();
         }, 2000);
       }
     } catch (err: any) {
-      setUpdateTone("danger");
-      setUpdateMessage(err);
+      update.fail(err);
     } finally {
       setIsSubmitting(false);
     }
@@ -219,9 +216,9 @@ export function Profile() {
                 修改资料将被提交至管理员审核，审核通过后生效。
               </p>
 
-              {updateMessage && (
+              {update.message && (
                 <div className="mb-6">
-                  <StatusMessage value={updateMessage} tone={updateTone} />
+                  <StatusMessage value={update.message} tone={update.tone} />
                 </div>
               )}
 

@@ -15,6 +15,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
@@ -77,8 +78,7 @@ export function Federation() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
-  const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<Tone>("danger");
+  const feedback = useActionFeedback();
 
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
@@ -269,18 +269,16 @@ export function Federation() {
 
   const setResult = (error: unknown, successMessage: string) => {
     if (error) {
-      setMessageTone("danger");
-      setMessage(error);
+      feedback.fail(error);
       return;
     }
-    setMessageTone("success");
-    setMessage(successMessage);
+    feedback.succeed(successMessage);
   };
 
   const createActivity = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsCreating(true);
-    setMessage(null);
+    feedback.clear();
     try {
       const { data, error } = await client.POST(
         "/api/v1/club-federation/general-activity/",
@@ -321,7 +319,7 @@ export function Federation() {
     setActivityName("");
     setActivityDescription("");
     setActivityLevel("club_federation");
-    setMessage(null);
+    feedback.clear();
   };
 
   const closeActivityEditor = () => {
@@ -337,7 +335,7 @@ export function Federation() {
     }
 
     setIsEditing(true);
-    setMessage(null);
+    feedback.clear();
     try {
       const { data, error } = await client.PATCH(
         "/api/v1/club-federation/general-activity/{activity_id}",
@@ -364,7 +362,7 @@ export function Federation() {
 
   const deleteActivity = async (activity: GeneralActivity) => {
     if (!window.confirm(`确认删除 ${activity.name}？`)) return;
-    setMessage(null);
+    feedback.clear();
     try {
       const { error } = await client.DELETE(
         "/api/v1/club-federation/general-activity/{activity_id}",
@@ -417,7 +415,7 @@ export function Federation() {
     }
 
     setIsRecordUpdating(true);
-    setMessage(null);
+    feedback.clear();
     try {
       const { error } = await client.PATCH(
         "/api/v1/club-federation/general-activity/club-records/{record_id}",
@@ -446,7 +444,7 @@ export function Federation() {
     }
 
     setIsStarReviewing(true);
-    setMessage(null);
+    feedback.clear();
     try {
       const { error } = await client.PATCH(
         "/api/v1/club-federation/star-level/{star_level_id}",
@@ -482,7 +480,7 @@ export function Federation() {
   ) => {
     const busyKey = `${kind}-${requestId}`;
     setBusyActivityRequest(busyKey);
-    setMessage(null);
+    feedback.clear();
     const body = { moderation_status: moderationStatus };
     try {
       const result =
@@ -537,7 +535,7 @@ export function Federation() {
         }
       />
 
-      {message && <StatusMessage value={message} tone={messageTone} />}
+      {feedback.message && <StatusMessage value={feedback.message} tone={feedback.tone} />}
       {loadError && <StatusMessage value={loadError} />}
 
       <Surface>

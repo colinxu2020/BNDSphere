@@ -9,6 +9,7 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
@@ -26,8 +27,7 @@ export function ClubDetail() {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
-  const [actionMessage, setActionMessage] = useState<unknown>(null);
-  const [actionTone, setActionTone] = useState<Tone>("danger");
+  const action = useActionFeedback();
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
@@ -85,7 +85,7 @@ export function ClubDetail() {
 
   const joinClub = async () => {
     setIsActionLoading(true);
-    setActionMessage(null);
+    action.clear();
     try {
       const { data, error } = await client.POST(
         "/api/v1/clubs/{club_id}/members",
@@ -94,11 +94,9 @@ export function ClubDetail() {
         },
       );
       if (error) {
-        setActionTone("danger");
-        setActionMessage(error);
+        action.fail(error);
       } else {
-        setActionTone("success");
-        setActionMessage("加入申请已提交");
+        action.succeed("加入申请已提交");
         if (data && club) {
           setClub({
             ...club,
@@ -112,8 +110,7 @@ export function ClubDetail() {
         }
       }
     } catch (requestError) {
-      setActionTone("danger");
-      setActionMessage(requestError);
+      action.fail(requestError);
     } finally {
       setIsActionLoading(false);
     }
@@ -121,7 +118,7 @@ export function ClubDetail() {
 
   const leaveClub = async () => {
     setIsActionLoading(true);
-    setActionMessage(null);
+    action.clear();
     try {
       const { error, response } = await client.DELETE(
         "/api/v1/clubs/{club_id}/members/me",
@@ -130,11 +127,9 @@ export function ClubDetail() {
         },
       );
       if (error) {
-        setActionTone("danger");
-        setActionMessage(error);
+        action.fail(error);
       } else {
-        setActionTone("success");
-        setActionMessage(`已退出社团（HTTP ${response.status}）`);
+        action.succeed(`已退出社团（HTTP ${response.status}）`);
         if (user && club) {
           setClub({
             ...club,
@@ -147,8 +142,7 @@ export function ClubDetail() {
         }
       }
     } catch (requestError) {
-      setActionTone("danger");
-      setActionMessage(requestError);
+      action.fail(requestError);
     } finally {
       setIsActionLoading(false);
     }
@@ -243,8 +237,8 @@ export function ClubDetail() {
         </div>
       </div>
 
-      {actionMessage && (
-        <StatusMessage value={actionMessage} tone={actionTone} />
+      {action.message && (
+        <StatusMessage value={action.message} tone={action.tone} />
       )}
 
       {/* Content Grid */}

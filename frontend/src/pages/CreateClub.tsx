@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Building2, Save } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { CATEGORY_OPTIONS } from "../lib/labels";
@@ -29,13 +30,12 @@ export function CreateClub() {
   const [description, setDescription] = useState("");
   const [logoUri, setLogoUri] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<Tone>("danger");
+  const feedback = useActionFeedback();
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsSubmitting(true);
-    setMessage(null);
+    feedback.clear();
 
     try {
       const { data, error } = await client.POST("/api/v1/clubs/", {
@@ -49,19 +49,16 @@ export function CreateClub() {
       });
 
       if (error) {
-        setMessageTone("danger");
-        setMessage(error);
+        feedback.fail(error);
         return;
       }
 
-      setMessageTone("success");
-      setMessage(data);
+      feedback.succeed(data);
       if (data?.id) {
         navigate(`/club/${data.id}`);
       }
     } catch (error) {
-      setMessageTone("danger");
-      setMessage(error);
+      feedback.fail(error);
     } finally {
       setIsSubmitting(false);
     }
@@ -141,9 +138,9 @@ export function CreateClub() {
             />
           </div>
 
-          {message && (
+          {feedback.message && (
             <div className="md:col-span-2">
-              <StatusMessage value={message} tone={messageTone} />
+              <StatusMessage value={feedback.message} tone={feedback.tone} />
             </div>
           )}
 
