@@ -114,7 +114,7 @@ export function Home() {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
-      className="grid gap-6 pb-20"
+      className="grid gap-6"
     >
       {error && <StatusMessage value={error} />}
 

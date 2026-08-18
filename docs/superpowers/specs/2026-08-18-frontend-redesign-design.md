@@ -348,8 +348,8 @@ levels).
    bottom bar carries only the three public `navLinks`. Keyboard users are equally
    locked out, since `visibility: hidden` removes the menu from tab order.
 3. **`<main>` does not account for the fixed bottom bar.** Line 212 is `py-6`; the bar at
-   line 216 is `fixed bottom-0`. **13 of 15 pages carry a hand-written `pb-20`** to
-   compensate. `Login` and `Register` do not, and are clipped on mobile. The `pb-20`s are
+   line 216 is `fixed bottom-0`. **14 pages carry a hand-written `pb-20`** to
+   compensate (stated as 13 during design; the exact count is 14). `Login` and `Register` do not, and are clipped on mobile. The `pb-20`s are
    unconditional rather than `md:pb-0`, so every page also carries 5rem of dead space on
    desktop.
 
@@ -359,9 +359,25 @@ workarounds — a net-negative diff that fixes two pages and desktop simultaneou
 
 ### 5.2 Rebuild
 
-State-driven mobile navigation that the hamburger actually opens; the user menu
-converted to click/tap with focus management and `Escape` to dismiss; logged-in
-destinations reachable from the mobile bar or drawer.
+The user menu converted to click/tap with focus management and `Escape` to dismiss, so
+logged-in destinations are reachable on touch and by keyboard. *(Shipped early — §5.3.)*
+
+*Phase 4 decision — no drawer was built.* This section originally called for
+"state-driven mobile navigation that the hamburger actually opens". On inspection there is
+nothing left for a drawer to carry: the three public links are already in the fixed
+mobile bottom bar, every authenticated destination is in the (now working) user menu, and
+登录 / 注册 sit in the header. A drawer would duplicate navigation that is already complete
+on mobile.
+
+So the inert button was **removed** rather than wired up. It had an
+`aria-label="打开导航"` and no handler, which misrepresented itself to assistive
+technology; deleting it removes a control that lied about what it did. If a future
+information architecture genuinely needs more mobile navigation than the bottom bar can
+hold (see §4.4 on restructuring), a drawer can be added then, with real destinations to
+put in it.
+
+`<main>` takes the bottom-bar clearance once (`pt-6 pb-24 … md:pb-6`, matching the bar's
+own `md:hidden`), and the 14 per-page `pb-20` workarounds are deleted.
 
 ### 5.3 Pulled out as a standalone bugfix
 

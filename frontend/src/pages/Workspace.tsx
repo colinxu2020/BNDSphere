@@ -97,7 +97,7 @@ export function Workspace() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col gap-6 pb-20"
+      className="flex flex-col gap-6"
     >
       <PageHeader
         eyebrow="My Clubs"

@@ -116,7 +116,7 @@ export function Profile() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col gap-8 pb-20 max-w-3xl mx-auto w-full mt-4"
+      className="flex flex-col gap-8 max-w-3xl mx-auto w-full mt-4"
     >
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-display font-bold text-content">

@@ -101,7 +101,7 @@ export function Admin() {
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
-      className="grid min-w-0 gap-6 pb-20"
+      className="grid min-w-0 gap-6"
     >
       <PageHeader
         eyebrow="Admin"

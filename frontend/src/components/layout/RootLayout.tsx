@@ -5,7 +5,6 @@ import {
   Compass,
   LayoutDashboard,
   LogOut,
-  Menu,
   Settings,
   Shield,
   User,
@@ -246,18 +245,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 )}
               </div>
             )}
-            <button
-              type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-edge text-content-muted md:hidden"
-              aria-label="打开导航"
-            >
-              <Menu size={18} />
-            </button>
           </div>
         </nav>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-6 pb-24 sm:px-6 md:pb-6 lg:px-8">
         {children}
       </main>
 

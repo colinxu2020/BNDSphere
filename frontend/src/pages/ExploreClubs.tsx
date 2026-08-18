@@ -75,7 +75,7 @@ export function ExploreClubs() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col h-full gap-8 pb-20"
+      className="flex flex-col h-full gap-8"
     >
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
         <div>

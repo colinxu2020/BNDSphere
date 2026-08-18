@@ -244,7 +244,7 @@ export function Moderation() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col gap-8 pb-20"
+      className="flex flex-col gap-8"
     >
       <PageHeader
         eyebrow="Moderation"
