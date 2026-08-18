@@ -64,17 +64,26 @@ export function Surface({
 
 export function SectionTitle({
   icon,
+  className,
+  iconClassName,
   title,
   description,
 }: {
   icon?: ReactNode;
+  className?: string;
+  iconClassName?: string;
   title: string;
   description?: string;
 }) {
   return (
-    <div className="flex items-start gap-3 mb-6">
+    <div className={cn("flex items-start gap-3 mb-6", className)}>
       {icon && (
-        <div className="w-10 h-10 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+        <div
+          className={cn(
+            "w-10 h-10 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0",
+            iconClassName,
+          )}
+        >
           {icon}
         </div>
       )}
@@ -176,7 +185,9 @@ export function StatusMessage({
   tone?: "error" | "success" | "info";
 }) {
   const text =
-    tone === "success" ? stringifySuccessValue(value) : stringifyBackendValue(value);
+    tone === "success"
+      ? stringifySuccessValue(value)
+      : stringifyBackendValue(value);
   if (!text) return null;
 
   const toneClass = {
@@ -272,4 +283,3 @@ export function Badge({
     </span>
   );
 }
-

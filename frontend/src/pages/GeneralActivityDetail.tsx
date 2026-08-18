@@ -1,10 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import {
-  ArrowLeft,
-  CalendarDays,
-  CheckCircle2,
-} from "@/src/components/ui/Icons";
+import { ArrowLeft, CheckCircle2 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -83,9 +79,6 @@ export function GeneralActivityDetail() {
         <>
           <Surface className="relative overflow-hidden">
             <div className="relative z-10">
-              <div className="w-14 h-14 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center mb-6">
-                <CalendarDays size={26} />
-              </div>
               <PageHeader
                 eyebrow={ACTIVITY_LEVEL_MAP[activityInfo.level]}
                 title={activityInfo.name}
@@ -97,6 +90,8 @@ export function GeneralActivityDetail() {
           <Surface>
             <SectionTitle
               icon={<CheckCircle2 size={20} />}
+              className="items-center"
+              iconClassName="border border-slate-100 bg-slate-50 text-slate-600"
               title="社团记录"
             />
             {activityInfo.club_records?.length ? (
@@ -124,20 +119,19 @@ export function GeneralActivityDetail() {
                             {PARTICIPATION_MAP[record.participation_type]}
                           </Badge>
                         </div>
-                        <h3 className="font-semibold text-slate-900 mt-3">
-                          社团 #{record.club_id}
+                        <h3 className="mt-3">
+                          <Link
+                            to={`/club/${record.club_id}`}
+                            className="font-semibold text-slate-900 hover:text-primary-600 transition-colors"
+                          >
+                            社团 #{record.club_id}
+                          </Link>
                         </h3>
                         <p className="text-sm text-slate-500 mt-1">
                           申请分值 {record.requested_score}，提交于{" "}
                           {formatDateTime(record.created_at)}
                         </p>
                       </div>
-                      <Link
-                        to={`/club/${record.club_id}/manage`}
-                        className="text-sm font-semibold text-primary-600 hover:text-primary-700"
-                      >
-                        进入社团工作台
-                      </Link>
                     </div>
                     {record.proof_files?.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
@@ -168,4 +162,3 @@ export function GeneralActivityDetail() {
     </motion.div>
   );
 }
-

@@ -1,8 +1,7 @@
 import { client } from "./client";
 import type { components } from "./schema";
 
-const PUBLIC_BUCKET_BASE =
-  "https://r2.pulldown.dev";
+const PUBLIC_BUCKET_BASE = "https://r2.pulldown.dev";
 
 export type UploadScene = components["schemas"]["UploadScene"];
 

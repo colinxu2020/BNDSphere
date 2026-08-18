@@ -1,6 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
+import {
+  Building2,
+  ChevronRight,
+  Plus,
+  RefreshCw,
+  Users,
+} from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -160,7 +166,9 @@ export function Workspace() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Badge tone="primary">
-                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
+                        {membership
+                          ? MEMBERSHIP_MAP[membership.membership]
+                          : ""}
                       </Badge>
                       <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
                       <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
@@ -175,8 +183,11 @@ export function Workspace() {
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />
-                        {club.members.filter((member) => member.membership !== "left")
-                          .length}{" "}
+                        {
+                          club.members.filter(
+                            (member) => member.membership !== "left",
+                          ).length
+                        }{" "}
                         名成员
                       </span>
                     </div>

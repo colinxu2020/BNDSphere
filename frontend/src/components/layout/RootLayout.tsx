@@ -11,7 +11,11 @@ import {
   User,
 } from "@/src/components/ui/Icons";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { client } from "../../api/client";
+import {
+  AUTH_STATE_CHANGED_EVENT,
+  clearAuthToken,
+  client,
+} from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
 
@@ -54,10 +58,17 @@ export function RootLayout({ children }: { children: ReactNode }) {
   }, [location.pathname]);
 
   useEffect(() => {
-    const syncAuthState = () =>
-      setIsLoggedIn(Boolean(localStorage.getItem("bnd_token")));
+    const syncAuthState = () => {
+      const hasToken = Boolean(localStorage.getItem("bnd_token"));
+      setIsLoggedIn(hasToken);
+      if (!hasToken) setUser(null);
+    };
     window.addEventListener("storage", syncAuthState);
-    return () => window.removeEventListener("storage", syncAuthState);
+    window.addEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
+    return () => {
+      window.removeEventListener("storage", syncAuthState);
+      window.removeEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
+    };
   }, []);
 
   const canOpenFederation = useMemo(
@@ -70,7 +81,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
 
   const handleLogout = () => {
-    localStorage.removeItem("bnd_token");
+    clearAuthToken();
     setIsLoggedIn(false);
     setUser(null);
     navigate("/login");
@@ -81,11 +92,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <img
-              src="/LOGO_FULL.png"
-              alt="BNDSphere"
-              className="h-10 w-auto"
-            />
+            <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10 w-auto" />
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -122,7 +129,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-md bg-slate-900 px-3 py-2 text-sm font-semibold text-white hover:bg-slate-800"
+                  className="rounded-md bg-primary-500 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-600"
                 >
                   注册
                 </Link>

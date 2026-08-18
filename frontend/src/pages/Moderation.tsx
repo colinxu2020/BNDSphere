@@ -1,6 +1,12 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import { Check, Clock, FilePenLine, RefreshCw, X } from "@/src/components/ui/Icons";
+import {
+  Check,
+  Clock,
+  FilePenLine,
+  RefreshCw,
+  X,
+} from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { MODERATION_STATUS_MAP } from "../lib/labels";
@@ -369,4 +375,3 @@ export function Moderation() {
     </motion.div>
   );
 }
-

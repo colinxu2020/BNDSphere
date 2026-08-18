@@ -119,4 +119,3 @@ export function UserProfile() {
     </motion.div>
   );
 }
-

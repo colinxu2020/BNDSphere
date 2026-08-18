@@ -6,6 +6,7 @@ import {
   Check,
   Clock,
   FilePenLine,
+  Plus,
   RefreshCw,
   Save,
   ShieldCheck,
@@ -83,6 +84,9 @@ export function Federation() {
   const [activityLevel, setActivityLevel] =
     useState<ActivityLevel>("club_federation");
   const [isCreating, setIsCreating] = useState(false);
+  const [activityEditorMode, setActivityEditorMode] = useState<
+    "create" | "update" | null
+  >(null);
 
   const [selectedActivityId, setSelectedActivityId] = useState<number | null>(
     null,
@@ -171,7 +175,9 @@ export function Federation() {
           }),
         ]);
 
-      setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
+      setActivities(
+        activityResponse.error ? [] : activityResponse.data?.items || [],
+      );
       setActivityCreateRequests(
         createResponse.error ? [] : createResponse.data?.items || [],
       );
@@ -285,7 +291,7 @@ export function Federation() {
           },
         },
       );
-      setResult(error, "综评活动已创建");
+      setResult(error, "大型活动已创建");
       if (!error) {
         setActivityName("");
         setActivityDescription("");
@@ -301,10 +307,25 @@ export function Federation() {
   };
 
   const loadActivityForEdit = (activity: GeneralActivity) => {
+    setActivityEditorMode("update");
     setSelectedActivityId(activity.id);
     setEditActivityName(activity.name);
     setEditActivityDescription(activity.description);
     setEditActivityLevel(activity.level);
+  };
+
+  const openActivityCreate = () => {
+    setActivityEditorMode("create");
+    setSelectedActivityId(null);
+    setActivityName("");
+    setActivityDescription("");
+    setActivityLevel("club_federation");
+    setMessage(null);
+  };
+
+  const closeActivityEditor = () => {
+    setActivityEditorMode(null);
+    setSelectedActivityId(null);
   };
 
   const updateActivity = async (event: React.FormEvent) => {
@@ -328,7 +349,7 @@ export function Federation() {
           },
         },
       );
-      setResult(error, "综评活动已更新");
+      setResult(error, "大型活动已更新");
       if (!error) {
         if (data) loadActivityForEdit(data);
         loadWorkspace();
@@ -348,9 +369,10 @@ export function Federation() {
         "/api/v1/club-federation/general-activity/{activity_id}",
         { params: { path: { activity_id: activity.id } } },
       );
-      setResult(error, "综评活动已删除");
+      setResult(error, "大型活动已删除");
       if (!error) {
         if (selectedActivityId === activity.id) {
+          setActivityEditorMode(null);
           setSelectedActivityId(null);
           setEditActivityName("");
           setEditActivityDescription("");
@@ -378,8 +400,12 @@ export function Federation() {
           : String(application.requested_contest_score)
         : String(application.final_contest_score),
     );
-    setUniquenessApproved(booleanToSelectValue(application.uniqueness_approved));
-    setGrowthStoryApproved(booleanToSelectValue(application.growth_story_approved));
+    setUniquenessApproved(
+      booleanToSelectValue(application.uniqueness_approved),
+    );
+    setGrowthStoryApproved(
+      booleanToSelectValue(application.growth_story_approved),
+    );
   };
 
   const updateRecord = async (event: React.FormEvent) => {
@@ -514,169 +540,26 @@ export function Federation() {
       {loadError && <StatusMessage value={loadError} />}
 
       <Surface>
-        <SectionTitle icon={<CalendarDays size={20} />} title="创建综评活动" />
-        <form
-          onSubmit={createActivity}
-          className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_220px]"
-        >
-          <div className="grid gap-4 md:grid-cols-2">
-            <Field label="活动名称">
-              <input
-                className={inputClassName}
-                value={activityName}
-                onChange={(event) => setActivityName(event.target.value)}
-                required
-              />
-            </Field>
-            <Field label="活动层级">
-              <select
-                className={selectClassName}
-                value={activityLevel}
-                onChange={(event) =>
-                  setActivityLevel(event.target.value as ActivityLevel)
-                }
-              >
-                {ACTIVITY_LEVEL_OPTIONS.map((option) => (
-                  <option key={option.value} value={option.value}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </Field>
-            <div className="md:col-span-2">
-              <Field label="活动描述">
-                <textarea
-                  className={textareaClassName}
-                  value={activityDescription}
-                  onChange={(event) =>
-                    setActivityDescription(event.target.value)
-                  }
-                  required
-                />
-              </Field>
-            </div>
-          </div>
-          <div className="flex items-end">
-            <PrimaryButton type="submit" loading={isCreating} className="w-full">
-              <Save size={18} /> 创建活动
-            </PrimaryButton>
-          </div>
-        </form>
-      </Surface>
-
-      <Surface>
         <SectionTitle
-          icon={<CalendarDays size={20} />}
-          title="活动维护"
+          icon={<FilePenLine size={20} />}
+          title="审核社团活动"
+          description="处理社团提交的活动创建和修改申请。"
         />
-        <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
-          <div className="grid gap-3">
-            {isLoading ? (
-              <LoadingRows />
-            ) : activities.length ? (
-              activities.map((activity) => (
-                <button
-                  key={activity.id}
-                  type="button"
-                  onClick={() => loadActivityForEdit(activity)}
-                  className={cn(
-                    "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
-                    selectedActivityId === activity.id &&
-                      "border-primary-200 bg-primary-50",
-                  )}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="primary">
-                      {ACTIVITY_LEVEL_MAP[activity.level]}
-                    </Badge>
-                    <Badge>{activity.club_records?.length || 0} 条记录</Badge>
-                  </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
-                    {activity.name}
-                  </h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {activity.description}
-                  </p>
-                  <p className="mt-2 text-xs font-medium text-slate-400">
-                    #{activity.id} · {formatDate(activity.starts_at || activity.created_at)}
-                  </p>
-                </button>
-              ))
-            ) : (
-              <EmptyState title="暂无综评活动" />
-            )}
-          </div>
-
-          <div className="rounded-md border border-slate-100 bg-white p-5">
-            {selectedActivity ? (
-              <form onSubmit={updateActivity} className="grid gap-4">
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
-                  <div>
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                      当前编辑
-                    </p>
-                    <h3 className="mt-1 text-lg font-bold text-slate-900">
-                      {selectedActivity.name}
-                    </h3>
-                  </div>
-                  <div className="flex gap-2">
-                    <Link
-                      to={`/activities/${selectedActivity.id}`}
-                      className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
-                    >
-                      详情
-                    </Link>
-                    <DangerButton
-                      type="button"
-                      onClick={() => deleteActivity(selectedActivity)}
-                    >
-                      <Trash2 size={16} /> 删除
-                    </DangerButton>
-                  </div>
-                </div>
-                <Field label="活动名称">
-                  <input
-                    className={inputClassName}
-                    value={editActivityName}
-                    onChange={(event) => setEditActivityName(event.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="活动层级">
-                  <select
-                    className={selectClassName}
-                    value={editActivityLevel}
-                    onChange={(event) =>
-                      setEditActivityLevel(event.target.value as ActivityLevel)
-                    }
-                  >
-                    {ACTIVITY_LEVEL_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="活动描述">
-                  <textarea
-                    className={textareaClassName}
-                    value={editActivityDescription}
-                    onChange={(event) =>
-                      setEditActivityDescription(event.target.value)
-                    }
-                  />
-                </Field>
-                <PrimaryButton type="submit" loading={isEditing}>
-                  更新活动
-                </PrimaryButton>
-              </form>
-            ) : (
-              <EmptyState
-                title="选择一个活动"
-                description="点击左侧活动后，这里会显示可编辑表单。"
-              />
-            )}
-          </div>
+        <div className="grid gap-6 lg:grid-cols-2">
+          <ActivityRequestList
+            title="活动创建申请"
+            kind="create"
+            items={activityCreateRequests}
+            busyKey={busyActivityRequest}
+            onModerate={moderateClubActivityRequest}
+          />
+          <ActivityRequestList
+            title="活动修改申请"
+            kind="update"
+            items={activityUpdateRequests}
+            busyKey={busyActivityRequest}
+            onModerate={moderateClubActivityRequest}
+          />
         </div>
       </Surface>
 
@@ -685,7 +568,12 @@ export function Federation() {
           icon={<ShieldCheck size={20} />}
           title="审核社团综评记录"
         />
-        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+        <div
+          className={cn(
+            "grid gap-6",
+            selectedRecord && "lg:grid-cols-[1fr_360px]",
+          )}
+        >
           <div className="grid gap-3">
             {isLoading ? (
               <LoadingRows />
@@ -705,7 +593,9 @@ export function Federation() {
                     <Badge tone={getAuditTone(record.audit_status)}>
                       {AUDIT_STATUS_MAP[record.audit_status]}
                     </Badge>
-                    <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
+                    <Badge>
+                      {PARTICIPATION_MAP[record.participation_type]}
+                    </Badge>
                     <span className="text-xs font-medium text-slate-400">
                       记录 #{record.id}
                     </span>
@@ -727,22 +617,30 @@ export function Federation() {
             )}
           </div>
 
-          <form
-            onSubmit={updateRecord}
-            className="h-fit rounded-md border border-slate-100 bg-white p-5"
-          >
-            {selectedRecord ? (
+          {selectedRecord && (
+            <form
+              onSubmit={updateRecord}
+              className="h-fit rounded-md border border-slate-100 bg-white p-5"
+            >
               <div className="grid gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    当前审核
-                  </p>
-                  <h3 className="mt-1 font-bold text-slate-900">
-                    {selectedRecord.activity.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      当前审核
+                    </p>
+                    <h3 className="mt-1 truncate font-bold text-slate-900">
+                      {selectedRecord.activity.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
+                    </p>
+                  </div>
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => setSelectedRecordId(null)}
+                  >
+                    <X size={16} /> 收起
+                  </SecondaryButton>
                 </div>
                 <Field label="审核状态">
                   <select
@@ -791,16 +689,19 @@ export function Federation() {
                   <Save size={18} /> 更新记录
                 </PrimaryButton>
               </div>
-            ) : (
-              <EmptyState title="选择一条记录" />
-            )}
-          </form>
+            </form>
+          )}
         </div>
       </Surface>
 
       <Surface>
         <SectionTitle icon={<Award size={20} />} title="审核星级评价表" />
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+        <div
+          className={cn(
+            "grid gap-6",
+            selectedStarApplication && "lg:grid-cols-[1fr_380px]",
+          )}
+        >
           <div className="grid gap-3">
             {isLoading ? (
               <LoadingRows />
@@ -817,7 +718,9 @@ export function Federation() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={getAuditTone(application.audit_status || "pending")}>
+                    <Badge
+                      tone={getAuditTone(application.audit_status || "pending")}
+                    >
                       {application.audit_status
                         ? AUDIT_STATUS_MAP[application.audit_status]
                         : "待审核"}
@@ -849,23 +752,31 @@ export function Federation() {
             )}
           </div>
 
-          <form
-            onSubmit={reviewStarApplication}
-            className="h-fit rounded-md border border-slate-100 bg-white p-5"
-          >
-            {selectedStarApplication ? (
+          {selectedStarApplication && (
+            <form
+              onSubmit={reviewStarApplication}
+              className="h-fit rounded-md border border-slate-100 bg-white p-5"
+            >
               <div className="grid gap-4">
-                <div>
-                  <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                    当前审核
-                  </p>
-                  <h3 className="mt-1 font-bold text-slate-900">
-                    {selectedStarApplication.club.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-slate-500">
-                    申请 #{selectedStarApplication.id} ·{" "}
-                    {selectedStarApplication.academic_term.term_name}
-                  </p>
+                <div className="flex items-start justify-between gap-4">
+                  <div className="min-w-0">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      当前审核
+                    </p>
+                    <h3 className="mt-1 truncate font-bold text-slate-900">
+                      {selectedStarApplication.club.name}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-500">
+                      申请 #{selectedStarApplication.id} ·{" "}
+                      {selectedStarApplication.academic_term.term_name}
+                    </p>
+                  </div>
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => setSelectedStarId(null)}
+                  >
+                    <X size={16} /> 收起
+                  </SecondaryButton>
                 </div>
                 <Field label="审核状态">
                   <select
@@ -888,7 +799,9 @@ export function Federation() {
                       className={inputClassName}
                       type="number"
                       value={finalContestScore}
-                      onChange={(event) => setFinalContestScore(event.target.value)}
+                      onChange={(event) =>
+                        setFinalContestScore(event.target.value)
+                      }
                     />
                   </Field>
                   <Field label="审核总分">
@@ -941,13 +854,18 @@ export function Federation() {
                 <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
                   <p className="font-semibold text-slate-800">申请内容</p>
                   <p className="mt-2 whitespace-pre-wrap leading-6">
-                    {selectedStarApplication.uniqueness_statement || "未填写特色说明。"}
+                    {selectedStarApplication.uniqueness_statement ||
+                      "未填写特色说明。"}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <ExternalLink href={selectedStarApplication.contest_attachment}>
+                    <ExternalLink
+                      href={selectedStarApplication.contest_attachment}
+                    >
                       竞赛附件
                     </ExternalLink>
-                    <ExternalLink href={selectedStarApplication.growth_story_url}>
+                    <ExternalLink
+                      href={selectedStarApplication.growth_story_url}
+                    >
                       成长故事
                     </ExternalLink>
                   </div>
@@ -956,34 +874,204 @@ export function Federation() {
                   <Save size={18} /> 提交审核
                 </PrimaryButton>
               </div>
-            ) : (
-              <EmptyState title="选择一份星级评价表" />
-            )}
-          </form>
+            </form>
+          )}
         </div>
       </Surface>
 
       <Surface>
-        <SectionTitle
-          icon={<FilePenLine size={20} />}
-          title="审核社团活动"
-          description="处理社团提交的活动创建和修改申请。"
-        />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ActivityRequestList
-            title="活动创建申请"
-            kind="create"
-            items={activityCreateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
+        <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <SectionTitle
+            className="mb-0"
+            icon={<CalendarDays size={20} />}
+            title="管理大型活动"
           />
-          <ActivityRequestList
-            title="活动修改申请"
-            kind="update"
-            items={activityUpdateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
-          />
+          <SecondaryButton
+            type="button"
+            onClick={openActivityCreate}
+            className="w-full whitespace-nowrap sm:w-auto"
+          >
+            <Plus size={16} /> 新建大型活动
+          </SecondaryButton>
+        </div>
+        <div
+          className={cn(
+            "grid gap-6",
+            activityEditorMode && "lg:grid-cols-[0.95fr_1.05fr]",
+          )}
+        >
+          <div className="grid gap-3">
+            {isLoading ? (
+              <LoadingRows />
+            ) : activities.length ? (
+              activities.map((activity) => (
+                <button
+                  key={activity.id}
+                  type="button"
+                  onClick={() => loadActivityForEdit(activity)}
+                  className={cn(
+                    "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
+                    selectedActivityId === activity.id &&
+                      "border-primary-200 bg-primary-50",
+                  )}
+                >
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge tone="primary">
+                      {ACTIVITY_LEVEL_MAP[activity.level]}
+                    </Badge>
+                    <Badge>{activity.club_records?.length || 0} 条记录</Badge>
+                  </div>
+                  <h3 className="mt-3 font-semibold text-slate-900">
+                    {activity.name}
+                  </h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                    {activity.description}
+                  </p>
+                  <p className="mt-2 text-xs font-medium text-slate-400">
+                    #{activity.id} ·{" "}
+                    {formatDate(activity.starts_at || activity.created_at)}
+                  </p>
+                </button>
+              ))
+            ) : (
+              <EmptyState title="暂无大型活动" />
+            )}
+          </div>
+
+          {activityEditorMode && (
+            <div className="h-fit rounded-md border border-slate-100 bg-white p-5">
+              {activityEditorMode === "create" ? (
+                <form onSubmit={createActivity} className="grid gap-4">
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        新建活动
+                      </p>
+                      <h3 className="mt-1 font-bold text-slate-900">
+                        创建大型活动
+                      </h3>
+                    </div>
+                    <SecondaryButton
+                      type="button"
+                      onClick={closeActivityEditor}
+                    >
+                      <X size={16} /> 收起
+                    </SecondaryButton>
+                  </div>
+                  <Field label="活动名称">
+                    <input
+                      className={inputClassName}
+                      value={activityName}
+                      onChange={(event) => setActivityName(event.target.value)}
+                      required
+                    />
+                  </Field>
+                  <Field label="活动层级">
+                    <select
+                      className={selectClassName}
+                      value={activityLevel}
+                      onChange={(event) =>
+                        setActivityLevel(event.target.value as ActivityLevel)
+                      }
+                    >
+                      {ACTIVITY_LEVEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="活动描述">
+                    <textarea
+                      className={textareaClassName}
+                      value={activityDescription}
+                      onChange={(event) =>
+                        setActivityDescription(event.target.value)
+                      }
+                      required
+                    />
+                  </Field>
+                  <PrimaryButton type="submit" loading={isCreating}>
+                    <Save size={18} /> 创建大型活动
+                  </PrimaryButton>
+                </form>
+              ) : selectedActivity ? (
+                <form onSubmit={updateActivity} className="grid gap-4">
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="min-w-0">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                        当前编辑
+                      </p>
+                      <h3 className="mt-1 truncate text-lg font-bold text-slate-900">
+                        {selectedActivity.name}
+                      </h3>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <SecondaryButton
+                        type="button"
+                        onClick={closeActivityEditor}
+                      >
+                        <X size={16} /> 收起
+                      </SecondaryButton>
+                      <Link
+                        to={`/activities/${selectedActivity.id}`}
+                        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                      >
+                        详情
+                      </Link>
+                      <DangerButton
+                        type="button"
+                        onClick={() => deleteActivity(selectedActivity)}
+                      >
+                        <Trash2 size={16} /> 删除
+                      </DangerButton>
+                    </div>
+                  </div>
+                  <Field label="活动名称">
+                    <input
+                      className={inputClassName}
+                      value={editActivityName}
+                      onChange={(event) =>
+                        setEditActivityName(event.target.value)
+                      }
+                      required
+                    />
+                  </Field>
+                  <Field label="活动层级">
+                    <select
+                      className={selectClassName}
+                      value={editActivityLevel}
+                      onChange={(event) =>
+                        setEditActivityLevel(
+                          event.target.value as ActivityLevel,
+                        )
+                      }
+                    >
+                      {ACTIVITY_LEVEL_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                  </Field>
+                  <Field label="活动描述">
+                    <textarea
+                      className={textareaClassName}
+                      value={editActivityDescription}
+                      onChange={(event) =>
+                        setEditActivityDescription(event.target.value)
+                      }
+                    />
+                  </Field>
+                  <PrimaryButton type="submit" loading={isEditing}>
+                    更新活动
+                  </PrimaryButton>
+                </form>
+              ) : (
+                <EmptyState title="请选择大型活动" />
+              )}
+            </div>
+          )}
         </div>
       </Surface>
     </motion.div>
@@ -1097,9 +1185,7 @@ function ActivityRequestList({
 function renderActivityRequestDetails(
   item: ActivityCreateRequest | ActivityUpdateRequest,
 ) {
-  const rows: [string, unknown][] = [
-    ["申请人", `#${item.requestor_id}`],
-  ];
+  const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
 
   if ("club_id" in item) {
     rows.push(["社团", `#${item.club_id}`]);
@@ -1110,13 +1196,20 @@ function renderActivityRequestDetails(
   if ("name" in item) rows.push(["名称", item.name]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item) {
-    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
+    rows.push([
+      "开始时间",
+      item.start_time ? formatDateTime(item.start_time) : null,
+    ]);
   }
   if ("end_time" in item) {
-    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
+    rows.push([
+      "结束时间",
+      item.end_time ? formatDateTime(item.end_time) : null,
+    ]);
   }
   if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
+  if ("picture_urls" in item)
+    rows.push(["图片", item.picture_urls?.join("\n")]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
   return (
@@ -1202,7 +1295,9 @@ function getStarPreviewScoreText(
 ) {
   if (auditStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
-  return preview?.approved_score == null ? "待计算" : `${preview.approved_score} 分`;
+  return preview?.approved_score == null
+    ? "待计算"
+    : `${preview.approved_score} 分`;
 }
 
 function getStarPreviewLevelText(

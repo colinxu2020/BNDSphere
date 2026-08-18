@@ -66,7 +66,9 @@ const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
 export function Admin() {
   const [activeSection, setActiveSection] = useState<SectionId>("users");
   const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success" | "info">("info");
+  const [messageTone, setMessageTone] = useState<"error" | "success" | "info">(
+    "info",
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const setResult = (error: unknown, data: unknown) => {
@@ -187,10 +189,11 @@ function UsersAdmin() {
       const { data, error } = await client.GET("/api/v1/admin/users/", {
         params: { query: { size: 50, search: search || undefined } },
       });
-      setResult(error, error ? null : "用户列表已刷新");
+      if (error) setResult(error, null);
       setUsers(data?.items || []);
       if (selected) {
-        const nextSelected = data?.items.find((item) => item.id === selected.id) || null;
+        const nextSelected =
+          data?.items.find((item) => item.id === selected.id) || null;
         if (nextSelected) selectUser(nextSelected);
       }
     } catch (error) {
@@ -227,10 +230,13 @@ function UsersAdmin() {
       role: form.role || null,
     };
     try {
-      const { data, error } = await client.PATCH("/api/v1/admin/users/{user_id}", {
-        params: { path: { user_id: selected.id } },
-        body,
-      });
+      const { data, error } = await client.PATCH(
+        "/api/v1/admin/users/{user_id}",
+        {
+          params: { path: { user_id: selected.id } },
+          body,
+        },
+      );
       setResult(error, error ? null : "用户已保存");
       if (data) selectUser(data);
       if (!error) loadUsers();
@@ -271,20 +277,27 @@ function UsersAdmin() {
     >
       {selected ? (
         <form onSubmit={saveUser} className="grid gap-4">
-          <FormHeader title={selected.username} subtitle={`用户 #${selected.id}`} />
+          <FormHeader
+            title={selected.username}
+            subtitle={`用户 #${selected.id}`}
+          />
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="用户名">
               <input
                 className={inputClassName}
                 value={form.username}
-                onChange={(event) => setForm({ ...form, username: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, username: event.target.value })
+                }
               />
             </Field>
             <Field label="邮箱">
               <input
                 className={inputClassName}
                 value={form.email}
-                onChange={(event) => setForm({ ...form, email: event.target.value })}
+                onChange={(event) =>
+                  setForm({ ...form, email: event.target.value })
+                }
               />
             </Field>
           </div>
@@ -292,14 +305,18 @@ function UsersAdmin() {
             <input
               className={inputClassName}
               value={form.avatar_uri}
-              onChange={(event) => setForm({ ...form, avatar_uri: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, avatar_uri: event.target.value })
+              }
             />
           </Field>
           <Field label="角色">
             <select
               className={selectClassName}
               value={form.role}
-              onChange={(event) => setForm({ ...form, role: event.target.value as Role })}
+              onChange={(event) =>
+                setForm({ ...form, role: event.target.value as Role })
+              }
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -312,7 +329,9 @@ function UsersAdmin() {
             <textarea
               className={textareaClassName}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, description: event.target.value })
+              }
             />
           </Field>
           <PrimaryButton type="submit" loading={isSaving}>
@@ -347,7 +366,7 @@ function ClubsAdmin() {
       const { data, error } = await client.GET("/api/v1/admin/clubs/", {
         params: { query: { size: 50, search: search || undefined } },
       });
-      setResult(error, error ? null : "社团列表已刷新");
+      if (error) setResult(error, null);
       setClubs(data?.items || []);
     } catch (error) {
       setResult(error, null);
@@ -383,10 +402,13 @@ function ClubsAdmin() {
       status: form.status || null,
     };
     try {
-      const { data, error } = await client.PATCH("/api/v1/admin/clubs/{club_id}", {
-        params: { path: { club_id: selected.id } },
-        body,
-      });
+      const { data, error } = await client.PATCH(
+        "/api/v1/admin/clubs/{club_id}",
+        {
+          params: { path: { club_id: selected.id } },
+          body,
+        },
+      );
       setResult(error, error ? null : "社团已保存");
       if (data) selectClub(data);
       if (!error) loadClubs();
@@ -432,21 +454,27 @@ function ClubsAdmin() {
             <input
               className={inputClassName}
               value={form.summary}
-              onChange={(event) => setForm({ ...form, summary: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, summary: event.target.value })
+              }
             />
           </Field>
           <Field label="详细介绍">
             <textarea
               className={textareaClassName}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, description: event.target.value })
+              }
             />
           </Field>
           <Field label="Logo URL">
             <input
               className={inputClassName}
               value={form.logo_uri}
-              onChange={(event) => setForm({ ...form, logo_uri: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, logo_uri: event.target.value })
+              }
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
@@ -455,7 +483,10 @@ function ClubsAdmin() {
                 className={selectClassName}
                 value={form.star_level}
                 onChange={(event) =>
-                  setForm({ ...form, star_level: event.target.value as ClubStarLevel })
+                  setForm({
+                    ...form,
+                    star_level: event.target.value as ClubStarLevel,
+                  })
                 }
               >
                 {STAR_LEVEL_OPTIONS.map((option) => (
@@ -508,10 +539,13 @@ function TermsAdmin() {
   const loadTerms = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/academic-terms/", {
-        params: { query: { size: 100 } },
-      });
-      setResult(error, error ? null : "学期列表已刷新");
+      const { data, error } = await client.GET(
+        "/api/v1/admin/academic-terms/",
+        {
+          params: { query: { size: 100 } },
+        },
+      );
+      if (error) setResult(error, null);
       setTerms(data?.items || []);
     } catch (error) {
       setResult(error, null);
@@ -556,14 +590,17 @@ function TermsAdmin() {
         setResult(error, error ? null : "学期已保存");
         if (data) selectTerm(data);
       } else {
-        const { data, error } = await client.POST("/api/v1/admin/academic-terms/", {
-          body: {
-            term_name: nullableText(form.term_name),
-            start_date: form.start_date,
-            end_date: form.end_date,
-            is_current: form.is_current,
+        const { data, error } = await client.POST(
+          "/api/v1/admin/academic-terms/",
+          {
+            body: {
+              term_name: nullableText(form.term_name),
+              start_date: form.start_date,
+              end_date: form.end_date,
+              is_current: form.is_current,
+            },
           },
-        });
+        );
         setResult(error, error ? null : "学期已创建");
         if (data) selectTerm(data);
       }
@@ -587,9 +624,12 @@ function TermsAdmin() {
 
   const deleteTerm = async (term: AcademicTerm) => {
     if (!window.confirm(`确认删除 ${term.term_name}？`)) return;
-    const { error } = await client.DELETE("/api/v1/admin/academic-terms/{term_id}", {
-      params: { path: { term_id: term.id } },
-    });
+    const { error } = await client.DELETE(
+      "/api/v1/admin/academic-terms/{term_id}",
+      {
+        params: { path: { term_id: term.id } },
+      },
+    );
     setResult(error, error ? null : "学期已删除");
     if (!error) resetCreate();
     loadTerms();
@@ -629,7 +669,9 @@ function TermsAdmin() {
           <input
             className={inputClassName}
             value={form.term_name}
-            onChange={(event) => setForm({ ...form, term_name: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, term_name: event.target.value })
+            }
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
@@ -638,7 +680,9 @@ function TermsAdmin() {
               className={inputClassName}
               type="date"
               value={form.start_date}
-              onChange={(event) => setForm({ ...form, start_date: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, start_date: event.target.value })
+              }
               required
             />
           </Field>
@@ -647,7 +691,9 @@ function TermsAdmin() {
               className={inputClassName}
               type="date"
               value={form.end_date}
-              onChange={(event) => setForm({ ...form, end_date: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, end_date: event.target.value })
+              }
               required
             />
           </Field>
@@ -657,7 +703,9 @@ function TermsAdmin() {
             <input
               type="checkbox"
               checked={form.is_current}
-              onChange={(event) => setForm({ ...form, is_current: event.target.checked })}
+              onChange={(event) =>
+                setForm({ ...form, is_current: event.target.checked })
+              }
             />
             创建后设为当前学期
           </label>
@@ -668,7 +716,10 @@ function TermsAdmin() {
           </PrimaryButton>
           {selected && (
             <>
-              <SecondaryButton type="button" onClick={() => setCurrent(selected)}>
+              <SecondaryButton
+                type="button"
+                onClick={() => setCurrent(selected)}
+              >
                 设为当前
               </SecondaryButton>
               <button
@@ -705,10 +756,13 @@ function ActivitiesAdmin() {
   const loadItems = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/general-activities/", {
-        params: { query: { size: 100 } },
-      });
-      setResult(error, error ? null : "大型活动列表已刷新");
+      const { data, error } = await client.GET(
+        "/api/v1/admin/general-activities/",
+        {
+          params: { query: { size: 100 } },
+        },
+      );
+      if (error) setResult(error, null);
       setItems(data?.items || []);
     } catch (error) {
       setResult(error, null);
@@ -769,9 +823,12 @@ function ActivitiesAdmin() {
         setResult(error, error ? null : "大型活动已保存");
         if (data) selectItem(data);
       } else {
-        const { data, error } = await client.POST("/api/v1/admin/general-activities/", {
-          body: buildBody(),
-        });
+        const { data, error } = await client.POST(
+          "/api/v1/admin/general-activities/",
+          {
+            body: buildBody(),
+          },
+        );
         setResult(error, error ? null : "大型活动已创建");
         if (data) selectItem(data);
       }
@@ -825,7 +882,9 @@ function ActivitiesAdmin() {
       <form onSubmit={saveItem} className="grid min-w-0 gap-4">
         <FormHeader
           title={selected ? selected.name : "新建大型活动"}
-          subtitle={selected ? `活动 #${selected.id}` : "用于首页展板和活动日历"}
+          subtitle={
+            selected ? `活动 #${selected.id}` : "用于首页展板和活动日历"
+          }
         />
         <Field label="活动名称">
           <input
@@ -840,7 +899,10 @@ function ActivitiesAdmin() {
             className={selectClassName}
             value={form.level}
             onChange={(event) =>
-              setForm({ ...form, level: event.target.value as GeneralActivityLevel })
+              setForm({
+                ...form,
+                level: event.target.value as GeneralActivityLevel,
+              })
             }
           >
             {ACTIVITY_LEVEL_OPTIONS.map((option) => (
@@ -856,7 +918,9 @@ function ActivitiesAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.starts_at}
-              onChange={(event) => setForm({ ...form, starts_at: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, starts_at: event.target.value })
+              }
             />
           </Field>
           <Field label="结束时间">
@@ -864,7 +928,9 @@ function ActivitiesAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.ends_at}
-              onChange={(event) => setForm({ ...form, ends_at: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, ends_at: event.target.value })
+              }
             />
           </Field>
         </div>
@@ -884,14 +950,18 @@ function ActivitiesAdmin() {
           <input
             className={inputClassName}
             value={form.article_url}
-            onChange={(event) => setForm({ ...form, article_url: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, article_url: event.target.value })
+            }
           />
         </Field>
         <Field label="活动描述">
           <textarea
             className={textareaClassName}
             value={form.description}
-            onChange={(event) => setForm({ ...form, description: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, description: event.target.value })
+            }
             required
           />
         </Field>
@@ -935,7 +1005,7 @@ function AnnouncementsAdmin() {
       const { data, error } = await client.GET("/api/v1/admin/announcements/", {
         params: { query: { size: 100, active_only: false } },
       });
-      setResult(error, error ? null : "公告列表已刷新");
+      if (error) setResult(error, null);
       setItems(data?.items || []);
     } catch (error) {
       setResult(error, null);
@@ -962,7 +1032,14 @@ function AnnouncementsAdmin() {
 
   const resetCreate = () => {
     setSelected(null);
-    setForm({ title: "", body: "", link_url: "", starts_at: "", ends_at: "", is_active: true });
+    setForm({
+      title: "",
+      body: "",
+      link_url: "",
+      starts_at: "",
+      ends_at: "",
+      is_active: true,
+    });
   };
 
   const buildBody = () => ({
@@ -981,14 +1058,20 @@ function AnnouncementsAdmin() {
       if (selected) {
         const { data, error } = await client.PATCH(
           "/api/v1/admin/announcements/{announcement_id}",
-          { params: { path: { announcement_id: selected.id } }, body: buildBody() },
+          {
+            params: { path: { announcement_id: selected.id } },
+            body: buildBody(),
+          },
         );
         setResult(error, error ? null : "公告已保存");
         if (data) selectItem(data);
       } else {
-        const { data, error } = await client.POST("/api/v1/admin/announcements/", {
-          body: buildBody(),
-        });
+        const { data, error } = await client.POST(
+          "/api/v1/admin/announcements/",
+          {
+            body: buildBody(),
+          },
+        );
         setResult(error, error ? null : "公告已创建");
         if (data) selectItem(data);
       }
@@ -1002,9 +1085,12 @@ function AnnouncementsAdmin() {
 
   const deleteItem = async (item: Announcement) => {
     if (!window.confirm(`确认删除 ${item.title}？`)) return;
-    const { error } = await client.DELETE("/api/v1/admin/announcements/{announcement_id}", {
-      params: { path: { announcement_id: item.id } },
-    });
+    const { error } = await client.DELETE(
+      "/api/v1/admin/announcements/{announcement_id}",
+      {
+        params: { path: { announcement_id: item.id } },
+      },
+    );
     setResult(error, error ? null : "公告已删除");
     if (!error) resetCreate();
     loadItems();
@@ -1044,7 +1130,9 @@ function AnnouncementsAdmin() {
           <input
             className={inputClassName}
             value={form.title}
-            onChange={(event) => setForm({ ...form, title: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, title: event.target.value })
+            }
             required
           />
         </Field>
@@ -1060,7 +1148,9 @@ function AnnouncementsAdmin() {
           <input
             className={inputClassName}
             value={form.link_url}
-            onChange={(event) => setForm({ ...form, link_url: event.target.value })}
+            onChange={(event) =>
+              setForm({ ...form, link_url: event.target.value })
+            }
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
@@ -1069,7 +1159,9 @@ function AnnouncementsAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.starts_at}
-              onChange={(event) => setForm({ ...form, starts_at: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, starts_at: event.target.value })
+              }
             />
           </Field>
           <Field label="结束展示">
@@ -1077,7 +1169,9 @@ function AnnouncementsAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.ends_at}
-              onChange={(event) => setForm({ ...form, ends_at: event.target.value })}
+              onChange={(event) =>
+                setForm({ ...form, ends_at: event.target.value })
+              }
             />
           </Field>
         </div>
@@ -1085,7 +1179,9 @@ function AnnouncementsAdmin() {
           <input
             type="checkbox"
             checked={form.is_active}
-            onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
+            onChange={(event) =>
+              setForm({ ...form, is_active: event.target.checked })
+            }
           />
           启用公告
         </label>

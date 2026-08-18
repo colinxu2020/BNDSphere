@@ -1,11 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import {
-  User,
-  LogOut,
-  Edit3,
-  X,
-} from "@/src/components/ui/Icons";
+import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -278,4 +273,3 @@ export function Profile() {
     </motion.div>
   );
 }
-

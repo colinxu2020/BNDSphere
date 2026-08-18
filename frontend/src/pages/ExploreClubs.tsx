@@ -1,6 +1,12 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import { Plus, Search, Filter, Hash, Sparkles } from "@/src/components/ui/Icons";
+import {
+  Plus,
+  Search,
+  Filter,
+  Hash,
+  Sparkles,
+} from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
@@ -211,4 +217,3 @@ export function ExploreClubs() {
     </motion.div>
   );
 }
-

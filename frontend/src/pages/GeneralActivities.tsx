@@ -80,10 +80,7 @@ export function GeneralActivities() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col gap-8 pb-20"
     >
-      <PageHeader
-        eyebrow="Activities"
-        title="综评活动"
-      />
+      <PageHeader eyebrow="Activities" title="综评活动" />
 
       <div className="flex flex-col gap-4">
         <div className="relative w-full">
@@ -140,22 +137,22 @@ export function GeneralActivities() {
             >
               <Link
                 to={`/activities/${activityItem.id}`}
-                className="group block h-full bg-white p-6 rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-primary-100 transition-all duration-300"
+                className="group block h-full bg-white p-6 rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-slate-300 transition-all duration-300"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="w-12 h-12 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-md border border-slate-100 bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
                     <CalendarDays size={22} />
                   </div>
                   <ArrowUpRight
                     size={18}
-                    className="text-slate-300 group-hover:text-primary-500 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
+                    className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
                   />
                 </div>
                 <div className="mt-5">
-                  <Badge tone="primary">
+                  <Badge tone="slate">
                     {ACTIVITY_LEVEL_MAP[activityItem.level]}
                   </Badge>
-                  <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-primary-600 transition-colors">
+                  <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-slate-950 transition-colors">
                     {activityItem.name}
                   </h3>
                   <p className="text-sm text-slate-500 line-clamp-2 mt-2">
@@ -184,4 +181,3 @@ export function GeneralActivities() {
     </motion.div>
   );
 }
-

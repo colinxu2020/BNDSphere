@@ -73,16 +73,10 @@ export function CreateClub() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col gap-8 pb-20 max-w-3xl mx-auto w-full"
     >
-      <PageHeader
-        eyebrow="Club"
-        title="创建社团"
-      />
+      <PageHeader eyebrow="Club" title="创建社团" />
 
       <Surface>
-        <SectionTitle
-          icon={<Building2 size={20} />}
-          title="基础信息"
-        />
+        <SectionTitle icon={<Building2 size={20} />} title="基础信息" />
 
         <form
           onSubmit={submit}

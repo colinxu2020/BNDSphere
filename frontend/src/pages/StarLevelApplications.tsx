@@ -11,11 +11,7 @@ import {
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import {
-  AUDIT_STATUS_MAP,
-  CATEGORY_MAP,
-  STAR_LEVEL_MAP,
-} from "../lib/labels";
+import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -26,8 +22,7 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 
-type StarApplication =
-  components["schemas"]["StarLevelApplicationPublicInfo"];
+type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type UserGrade = components["schemas"]["UserGradeEnum"];
 
@@ -158,7 +153,9 @@ function StarApplicationCard({
               >
                 {application.club.name}
               </Link>
-              <Badge tone="slate">{CATEGORY_MAP[application.club.category]}</Badge>
+              <Badge tone="slate">
+                {CATEGORY_MAP[application.club.category]}
+              </Badge>
               {auditStatus && (
                 <Badge tone={AUDIT_TONE[auditStatus]}>
                   {AUDIT_STATUS_MAP[auditStatus]}
@@ -171,13 +168,18 @@ function StarApplicationCard({
                 {application.academic_term.term_name}
               </span>
               <span>提交于 {formatDateTime(application.created_at)}</span>
-              <span>当前星级 {STAR_LEVEL_MAP[application.club.star_level]}</span>
+              <span>
+                当前星级 {STAR_LEVEL_MAP[application.club.star_level]}
+              </span>
             </div>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 lg:min-w-[360px]">
-          <Metric label="申请竞赛分" value={application.requested_contest_score} />
+          <Metric
+            label="申请竞赛分"
+            value={application.requested_contest_score}
+          />
           <Metric label="最终竞赛分" value={application.final_contest_score} />
           <Metric label="审核总分" value={application.approved_score} />
           <Metric

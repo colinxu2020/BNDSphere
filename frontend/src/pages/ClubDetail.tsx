@@ -2,7 +2,6 @@ import {
   Sparkles,
   Calendar,
   MapPin,
-  Users,
   Hash,
   ArrowLeft,
   Settings,
@@ -37,11 +36,7 @@ const STAR_LEVEL_MAP: Record<string, string> = {
   honorary: "荣誉社团",
 };
 
-const STATUS_MAP: Record<string, string> = {
-  unreviewed: "未审核",
-  normal: "正常运行",
-  archived: "已归档",
-};
+const MANAGER_ROLES = new Set(["president", "vice_president"]);
 
 export function ClubDetail() {
   const { id } = useParams<{ id: string }>();
@@ -95,6 +90,9 @@ export function ClubDetail() {
   const canJoin = !currentMembership;
   const canLeave =
     currentMembership === "member" || currentMembership === "pending";
+  const canManage = currentMembership
+    ? MANAGER_ROLES.has(currentMembership)
+    : false;
   const activeMembers = useMemo(
     () =>
       (club?.members || []).filter((member) =>
@@ -123,7 +121,9 @@ export function ClubDetail() {
           setClub({
             ...club,
             members: [
-              ...club.members.filter((member) => member.user_id !== data.user_id),
+              ...club.members.filter(
+                (member) => member.user_id !== data.user_id,
+              ),
               data,
             ],
           });
@@ -157,7 +157,9 @@ export function ClubDetail() {
           setClub({
             ...club,
             members: club.members.map((member) =>
-              member.user_id === user.id ? { ...member, membership: "left" } : member,
+              member.user_id === user.id
+                ? { ...member, membership: "left" }
+                : member,
             ),
           });
         }
@@ -255,12 +257,14 @@ export function ClubDetail() {
                 退出社团
               </button>
             )}
-            <Link
-              to={`/club/${club.id}/manage`}
-              className="flex-1 md:flex-none px-6 py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold rounded-md transition-all text-center inline-flex items-center justify-center gap-2"
-            >
-              <Settings size={16} /> 管理
-            </Link>
+            {canManage && (
+              <Link
+                to={`/club/${club.id}/manage`}
+                className="flex-1 md:flex-none px-6 py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold rounded-md transition-all text-center inline-flex items-center justify-center gap-2"
+              >
+                <Settings size={16} /> 管理
+              </Link>
+            )}
           </div>
         </div>
       </div>
@@ -283,9 +287,17 @@ export function ClubDetail() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="text-xl font-display font-bold text-slate-900 flex items-center gap-2 px-2">
-              <Calendar className="text-slate-500" /> 近期活动
-            </h2>
+            <div className="flex flex-wrap items-center justify-between gap-3 px-2">
+              <h2 className="text-xl font-display font-bold text-slate-900 flex items-center gap-2">
+                <Calendar className="text-slate-500" /> 社团活动
+              </h2>
+              <div className="text-right">
+                <p className="text-sm text-slate-500 font-medium">已组织活动</p>
+                <p className="text-base font-semibold text-slate-900">
+                  {club.club_activities?.length || 0} 场 / 学期
+                </p>
+              </div>
+            </div>
             {club.club_activities && club.club_activities.length > 0 ? (
               <div className="grid gap-4">
                 {club.club_activities.map((act) => (
@@ -323,52 +335,15 @@ export function ClubDetail() {
 
         {/* Right Column - Sidestats */}
         <div className="flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-md border border-slate-100 shadow-sm flex flex-col gap-6">
-            <h3 className="font-display font-bold text-lg text-slate-900">
-              社团概览
-            </h3>
-
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-slate-50 rounded-md flex items-center justify-center shrink-0">
-                <Users className="text-slate-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 font-medium">成员数</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {activeMembers.length} 名成员
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-slate-50 rounded-md flex items-center justify-center shrink-0">
-                <Calendar className="text-slate-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 font-medium">已组织活动</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {club.club_activities?.length || 0} 场 / 学期
-                </p>
-              </div>
-            </div>
-
-            <div className="flex items-start gap-4">
-              <div className="w-10 h-10 bg-slate-50 rounded-md flex items-center justify-center shrink-0">
-                <Sparkles className="text-slate-600" size={20} />
-              </div>
-              <div>
-                <p className="text-sm text-slate-500 font-medium">社团状态</p>
-                <p className="text-lg font-bold text-slate-900">
-                  {STATUS_MAP[club.status] || club.status}
-                </p>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-white p-6 rounded-md border border-slate-100 shadow-sm flex flex-col gap-4">
             <h3 className="font-display font-bold text-lg text-slate-900">
               成员
             </h3>
+            <div>
+              <p className="text-sm font-medium text-slate-600">
+                {activeMembers.length} 名成员
+              </p>
+            </div>
             {activeMembers.length ? (
               <div className="flex flex-col gap-2">
                 {activeMembers.slice(0, 8).map((member) => (
@@ -393,4 +368,3 @@ export function ClubDetail() {
     </motion.div>
   );
 }
-

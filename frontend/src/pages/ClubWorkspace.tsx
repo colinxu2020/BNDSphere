@@ -6,9 +6,11 @@ import {
   CalendarDays,
   FileCheck2,
   Hash,
+  Plus,
   RefreshCw,
   Save,
   Sparkles,
+  X,
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
@@ -89,6 +91,9 @@ export function ClubWorkspace() {
     "error" | "success"
   >("error");
   const [isActivityCreating, setIsActivityCreating] = useState(false);
+  const [activityEditorMode, setActivityEditorMode] = useState<
+    "create" | "update" | null
+  >(null);
 
   const [updateActivityId, setUpdateActivityId] = useState("");
   const [updateActivityName, setUpdateActivityName] = useState("");
@@ -124,6 +129,9 @@ export function ClubWorkspace() {
     "error",
   );
   const [isStarCreating, setIsStarCreating] = useState(false);
+  const [starEditorMode, setStarEditorMode] = useState<
+    "create" | "update" | null
+  >(null);
 
   const [starUpdateId, setStarUpdateId] = useState("");
   const [starUpdateAttachment, setStarUpdateAttachment] = useState("");
@@ -238,10 +246,12 @@ export function ClubWorkspace() {
     (activityItem) => String(activityItem.id) === generalActivityId,
   );
   const selectedGeneralRecord =
-    records.find((record) => String(record.activity_id) === generalActivityId) ||
-    null;
+    records.find(
+      (record) => String(record.activity_id) === generalActivityId,
+    ) || null;
 
   const selectActivityForUpdate = (activityItem: ClubActivity) => {
+    setActivityEditorMode("update");
     setUpdateActivityId(String(activityItem.id));
     setUpdateActivityName(activityItem.name);
     setUpdateActivityDescription(activityItem.description);
@@ -250,6 +260,22 @@ export function ClubWorkspace() {
     setUpdateActivityLocation(activityItem.location);
     setUpdateActivityPictureUrls(activityItem.picture_urls || []);
     setActivityUpdateMessage(null);
+  };
+
+  const openActivityCreate = () => {
+    setActivityEditorMode("create");
+    setUpdateActivityId("");
+    setActivityName("");
+    setActivityDescription("");
+    setActivityStart("");
+    setActivityEnd("");
+    setActivityLocation("");
+    setActivityCreateMessage(null);
+  };
+
+  const closeActivityEditor = () => {
+    setActivityEditorMode(null);
+    setUpdateActivityId("");
   };
 
   const selectGeneralActivityForRecord = (activityItem: GeneralActivity) => {
@@ -344,7 +370,9 @@ export function ClubWorkspace() {
 
     setIsActivityUpdating(true);
     setActivityUpdateMessage(null);
-    const originalStart = toDateTimeLocalValue(selectedUpdateActivity.start_time);
+    const originalStart = toDateTimeLocalValue(
+      selectedUpdateActivity.start_time,
+    );
     const originalEnd = toDateTimeLocalValue(selectedUpdateActivity.end_time);
     const originalPictures = selectedUpdateActivity.picture_urls || [];
     const body: components["schemas"]["ClubActivityUpdateRequestCreatePublic"] =
@@ -468,6 +496,7 @@ export function ClubWorkspace() {
   };
 
   const selectStarApplication = (application: StarApplication) => {
+    setStarEditorMode("update");
     setStarUpdateTone("success");
     setStarUpdateMessage(null);
     setStarUpdateId(String(application.id));
@@ -478,6 +507,20 @@ export function ClubWorkspace() {
         : String(application.requested_contest_score),
     );
     setStarUpdateStatement(application.uniqueness_statement || "");
+  };
+
+  const openStarCreate = () => {
+    setStarEditorMode("create");
+    setStarUpdateId("");
+    setStarAttachment("");
+    setStarScore("");
+    setStarStatement("");
+    setStarCreateMessage(null);
+  };
+
+  const closeStarEditor = () => {
+    setStarEditorMode(null);
+    setStarUpdateId("");
   };
 
   const submitStarUpdate = async (event: React.FormEvent) => {
@@ -588,116 +631,65 @@ export function ClubWorkspace() {
             </Surface>
           )}
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Surface>
-              <SectionTitle
-                icon={<Save size={20} />}
-                title="社团资料变更申请"
-              />
-              <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
-                <Field label="简介">
-                  <input
-                    className={inputClassName}
-                    value={clubSummary}
-                    onChange={(event) => setClubSummary(event.target.value)}
-                  />
-                </Field>
-                <Field label="详细介绍">
-                  <textarea
-                    className={textareaClassName}
-                    value={clubDescription}
-                    onChange={(event) => setClubDescription(event.target.value)}
-                  />
-                </Field>
-                <FileUploadField
-                  label="Logo"
-                  scene="club_logo"
-                  value={clubLogo}
-                  onChange={setClubLogo}
-                  accept="image/*"
-                  hint="上传后作为社团资料变更申请的 Logo。"
-                />
-                <StatusMessage value={clubMessage} tone={clubTone} />
-                <PrimaryButton type="submit" loading={isClubSubmitting}>
-                  提交变更申请
-                </PrimaryButton>
-              </form>
-            </Surface>
-
-            <Surface>
-              <SectionTitle
-                icon={<CalendarDays size={20} />}
-                title="创建社团活动申请"
-              />
-              <form
-                onSubmit={submitActivityCreate}
-                className="flex flex-col gap-4"
-              >
-                <Field label="活动名称">
-                  <input
-                    className={inputClassName}
-                    value={activityName}
-                    onChange={(event) => setActivityName(event.target.value)}
-                    required
-                  />
-                </Field>
-                <Field label="活动描述">
-                  <textarea
-                    className={textareaClassName}
-                    value={activityDescription}
-                    onChange={(event) =>
-                      setActivityDescription(event.target.value)
-                    }
-                    required
-                  />
-                </Field>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <Field label="开始时间">
-                    <input
-                      className={inputClassName}
-                      type="datetime-local"
-                      value={activityStart}
-                      onChange={(event) => setActivityStart(event.target.value)}
-                      required
-                    />
-                  </Field>
-                  <Field label="结束时间">
-                    <input
-                      className={inputClassName}
-                      type="datetime-local"
-                      value={activityEnd}
-                      onChange={(event) => setActivityEnd(event.target.value)}
-                      required
-                    />
-                  </Field>
+          <Surface>
+            <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
+            {starRating ? (
+              <div className="flex flex-col gap-5">
+                <div className="rounded-md border border-slate-100 bg-slate-50 p-5">
+                  <p className="text-sm font-medium text-slate-500">当前总分</p>
+                  <p className="mt-2 text-4xl font-display font-bold text-slate-900">
+                    {starRating.total_score}
+                  </p>
+                  <p className="mt-2 text-sm font-semibold text-primary-600">
+                    {STAR_LEVEL_MAP[starRating.star_level]}
+                  </p>
                 </div>
-                <Field label="地点">
-                  <input
-                    className={inputClassName}
-                    value={activityLocation}
-                    onChange={(event) =>
-                      setActivityLocation(event.target.value)
-                    }
-                    required
-                  />
-                </Field>
-                <StatusMessage
-                  value={activityCreateMessage}
-                  tone={activityCreateTone}
-                />
-                <PrimaryButton type="submit" loading={isActivityCreating}>
-                  提交活动申请
-                </PrimaryButton>
-              </form>
-            </Surface>
-          </div>
+                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                  <Badge tone="primary">
+                    会议出勤 {starRating.breakdown.meeting_attendance}
+                  </Badge>
+                  <Badge tone="primary">
+                    活动参与 {starRating.breakdown.activity_participation}
+                  </Badge>
+                  <Badge tone="primary">
+                    内部活动 {starRating.breakdown.internal_activities}
+                  </Badge>
+                  <Badge tone="primary">
+                    社团历史 {starRating.breakdown.club_history}
+                  </Badge>
+                </div>
+                <p className="text-sm text-slate-500">
+                  内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
+                  {starRating.club_age_years} 年。
+                </p>
+              </div>
+            ) : (
+              <EmptyState title="暂无星级评价" />
+            )}
+          </Surface>
 
           <Surface>
-            <SectionTitle
-              icon={<CalendarDays size={20} />}
-              title="修改社团活动申请"
-            />
-            <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <SectionTitle
+                className="mb-0"
+                icon={<CalendarDays size={20} />}
+                title="社团活动申请"
+              />
+              <SecondaryButton
+                type="button"
+                onClick={openActivityCreate}
+                className="w-full whitespace-nowrap sm:w-auto"
+              >
+                <Plus size={16} /> 新建社团活动申请
+              </SecondaryButton>
+            </div>
+            <div
+              className={`grid gap-6 ${
+                activityEditorMode
+                  ? "lg:grid-cols-[0.95fr_1.05fr]"
+                  : "grid-cols-1"
+              }`}
+            >
               <div className="grid gap-3">
                 {activities.length ? (
                   activities.map((activityItem) => (
@@ -729,89 +721,160 @@ export function ClubWorkspace() {
                 )}
               </div>
 
-              <div className="rounded-md border border-slate-100 bg-white p-5">
-                {selectedUpdateActivity ? (
-                  <form
-                    onSubmit={submitActivityUpdate}
-                    className="flex flex-col gap-4"
-                  >
-                    <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        当前编辑
-                      </p>
-                      <h3 className="mt-1 font-bold text-slate-900">
-                        {selectedUpdateActivity.name}
-                      </h3>
-                    </div>
-                    <Field label="新名称">
-                      <input
-                        className={inputClassName}
-                        value={updateActivityName}
-                        onChange={(event) =>
-                          setUpdateActivityName(event.target.value)
-                        }
+              {activityEditorMode && (
+                <div className="rounded-md border border-slate-100 bg-white p-5">
+                  {activityEditorMode === "create" ? (
+                    <form
+                      onSubmit={submitActivityCreate}
+                      className="flex flex-col gap-4"
+                    >
+                      <EditorHeader
+                        eyebrow="新建申请"
+                        title="创建社团活动"
+                        onClose={closeActivityEditor}
                       />
-                    </Field>
-                    <Field label="新描述">
-                      <textarea
-                        className={textareaClassName}
-                        value={updateActivityDescription}
-                        onChange={(event) =>
-                          setUpdateActivityDescription(event.target.value)
-                        }
-                      />
-                    </Field>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="新开始时间">
+                      <Field label="活动名称">
                         <input
                           className={inputClassName}
-                          type="datetime-local"
-                          value={updateActivityStart}
+                          value={activityName}
                           onChange={(event) =>
-                            setUpdateActivityStart(event.target.value)
+                            setActivityName(event.target.value)
+                          }
+                          required
+                        />
+                      </Field>
+                      <Field label="活动描述">
+                        <textarea
+                          className={textareaClassName}
+                          value={activityDescription}
+                          onChange={(event) =>
+                            setActivityDescription(event.target.value)
+                          }
+                          required
+                        />
+                      </Field>
+                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <Field label="开始时间">
+                          <input
+                            className={inputClassName}
+                            type="datetime-local"
+                            value={activityStart}
+                            onChange={(event) =>
+                              setActivityStart(event.target.value)
+                            }
+                            required
+                          />
+                        </Field>
+                        <Field label="结束时间">
+                          <input
+                            className={inputClassName}
+                            type="datetime-local"
+                            value={activityEnd}
+                            onChange={(event) =>
+                              setActivityEnd(event.target.value)
+                            }
+                            required
+                          />
+                        </Field>
+                      </div>
+                      <Field label="地点">
+                        <input
+                          className={inputClassName}
+                          value={activityLocation}
+                          onChange={(event) =>
+                            setActivityLocation(event.target.value)
+                          }
+                          required
+                        />
+                      </Field>
+                      <StatusMessage
+                        value={activityCreateMessage}
+                        tone={activityCreateTone}
+                      />
+                      <PrimaryButton type="submit" loading={isActivityCreating}>
+                        提交活动申请
+                      </PrimaryButton>
+                    </form>
+                  ) : selectedUpdateActivity ? (
+                    <form
+                      onSubmit={submitActivityUpdate}
+                      className="flex flex-col gap-4"
+                    >
+                      <EditorHeader
+                        eyebrow="当前编辑"
+                        title={selectedUpdateActivity.name}
+                        onClose={closeActivityEditor}
+                      />
+                      <Field label="新名称">
+                        <input
+                          className={inputClassName}
+                          value={updateActivityName}
+                          onChange={(event) =>
+                            setUpdateActivityName(event.target.value)
                           }
                         />
                       </Field>
-                      <Field label="新结束时间">
-                        <input
-                          className={inputClassName}
-                          type="datetime-local"
-                          value={updateActivityEnd}
+                      <Field label="新描述">
+                        <textarea
+                          className={textareaClassName}
+                          value={updateActivityDescription}
                           onChange={(event) =>
-                            setUpdateActivityEnd(event.target.value)
+                            setUpdateActivityDescription(event.target.value)
                           }
                         />
                       </Field>
-                    </div>
-                    <Field label="新地点">
-                      <input
-                        className={inputClassName}
-                        value={updateActivityLocation}
-                        onChange={(event) =>
-                          setUpdateActivityLocation(event.target.value)
-                        }
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <Field label="新开始时间">
+                          <input
+                            className={inputClassName}
+                            type="datetime-local"
+                            value={updateActivityStart}
+                            onChange={(event) =>
+                              setUpdateActivityStart(event.target.value)
+                            }
+                          />
+                        </Field>
+                        <Field label="新结束时间">
+                          <input
+                            className={inputClassName}
+                            type="datetime-local"
+                            value={updateActivityEnd}
+                            onChange={(event) =>
+                              setUpdateActivityEnd(event.target.value)
+                            }
+                          />
+                        </Field>
+                      </div>
+                      <Field label="新地点">
+                        <input
+                          className={inputClassName}
+                          value={updateActivityLocation}
+                          onChange={(event) =>
+                            setUpdateActivityLocation(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <FileUploadField
+                        label="活动图片"
+                        scene="activity_poster"
+                        values={updateActivityPictureUrls}
+                        onValuesChange={setUpdateActivityPictureUrls}
+                        multiple
+                        accept="image/*"
                       />
-                    </Field>
-                    <FileUploadField
-                      label="活动图片"
-                      scene="activity_poster"
-                      values={updateActivityPictureUrls}
-                      onValuesChange={setUpdateActivityPictureUrls}
-                      multiple
-                      accept="image/*"
-                    />
-                    <StatusMessage
-                      value={activityUpdateMessage}
-                      tone={activityUpdateTone}
-                    />
-                    <PrimaryButton type="submit" loading={isActivityUpdating}>
-                      提交修改申请
-                    </PrimaryButton>
-                  </form>
-                ) : (
-                  <EmptyState title="请选择社团活动" />
-                )}
-              </div>
+                      <StatusMessage
+                        value={activityUpdateMessage}
+                        tone={activityUpdateTone}
+                      />
+                      <PrimaryButton type="submit" loading={isActivityUpdating}>
+                        提交修改申请
+                      </PrimaryButton>
+                    </form>
+                  ) : (
+                    <EmptyState title="请选择社团活动" />
+                  )}
+                </div>
+              )}
             </div>
           </Surface>
 
@@ -819,8 +882,15 @@ export function ClubWorkspace() {
             <SectionTitle
               icon={<FileCheck2 size={20} />}
               title="综评活动记录"
+              description="点击“未提交”的大型活动可新建记录；点击已提交的活动可查看或修改记录。"
             />
-            <div className="grid gap-6 lg:grid-cols-[0.95fr_1.05fr]">
+            <div
+              className={`grid gap-6 ${
+                selectedGeneralActivity
+                  ? "lg:grid-cols-[0.95fr_1.05fr]"
+                  : "grid-cols-1"
+              }`}
+            >
               <div className="grid gap-3">
                 {generalActivities.length ? (
                   generalActivities.map((activityItem) => {
@@ -833,7 +903,9 @@ export function ClubWorkspace() {
                       <button
                         key={activityItem.id}
                         type="button"
-                        onClick={() => selectGeneralActivityForRecord(activityItem)}
+                        onClick={() =>
+                          selectGeneralActivityForRecord(activityItem)
+                        }
                         className={`rounded-md p-4 text-left transition hover:bg-white ${
                           isSelected
                             ? "bg-primary-50 shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
@@ -875,8 +947,8 @@ export function ClubWorkspace() {
                 )}
               </div>
 
-              <div className="rounded-md bg-white p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
-                {selectedGeneralActivity ? (
+              {selectedGeneralActivity && (
+                <div className="rounded-md bg-white p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -885,12 +957,13 @@ export function ClubWorkspace() {
                     className="flex flex-col gap-4"
                   >
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
-                        {selectedGeneralRecord ? "当前记录" : "新建记录"}
-                      </p>
-                      <h3 className="mt-1 font-bold text-slate-900">
-                        {selectedGeneralActivity.name}
-                      </h3>
+                      <EditorHeader
+                        eyebrow={
+                          selectedGeneralRecord ? "当前记录" : "新建记录"
+                        }
+                        title={selectedGeneralActivity.name}
+                        onClose={() => setGeneralActivityId("")}
+                      />
                       {selectedGeneralRecord && (
                         <p className="mt-1 text-sm text-slate-500">
                           记录 #{selectedGeneralRecord.id}
@@ -954,191 +1027,238 @@ export function ClubWorkspace() {
                       {selectedGeneralRecord ? "更新记录" : "创建记录"}
                     </PrimaryButton>
                   </form>
-                ) : (
-                  <EmptyState title="请选择综评活动" />
-                )}
-              </div>
+                </div>
+              )}
             </div>
           </Surface>
 
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <Surface>
-              <SectionTitle icon={<Sparkles size={20} />} title="星级评分" />
-              {starRating ? (
-                <div className="flex flex-col gap-5">
-                  <div className="rounded-md border border-slate-100 bg-slate-50 p-5">
-                    <p className="text-sm font-medium text-slate-500">
-                      当前总分
-                    </p>
-                    <p className="mt-2 text-4xl font-display font-bold text-slate-900">
-                      {starRating.total_score}
-                    </p>
-                    <p className="mt-2 text-sm font-semibold text-primary-600">
-                      {STAR_LEVEL_MAP[starRating.star_level]}
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 gap-3">
-                    <Badge tone="primary">
-                      会议出勤 {starRating.breakdown.meeting_attendance}
-                    </Badge>
-                    <Badge tone="primary">
-                      活动参与 {starRating.breakdown.activity_participation}
-                    </Badge>
-                    <Badge tone="primary">
-                      内部活动 {starRating.breakdown.internal_activities}
-                    </Badge>
-                    <Badge tone="primary">
-                      社团历史 {starRating.breakdown.club_history}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-slate-500">
-                    内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
-                    {starRating.club_age_years} 年。
-                  </p>
-                </div>
-              ) : (
-                <EmptyState title="暂无星级评分" />
-              )}
-            </Surface>
-
-            <Surface>
-              <SectionTitle icon={<Award size={20} />} title="创建星级申请" />
-              <form onSubmit={submitStarCreate} className="flex flex-col gap-4">
-                <FileUploadField
-                  label="竞赛附件"
-                  scene="application_file"
-                  value={starAttachment}
-                  onChange={setStarAttachment}
-                  hint="上传后作为星级申请附件。"
-                />
-                <Field label="申请竞赛分">
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    value={starScore}
-                    onChange={(event) => setStarScore(event.target.value)}
-                  />
-                </Field>
-                <Field label="独特性说明">
-                  <textarea
-                    className={textareaClassName}
-                    value={starStatement}
-                    onChange={(event) => setStarStatement(event.target.value)}
-                  />
-                </Field>
-                <StatusMessage
-                  value={starCreateMessage}
-                  tone={starCreateTone}
-                />
-                <PrimaryButton type="submit" loading={isStarCreating}>
-                  提交星级申请
-                </PrimaryButton>
-              </form>
-            </Surface>
-          </div>
-
           <Surface>
-            <SectionTitle icon={<Award size={20} />} title="星级申请列表" />
-            {starApplications.length ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {starApplications.map((application) => (
-                  <button
-                    type="button"
-                    key={application.id}
-                    onClick={() => selectStarApplication(application)}
-                    className={`rounded-md border p-5 text-left transition hover:bg-white ${
-                      starUpdateId === String(application.id)
-                        ? "border-primary-200 bg-primary-50"
-                        : "border-slate-100 bg-slate-50"
-                    }`}
-                  >
-                    <div className="flex flex-wrap gap-2">
-                      <Badge
-                        tone={
-                          application.audit_status === "approved"
-                            ? "green"
-                            : application.audit_status === "rejected"
-                              ? "red"
-                              : "yellow"
-                        }
-                      >
-                        {application.audit_status
-                          ? AUDIT_STATUS_MAP[application.audit_status]
-                          : "未审核"}
-                      </Badge>
-                      {application.approved_level && (
-                        <Badge tone="primary">
-                          {STAR_LEVEL_MAP[application.approved_level]}
+            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <SectionTitle
+                className="mb-0"
+                icon={<Award size={20} />}
+                title="星级申请"
+              />
+              <SecondaryButton
+                type="button"
+                onClick={openStarCreate}
+                className="w-full whitespace-nowrap sm:w-auto"
+              >
+                <Plus size={16} /> 新建星级申请
+              </SecondaryButton>
+            </div>
+            <div
+              className={`grid gap-6 ${
+                starEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
+              }`}
+            >
+              <div className="grid gap-3">
+                {starApplications.length ? (
+                  starApplications.map((application) => (
+                    <button
+                      type="button"
+                      key={application.id}
+                      onClick={() => selectStarApplication(application)}
+                      className={`rounded-md border p-5 text-left transition hover:bg-white ${
+                        starUpdateId === String(application.id)
+                          ? "border-primary-200 bg-primary-50"
+                          : "border-slate-100 bg-slate-50"
+                      }`}
+                    >
+                      <div className="flex flex-wrap gap-2">
+                        <Badge
+                          tone={
+                            application.audit_status === "approved"
+                              ? "green"
+                              : application.audit_status === "rejected"
+                                ? "red"
+                                : "yellow"
+                          }
+                        >
+                          {application.audit_status
+                            ? AUDIT_STATUS_MAP[application.audit_status]
+                            : "未审核"}
                         </Badge>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-slate-900 mt-3">
-                      申请 #{application.id}
-                    </h3>
-                    <p className="text-sm text-slate-500 mt-1">
-                      申请竞赛分 {application.requested_contest_score ?? "未填"}
-                      ，核定分 {application.approved_score ?? "未定"}
-                    </p>
-                    <p className="mt-3 text-sm font-semibold text-primary-600">
-                      选择编辑
-                    </p>
-                  </button>
-                ))}
+                        {application.approved_level && (
+                          <Badge tone="primary">
+                            {STAR_LEVEL_MAP[application.approved_level]}
+                          </Badge>
+                        )}
+                      </div>
+                      <h3 className="mt-3 font-semibold text-slate-900">
+                        申请 #{application.id}
+                      </h3>
+                      <p className="mt-1 text-sm text-slate-500">
+                        申请竞赛分{" "}
+                        {application.requested_contest_score ?? "未填"}
+                        ，核定分 {application.approved_score ?? "未定"}
+                      </p>
+                    </button>
+                  ))
+                ) : (
+                  <EmptyState title="暂无星级申请" />
+                )}
               </div>
-            ) : (
-              <EmptyState title="暂无星级申请" />
-            )}
+
+              {starEditorMode && (
+                <div className="rounded-md border border-slate-100 bg-white p-5">
+                  {starEditorMode === "create" ? (
+                    <form
+                      onSubmit={submitStarCreate}
+                      className="flex flex-col gap-4"
+                    >
+                      <EditorHeader
+                        eyebrow="新建申请"
+                        title="创建星级申请"
+                        onClose={closeStarEditor}
+                      />
+                      <FileUploadField
+                        label="竞赛附件"
+                        scene="application_file"
+                        value={starAttachment}
+                        onChange={setStarAttachment}
+                        hint="上传后作为星级申请附件。"
+                      />
+                      <Field label="申请竞赛分">
+                        <input
+                          className={inputClassName}
+                          type="number"
+                          value={starScore}
+                          onChange={(event) => setStarScore(event.target.value)}
+                        />
+                      </Field>
+                      <Field label="独特性说明">
+                        <textarea
+                          className={textareaClassName}
+                          value={starStatement}
+                          onChange={(event) =>
+                            setStarStatement(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <StatusMessage
+                        value={starCreateMessage}
+                        tone={starCreateTone}
+                      />
+                      <PrimaryButton type="submit" loading={isStarCreating}>
+                        提交星级申请
+                      </PrimaryButton>
+                    </form>
+                  ) : starUpdateId ? (
+                    <form
+                      onSubmit={submitStarUpdate}
+                      className="flex flex-col gap-4"
+                    >
+                      <EditorHeader
+                        eyebrow="当前编辑"
+                        title={`星级申请 #${starUpdateId}`}
+                        onClose={closeStarEditor}
+                      />
+                      <FileUploadField
+                        label="竞赛附件"
+                        scene="application_file"
+                        value={starUpdateAttachment}
+                        onChange={setStarUpdateAttachment}
+                        hint="上传后替换星级申请附件。"
+                      />
+                      <Field label="申请竞赛分">
+                        <input
+                          className={inputClassName}
+                          type="number"
+                          value={starUpdateScore}
+                          onChange={(event) =>
+                            setStarUpdateScore(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <Field label="独特性说明">
+                        <textarea
+                          className={textareaClassName}
+                          value={starUpdateStatement}
+                          onChange={(event) =>
+                            setStarUpdateStatement(event.target.value)
+                          }
+                        />
+                      </Field>
+                      <PrimaryButton type="submit" loading={isStarUpdating}>
+                        更新申请
+                      </PrimaryButton>
+                      <StatusMessage
+                        value={starUpdateMessage}
+                        tone={starUpdateTone}
+                      />
+                    </form>
+                  ) : (
+                    <EmptyState title="请选择星级申请" />
+                  )}
+                </div>
+              )}
+            </div>
           </Surface>
 
           <Surface>
-            <SectionTitle
-              icon={<Award size={20} />}
-              title="更新星级申请"
-            />
-            {starUpdateId ? (
-              <form onSubmit={submitStarUpdate} className="flex flex-col gap-4">
-                <p className="text-sm font-semibold text-slate-500">
-                  正在编辑申请 #{starUpdateId}
-                </p>
-                <FileUploadField
-                  label="竞赛附件"
-                  scene="application_file"
-                  value={starUpdateAttachment}
-                  onChange={setStarUpdateAttachment}
-                  hint="上传后替换星级申请附件。"
+            <SectionTitle icon={<Save size={20} />} title="社团资料变更申请" />
+            <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
+              <Field label="简介">
+                <input
+                  className={inputClassName}
+                  value={clubSummary}
+                  onChange={(event) => setClubSummary(event.target.value)}
                 />
-                <Field label="申请竞赛分">
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    value={starUpdateScore}
-                    onChange={(event) => setStarUpdateScore(event.target.value)}
-                  />
-                </Field>
-                <Field label="独特性说明">
-                  <textarea
-                    className={textareaClassName}
-                    value={starUpdateStatement}
-                    onChange={(event) =>
-                      setStarUpdateStatement(event.target.value)
-                    }
-                  />
-                </Field>
-                <PrimaryButton type="submit" loading={isStarUpdating}>
-                  更新申请
-                </PrimaryButton>
-                <StatusMessage
-                  value={starUpdateMessage}
-                  tone={starUpdateTone}
+              </Field>
+              <Field label="详细介绍">
+                <textarea
+                  className={textareaClassName}
+                  value={clubDescription}
+                  onChange={(event) => setClubDescription(event.target.value)}
                 />
-              </form>
-            ) : (
-              <EmptyState title="请选择星级申请" />
-            )}
+              </Field>
+              <FileUploadField
+                label="Logo"
+                scene="club_logo"
+                value={clubLogo}
+                onChange={setClubLogo}
+                accept="image/*"
+                hint="上传后作为社团资料变更申请的 Logo。"
+              />
+              <StatusMessage value={clubMessage} tone={clubTone} />
+              <PrimaryButton type="submit" loading={isClubSubmitting}>
+                提交变更申请
+              </PrimaryButton>
+            </form>
           </Surface>
         </>
       )}
     </motion.div>
+  );
+}
+
+function EditorHeader({
+  eyebrow,
+  title,
+  onClose,
+}: {
+  eyebrow: string;
+  title: string;
+  onClose: () => void;
+}) {
+  return (
+    <div className="flex items-start justify-between gap-4">
+      <div className="min-w-0">
+        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+          {eyebrow}
+        </p>
+        <h3 className="mt-1 truncate font-bold text-slate-900">{title}</h3>
+      </div>
+      <button
+        type="button"
+        onClick={onClose}
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+        aria-label="收起编辑区域"
+      >
+        <X size={16} /> 收起
+      </button>
+    </div>
   );
 }
 
@@ -1152,4 +1272,3 @@ function getAuditTone(status: components["schemas"]["AuditStatusEnum"]) {
   if (status === "rejected") return "red";
   return "yellow";
 }
-
