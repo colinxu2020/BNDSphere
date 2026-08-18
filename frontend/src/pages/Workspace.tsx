@@ -113,7 +113,7 @@ export function Workspace() {
             </SecondaryButton>
             <Link
               to="/clubs/new"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-4 py-2.5 font-semibold text-white shadow-md shadow-primary-500/20 hover:bg-primary-600"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 font-semibold text-content-on-inverted shadow-md shadow-brand/20 hover:bg-brand-hover"
             >
               <Plus size={16} /> 创建社团
             </Link>
@@ -124,7 +124,7 @@ export function Workspace() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface className="flex items-center justify-center py-16 text-slate-500">
+        <Surface className="flex items-center justify-center py-16 text-content-muted">
           正在加载你管理的社团...
         </Surface>
       ) : managedClubs.length ? (
@@ -135,9 +135,9 @@ export function Workspace() {
               to={`/club/${club.id}/manage`}
               className="group block"
             >
-              <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
+              <Surface className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">
                     {club.logo_uri ? (
                       <img
                         src={club.logo_uri}
@@ -151,16 +151,16 @@ export function Workspace() {
                   <div className="min-w-0 flex-1">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <h2 className="truncate text-lg font-bold text-slate-900 group-hover:text-primary-600">
+                        <h2 className="truncate text-lg font-bold text-content group-hover:text-tone-brand-fg">
                           {club.name}
                         </h2>
-                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-content-muted">
                           {club.summary}
                         </p>
                       </div>
                       <ChevronRight
                         size={18}
-                        className="mt-1 shrink-0 text-slate-300 group-hover:text-primary-500"
+                        className="mt-1 shrink-0 text-content-subtle group-hover:text-brand"
                       />
                     </div>
 
@@ -179,7 +179,7 @@ export function Workspace() {
                       )}
                     </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400">
+                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-content-subtle">
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />

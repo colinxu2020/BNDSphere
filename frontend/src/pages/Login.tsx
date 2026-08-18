@@ -66,15 +66,15 @@ export function Login() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col items-center justify-center min-h-[70vh] px-4"
     >
-      <div className="w-full max-w-md bg-white p-8 rounded-md border border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="w-full max-w-md bg-surface p-8 rounded-md border border-edge-subtle shadow-sm relative overflow-hidden">
         <div className="flex flex-col gap-2 mb-8 text-center relative z-10">
-          <div className="mx-auto bg-primary-50 p-3 rounded-md text-primary-600 mb-2">
+          <div className="mx-auto bg-brand-subtle p-3 rounded-md text-tone-brand-fg mb-2">
             <LogIn size={28} />
           </div>
-          <h1 className="text-2xl font-display font-bold text-slate-900">
+          <h1 className="text-2xl font-display font-bold text-content">
             登录 BNDSphere
           </h1>
-          <p className="text-slate-500 text-sm">请输入您的账号密码</p>
+          <p className="text-content-muted text-sm">请输入您的账号密码</p>
         </div>
 
         {error && (
@@ -88,27 +88,27 @@ export function Login() {
           className="flex flex-col gap-5 relative z-10"
         >
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+            <label className="block text-sm font-medium text-content mb-1.5 ml-1">
               用户名
             </label>
             <input
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
+              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
               placeholder="您的用户名"
               required
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+            <label className="block text-sm font-medium text-content mb-1.5 ml-1">
               密码
             </label>
             <input
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
+              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
               placeholder="••••••••"
               required
             />
@@ -117,16 +117,16 @@ export function Login() {
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-4 w-full py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-500/20"
+            className="mt-4 w-full py-3.5 bg-brand hover:bg-brand-hover text-content-on-inverted font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-brand/20"
           >
             {isLoading ? "正在登录..." : "登录"}
           </button>
 
-          <div className="mt-4 text-center text-sm text-slate-500">
+          <div className="mt-4 text-center text-sm text-content-muted">
             没有账号？{" "}
             <span
               onClick={() => navigate("/register")}
-              className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+              className="text-tone-brand-fg hover:text-tone-brand-fg font-medium cursor-pointer"
             >
               立即注册
             </span>

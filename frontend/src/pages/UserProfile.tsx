@@ -56,7 +56,7 @@ export function UserProfile() {
     >
       <Link
         to="/explore"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
+        className="inline-flex items-center gap-2 text-content-muted hover:text-content font-medium w-fit transition-colors"
       >
         <ArrowLeft size={18} /> 返回探索
       </Link>
@@ -67,14 +67,14 @@ export function UserProfile() {
       />
 
       {isLoading ? (
-        <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
+        <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
       ) : error ? (
         <StatusMessage value={error} />
       ) : user ? (
         <Surface className="overflow-hidden p-0">
-          <div className="h-28 bg-slate-100 w-full" />
+          <div className="h-28 bg-surface-hover w-full" />
           <div className="px-8 pb-8">
-            <div className="w-24 h-24 rounded-md bg-white p-1.5 shadow-md -mt-12 mb-6">
+            <div className="w-24 h-24 rounded-md bg-surface p-1.5 shadow-md -mt-12 mb-6">
               {user.avatar_uri ? (
                 <img
                   src={user.avatar_uri}
@@ -82,32 +82,32 @@ export function UserProfile() {
                   className="w-full h-full object-cover rounded-md"
                 />
               ) : (
-                <div className="w-full h-full bg-slate-100 rounded-md flex items-center justify-center">
-                  <User size={32} className="text-slate-400" />
+                <div className="w-full h-full bg-surface-hover rounded-md flex items-center justify-center">
+                  <User size={32} className="text-content-subtle" />
                 </div>
               )}
             </div>
 
             <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-bold text-slate-900">
+              <h2 className="text-2xl font-bold text-content">
                 {user.username}
               </h2>
               {user.email && (
-                <p className="text-slate-500 font-medium">{user.email}</p>
+                <p className="text-content-muted font-medium">{user.email}</p>
               )}
               <div className="flex items-center gap-2 mt-2">
                 <Badge tone="primary">{ROLE_MAP[user.role]}</Badge>
-                <span className="text-xs text-slate-400 font-medium">
+                <span className="text-xs text-content-subtle font-medium">
                   加入于 {formatDate(user.created_at)}
                 </span>
               </div>
             </div>
 
-            <div className="mt-8 p-5 bg-slate-50 rounded-md border border-slate-100">
-              <h3 className="text-sm font-bold text-slate-800 mb-2 font-display">
+            <div className="mt-8 p-5 bg-surface-sunken rounded-md border border-edge-subtle">
+              <h3 className="text-sm font-bold text-content mb-2 font-display">
                 个人简介
               </h3>
-              <p className="text-slate-600 leading-relaxed">
+              <p className="text-content-muted leading-relaxed">
                 {user.description || "暂无个人简介。"}
               </p>
             </div>

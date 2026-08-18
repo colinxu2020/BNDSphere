@@ -96,6 +96,32 @@
   --color-content-subtle: var(--content-subtle);
   --color-content-inverted: var(--content-inverted);
 
+  /* Inverted surface — the "selected" / dark-action idiom (`bg-slate-900
+     text-white`) used by filter pills and primary dark buttons. It genuinely
+     inverts: a dark chip on a light page becomes a light chip on a dark page, so
+     "selected" keeps reading as selected in both schemes. */
+  --color-surface-inverted: var(--surface-inverted);
+  --color-surface-inverted-hover: var(--surface-inverted-hover);
+  --color-content-on-inverted: var(--content-on-inverted);
+  --color-content-on-inverted-muted: var(--content-on-inverted-muted);
+
+  /* Media wells sit behind posters and stay dark in both schemes: a light well
+     flashing behind a dark image is worse than a consistently dark one. */
+  --color-surface-media: var(--surface-media);
+
+  /* Skeleton blocks need to be visible against the surface they load into. */
+  --color-surface-skeleton: var(--surface-skeleton);
+
+  /* Six rotating accents for calendar entries. These distinguish adjacent items
+     from each other and carry no semantic meaning — deliberately NOT the club
+     category hues, which do. */
+  --color-accent-1: var(--accent-1);
+  --color-accent-2: var(--accent-2);
+  --color-accent-3: var(--accent-3);
+  --color-accent-4: var(--accent-4);
+  --color-accent-5: var(--accent-5);
+  --color-accent-6: var(--accent-6);
+
   /* Edges */
   --color-edge: var(--edge);
   --color-edge-subtle: var(--edge-subtle);
@@ -191,6 +217,20 @@
   --content-subtle: #94a3b8;
   --content-inverted: #ffffff;
 
+  --surface-inverted: #0f172a;
+  --surface-inverted-hover: #1e293b;
+  --content-on-inverted: #f8fafc;
+  --content-on-inverted-muted: #cbd5e1;
+  --surface-media: #020618;
+  --surface-skeleton: #e2e8f0;
+
+  --accent-1: #0ea5e9;
+  --accent-2: #10b981;
+  --accent-3: #f59e0b;
+  --accent-4: #f43f5e;
+  --accent-5: #8b5cf6;
+  --accent-6: #06b6d4;
+
   --edge: #e2e8f0;
   --edge-subtle: #f1f5f9;
   --edge-strong: #cbd5e1;
@@ -279,6 +319,20 @@
     --content-muted: #94a3b8;
     --content-subtle: #64748b;
     --content-inverted: #0f172a;
+
+    --surface-inverted: #f1f5f9;
+    --surface-inverted-hover: #e2e8f0;
+    --content-on-inverted: #0f172a;
+    --content-on-inverted-muted: #475569;
+    --surface-media: #020618;
+    --surface-skeleton: #334154;
+
+    --accent-1: #38bdf8;
+    --accent-2: #34d399;
+    --accent-3: #fbbf24;
+    --accent-4: #fb7185;
+    --accent-5: #a78bfa;
+    --accent-6: #22d3ee;
 
     --edge: #334154;
     --edge-subtle: #1e293b;
