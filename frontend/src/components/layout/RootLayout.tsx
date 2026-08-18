@@ -10,7 +10,13 @@ import {
   Shield,
   User,
 } from "@/src/components/ui/Icons";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   AUTH_STATE_CHANGED_EVENT,
   clearAuthToken,
@@ -32,6 +38,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
+  const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("bnd_token");
@@ -70,6 +79,34 @@ export function RootLayout({ children }: { children: ReactNode }) {
       window.removeEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
     };
   }, []);
+
+  // Close the user menu on navigation, on Escape (returning focus to the
+  // trigger), and on any pointer press outside it.
+  useEffect(() => {
+    setUserMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!userMenuOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setUserMenuOpen(false);
+      userMenuTriggerRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      if (!userMenuRef.current?.contains(event.target as Node)) {
+        setUserMenuOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [userMenuOpen]);
 
   const canOpenFederation = useMemo(
     () =>
@@ -135,11 +172,15 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 </Link>
               </>
             ) : (
-              <div className="group relative">
+              <div className="relative" ref={userMenuRef}>
                 <button
                   type="button"
+                  ref={userMenuTriggerRef}
+                  onClick={() => setUserMenuOpen((open) => !open)}
                   className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-slate-600"
                   aria-label="用户菜单"
+                  aria-haspopup="menu"
+                  aria-expanded={userMenuOpen}
                 >
                   {user?.avatar_uri ? (
                     <img
@@ -156,7 +197,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   )}
                 </button>
 
-                <div className="invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                {userMenuOpen && (
+                <div
+                  role="menu"
+                  aria-label="用户菜单"
+                  onClick={() => setUserMenuOpen(false)}
+                  className="absolute right-0 top-full z-50 w-56 pt-2"
+                >
                   <div className="rounded-md border border-slate-200 bg-white p-2 shadow-lg">
                     <div className="px-3 py-2">
                       <p className="truncate text-sm font-semibold text-slate-900">
@@ -196,6 +243,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                     </button>
                   </div>
                 </div>
+                )}
               </div>
             )}
             <button
@@ -251,6 +299,7 @@ function MenuItem({
   return (
     <Link
       to={to}
+      role="menuitem"
       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
     >
       {icon}
