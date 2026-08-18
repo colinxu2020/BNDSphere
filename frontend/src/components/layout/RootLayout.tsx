@@ -140,6 +140,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 <Link
                   key={link.name}
                   to={link.path}
+                  aria-current={isActive ? "page" : undefined}
                   className={cn(
                     "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
                     isActive
@@ -159,13 +160,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
               <>
                 <Link
                   to="/login"
-                  className="rounded-md border border-edge px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken"
+                  className="inline-flex min-h-11 items-center rounded-md border border-edge px-3 text-sm font-semibold text-content hover:bg-surface-sunken md:min-h-0 md:py-2"
                 >
                   登录
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-md bg-brand px-3 py-2 text-sm font-semibold text-brand-on hover:bg-brand-hover"
+                  className="inline-flex min-h-11 items-center rounded-md bg-brand px-3 text-sm font-semibold text-brand-on hover:bg-brand-hover md:min-h-0 md:py-2"
                 >
                   注册
                 </Link>
@@ -176,7 +177,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   type="button"
                   ref={userMenuTriggerRef}
                   onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-content-muted"
+                  className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-content-muted md:h-10 md:w-10"
                   aria-label="用户菜单"
                   aria-haspopup="menu"
                   aria-expanded={userMenuOpen}
@@ -249,11 +250,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
         </nav>
       </header>
 
-      <main className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-6 pb-24 sm:px-6 md:pb-6 lg:px-8">
+      <main className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-6 lg:px-8">
         {children}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
         <div className="grid grid-cols-3 gap-1 px-2 py-2">
           {navLinks.map((link) => {
             const isActive =
@@ -263,8 +264,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
               <Link
                 key={link.name}
                 to={link.path}
+                aria-current={isActive ? "page" : undefined}
                 className={cn(
-                  "flex flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-semibold",
+                  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold",
                   isActive ? "text-content" : "text-content-muted",
                 )}
               >
