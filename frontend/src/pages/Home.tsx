@@ -54,26 +54,22 @@ export function Home() {
       setIsLoading(true);
       setError(null);
       try {
-        const [clubResult, activityResult, announcementResult, userResult] =
-          await Promise.all([
-            client.GET("/api/v1/clubs/", { params: { query: { size: 24 } } }),
-            client.GET("/api/v1/general-activities/", {
-              params: { query: { size: 50 } },
-            }),
-            client.GET("/api/v1/announcements/", {
-              params: { query: { size: 8, active_only: true } },
-            }),
-            isLoggedIn
-              ? client.GET("/api/v1/users/me")
-              : Promise.resolve({ data: null, error: null }),
-          ]);
+        const [clubResult, activityResult, announcementResult, userResult] = await Promise.all([
+          client.GET("/api/v1/clubs/", { params: { query: { size: 24 } } }),
+          client.GET("/api/v1/general-activities/", {
+            params: { query: { size: 50 } },
+          }),
+          client.GET("/api/v1/announcements/", {
+            params: { query: { size: 8, active_only: true } },
+          }),
+          isLoggedIn
+            ? client.GET("/api/v1/users/me")
+            : Promise.resolve({ data: null, error: null }),
+        ]);
 
         if (cancelled) return;
         const firstError =
-          clubResult.error ||
-          activityResult.error ||
-          announcementResult.error ||
-          userResult.error;
+          clubResult.error || activityResult.error || announcementResult.error || userResult.error;
         if (firstError) setError(firstError);
 
         const allClubs = clubResult.data?.items || [];
@@ -148,9 +144,7 @@ export function Home() {
                 <CalendarDays size={16} className="text-slate-500" />
                 <h2 className="font-display text-base font-bold">活动日历</h2>
               </div>
-              <span className="text-sm font-medium text-slate-500">
-                {calendar.monthLabel}
-              </span>
+              <span className="text-sm font-medium text-slate-500">{calendar.monthLabel}</span>
             </div>
             <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400">
               {["一", "二", "三", "四", "五", "六", "日"].map((day) => (
@@ -165,8 +159,7 @@ export function Home() {
                   key={`${day.date || "blank"}-${index}`}
                   className={cn(
                     "group relative flex h-9 flex-col items-center justify-center rounded-sm border border-transparent text-sm",
-                    day.activities.length &&
-                      "hover:bg-sky-50 focus-within:bg-sky-50",
+                    day.activities.length && "hover:bg-sky-50 focus-within:bg-sky-50",
                   )}
                 >
                   {day.date && (
@@ -184,9 +177,7 @@ export function Home() {
                         <span
                           className={cn(
                             "font-semibold",
-                            day.activities.length
-                              ? "text-sky-700"
-                              : "text-slate-300",
+                            day.activities.length ? "text-sky-700" : "text-slate-300",
                           )}
                         >
                           {day.date.getDate()}
@@ -197,9 +188,7 @@ export function Home() {
                               key={activity.id}
                               className={cn(
                                 "h-1.5 w-1.5 rounded-full",
-                                calendarColors[
-                                  Math.abs(activity.id) % calendarColors.length
-                                ],
+                                calendarColors[Math.abs(activity.id) % calendarColors.length],
                               )}
                             />
                           ))}
@@ -219,9 +208,7 @@ export function Home() {
                           <div className="space-y-2">
                             {day.activities.slice(0, 3).map((activity) => (
                               <div key={activity.id}>
-                                <p className="text-sm font-semibold">
-                                  {activity.name}
-                                </p>
+                                <p className="text-sm font-semibold">{activity.name}</p>
                                 <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-300">
                                   {activity.description || "暂无简介"}
                                 </p>
@@ -288,10 +275,7 @@ function HomeClubPanel({
       {isLoading ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {[...Array(4)].map((_, index) => (
-            <div
-              key={index}
-              className="h-28 animate-pulse rounded-md bg-slate-100"
-            />
+            <div key={index} className="h-28 animate-pulse rounded-md bg-slate-100" />
           ))}
         </div>
       ) : isLoggedIn ? (
@@ -306,22 +290,14 @@ function HomeClubPanel({
             >
               <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white">
                 {club.logo_uri ? (
-                  <img
-                    src={club.logo_uri}
-                    alt={club.name}
-                    className="h-full w-full object-cover"
-                  />
+                  <img src={club.logo_uri} alt={club.name} className="h-full w-full object-cover" />
                 ) : (
                   <Users size={20} className="text-slate-400" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-900">
-                  {club.name}
-                </p>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                  {club.summary}
-                </p>
+                <p className="truncate font-semibold text-slate-900">{club.name}</p>
+                <p className="mt-1 line-clamp-2 text-sm text-slate-500">{club.summary}</p>
                 <p className="mt-2 text-xs font-semibold text-slate-400">
                   {CATEGORY_MAP[club.category]}
                 </p>
@@ -359,12 +335,8 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
               className="block rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
             >
               <p className="font-semibold text-slate-900">{item.title}</p>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                {item.body}
-              </p>
-              <p className="mt-2 text-xs text-slate-400">
-                {formatDate(item.created_at)}
-              </p>
+              <p className="mt-1 line-clamp-2 text-sm text-slate-500">{item.body}</p>
+              <p className="mt-2 text-xs text-slate-400">{formatDate(item.created_at)}</p>
             </a>
           ))}
         </div>
@@ -436,9 +408,7 @@ function MyClubActivityList({
               {MY_CLUB_ACTIVITY_STATUS_TEXT[item.status]}
             </Badge>
           </div>
-          <p className="mt-2 line-clamp-2 text-sm text-slate-500">
-            {item.activity.description}
-          </p>
+          <p className="mt-2 line-clamp-2 text-sm text-slate-500">{item.activity.description}</p>
           <p className="mt-2 text-xs text-slate-400">
             {item.club.name} · {formatDate(item.activity.start_time)}
           </p>
@@ -486,9 +456,7 @@ function getJoinedClubIds(clubs: ClubInfo[], userId?: number | null) {
         club.members.some(
           (member) =>
             member.user_id === userId &&
-            ["member", "president", "vice_president"].includes(
-              member.membership,
-            ),
+            ["member", "president", "vice_president"].includes(member.membership),
         ),
       )
       .map((club) => club.id),
@@ -516,15 +484,9 @@ function getMyClubActivities(clubs: ClubInfo[], userId?: number | null) {
           if (endedAgoMs > endedWindowMs) return null;
 
           const status: MyClubActivityStatus =
-            start <= now && end >= now
-              ? "ongoing"
-              : end < now
-                ? "ended"
-                : "upcoming";
+            start <= now && end >= now ? "ongoing" : end < now ? "ended" : "upcoming";
           const distanceMs =
-            status === "ended"
-              ? endedAgoMs
-              : Math.abs(start.getTime() - now.getTime());
+            status === "ended" ? endedAgoMs : Math.abs(start.getTime() - now.getTime());
           return { activity, club, status, distanceMs };
         })
         .filter((item): item is MyClubActivity => Boolean(item)),

@@ -25,12 +25,7 @@ import {
   PARTICIPATION_MAP,
   STAR_LEVEL_MAP,
 } from "../lib/labels";
-import {
-  formatDate,
-  formatDateTime,
-  nullableNumber,
-  nullableText,
-} from "../lib/format";
+import { formatDate, formatDateTime, nullableNumber, nullableText } from "../lib/format";
 import {
   Badge,
   DangerButton,
@@ -50,30 +45,21 @@ import { cn } from "../lib/utils";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
-type StarReviewPreview =
-  components["schemas"]["StarLevelApplicationReviewPreview"];
+type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
 type ActivityModerationKind = "create" | "update";
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
 
 export function Federation() {
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
-  const [activityCreateRequests, setActivityCreateRequests] = useState<
-    ActivityCreateRequest[]
-  >([]);
-  const [activityUpdateRequests, setActivityUpdateRequests] = useState<
-    ActivityUpdateRequest[]
-  >([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>(
-    [],
-  );
+  const [activityCreateRequests, setActivityCreateRequests] = useState<ActivityCreateRequest[]>([]);
+  const [activityUpdateRequests, setActivityUpdateRequests] = useState<ActivityUpdateRequest[]>([]);
+  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
@@ -81,20 +67,14 @@ export function Federation() {
 
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
-  const [activityLevel, setActivityLevel] =
-    useState<ActivityLevel>("club_federation");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>("club_federation");
   const [isCreating, setIsCreating] = useState(false);
-  const [activityEditorMode, setActivityEditorMode] = useState<
-    "create" | "update" | null
-  >(null);
+  const [activityEditorMode, setActivityEditorMode] = useState<"create" | "update" | null>(null);
 
-  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(
-    null,
-  );
+  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [editActivityName, setEditActivityName] = useState("");
   const [editActivityDescription, setEditActivityDescription] = useState("");
-  const [editActivityLevel, setEditActivityLevel] =
-    useState<ActivityLevel>("club_federation");
+  const [editActivityLevel, setEditActivityLevel] = useState<ActivityLevel>("club_federation");
   const [isEditing, setIsEditing] = useState(false);
 
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
@@ -102,17 +82,13 @@ export function Federation() {
   const [recordScore, setRecordScore] = useState("");
   const [isRecordUpdating, setIsRecordUpdating] = useState(false);
 
-  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(
-    null,
-  );
+  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(null);
   const [selectedStarId, setSelectedStarId] = useState<number | null>(null);
   const [starStatus, setStarStatus] = useState<AuditStatus>("pending");
   const [finalContestScore, setFinalContestScore] = useState("");
   const [uniquenessApproved, setUniquenessApproved] = useState("");
   const [growthStoryApproved, setGrowthStoryApproved] = useState("");
-  const [starPreview, setStarPreview] = useState<StarReviewPreview | null>(
-    null,
-  );
+  const [starPreview, setStarPreview] = useState<StarReviewPreview | null>(null);
   const [isStarPreviewLoading, setIsStarPreviewLoading] = useState(false);
   const [isStarReviewing, setIsStarReviewing] = useState(false);
 
@@ -135,10 +111,7 @@ export function Federation() {
             if (left.audit_status === "pending") return -1;
             if (right.audit_status === "pending") return 1;
           }
-          return (
-            new Date(right.created_at).getTime() -
-            new Date(left.created_at).getTime()
-          );
+          return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
         }),
     [activities],
   );
@@ -148,10 +121,7 @@ export function Federation() {
     [reviewRecords, selectedRecordId],
   );
   const selectedStarApplication = useMemo(
-    () =>
-      starApplications.find(
-        (application) => application.id === selectedStarId,
-      ) || null,
+    () => starApplications.find((application) => application.id === selectedStarId) || null,
     [selectedStarId, starApplications],
   );
 
@@ -159,39 +129,31 @@ export function Federation() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [activityResponse, createResponse, updateResponse, starResponse] =
-        await Promise.all([
-          client.GET("/api/v1/general-activities/", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/moderations/club-activities/create-requests", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/moderations/club-activities/update-requests", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/star-level/", {
-            params: { query: { size: 50 } },
-          }),
-        ]);
+      const [activityResponse, createResponse, updateResponse, starResponse] = await Promise.all([
+        client.GET("/api/v1/general-activities/", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/moderations/club-activities/create-requests", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/moderations/club-activities/update-requests", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/star-level/", {
+          params: { query: { size: 50 } },
+        }),
+      ]);
 
-      setActivities(
-        activityResponse.error ? [] : activityResponse.data?.items || [],
-      );
-      setActivityCreateRequests(
-        createResponse.error ? [] : createResponse.data?.items || [],
-      );
-      setActivityUpdateRequests(
-        updateResponse.error ? [] : updateResponse.data?.items || [],
-      );
+      setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
+      setActivityCreateRequests(createResponse.error ? [] : createResponse.data?.items || []);
+      setActivityUpdateRequests(updateResponse.error ? [] : updateResponse.data?.items || []);
       setStarApplications(
         starResponse.error
           ? []
           : (starResponse.data?.items || [])
               .filter(
                 (application) =>
-                  application.academic_term.is_current &&
-                  application.audit_status !== "approved",
+                  application.academic_term.is_current && application.audit_status !== "approved",
               )
               .sort(sortStarApplications),
       );
@@ -258,6 +220,8 @@ export function Federation() {
       isCurrent = false;
       window.clearTimeout(timer);
     };
+    // The selected object is intentionally represented by its stable ID.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     finalContestScore,
     growthStoryApproved,
@@ -281,16 +245,13 @@ export function Federation() {
     setIsCreating(true);
     setMessage(null);
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/club-federation/general-activity/",
-        {
-          body: {
-            name: activityName,
-            description: activityDescription,
-            level: activityLevel,
-          },
+      const { data, error } = await client.POST("/api/v1/club-federation/general-activity/", {
+        body: {
+          name: activityName,
+          description: activityDescription,
+          level: activityLevel,
         },
-      );
+      });
       setResult(error, "大型活动已创建");
       if (!error) {
         setActivityName("");
@@ -400,12 +361,8 @@ export function Federation() {
           : String(application.requested_contest_score)
         : String(application.final_contest_score),
     );
-    setUniquenessApproved(
-      booleanToSelectValue(application.uniqueness_approved),
-    );
-    setGrowthStoryApproved(
-      booleanToSelectValue(application.growth_story_approved),
-    );
+    setUniquenessApproved(booleanToSelectValue(application.uniqueness_approved));
+    setGrowthStoryApproved(booleanToSelectValue(application.growth_story_approved));
   };
 
   const updateRecord = async (event: React.FormEvent) => {
@@ -447,20 +404,17 @@ export function Federation() {
     setIsStarReviewing(true);
     setMessage(null);
     try {
-      const { error } = await client.PATCH(
-        "/api/v1/club-federation/star-level/{star_level_id}",
-        {
-          params: { path: { star_level_id: selectedStarApplication.id } },
-          body: {
-            ...buildStarReviewBody(
-              starStatus,
-              finalContestScore,
-              uniquenessApproved,
-              growthStoryApproved,
-            ),
-          },
+      const { error } = await client.PATCH("/api/v1/club-federation/star-level/{star_level_id}", {
+        params: { path: { star_level_id: selectedStarApplication.id } },
+        body: {
+          ...buildStarReviewBody(
+            starStatus,
+            finalContestScore,
+            uniquenessApproved,
+            growthStoryApproved,
+          ),
         },
-      );
+      });
       setResult(error, "星级评价表已审核");
       if (!error) {
         setSelectedStarId(null);
@@ -486,26 +440,18 @@ export function Federation() {
     try {
       const result =
         kind === "create"
-          ? await client.PATCH(
-              "/api/v1/moderations/club-activities/create-requests/{request_id}",
-              {
-                params: { path: { request_id: requestId } },
-                body,
-              },
-            )
-          : await client.PATCH(
-              "/api/v1/moderations/club-activities/update-requests/{request_id}",
-              {
-                params: { path: { request_id: requestId } },
-                body,
-              },
-            );
+          ? await client.PATCH("/api/v1/moderations/club-activities/create-requests/{request_id}", {
+              params: { path: { request_id: requestId } },
+              body,
+            })
+          : await client.PATCH("/api/v1/moderations/club-activities/update-requests/{request_id}", {
+              params: { path: { request_id: requestId } },
+              body,
+            });
 
       setResult(
         result.error,
-        moderationStatus === "approved"
-          ? "社团活动申请已通过"
-          : "社团活动申请已驳回",
+        moderationStatus === "approved" ? "社团活动申请已通过" : "社团活动申请已驳回",
       );
       if (!result.error) loadWorkspace();
     } catch (error) {
@@ -526,11 +472,7 @@ export function Federation() {
         eyebrow="Federation"
         title="社联工作台"
         action={
-          <SecondaryButton
-            type="button"
-            onClick={loadWorkspace}
-            disabled={isLoading}
-          >
+          <SecondaryButton type="button" onClick={loadWorkspace} disabled={isLoading}>
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
         }
@@ -564,16 +506,8 @@ export function Federation() {
       </Surface>
 
       <Surface>
-        <SectionTitle
-          icon={<ShieldCheck size={20} />}
-          title="审核社团综评记录"
-        />
-        <div
-          className={cn(
-            "grid gap-6",
-            selectedRecord && "lg:grid-cols-[1fr_360px]",
-          )}
-        >
+        <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团综评记录" />
+        <div className={cn("grid gap-6", selectedRecord && "lg:grid-cols-[1fr_360px]")}>
           <div className="grid gap-3">
             {isLoading ? (
               <LoadingRows />
@@ -585,24 +519,17 @@ export function Federation() {
                   onClick={() => loadRecordForReview(record)}
                   className={cn(
                     "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
-                    selectedRecordId === record.id &&
-                      "border-primary-200 bg-primary-50",
+                    selectedRecordId === record.id && "border-primary-200 bg-primary-50",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge tone={getAuditTone(record.audit_status)}>
                       {AUDIT_STATUS_MAP[record.audit_status]}
                     </Badge>
-                    <Badge>
-                      {PARTICIPATION_MAP[record.participation_type]}
-                    </Badge>
-                    <span className="text-xs font-medium text-slate-400">
-                      记录 #{record.id}
-                    </span>
+                    <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
+                    <span className="text-xs font-medium text-slate-400">记录 #{record.id}</span>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
-                    {record.activity.name}
-                  </h3>
+                  <h3 className="mt-3 font-semibold text-slate-900">{record.activity.name}</h3>
                   <p className="mt-1 text-sm text-slate-500">
                     社团 #{record.club_id} · 申请 {record.requested_score} 分
                   </p>
@@ -635,10 +562,7 @@ export function Federation() {
                       社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
                     </p>
                   </div>
-                  <SecondaryButton
-                    type="button"
-                    onClick={() => setSelectedRecordId(null)}
-                  >
+                  <SecondaryButton type="button" onClick={() => setSelectedRecordId(null)}>
                     <X size={16} /> 收起
                   </SecondaryButton>
                 </div>
@@ -646,9 +570,7 @@ export function Federation() {
                   <select
                     className={selectClassName}
                     value={recordStatus}
-                    onChange={(event) =>
-                      setRecordStatus(event.target.value as AuditStatus)
-                    }
+                    onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
                   >
                     {AUDIT_STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -667,9 +589,7 @@ export function Federation() {
                 </Field>
                 {selectedRecord.proof_files.length > 0 && (
                   <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 text-sm font-semibold text-slate-700">
-                      证明材料
-                    </p>
+                    <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
                     <div className="grid gap-1">
                       {selectedRecord.proof_files.map((file, index) => (
                         <a
@@ -696,12 +616,7 @@ export function Federation() {
 
       <Surface>
         <SectionTitle icon={<Award size={20} />} title="审核星级评价表" />
-        <div
-          className={cn(
-            "grid gap-6",
-            selectedStarApplication && "lg:grid-cols-[1fr_380px]",
-          )}
-        >
+        <div className={cn("grid gap-6", selectedStarApplication && "lg:grid-cols-[1fr_380px]")}>
           <div className="grid gap-3">
             {isLoading ? (
               <LoadingRows />
@@ -713,14 +628,11 @@ export function Federation() {
                   onClick={() => loadStarApplicationForReview(application)}
                   className={cn(
                     "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
-                    selectedStarId === application.id &&
-                      "border-primary-200 bg-primary-50",
+                    selectedStarId === application.id && "border-primary-200 bg-primary-50",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge
-                      tone={getAuditTone(application.audit_status || "pending")}
-                    >
+                    <Badge tone={getAuditTone(application.audit_status || "pending")}>
                       {application.audit_status
                         ? AUDIT_STATUS_MAP[application.audit_status]
                         : "待审核"}
@@ -734,9 +646,7 @@ export function Federation() {
                       申请 #{application.id}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
-                    {application.club.name}
-                  </h3>
+                  <h3 className="mt-3 font-semibold text-slate-900">{application.club.name}</h3>
                   <p className="mt-1 text-sm text-slate-500">
                     申请竞赛分 {application.requested_contest_score ?? "未填"} ·{" "}
                     {application.academic_term.term_name}
@@ -771,10 +681,7 @@ export function Federation() {
                       {selectedStarApplication.academic_term.term_name}
                     </p>
                   </div>
-                  <SecondaryButton
-                    type="button"
-                    onClick={() => setSelectedStarId(null)}
-                  >
+                  <SecondaryButton type="button" onClick={() => setSelectedStarId(null)}>
                     <X size={16} /> 收起
                   </SecondaryButton>
                 </div>
@@ -782,9 +689,7 @@ export function Federation() {
                   <select
                     className={selectClassName}
                     value={starStatus}
-                    onChange={(event) =>
-                      setStarStatus(event.target.value as AuditStatus)
-                    }
+                    onChange={(event) => setStarStatus(event.target.value as AuditStatus)}
                   >
                     {AUDIT_STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -799,28 +704,18 @@ export function Federation() {
                       className={inputClassName}
                       type="number"
                       value={finalContestScore}
-                      onChange={(event) =>
-                        setFinalContestScore(event.target.value)
-                      }
+                      onChange={(event) => setFinalContestScore(event.target.value)}
                     />
                   </Field>
                   <Field label="审核总分">
                     <ReadOnlyValue>
-                      {getStarPreviewScoreText(
-                        starStatus,
-                        isStarPreviewLoading,
-                        starPreview,
-                      )}
+                      {getStarPreviewScoreText(starStatus, isStarPreviewLoading, starPreview)}
                     </ReadOnlyValue>
                   </Field>
                 </div>
                 <Field label="系统评定星级">
                   <ReadOnlyValue>
-                    {getStarPreviewLevelText(
-                      starStatus,
-                      isStarPreviewLoading,
-                      starPreview,
-                    )}
+                    {getStarPreviewLevelText(starStatus, isStarPreviewLoading, starPreview)}
                   </ReadOnlyValue>
                 </Field>
                 <div className="grid gap-4 sm:grid-cols-2">
@@ -828,9 +723,7 @@ export function Federation() {
                     <select
                       className={selectClassName}
                       value={uniquenessApproved}
-                      onChange={(event) =>
-                        setUniquenessApproved(event.target.value)
-                      }
+                      onChange={(event) => setUniquenessApproved(event.target.value)}
                     >
                       <option value="">未定</option>
                       <option value="true">通过</option>
@@ -841,9 +734,7 @@ export function Federation() {
                     <select
                       className={selectClassName}
                       value={growthStoryApproved}
-                      onChange={(event) =>
-                        setGrowthStoryApproved(event.target.value)
-                      }
+                      onChange={(event) => setGrowthStoryApproved(event.target.value)}
                     >
                       <option value="">未定</option>
                       <option value="true">通过</option>
@@ -854,18 +745,13 @@ export function Federation() {
                 <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
                   <p className="font-semibold text-slate-800">申请内容</p>
                   <p className="mt-2 whitespace-pre-wrap leading-6">
-                    {selectedStarApplication.uniqueness_statement ||
-                      "未填写特色说明。"}
+                    {selectedStarApplication.uniqueness_statement || "未填写特色说明。"}
                   </p>
                   <div className="mt-3 flex flex-wrap gap-2">
-                    <ExternalLink
-                      href={selectedStarApplication.contest_attachment}
-                    >
+                    <ExternalLink href={selectedStarApplication.contest_attachment}>
                       竞赛附件
                     </ExternalLink>
-                    <ExternalLink
-                      href={selectedStarApplication.growth_story_url}
-                    >
+                    <ExternalLink href={selectedStarApplication.growth_story_url}>
                       成长故事
                     </ExternalLink>
                   </div>
@@ -881,11 +767,7 @@ export function Federation() {
 
       <Surface>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SectionTitle
-            className="mb-0"
-            icon={<CalendarDays size={20} />}
-            title="管理大型活动"
-          />
+          <SectionTitle className="mb-0" icon={<CalendarDays size={20} />} title="管理大型活动" />
           <SecondaryButton
             type="button"
             onClick={openActivityCreate}
@@ -894,12 +776,7 @@ export function Federation() {
             <Plus size={16} /> 新建大型活动
           </SecondaryButton>
         </div>
-        <div
-          className={cn(
-            "grid gap-6",
-            activityEditorMode && "lg:grid-cols-[0.95fr_1.05fr]",
-          )}
-        >
+        <div className={cn("grid gap-6", activityEditorMode && "lg:grid-cols-[0.95fr_1.05fr]")}>
           <div className="grid gap-3">
             {isLoading ? (
               <LoadingRows />
@@ -911,25 +788,17 @@ export function Federation() {
                   onClick={() => loadActivityForEdit(activity)}
                   className={cn(
                     "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
-                    selectedActivityId === activity.id &&
-                      "border-primary-200 bg-primary-50",
+                    selectedActivityId === activity.id && "border-primary-200 bg-primary-50",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="primary">
-                      {ACTIVITY_LEVEL_MAP[activity.level]}
-                    </Badge>
+                    <Badge tone="primary">{ACTIVITY_LEVEL_MAP[activity.level]}</Badge>
                     <Badge>{activity.club_records?.length || 0} 条记录</Badge>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
-                    {activity.name}
-                  </h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                    {activity.description}
-                  </p>
+                  <h3 className="mt-3 font-semibold text-slate-900">{activity.name}</h3>
+                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">{activity.description}</p>
                   <p className="mt-2 text-xs font-medium text-slate-400">
-                    #{activity.id} ·{" "}
-                    {formatDate(activity.starts_at || activity.created_at)}
+                    #{activity.id} · {formatDate(activity.starts_at || activity.created_at)}
                   </p>
                 </button>
               ))
@@ -947,14 +816,9 @@ export function Federation() {
                       <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
                         新建活动
                       </p>
-                      <h3 className="mt-1 font-bold text-slate-900">
-                        创建大型活动
-                      </h3>
+                      <h3 className="mt-1 font-bold text-slate-900">创建大型活动</h3>
                     </div>
-                    <SecondaryButton
-                      type="button"
-                      onClick={closeActivityEditor}
-                    >
+                    <SecondaryButton type="button" onClick={closeActivityEditor}>
                       <X size={16} /> 收起
                     </SecondaryButton>
                   </div>
@@ -970,9 +834,7 @@ export function Federation() {
                     <select
                       className={selectClassName}
                       value={activityLevel}
-                      onChange={(event) =>
-                        setActivityLevel(event.target.value as ActivityLevel)
-                      }
+                      onChange={(event) => setActivityLevel(event.target.value as ActivityLevel)}
                     >
                       {ACTIVITY_LEVEL_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -985,9 +847,7 @@ export function Federation() {
                     <textarea
                       className={textareaClassName}
                       value={activityDescription}
-                      onChange={(event) =>
-                        setActivityDescription(event.target.value)
-                      }
+                      onChange={(event) => setActivityDescription(event.target.value)}
                       required
                     />
                   </Field>
@@ -1007,10 +867,7 @@ export function Federation() {
                       </h3>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                      <SecondaryButton
-                        type="button"
-                        onClick={closeActivityEditor}
-                      >
+                      <SecondaryButton type="button" onClick={closeActivityEditor}>
                         <X size={16} /> 收起
                       </SecondaryButton>
                       <Link
@@ -1019,10 +876,7 @@ export function Federation() {
                       >
                         详情
                       </Link>
-                      <DangerButton
-                        type="button"
-                        onClick={() => deleteActivity(selectedActivity)}
-                      >
+                      <DangerButton type="button" onClick={() => deleteActivity(selectedActivity)}>
                         <Trash2 size={16} /> 删除
                       </DangerButton>
                     </div>
@@ -1031,9 +885,7 @@ export function Federation() {
                     <input
                       className={inputClassName}
                       value={editActivityName}
-                      onChange={(event) =>
-                        setEditActivityName(event.target.value)
-                      }
+                      onChange={(event) => setEditActivityName(event.target.value)}
                       required
                     />
                   </Field>
@@ -1042,9 +894,7 @@ export function Federation() {
                       className={selectClassName}
                       value={editActivityLevel}
                       onChange={(event) =>
-                        setEditActivityLevel(
-                          event.target.value as ActivityLevel,
-                        )
+                        setEditActivityLevel(event.target.value as ActivityLevel)
                       }
                     >
                       {ACTIVITY_LEVEL_OPTIONS.map((option) => (
@@ -1058,9 +908,7 @@ export function Federation() {
                     <textarea
                       className={textareaClassName}
                       value={editActivityDescription}
-                      onChange={(event) =>
-                        setEditActivityDescription(event.target.value)
-                      }
+                      onChange={(event) => setEditActivityDescription(event.target.value)}
                     />
                   </Field>
                   <PrimaryButton type="submit" loading={isEditing}>
@@ -1120,24 +968,17 @@ function ActivityRequestList({
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-slate-900">{title}</h3>
-        <Badge tone={items.length ? "yellow" : "slate"}>
-          {items.length} 条待处理
-        </Badge>
+        <Badge tone={items.length ? "yellow" : "slate"}>{items.length} 条待处理</Badge>
       </div>
       {items.length ? (
         items.map((item) => {
           const itemBusyKey = `${kind}-${item.id}`;
           return (
-            <div
-              key={item.id}
-              className="rounded-md border border-slate-100 bg-slate-50 p-4"
-            >
+            <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-4">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="yellow">
-                      {MODERATION_STATUS_MAP[item.moderation_status]}
-                    </Badge>
+                    <Badge tone="yellow">{MODERATION_STATUS_MAP[item.moderation_status]}</Badge>
                     <span className="text-xs font-medium text-slate-400">
                       申请 #{item.id} · {getActivityRequestTarget(item)}
                     </span>
@@ -1182,9 +1023,7 @@ function ActivityRequestList({
   );
 }
 
-function renderActivityRequestDetails(
-  item: ActivityCreateRequest | ActivityUpdateRequest,
-) {
+function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpdateRequest) {
   const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
 
   if ("club_id" in item) {
@@ -1196,20 +1035,13 @@ function renderActivityRequestDetails(
   if ("name" in item) rows.push(["名称", item.name]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item) {
-    rows.push([
-      "开始时间",
-      item.start_time ? formatDateTime(item.start_time) : null,
-    ]);
+    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
   }
   if ("end_time" in item) {
-    rows.push([
-      "结束时间",
-      item.end_time ? formatDateTime(item.end_time) : null,
-    ]);
+    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
   }
   if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item)
-    rows.push(["图片", item.picture_urls?.join("\n")]);
+  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
   return (
@@ -1217,29 +1049,19 @@ function renderActivityRequestDetails(
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[72px_1fr] gap-3 text-sm">
           <span className="font-semibold text-slate-500">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-slate-700">
-            {String(value)}
-          </span>
+          <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
         </div>
       ))}
     </div>
   );
 }
 
-function getActivityRequestTarget(
-  item: ActivityCreateRequest | ActivityUpdateRequest,
-) {
+function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
   if ("club_id" in item) return `社团 #${item.club_id}`;
   return `原活动 #${item.club_activity_id}`;
 }
 
-function ExternalLink({
-  href,
-  children,
-}: {
-  href?: string | null;
-  children: React.ReactNode;
-}) {
+function ExternalLink({ href, children }: { href?: string | null; children: React.ReactNode }) {
   if (!href) return null;
   return (
     <a
@@ -1283,9 +1105,7 @@ function sortStarApplications(left: StarApplication, right: StarApplication) {
     if (!left.audit_status || left.audit_status === "pending") return -1;
     if (!right.audit_status || right.audit_status === "pending") return 1;
   }
-  return (
-    new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-  );
+  return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
 }
 
 function getStarPreviewScoreText(
@@ -1295,9 +1115,7 @@ function getStarPreviewScoreText(
 ) {
   if (auditStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
-  return preview?.approved_score == null
-    ? "待计算"
-    : `${preview.approved_score} 分`;
+  return preview?.approved_score == null ? "待计算" : `${preview.approved_score} 分`;
 }
 
 function getStarPreviewLevelText(
@@ -1307,9 +1125,7 @@ function getStarPreviewLevelText(
 ) {
   if (auditStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
-  return preview?.approved_level == null
-    ? "待计算"
-    : STAR_LEVEL_MAP[preview.approved_level];
+  return preview?.approved_level == null ? "待计算" : STAR_LEVEL_MAP[preview.approved_level];
 }
 
 function getAuditTone(status: AuditStatus) {

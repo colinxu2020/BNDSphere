@@ -78,10 +78,7 @@ export function CreateClub() {
       <Surface>
         <SectionTitle icon={<Building2 size={20} />} title="基础信息" />
 
-        <form
-          onSubmit={submit}
-          className="grid grid-cols-1 md:grid-cols-2 gap-5"
-        >
+        <form onSubmit={submit} className="grid grid-cols-1 md:grid-cols-2 gap-5">
           <Field label="社团名称">
             <input
               className={inputClassName}

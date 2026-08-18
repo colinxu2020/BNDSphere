@@ -11,11 +11,7 @@ import {
   User,
 } from "@/src/components/ui/Icons";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import {
-  AUTH_STATE_CHANGED_EVENT,
-  clearAuthToken,
-  client,
-} from "../../api/client";
+import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
 
@@ -72,10 +68,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   }, []);
 
   const canOpenFederation = useMemo(
-    () =>
-      user?.role === "federation_staff" ||
-      user?.role === "admin" ||
-      user?.role === "dev",
+    () => user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev",
     [user?.role],
   );
   const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
@@ -174,10 +167,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                       我管理的社团
                     </MenuItem>
                     {canOpenFederation && (
-                      <MenuItem
-                        to="/federation"
-                        icon={<LayoutDashboard size={16} />}
-                      >
+                      <MenuItem to="/federation" icon={<LayoutDashboard size={16} />}>
                         社联工作台
                       </MenuItem>
                     )}
@@ -239,15 +229,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function MenuItem({
-  to,
-  icon,
-  children,
-}: {
-  to: string;
-  icon: ReactNode;
-  children: ReactNode;
-}) {
+function MenuItem({ to, icon, children }: { to: string; icon: ReactNode; children: ReactNode }) {
   return (
     <Link
       to={to}

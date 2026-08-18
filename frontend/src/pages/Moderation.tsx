@@ -1,12 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import {
-  Check,
-  Clock,
-  FilePenLine,
-  RefreshCw,
-  X,
-} from "@/src/components/ui/Icons";
+import { Check, Clock, FilePenLine, RefreshCw, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { MODERATION_STATUS_MAP } from "../lib/labels";
@@ -24,16 +18,11 @@ import {
 import { cn } from "../lib/utils";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ClubUpdateRequest = components["schemas"]["ClubUpdateRequestInfo"];
 type ModerationItem =
-  | UserRequest
-  | ActivityCreateRequest
-  | ActivityUpdateRequest
-  | ClubUpdateRequest;
+  UserRequest | ActivityCreateRequest | ActivityUpdateRequest | ClubUpdateRequest;
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
 type QueueKey = "users" | "activityCreate" | "activityUpdate" | "clubUpdate";
 
@@ -64,26 +53,17 @@ function renderRequestDetails(item: ModerationItem) {
   if ("summary" in item) rows.push(["简介", item.summary]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item)
-    rows.push([
-      "开始时间",
-      item.start_time ? formatDateTime(item.start_time) : null,
-    ]);
+    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
   if ("end_time" in item)
-    rows.push([
-      "结束时间",
-      item.end_time ? formatDateTime(item.end_time) : null,
-    ]);
+    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
   if ("location" in item) rows.push(["地点", item.location]);
   if ("logo_uri" in item) rows.push(["Logo", item.logo_uri]);
-  if ("picture_urls" in item)
-    rows.push(["图片", item.picture_urls?.join("\n")]);
+  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
 
   if (!visibleRows.length) {
-    return (
-      <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>
-    );
+    return <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>;
   }
 
   return (
@@ -91,9 +71,7 @@ function renderRequestDetails(item: ModerationItem) {
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
           <span className="font-semibold text-slate-500">{label}</span>
-          <span className="text-slate-700 whitespace-pre-wrap break-words">
-            {String(value)}
-          </span>
+          <span className="text-slate-700 whitespace-pre-wrap break-words">{String(value)}</span>
         </div>
       ))}
     </div>
@@ -116,12 +94,9 @@ export function Moderation() {
 
     try {
       if (activeQueue === "users") {
-        const { data, error } = await client.GET(
-          "/api/v1/moderations/users/update-requests",
-          {
-            params: { query: { size: 50 } },
-          },
-        );
+        const { data, error } = await client.GET("/api/v1/moderations/users/update-requests", {
+          params: { query: { size: 50 } },
+        });
         if (error) setError(error);
         setItems(data?.items || []);
       }
@@ -149,12 +124,9 @@ export function Moderation() {
       }
 
       if (activeQueue === "clubUpdate") {
-        const { data, error } = await client.GET(
-          "/api/v1/moderations/clubs/update-requests",
-          {
-            params: { query: { size: 50 } },
-          },
-        );
+        const { data, error } = await client.GET("/api/v1/moderations/clubs/update-requests", {
+          params: { query: { size: 50 } },
+        });
         if (error) setError(error);
         setItems(data?.items || []);
       }
@@ -168,12 +140,11 @@ export function Moderation() {
 
   useEffect(() => {
     fetchQueue();
+    // activeQueue is the explicit trigger; fetchQueue is recreated from it.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQueue]);
 
-  const moderate = async (
-    requestId: number,
-    moderationStatus: ModerationStatus,
-  ) => {
+  const moderate = async (requestId: number, moderationStatus: ModerationStatus) => {
     setBusyId(requestId);
     setActionMessage(null);
     const body = { moderation_status: moderationStatus };
@@ -182,13 +153,10 @@ export function Moderation() {
       let result: { data?: unknown; error?: unknown } = {};
 
       if (activeQueue === "users") {
-        result = await client.PATCH(
-          "/api/v1/moderations/users/update-requests/{request_id}",
-          {
-            params: { path: { request_id: requestId } },
-            body,
-          },
-        );
+        result = await client.PATCH("/api/v1/moderations/users/update-requests/{request_id}", {
+          params: { path: { request_id: requestId } },
+          body,
+        });
       }
 
       if (activeQueue === "activityCreate") {
@@ -212,13 +180,10 @@ export function Moderation() {
       }
 
       if (activeQueue === "clubUpdate") {
-        result = await client.PATCH(
-          "/api/v1/moderations/clubs/update-requests/{request_id}",
-          {
-            params: { path: { request_id: requestId } },
-            body,
-          },
-        );
+        result = await client.PATCH("/api/v1/moderations/clubs/update-requests/{request_id}", {
+          params: { path: { request_id: requestId } },
+          body,
+        });
       }
 
       if (result.error) {
@@ -282,12 +247,8 @@ export function Moderation() {
             <FilePenLine size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-display font-bold text-slate-900">
-              {activeMeta?.label}
-            </h2>
-            <p className="text-sm text-slate-500 mt-1">
-              {activeMeta?.description}
-            </p>
+            <h2 className="text-xl font-display font-bold text-slate-900">{activeMeta?.label}</h2>
+            <p className="text-sm text-slate-500 mt-1">{activeMeta?.description}</p>
           </div>
         </div>
 
@@ -314,10 +275,7 @@ export function Moderation() {
         ) : items.length ? (
           <div className="grid gap-4">
             {items.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-md border border-slate-100 bg-slate-50 p-5"
-              >
+              <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-5">
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">

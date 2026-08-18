@@ -1,11 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import {
-  ArrowUpRight,
-  CalendarDays,
-  Filter,
-  Search,
-} from "@/src/components/ui/Icons";
+import { ArrowUpRight, CalendarDays, Filter, Search } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -41,18 +36,15 @@ export function GeneralActivities() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await client.GET(
-          "/api/v1/general-activities/",
-          {
-            params: {
-              query: {
-                size: 50,
-                search: search || undefined,
-                level: level !== "all" ? level : undefined,
-              },
+        const { data, error } = await client.GET("/api/v1/general-activities/", {
+          params: {
+            query: {
+              size: 50,
+              search: search || undefined,
+              level: level !== "all" ? level : undefined,
             },
           },
-        );
+        });
         if (error) {
           setError(error);
           setItems([]);
@@ -149,9 +141,7 @@ export function GeneralActivities() {
                   />
                 </div>
                 <div className="mt-5">
-                  <Badge tone="slate">
-                    {ACTIVITY_LEVEL_MAP[activityItem.level]}
-                  </Badge>
+                  <Badge tone="slate">{ACTIVITY_LEVEL_MAP[activityItem.level]}</Badge>
                   <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-slate-950 transition-colors">
                     {activityItem.name}
                   </h3>
@@ -160,9 +150,7 @@ export function GeneralActivities() {
                   </p>
                   <div className="flex items-center gap-3 mt-5 text-xs font-medium text-slate-400">
                     <span>{formatDate(activityItem.created_at)}</span>
-                    <span>
-                      {activityItem.club_records?.length || 0} 条社团记录
-                    </span>
+                    <span>{activityItem.club_records?.length || 0} 条社团记录</span>
                   </div>
                 </div>
               </Link>
@@ -173,9 +161,7 @@ export function GeneralActivities() {
         <EmptyState
           icon={<Filter size={24} />}
           title="暂无活动"
-          description={
-            total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"
-          }
+          description={total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"}
         />
       )}
     </motion.div>

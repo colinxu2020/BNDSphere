@@ -83,9 +83,7 @@ export function FileUploadField({
 
   return (
     <div className="block min-w-0">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
-        {label}
-      </span>
+      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">{label}</span>
       <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-4">
         <input
           ref={inputRef}
@@ -103,11 +101,7 @@ export function FileUploadField({
             disabled={isUploading}
             className="bg-white"
           >
-            {isUploading ? (
-              <Loader2 size={16} className="animate-spin" />
-            ) : (
-              <FileUp size={16} />
-            )}
+            {isUploading ? <Loader2 size={16} className="animate-spin" /> : <FileUp size={16} />}
             {isUploading ? "上传中..." : "选择文件"}
           </SecondaryButton>
           {hint && <p className="min-w-0 text-xs text-slate-400">{hint}</p>}

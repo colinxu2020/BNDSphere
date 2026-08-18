@@ -1,11 +1,4 @@
-import {
-  Sparkles,
-  Calendar,
-  MapPin,
-  Hash,
-  ArrowLeft,
-  Settings,
-} from "@/src/components/ui/Icons";
+import { Sparkles, Calendar, MapPin, Hash, ArrowLeft, Settings } from "@/src/components/ui/Icons";
 import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
@@ -82,17 +75,13 @@ export function ClubDetail() {
 
   const currentMembership = useMemo(
     () =>
-      club?.members.find(
-        (member) => member.user_id === user?.id && member.membership !== "left",
-      )?.membership || null,
+      club?.members.find((member) => member.user_id === user?.id && member.membership !== "left")
+        ?.membership || null,
     [club?.members, user?.id],
   );
   const canJoin = !currentMembership;
-  const canLeave =
-    currentMembership === "member" || currentMembership === "pending";
-  const canManage = currentMembership
-    ? MANAGER_ROLES.has(currentMembership)
-    : false;
+  const canLeave = currentMembership === "member" || currentMembership === "pending";
+  const canManage = currentMembership ? MANAGER_ROLES.has(currentMembership) : false;
   const activeMembers = useMemo(
     () =>
       (club?.members || []).filter((member) =>
@@ -105,12 +94,9 @@ export function ClubDetail() {
     setIsActionLoading(true);
     setActionMessage(null);
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/clubs/{club_id}/members",
-        {
-          params: { path: { club_id: Number(id) } },
-        },
-      );
+      const { data, error } = await client.POST("/api/v1/clubs/{club_id}/members", {
+        params: { path: { club_id: Number(id) } },
+      });
       if (error) {
         setActionTone("error");
         setActionMessage(error);
@@ -120,12 +106,7 @@ export function ClubDetail() {
         if (data && club) {
           setClub({
             ...club,
-            members: [
-              ...club.members.filter(
-                (member) => member.user_id !== data.user_id,
-              ),
-              data,
-            ],
+            members: [...club.members.filter((member) => member.user_id !== data.user_id), data],
           });
         }
       }
@@ -141,12 +122,9 @@ export function ClubDetail() {
     setIsActionLoading(true);
     setActionMessage(null);
     try {
-      const { error, response } = await client.DELETE(
-        "/api/v1/clubs/{club_id}/members/me",
-        {
-          params: { path: { club_id: Number(id) } },
-        },
-      );
+      const { error, response } = await client.DELETE("/api/v1/clubs/{club_id}/members/me", {
+        params: { path: { club_id: Number(id) } },
+      });
       if (error) {
         setActionTone("error");
         setActionMessage(error);
@@ -157,9 +135,7 @@ export function ClubDetail() {
           setClub({
             ...club,
             members: club.members.map((member) =>
-              member.user_id === user.id
-                ? { ...member, membership: "left" }
-                : member,
+              member.user_id === user.id ? { ...member, membership: "left" } : member,
             ),
           });
         }
@@ -204,11 +180,7 @@ export function ClubDetail() {
         <div className="flex flex-col md:flex-row gap-8 relative z-10 items-start md:items-center">
           <div className="w-28 h-28 md:w-40 md:h-40 rounded-md bg-slate-100 flex items-center justify-center shrink-0 shadow-inner overflow-hidden border border-slate-200">
             {club.logo_uri ? (
-              <img
-                src={club.logo_uri}
-                alt={club.name}
-                className="w-full h-full object-cover"
-              />
+              <img src={club.logo_uri} alt={club.name} className="w-full h-full object-cover" />
             ) : (
               <Hash className="text-slate-400 stroke-[1.5]" size={48} />
             )}
@@ -221,10 +193,7 @@ export function ClubDetail() {
               </span>
               {club.star_level && club.star_level !== "none" && (
                 <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-50 px-3 py-1 rounded-md border border-yellow-100">
-                  <Sparkles
-                    size={14}
-                    className="fill-yellow-500 text-yellow-500"
-                  />
+                  <Sparkles size={14} className="fill-yellow-500 text-yellow-500" />
                   {STAR_LEVEL_MAP[club.star_level] || club.star_level}
                 </span>
               )}
@@ -233,9 +202,7 @@ export function ClubDetail() {
             <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900 tracking-tight leading-[1.1] mb-2">
               {club.name}
             </h1>
-            <p className="text-lg md:text-xl text-slate-500 font-medium">
-              {club.summary}
-            </p>
+            <p className="text-lg md:text-xl text-slate-500 font-medium">{club.summary}</p>
           </div>
 
           <div className="flex md:flex-col gap-3 w-full md:w-auto">
@@ -269,9 +236,7 @@ export function ClubDetail() {
         </div>
       </div>
 
-      {actionMessage && (
-        <StatusMessage value={actionMessage} tone={actionTone} />
-      )}
+      {actionMessage && <StatusMessage value={actionMessage} tone={actionTone} />}
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -309,13 +274,10 @@ export function ClubDetail() {
                       <h3 className="font-semibold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">
                         {act.name}
                       </h3>
-                      <p className="text-slate-500 text-sm line-clamp-1">
-                        {act.description}
-                      </p>
+                      <p className="text-slate-500 text-sm line-clamp-1">{act.description}</p>
                       <div className="flex items-center gap-4 mt-2 text-xs font-medium text-slate-400">
                         <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
-                          <Calendar size={14} />{" "}
-                          {new Date(act.start_time).toLocaleDateString()}
+                          <Calendar size={14} /> {new Date(act.start_time).toLocaleDateString()}
                         </span>
                         <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
                           <MapPin size={14} /> {act.location}
@@ -336,13 +298,9 @@ export function ClubDetail() {
         {/* Right Column - Sidestats */}
         <div className="flex flex-col gap-6">
           <div className="bg-white p-6 rounded-md border border-slate-100 shadow-sm flex flex-col gap-4">
-            <h3 className="font-display font-bold text-lg text-slate-900">
-              成员
-            </h3>
+            <h3 className="font-display font-bold text-lg text-slate-900">成员</h3>
             <div>
-              <p className="text-sm font-medium text-slate-600">
-                {activeMembers.length} 名成员
-              </p>
+              <p className="text-sm font-medium text-slate-600">{activeMembers.length} 名成员</p>
             </div>
             {activeMembers.length ? (
               <div className="flex flex-col gap-2">
@@ -353,9 +311,7 @@ export function ClubDetail() {
                     className="flex items-center justify-between gap-3 rounded-md bg-slate-50 border border-slate-100 px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors"
                   >
                     <span>用户 #{member.user_id}</span>
-                    <span className="text-xs text-slate-400">
-                      {member.membership}
-                    </span>
+                    <span className="text-xs text-slate-400">{member.membership}</span>
                   </Link>
                 ))}
               </div>

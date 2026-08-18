@@ -34,28 +34,17 @@ export function PageHeader({
         <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 tracking-tight">
           {title}
         </h1>
-        {description && (
-          <p className="text-slate-500 text-lg max-w-2xl">{description}</p>
-        )}
+        {description && <p className="text-slate-500 text-lg max-w-2xl">{description}</p>}
       </div>
       {action}
     </div>
   );
 }
 
-export function Surface({
-  children,
-  className,
-}: {
-  children: ReactNode;
-  className?: string;
-}) {
+export function Surface({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={cn(
-        "bg-white rounded-md border border-slate-100 shadow-sm p-6 md:p-8",
-        className,
-      )}
+      className={cn("bg-white rounded-md border border-slate-100 shadow-sm p-6 md:p-8", className)}
     >
       {children}
     </section>
@@ -88,12 +77,8 @@ export function SectionTitle({
         </div>
       )}
       <div>
-        <h2 className="text-xl font-display font-bold text-slate-900">
-          {title}
-        </h2>
-        {description && (
-          <p className="text-sm text-slate-500 mt-1">{description}</p>
-        )}
+        <h2 className="text-xl font-display font-bold text-slate-900">{title}</h2>
+        {description && <p className="text-sm text-slate-500 mt-1">{description}</p>}
       </div>
     </div>
   );
@@ -110,13 +95,9 @@ export function Field({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
-        {label}
-      </span>
+      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">{label}</span>
       {children}
-      {hint && (
-        <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>
-      )}
+      {hint && <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>}
     </label>
   );
 }
@@ -184,10 +165,7 @@ export function StatusMessage({
   value?: unknown;
   tone?: "error" | "success" | "info";
 }) {
-  const text =
-    tone === "success"
-      ? stringifySuccessValue(value)
-      : stringifyBackendValue(value);
+  const text = tone === "success" ? stringifySuccessValue(value) : stringifyBackendValue(value);
   if (!text) return null;
 
   const toneClass = {
@@ -197,12 +175,7 @@ export function StatusMessage({
   }[tone];
 
   return (
-    <div
-      className={cn(
-        "rounded-md border p-4 text-sm font-medium whitespace-pre-wrap",
-        toneClass,
-      )}
-    >
+    <div className={cn("rounded-md border p-4 text-sm font-medium whitespace-pre-wrap", toneClass)}>
       {text}
     </div>
   );
@@ -235,12 +208,8 @@ export function EmptyState({
       <div className="bg-slate-50 w-14 h-14 rounded-md flex items-center justify-center mb-4 text-slate-400">
         {icon || <Inbox size={24} />}
       </div>
-      <h3 className="text-lg font-display font-semibold text-slate-800">
-        {title}
-      </h3>
-      {description && (
-        <p className="text-sm text-slate-500 max-w-sm mt-2">{description}</p>
-      )}
+      <h3 className="text-lg font-display font-semibold text-slate-800">{title}</h3>
+      {description && <p className="text-sm text-slate-500 max-w-sm mt-2">{description}</p>}
     </div>
   );
 }

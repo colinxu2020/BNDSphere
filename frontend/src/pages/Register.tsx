@@ -25,15 +25,12 @@ export function Register() {
     setIsLoading(true);
 
     try {
-      const { data, error: apiError } = await client.POST(
-        "/api/v1/auth/register",
-        {
-          body: {
-            username,
-            password,
-          },
+      const { data, error: apiError } = await client.POST("/api/v1/auth/register", {
+        body: {
+          username,
+          password,
         },
-      );
+      });
 
       if (apiError) {
         setError(apiError);
@@ -63,9 +60,7 @@ export function Register() {
           <div className="mx-auto bg-primary-50 p-3 rounded-md text-primary-600 mb-2">
             <UserPlus size={28} />
           </div>
-          <h1 className="text-2xl font-display font-bold text-slate-900">
-            注册 BNDSphere
-          </h1>
+          <h1 className="text-2xl font-display font-bold text-slate-900">注册 BNDSphere</h1>
           <p className="text-slate-500 text-sm">创建您的新账号</p>
         </div>
 
@@ -75,14 +70,9 @@ export function Register() {
           </div>
         )}
 
-        <form
-          onSubmit={handleRegister}
-          className="flex flex-col gap-5 relative z-10"
-        >
+        <form onSubmit={handleRegister} className="flex flex-col gap-5 relative z-10">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
-              用户名
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">用户名</label>
             <input
               type="text"
               value={username}
@@ -93,9 +83,7 @@ export function Register() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
-              密码
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">密码</label>
             <input
               type="password"
               value={password}
@@ -106,9 +94,7 @@ export function Register() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
-              确认密码
-            </label>
+            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">确认密码</label>
             <input
               type="password"
               value={confirmPassword}

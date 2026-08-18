@@ -1,21 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import {
-  Building2,
-  ChevronRight,
-  Plus,
-  RefreshCw,
-  Users,
-} from "@/src/components/ui/Icons";
+import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import {
-  CATEGORY_MAP,
-  CLUB_STATUS_MAP,
-  MEMBERSHIP_MAP,
-  STAR_LEVEL_MAP,
-} from "../lib/labels";
+import { CATEGORY_MAP, CLUB_STATUS_MAP, MEMBERSHIP_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
 import {
   Badge,
@@ -44,14 +33,11 @@ export function Workspace() {
       .map((club) => ({
         club,
         membership: club.members.find(
-          (member) =>
-            member.user_id === user.id && MANAGER_ROLES.has(member.membership),
+          (member) => member.user_id === user.id && MANAGER_ROLES.has(member.membership),
         ),
       }))
       .filter((item) => item.membership)
-      .sort((left, right) =>
-        left.club.name.localeCompare(right.club.name, "zh-Hans-CN"),
-      );
+      .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN"));
   }, [clubs, user]);
 
   const fetchManagedClubs = async () => {
@@ -90,6 +76,8 @@ export function Workspace() {
 
   useEffect(() => {
     fetchManagedClubs();
+    // Load once with the authenticated user captured on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   return (
@@ -104,11 +92,7 @@ export function Workspace() {
         title="我管理的社团"
         action={
           <div className="flex flex-wrap gap-2">
-            <SecondaryButton
-              type="button"
-              onClick={fetchManagedClubs}
-              disabled={isLoading}
-            >
+            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
             <Link
@@ -130,11 +114,7 @@ export function Workspace() {
       ) : managedClubs.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {managedClubs.map(({ club, membership }) => (
-            <Link
-              key={club.id}
-              to={`/club/${club.id}/manage`}
-              className="group block"
-            >
+            <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
               <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
                 <div className="flex items-start gap-4">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
@@ -166,16 +146,12 @@ export function Workspace() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Badge tone="primary">
-                        {membership
-                          ? MEMBERSHIP_MAP[membership.membership]
-                          : ""}
+                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
                       </Badge>
                       <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
                       <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
                       {club.star_level !== "none" && (
-                        <Badge tone="yellow">
-                          {STAR_LEVEL_MAP[club.star_level]}
-                        </Badge>
+                        <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
                       )}
                     </div>
 
@@ -183,11 +159,7 @@ export function Workspace() {
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />
-                        {
-                          club.members.filter(
-                            (member) => member.membership !== "left",
-                          ).length
-                        }{" "}
+                        {club.members.filter((member) => member.membership !== "left").length}{" "}
                         名成员
                       </span>
                     </div>

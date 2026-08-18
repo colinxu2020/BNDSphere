@@ -4,11 +4,7 @@ import { ArrowLeft, CheckCircle2 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import {
-  ACTIVITY_LEVEL_MAP,
-  AUDIT_STATUS_MAP,
-  PARTICIPATION_MAP,
-} from "../lib/labels";
+import { ACTIVITY_LEVEL_MAP, AUDIT_STATUS_MAP, PARTICIPATION_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -23,9 +19,7 @@ type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 
 export function GeneralActivityDetail() {
   const { id } = useParams<{ id: string }>();
-  const [activityInfo, setActivityInfo] = useState<GeneralActivity | null>(
-    null,
-  );
+  const [activityInfo, setActivityInfo] = useState<GeneralActivity | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
@@ -34,12 +28,9 @@ export function GeneralActivityDetail() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await client.GET(
-          "/api/v1/general-activities/{activity_id}",
-          {
-            params: { path: { activity_id: Number(id) } },
-          },
-        );
+        const { data, error } = await client.GET("/api/v1/general-activities/{activity_id}", {
+          params: { path: { activity_id: Number(id) } },
+        });
         if (error) {
           setError(error);
           setActivityInfo(null);
@@ -115,9 +106,7 @@ export function GeneralActivityDetail() {
                           >
                             {AUDIT_STATUS_MAP[record.audit_status]}
                           </Badge>
-                          <Badge>
-                            {PARTICIPATION_MAP[record.participation_type]}
-                          </Badge>
+                          <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
                         </div>
                         <h3 className="mt-3">
                           <Link

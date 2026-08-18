@@ -1,12 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "motion/react";
-import {
-  Plus,
-  Search,
-  Filter,
-  Hash,
-  Sparkles,
-} from "@/src/components/ui/Icons";
+import { Plus, Search, Filter, Hash, Sparkles } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
@@ -184,9 +178,7 @@ export function ExploreClubs() {
                   <h3 className="font-semibold text-[17px] text-slate-900 leading-tight group-hover:text-primary-600 transition-colors">
                     {club.name}
                   </h3>
-                  <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">
-                    {club.summary}
-                  </p>
+                  <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">{club.summary}</p>
                 </div>
               </Link>
             </motion.div>
@@ -197,9 +189,7 @@ export function ExploreClubs() {
           <div className="bg-slate-50 w-16 h-16 rounded-md flex items-center justify-center mb-4">
             <Filter className="text-slate-400" size={24} />
           </div>
-          <h3 className="text-xl font-display font-semibold text-slate-800 mb-2">
-            未找到社团
-          </h3>
+          <h3 className="text-xl font-display font-semibold text-slate-800 mb-2">未找到社团</h3>
           <p className="text-slate-500 max-w-sm">
             我们找不到与当前条件匹配的社团。请尝试调整搜索关键字或社团类别。
           </p>

@@ -91,16 +91,12 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.database.conflict": "数据已被更新，请刷新后重试",
   "error.database.unavailable": "数据库暂时不可用，请稍后重试",
   "error.general_activity.club_requested": "该社团已经提交过这个大型活动申请",
-  "error.general_activity.invalid_time_range":
-    "大型活动结束时间不能早于开始时间",
+  "error.general_activity.invalid_time_range": "大型活动结束时间不能早于开始时间",
   "error.general_activity.not_found": "没有找到这个大型活动",
   "error.general_activity.record_not_found": "没有找到这条申请记录",
-  "error.general_activity.record_reviewed":
-    "这条活动记录已经审核过，不能再次修改",
-  "error.moderation.duplicate_pending_request":
-    "已经有待审核的申请，请等待处理后再提交",
-  "error.request_moderate.invalid_moderation_status":
-    "审核结果只能选择通过或驳回",
+  "error.general_activity.record_reviewed": "这条活动记录已经审核过，不能再次修改",
+  "error.moderation.duplicate_pending_request": "已经有待审核的申请，请等待处理后再提交",
+  "error.request_moderate.invalid_moderation_status": "审核结果只能选择通过或驳回",
   "error.role.not_allowed": "你没有执行此操作的权限",
   "error.star_level.denied": "已通过的星级评价申请不能再修改",
   "error.star_level.duplicate_application": "本学期已经提交过星级评价申请",
@@ -129,10 +125,7 @@ function formatBackendError(value: unknown): string {
   const record = value as Record<string, unknown>;
   const payload =
     record.response && typeof record.response === "object"
-      ? ((record.response as Record<string, unknown>).data as Record<
-          string,
-          unknown
-        >) || record
+      ? ((record.response as Record<string, unknown>).data as Record<string, unknown>) || record
       : record;
 
   const code = payload.error_code || payload.code;
@@ -177,9 +170,7 @@ function formatValidationErrors(items: unknown[]): string {
       if (!item || typeof item !== "object") return "";
       const record = item as Record<string, unknown>;
       const fieldKey = Array.isArray(record.loc)
-        ? record.loc
-            .filter((part) => !["body", "query", "path"].includes(String(part)))
-            .join(".")
+        ? record.loc.filter((part) => !["body", "query", "path"].includes(String(part))).join(".")
         : "";
       const field = FIELD_LABELS[fieldKey] || fieldKey || "字段";
       const message = formatValidationMessage(record);
@@ -211,9 +202,7 @@ function formatDetails(details: unknown): string {
   };
   const parts = Object.entries(details as Record<string, unknown>)
     .filter(([, detailValue]) => detailValue != null && detailValue !== "")
-    .map(
-      ([key, detailValue]) => `${labelMap[key] || key}: ${String(detailValue)}`,
-    );
+    .map(([key, detailValue]) => `${labelMap[key] || key}: ${String(detailValue)}`);
   return parts.length ? `（${parts.join("，")}）` : "";
 }
 
@@ -267,9 +256,7 @@ const FIELD_LABELS: Record<string, string> = {
 function formatValidationMessage(record: Record<string, unknown>): string {
   const msg = typeof record.msg === "string" ? record.msg : "";
   const ctx =
-    record.ctx && typeof record.ctx === "object"
-      ? (record.ctx as Record<string, unknown>)
-      : {};
+    record.ctx && typeof record.ctx === "object" ? (record.ctx as Record<string, unknown>) : {};
 
   if (msg === "Field required") return "不能为空";
   if (msg.includes("valid integer")) return "应为整数";
@@ -283,14 +270,10 @@ function formatValidationMessage(record: Record<string, unknown>): string {
   if (msg.includes("greater than")) return "数值过小";
   if (msg.includes("less than")) return "数值过大";
   if (msg.includes("String should have at most")) {
-    return typeof ctx.max_length === "number"
-      ? `不能超过 ${ctx.max_length} 个字符`
-      : "长度过长";
+    return typeof ctx.max_length === "number" ? `不能超过 ${ctx.max_length} 个字符` : "长度过长";
   }
   if (msg.includes("String should have at least")) {
-    return typeof ctx.min_length === "number"
-      ? `至少需要 ${ctx.min_length} 个字符`
-      : "长度过短";
+    return typeof ctx.min_length === "number" ? `至少需要 ${ctx.min_length} 个字符` : "长度过短";
   }
   if (msg.includes("Input should be")) return "取值不在允许范围内";
 
@@ -300,11 +283,7 @@ function formatValidationMessage(record: Record<string, unknown>): string {
 function sanitizePlainError(value: string): string {
   const trimmed = value.trim();
   if (!trimmed) return "";
-  if (
-    trimmed.startsWith("<!doctype") ||
-    trimmed.startsWith("<html") ||
-    trimmed.includes("<body")
-  ) {
+  if (trimmed.startsWith("<!doctype") || trimmed.startsWith("<html") || trimmed.includes("<body")) {
     return "后端接口没有返回可识别的错误信息，请确认服务地址和路由配置正确";
   }
   return "";
@@ -328,9 +307,7 @@ export function toDateTimeLocalValue(value?: string | null): string {
   if (!value) return "";
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
-  const offsetDate = new Date(
-    date.getTime() - date.getTimezoneOffset() * 60000,
-  );
+  const offsetDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
   return offsetDate.toISOString().slice(0, 16);
 }
 

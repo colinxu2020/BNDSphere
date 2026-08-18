@@ -77,7 +77,7 @@ class StarLevelService(
             if application is None:
                 raise StarLevelNotFoundError(application_id) from None
 
-            application = await self.repository.update(
+            application = await self.repository.update_review(
                 application,
                 review,
             )
