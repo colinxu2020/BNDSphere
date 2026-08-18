@@ -14,14 +14,14 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
 import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   AUDIT_STATUS_MAP,
-  CATEGORY_MAP,
   PARTICIPATION_MAP,
   PARTICIPATION_OPTIONS,
-  STAR_LEVEL_MAP,
 } from "../lib/labels";
 import {
   formatDateTime,
@@ -610,10 +610,8 @@ export function ClubWorkspace() {
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-2 mb-2">
-                    <Badge tone="brand">{CATEGORY_MAP[club.category]}</Badge>
-                    <Badge tone="warning">
-                      {STAR_LEVEL_MAP[club.star_level]}
-                    </Badge>
+                    <CategoryChip category={club.category} />
+                    <StarLevel level={club.star_level} />
                   </div>
                   <h2 className="text-2xl font-display font-bold text-content">
                     {club.name}
@@ -633,8 +631,8 @@ export function ClubWorkspace() {
                   <p className="mt-2 text-4xl font-display font-bold text-content">
                     {starRating.total_score}
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-tone-brand-fg">
-                    {STAR_LEVEL_MAP[starRating.star_level]}
+                  <p className="mt-2">
+                    <StarLevelCompact level={starRating.star_level} />
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
@@ -1067,9 +1065,7 @@ export function ClubWorkspace() {
                             : "未审核"}
                         </Badge>
                         {application.approved_level && (
-                          <Badge tone="brand">
-                            {STAR_LEVEL_MAP[application.approved_level]}
-                          </Badge>
+                          <StarLevelCompact level={application.approved_level} />
                         )}
                       </div>
                       <h3 className="mt-3 font-semibold text-content">

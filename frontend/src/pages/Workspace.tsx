@@ -9,12 +9,13 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
 import { client } from "../api/client";
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevelCompact } from "../components/ui/StarLevel";
+import { CLUB_STATUS_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
-  CATEGORY_MAP,
   CLUB_STATUS_MAP,
   MEMBERSHIP_MAP,
-  STAR_LEVEL_MAP,
 } from "../lib/labels";
 import { formatDate } from "../lib/format";
 import {
@@ -170,12 +171,12 @@ export function Workspace() {
                           ? MEMBERSHIP_MAP[membership.membership]
                           : ""}
                       </Badge>
-                      <Badge tone="neutral">{CATEGORY_MAP[club.category]}</Badge>
-                      <Badge tone="info">{CLUB_STATUS_MAP[club.status]}</Badge>
+                      <CategoryChip category={club.category} size="sm" />
+                      <Badge tone={CLUB_STATUS_TONE[club.status]}>
+                        {CLUB_STATUS_MAP[club.status]}
+                      </Badge>
                       {club.star_level !== "none" && (
-                        <Badge tone="warning">
-                          {STAR_LEVEL_MAP[club.star_level]}
-                        </Badge>
+                        <StarLevelCompact level={club.star_level} />
                       )}
                     </div>
 

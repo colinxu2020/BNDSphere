@@ -10,9 +10,11 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevelCompact } from "../components/ui/StarLevel";
 import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
-import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
+import { AUDIT_STATUS_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -148,9 +150,7 @@ function StarApplicationCard({
               >
                 {application.club.name}
               </Link>
-              <Badge tone="neutral">
-                {CATEGORY_MAP[application.club.category]}
-              </Badge>
+              <CategoryChip category={application.club.category} size="sm" />
               {auditStatus && (
                 <Badge tone={AUDIT_TONE[auditStatus]}>
                   {AUDIT_STATUS_MAP[auditStatus]}
@@ -163,8 +163,9 @@ function StarApplicationCard({
                 {application.academic_term.term_name}
               </span>
               <span>提交于 {formatDateTime(application.created_at)}</span>
-              <span>
-                当前星级 {STAR_LEVEL_MAP[application.club.star_level]}
+              <span className="inline-flex items-center gap-1.5">
+                当前星级
+                <StarLevelCompact level={application.club.star_level} />
               </span>
             </div>
           </div>
