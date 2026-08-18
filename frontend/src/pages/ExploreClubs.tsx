@@ -5,14 +5,14 @@ import {
   Search,
   Filter,
   Hash,
-  Sparkles,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
-import { CATEGORY_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevel } from "../components/ui/StarLevel";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type Category = components["schemas"]["ClubCategoryEnum"];
@@ -172,13 +172,13 @@ export function ExploreClubs() {
                 </div>
                 <div className="flex flex-col">
                   <div className="flex gap-2 items-center mb-1">
-                    <span className="text-[10px] font-bold tracking-wider uppercase text-tone-brand-fg bg-brand-subtle px-2.5 py-0.5 rounded-md">
-                      {CATEGORY_MAP[club.category] || club.category}
-                    </span>
+                    <CategoryChip category={club.category} size="sm" />
                     {club.star_level !== "none" && (
-                      <span className="flex text-tone-warning-fg bg-tone-warning-bg p-0.5 rounded-md">
-                        <Sparkles size={12} className="fill-tone-warning-fg" />
-                      </span>
+                      <StarLevel
+                        level={club.star_level}
+                        size="sm"
+                        showLabel={false}
+                      />
                     )}
                   </div>
                   <h3 className="font-semibold text-[17px] text-content leading-tight group-hover:text-tone-brand-fg transition-colors">

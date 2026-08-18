@@ -1,5 +1,4 @@
 import {
-  Sparkles,
   Calendar,
   MapPin,
   Hash,
@@ -12,29 +11,11 @@ import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevel } from "../components/ui/StarLevel";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
-
-const CATEGORY_MAP: Record<string, string> = {
-  science: "科学",
-  humanity: "人文",
-  arts: "艺术",
-  sports: "体育",
-  business: "商业",
-  charity: "公益",
-  campus: "校园",
-  other: "其他",
-};
-
-const STAR_LEVEL_MAP: Record<string, string> = {
-  one_star: "一星社团",
-  two_star: "二星社团",
-  three_star: "三星社团",
-  four_star: "四星社团",
-  five_star: "五星社团",
-  honorary: "荣誉社团",
-};
 
 const MANAGER_ROLES = new Set(["president", "vice_president"]);
 
@@ -216,17 +197,9 @@ export function ClubDetail() {
 
           <div className="flex flex-col flex-grow">
             <div className="flex gap-2 items-center mb-3">
-              <span className="text-xs font-bold tracking-wider text-tone-brand-fg bg-brand-subtle px-3 py-1 rounded-md border border-tone-brand-edge">
-                {CATEGORY_MAP[club.category] || club.category}
-              </span>
-              {club.star_level && club.star_level !== "none" && (
-                <span className="flex items-center gap-1 text-xs font-bold text-tone-warning-fg bg-tone-warning-bg px-3 py-1 rounded-md border border-tone-warning-edge">
-                  <Sparkles
-                    size={14}
-                    className="fill-tone-warning-fg text-tone-warning-fg"
-                  />
-                  {STAR_LEVEL_MAP[club.star_level] || club.star_level}
-                </span>
+              <CategoryChip category={club.category} size="lg" />
+              {club.star_level && (
+                <StarLevel level={club.star_level} size="lg" />
               )}
             </div>
 

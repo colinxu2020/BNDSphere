@@ -16,6 +16,9 @@
  * forced one so the two can be compared.
  */
 
+import { CategoryChip } from "../components/ui/CategoryChip";
+import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
+
 const TONES = [
   ["neutral", "中性"],
   ["brand", "品牌 / 强调"],
@@ -47,16 +50,15 @@ const TONE_CLASSES: Record<string, string> = {
   danger: "bg-tone-danger-bg text-tone-danger-fg border-tone-danger-edge",
 };
 
-const CATEGORY_CLASSES: Record<string, string> = {
-  science: "bg-cat-science-bg text-cat-science-fg border-cat-science-edge",
-  humanity: "bg-cat-humanity-bg text-cat-humanity-fg border-cat-humanity-edge",
-  arts: "bg-cat-arts-bg text-cat-arts-fg border-cat-arts-edge",
-  sports: "bg-cat-sports-bg text-cat-sports-fg border-cat-sports-edge",
-  business: "bg-cat-business-bg text-cat-business-fg border-cat-business-edge",
-  charity: "bg-cat-charity-bg text-cat-charity-fg border-cat-charity-edge",
-  campus: "bg-cat-campus-bg text-cat-campus-fg border-cat-campus-edge",
-  other: "bg-cat-other-bg text-cat-other-fg border-cat-other-edge",
-};
+const STAR_LEVELS = [
+  "none",
+  "one_star",
+  "two_star",
+  "three_star",
+  "four_star",
+  "five_star",
+  "honorary",
+] as const;
 
 const TYPE_SCALE = [
   ["text-xs", "文本 xs"],
@@ -186,14 +188,53 @@ export default function Specimen() {
           note="八类固定色相，明度亦有差异，因此不依赖色相辨识即可区分；仅用于小元素。其他 保持中性。"
         >
           <div className="flex flex-wrap gap-3">
-            {CATEGORIES.map(([key, label]) => (
-              <span
-                key={key}
-                className={`inline-flex items-center rounded-md border px-3 py-1 text-sm font-bold ${CATEGORY_CLASSES[key]}`}
-              >
-                {label}
-              </span>
+            {CATEGORIES.map(([key]) => (
+              <CategoryChip key={key} category={key} size="lg" />
             ))}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {CATEGORIES.map(([key]) => (
+              <CategoryChip key={key} category={key} size="sm" />
+            ))}
+          </div>
+        </Section>
+
+        <Section
+          title="社团星级 Star levels"
+          note="单一等级序列:无星级 → 一星 → … → 五星 → 荣誉社团。荣誉社团为该序列的最高级,以五星加印章表示,而非第六颗星。每种呈现都保留文字等级 —— 星形与印章从不单独承载语义。"
+        >
+          <div className="flex flex-col gap-3">
+            <div className="flex flex-wrap items-center gap-3">
+              {STAR_LEVELS.map((level) => (
+                <StarLevel key={level} level={level} size="lg" />
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {STAR_LEVELS.map((level) => (
+                <StarLevel key={level} level={level} size="sm" />
+              ))}
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {STAR_LEVELS.filter((l) => l !== "none").map((level) => (
+                <StarLevel
+                  key={level}
+                  level={level}
+                  size="md"
+                  showLabel={false}
+                />
+              ))}
+              <span className="text-content-muted text-sm">
+                ← showLabel=false,文字等级仍以 sr-only 保留
+              </span>
+            </div>
+            <div className="border-edge-subtle flex flex-wrap items-center gap-4 border-t pt-3">
+              {STAR_LEVELS.map((level) => (
+                <StarLevelCompact key={level} level={level} />
+              ))}
+              <span className="text-content-muted text-sm">
+                ← 密集表格用的紧凑变体
+              </span>
+            </div>
           </div>
         </Section>
 
