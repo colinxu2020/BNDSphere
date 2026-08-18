@@ -1,10 +1,21 @@
 from uuid import uuid4
 
 from fastapi import APIRouter, Depends, status
+from pydantic import HttpUrl
 
 from app.api.dependencies import ObjectStorageServiceDep, get_current_user
-from app.schemas.upload import InitiateUploadRequest, InitiateUploadResponse
-from app.services.upload_policy import UPLOAD_POLICIES, validate_file
+from app.schemas.upload import (
+    ConfirmUploadRequest,
+    ConfirmUploadResponse,
+    InitiateUploadRequest,
+    InitiateUploadResponse,
+    oss_public_base_url,
+)
+from app.services.upload_policy import (
+    UPLOAD_POLICIES,
+    validate_confirmed_upload,
+    validate_file,
+)
 
 router = APIRouter(tags=["Uploads"])
 
@@ -31,5 +42,19 @@ async def initiate_upload(
         object_key=object_key,
         upload_url=upload_url,
         expires_seconds=policy.expires_seconds,
-        file_id=file_id,
     )
+
+
+@router.post(
+    "/confirm",
+    dependencies=[Depends(get_current_user)],
+)
+async def confirm_upload(
+    req: ConfirmUploadRequest,
+    oss_service: ObjectStorageServiceDep,
+) -> ConfirmUploadResponse:
+    policy = UPLOAD_POLICIES[req.scene]
+    actual_size = await oss_service.stat_object(req.object_key)
+    validate_confirmed_upload(policy, req.object_key, actual_size)
+    url = f"{oss_public_base_url()}/{req.object_key}"
+    return ConfirmUploadResponse(url=HttpUrl(url))

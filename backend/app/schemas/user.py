@@ -6,6 +6,7 @@ from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_vali
 from app.core import constants
 from app.models.user import RoleEnum, UserGradeEnum
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
+from app.schemas.upload import AvatarUri
 
 
 class UserBase(BaseModel):
@@ -32,7 +33,7 @@ class AdminUserUpdate(BaseModel):
 
     username: str | None = Field(None)
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
-    avatar_uri: HttpUrl | None = Field(None, max_length=255)
+    avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,
         max_length=constants.USER_MAX_DESCRIPTION_LENGTH,

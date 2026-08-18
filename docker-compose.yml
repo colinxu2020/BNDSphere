@@ -68,6 +68,7 @@ services:
       - CORS_ORIGIN=${CORS_ORIGIN}
       - OSS_ENDPOINT_URL=${OSS_ENDPOINT_URL}
       - OSS_BUCKET=${OSS_BUCKET}
+      - OSS_PUBLIC_BASE_URL=${OSS_PUBLIC_BASE_URL}
     restart: unless-stopped
     depends_on:
       postgres:

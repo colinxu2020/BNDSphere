@@ -1,4 +1,4 @@
-from app.models import moderations
+from app.models import moderations, verifications
 from app.models.academic_term import AcademicTerm
 from app.models.announcement import Announcement
 from app.models.club import Club
@@ -24,4 +24,5 @@ __all__ = [
     "Tag",
     "User",
     "moderations",
+    "verifications",
 ]

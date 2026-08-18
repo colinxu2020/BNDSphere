@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
 from app.api.common_responses import (
+    DUPLICATE_REQUEST_RESPONSE,
     PERMISSION_DENIED_RESPONSE,
     RESOURCE_NOT_FOUND_RESPONSE,
     TOKEN_INVALID_RESPONSE,
@@ -19,11 +20,14 @@ from app.models.user import User
 from app.schemas.club import (
     ClubCreate,
     ClubInfo,
-    ClubMemberInfo,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreatePublic,
     ClubUpdateRequestInfo,
+)
+from app.schemas.verifications.club_membership import (
+    ClubMembershipRequestCreatePublic,
+    ClubMembershipRequestInfo,
 )
 from app.services.errors import (
     DuplicateClubNameError,
@@ -110,18 +114,20 @@ async def list_clubs(
 
 
 @router.post(
-    "/{club_id}/members",
-    response_model=ClubMemberInfo,
+    "/{club_id}/membership-requests",
     status_code=status.HTTP_201_CREATED,
-    responses=TOKEN_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE | DUPLICATE_REQUEST_RESPONSE,
 )
-async def join_club(
+async def request_join_club(
     club_id: int,
+    obj_in: ClubMembershipRequestCreatePublic,
     service: ClubServiceDep,
     user: Annotated[User, Depends(get_current_user)],
-) -> ClubMemberInfo:
-    """Join a club."""
-    return ClubMemberInfo.model_validate(await service.join_club(club_id, user))
+) -> ClubMembershipRequestInfo:
+    """Apply to join a club, pending the club president's verification."""
+    return ClubMembershipRequestInfo.model_validate(
+        await service.request_join_club(club_id, user, obj_in),
+    )
 
 
 @router.delete(

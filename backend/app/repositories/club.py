@@ -11,6 +11,8 @@ from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
+from app.models.verifications.club_membership import ClubMembershipRequest
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
 from app.schemas.moderations.club import ClubUpdateRequestCreate
