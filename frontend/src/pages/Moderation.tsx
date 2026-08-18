@@ -82,7 +82,7 @@ function renderRequestDetails(item: ModerationItem) {
 
   if (!visibleRows.length) {
     return (
-      <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>
+      <p className="text-sm text-content-muted">此请求没有可展示的变更字段。</p>
     );
   }
 
@@ -90,8 +90,8 @@ function renderRequestDetails(item: ModerationItem) {
     <div className="grid gap-2">
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
-          <span className="font-semibold text-slate-500">{label}</span>
-          <span className="text-slate-700 whitespace-pre-wrap break-words">
+          <span className="font-semibold text-content-muted">{label}</span>
+          <span className="text-content whitespace-pre-wrap break-words">
             {String(value)}
           </span>
         </div>
@@ -266,8 +266,8 @@ export function Moderation() {
               className={cn(
                 "px-4 py-2 rounded-md text-sm font-semibold transition-all shadow-sm whitespace-nowrap",
                 activeQueue === queue.key
-                  ? "bg-slate-900 text-white shadow-slate-900/10"
-                  : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
+                  ? "bg-surface-inverted text-content-on-inverted shadow-black/10"
+                  : "bg-surface text-content-muted border border-edge hover:bg-surface-sunken",
               )}
             >
               {queue.label}
@@ -278,14 +278,14 @@ export function Moderation() {
 
       <Surface>
         <div className="flex items-start gap-3 mb-6">
-          <div className="w-10 h-10 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center">
+          <div className="w-10 h-10 rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center">
             <FilePenLine size={20} />
           </div>
           <div>
-            <h2 className="text-xl font-display font-bold text-slate-900">
+            <h2 className="text-xl font-display font-bold text-content">
               {activeMeta?.label}
             </h2>
-            <p className="text-sm text-slate-500 mt-1">
+            <p className="text-sm text-content-muted mt-1">
               {activeMeta?.description}
             </p>
           </div>
@@ -307,7 +307,7 @@ export function Moderation() {
             {[...Array(3)].map((_, index) => (
               <div
                 key={index}
-                className="animate-pulse bg-slate-50 h-40 rounded-md border border-slate-100"
+                className="animate-pulse bg-surface-sunken h-40 rounded-md border border-edge-subtle"
               />
             ))}
           </div>
@@ -316,7 +316,7 @@ export function Moderation() {
             {items.map((item) => (
               <div
                 key={item.id}
-                className="rounded-md border border-slate-100 bg-slate-50 p-5"
+                className="rounded-md border border-edge-subtle bg-surface-sunken p-5"
               >
                 <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
                   <div className="min-w-0">
@@ -332,11 +332,11 @@ export function Moderation() {
                       >
                         {MODERATION_STATUS_MAP[item.moderation_status]}
                       </Badge>
-                      <span className="text-xs font-medium text-slate-400">
+                      <span className="text-xs font-medium text-content-subtle">
                         #{item.id} · {getTargetLabel(item)}
                       </span>
                     </div>
-                    <p className="mt-2 text-xs font-medium text-slate-400 flex items-center gap-1">
+                    <p className="mt-2 text-xs font-medium text-content-subtle flex items-center gap-1">
                       <Clock size={14} /> {formatDateTime(item.request_at)}
                     </p>
                   </div>
@@ -353,13 +353,13 @@ export function Moderation() {
                       type="button"
                       onClick={() => moderate(item.id, "rejected")}
                       disabled={busyId === item.id}
-                      className="text-red-700 bg-red-50 hover:bg-red-100 border-red-100"
+                      className="text-tone-danger-fg bg-tone-danger-bg hover:bg-tone-danger-bg-hover border-tone-danger-edge"
                     >
                       <X size={16} /> 驳回
                     </SecondaryButton>
                   </div>
                 </div>
-                <div className="mt-5 rounded-md bg-white border border-slate-100 p-4">
+                <div className="mt-5 rounded-md bg-surface border border-edge-subtle p-4">
                   {renderRequestDetails(item)}
                 </div>
               </div>

@@ -116,7 +116,7 @@ export function Admin() {
       {message && <StatusMessage value={message} tone={messageTone} />}
 
       <div className="grid min-w-0 gap-5 lg:grid-cols-[220px_minmax(0,1fr)]">
-        <aside className="h-fit rounded-md border border-slate-200 bg-white p-2">
+        <aside className="h-fit rounded-md border border-edge bg-surface p-2">
           {sections.map((section) => (
             <button
               key={section.id}
@@ -125,8 +125,8 @@ export function Admin() {
               className={cn(
                 "flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold transition",
                 activeSection === section.id
-                  ? "bg-slate-900 text-white"
-                  : "text-slate-600 hover:bg-slate-50",
+                  ? "bg-surface-inverted text-content-on-inverted"
+                  : "text-content-muted hover:bg-surface-sunken",
               )}
             >
               {section.icon}
@@ -135,7 +135,7 @@ export function Admin() {
           ))}
         </aside>
 
-        <section className="min-w-0 overflow-hidden rounded-md border border-slate-200 bg-white p-5">
+        <section className="min-w-0 overflow-hidden rounded-md border border-edge bg-surface p-5">
           <RefreshContext.Provider
             value={{
               isRefreshing,
@@ -699,7 +699,7 @@ function TermsAdmin() {
           </Field>
         </div>
         {!selected && (
-          <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+          <label className="flex items-center gap-2 text-sm font-semibold text-content">
             <input
               type="checkbox"
               checked={form.is_current}
@@ -725,7 +725,7 @@ function TermsAdmin() {
               <button
                 type="button"
                 onClick={() => deleteTerm(selected)}
-                className="inline-flex items-center gap-2 rounded-md border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+                className="inline-flex items-center gap-2 rounded-md border border-tone-danger-edge bg-tone-danger-bg px-4 py-2.5 text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg-hover"
               >
                 <Trash2 size={16} /> 删除
               </button>
@@ -973,7 +973,7 @@ function ActivitiesAdmin() {
             <button
               type="button"
               onClick={() => deleteItem(selected)}
-              className="inline-flex items-center gap-2 rounded-md border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+              className="inline-flex items-center gap-2 rounded-md border border-tone-danger-edge bg-tone-danger-bg px-4 py-2.5 text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg-hover"
             >
               <Trash2 size={16} /> 删除
             </button>
@@ -1175,7 +1175,7 @@ function AnnouncementsAdmin() {
             />
           </Field>
         </div>
-        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <label className="flex items-center gap-2 text-sm font-semibold text-content">
           <input
             type="checkbox"
             checked={form.is_active}
@@ -1193,7 +1193,7 @@ function AnnouncementsAdmin() {
             <button
               type="button"
               onClick={() => deleteItem(selected)}
-              className="inline-flex items-center gap-2 rounded-md border border-red-100 bg-red-50 px-4 py-2.5 text-sm font-semibold text-red-700 hover:bg-red-100"
+              className="inline-flex items-center gap-2 rounded-md border border-tone-danger-edge bg-tone-danger-bg px-4 py-2.5 text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg-hover"
             >
               <Trash2 size={16} /> 删除
             </button>
@@ -1226,7 +1226,7 @@ function AdminGrid({
             type="button"
             onClick={onRefresh}
             disabled={refreshing}
-            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:opacity-50"
+            className="inline-flex h-9 w-9 items-center justify-center rounded-md border border-edge text-content-muted hover:bg-surface-sunken disabled:opacity-50"
             aria-label="刷新"
           >
             <RefreshCw size={15} className={cn(refreshing && "animate-spin")} />
@@ -1234,7 +1234,7 @@ function AdminGrid({
         </div>
         {list}
       </div>
-      <div className="min-h-[420px] min-w-0 rounded-md border border-slate-200 bg-slate-50 p-4">
+      <div className="min-h-[420px] min-w-0 rounded-md border border-edge bg-surface-sunken p-4">
         {children}
       </div>
     </div>
@@ -1270,35 +1270,35 @@ function ListButton({
       className={cn(
         "w-full min-w-0 rounded-md border p-3 text-left transition",
         active
-          ? "border-slate-900 bg-white"
-          : "border-slate-200 bg-white hover:border-slate-300",
+          ? "border-content bg-surface"
+          : "border-edge bg-surface hover:border-edge-strong",
       )}
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-sm font-semibold text-slate-900">
+        <p className="min-w-0 truncate text-sm font-semibold text-content">
           {title}
         </p>
         {badge && <Badge tone="primary">{badge}</Badge>}
       </div>
-      {meta && <p className="mt-1 truncate text-xs text-slate-500">{meta}</p>}
+      {meta && <p className="mt-1 truncate text-xs text-content-muted">{meta}</p>}
     </button>
   );
 }
 
 function FormHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
-    <div className="min-w-0 border-b border-slate-200 pb-3">
-      <h3 className="break-words font-display text-xl font-bold text-slate-900">
+    <div className="min-w-0 border-b border-edge pb-3">
+      <h3 className="break-words font-display text-xl font-bold text-content">
         {title}
       </h3>
-      <p className="break-words text-sm text-slate-500">{subtitle}</p>
+      <p className="break-words text-sm text-content-muted">{subtitle}</p>
     </div>
   );
 }
 
 function PickPlaceholder({ label }: { label: string }) {
   return (
-    <div className="flex min-h-[360px] items-center justify-center rounded-md border border-dashed border-slate-200 bg-white text-sm font-semibold text-slate-500">
+    <div className="flex min-h-[360px] items-center justify-center rounded-md border border-dashed border-edge bg-surface text-sm font-semibold text-content-muted">
       {label}
     </div>
   );

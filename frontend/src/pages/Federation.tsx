@@ -584,9 +584,9 @@ export function Federation() {
                   type="button"
                   onClick={() => loadRecordForReview(record)}
                   className={cn(
-                    "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
+                    "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedRecordId === record.id &&
-                      "border-primary-200 bg-primary-50",
+                      "border-primary-200 bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -596,17 +596,17 @@ export function Federation() {
                     <Badge>
                       {PARTICIPATION_MAP[record.participation_type]}
                     </Badge>
-                    <span className="text-xs font-medium text-slate-400">
+                    <span className="text-xs font-medium text-content-subtle">
                       记录 #{record.id}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
+                  <h3 className="mt-3 font-semibold text-content">
                     {record.activity.name}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-content-muted">
                     社团 #{record.club_id} · 申请 {record.requested_score} 分
                   </p>
-                  <p className="mt-2 text-xs font-medium text-slate-400">
+                  <p className="mt-2 text-xs font-medium text-content-subtle">
                     <Clock size={14} className="mr-1 inline" />
                     {formatDateTime(record.created_at)}
                   </p>
@@ -620,18 +620,18 @@ export function Federation() {
           {selectedRecord && (
             <form
               onSubmit={updateRecord}
-              className="h-fit rounded-md border border-slate-100 bg-white p-5"
+              className="h-fit rounded-md border border-edge-subtle bg-surface p-5"
             >
               <div className="grid gap-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
                       当前审核
                     </p>
-                    <h3 className="mt-1 truncate font-bold text-slate-900">
+                    <h3 className="mt-1 truncate font-bold text-content">
                       {selectedRecord.activity.name}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-content-muted">
                       社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
                     </p>
                   </div>
@@ -666,8 +666,8 @@ export function Federation() {
                   />
                 </Field>
                 {selectedRecord.proof_files.length > 0 && (
-                  <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 text-sm font-semibold text-slate-700">
+                  <div className="rounded-md bg-surface-sunken p-3">
+                    <p className="mb-2 text-sm font-semibold text-content">
                       证明材料
                     </p>
                     <div className="grid gap-1">
@@ -677,7 +677,7 @@ export function Federation() {
                           href={file}
                           target="_blank"
                           rel="noreferrer"
-                          className="truncate text-sm font-medium text-primary-600 hover:text-primary-700"
+                          className="truncate text-sm font-medium text-tone-brand-fg hover:text-tone-brand-fg"
                         >
                           材料 {index + 1}
                         </a>
@@ -712,9 +712,9 @@ export function Federation() {
                   type="button"
                   onClick={() => loadStarApplicationForReview(application)}
                   className={cn(
-                    "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
+                    "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedStarId === application.id &&
-                      "border-primary-200 bg-primary-50",
+                      "border-primary-200 bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -730,18 +730,18 @@ export function Federation() {
                         ? STAR_LEVEL_MAP[application.approved_level]
                         : "待计算"}
                     </Badge>
-                    <span className="text-xs font-medium text-slate-400">
+                    <span className="text-xs font-medium text-content-subtle">
                       申请 #{application.id}
                     </span>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
+                  <h3 className="mt-3 font-semibold text-content">
                     {application.club.name}
                   </h3>
-                  <p className="mt-1 text-sm text-slate-500">
+                  <p className="mt-1 text-sm text-content-muted">
                     申请竞赛分 {application.requested_contest_score ?? "未填"} ·{" "}
                     {application.academic_term.term_name}
                   </p>
-                  <p className="mt-2 text-xs font-medium text-slate-400">
+                  <p className="mt-2 text-xs font-medium text-content-subtle">
                     <Clock size={14} className="mr-1 inline" />
                     {formatDateTime(application.created_at)}
                   </p>
@@ -755,18 +755,18 @@ export function Federation() {
           {selectedStarApplication && (
             <form
               onSubmit={reviewStarApplication}
-              className="h-fit rounded-md border border-slate-100 bg-white p-5"
+              className="h-fit rounded-md border border-edge-subtle bg-surface p-5"
             >
               <div className="grid gap-4">
                 <div className="flex items-start justify-between gap-4">
                   <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                    <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
                       当前审核
                     </p>
-                    <h3 className="mt-1 truncate font-bold text-slate-900">
+                    <h3 className="mt-1 truncate font-bold text-content">
                       {selectedStarApplication.club.name}
                     </h3>
-                    <p className="mt-1 text-sm text-slate-500">
+                    <p className="mt-1 text-sm text-content-muted">
                       申请 #{selectedStarApplication.id} ·{" "}
                       {selectedStarApplication.academic_term.term_name}
                     </p>
@@ -851,8 +851,8 @@ export function Federation() {
                     </select>
                   </Field>
                 </div>
-                <div className="rounded-md bg-slate-50 p-3 text-sm text-slate-600">
-                  <p className="font-semibold text-slate-800">申请内容</p>
+                <div className="rounded-md bg-surface-sunken p-3 text-sm text-content-muted">
+                  <p className="font-semibold text-content">申请内容</p>
                   <p className="mt-2 whitespace-pre-wrap leading-6">
                     {selectedStarApplication.uniqueness_statement ||
                       "未填写特色说明。"}
@@ -910,9 +910,9 @@ export function Federation() {
                   type="button"
                   onClick={() => loadActivityForEdit(activity)}
                   className={cn(
-                    "rounded-md border border-slate-100 bg-slate-50 p-4 text-left transition hover:bg-white",
+                    "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedActivityId === activity.id &&
-                      "border-primary-200 bg-primary-50",
+                      "border-primary-200 bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -921,13 +921,13 @@ export function Federation() {
                     </Badge>
                     <Badge>{activity.club_records?.length || 0} 条记录</Badge>
                   </div>
-                  <h3 className="mt-3 font-semibold text-slate-900">
+                  <h3 className="mt-3 font-semibold text-content">
                     {activity.name}
                   </h3>
-                  <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                  <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                     {activity.description}
                   </p>
-                  <p className="mt-2 text-xs font-medium text-slate-400">
+                  <p className="mt-2 text-xs font-medium text-content-subtle">
                     #{activity.id} ·{" "}
                     {formatDate(activity.starts_at || activity.created_at)}
                   </p>
@@ -939,15 +939,15 @@ export function Federation() {
           </div>
 
           {activityEditorMode && (
-            <div className="h-fit rounded-md border border-slate-100 bg-white p-5">
+            <div className="h-fit rounded-md border border-edge-subtle bg-surface p-5">
               {activityEditorMode === "create" ? (
                 <form onSubmit={createActivity} className="grid gap-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
                         新建活动
                       </p>
-                      <h3 className="mt-1 font-bold text-slate-900">
+                      <h3 className="mt-1 font-bold text-content">
                         创建大型活动
                       </h3>
                     </div>
@@ -999,10 +999,10 @@ export function Federation() {
                 <form onSubmit={updateActivity} className="grid gap-4">
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
                     <div className="min-w-0">
-                      <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+                      <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
                         当前编辑
                       </p>
-                      <h3 className="mt-1 truncate text-lg font-bold text-slate-900">
+                      <h3 className="mt-1 truncate text-lg font-bold text-content">
                         {selectedActivity.name}
                       </h3>
                     </div>
@@ -1015,7 +1015,7 @@ export function Federation() {
                       </SecondaryButton>
                       <Link
                         to={`/activities/${selectedActivity.id}`}
-                        className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-slate-50 px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-100"
+                        className="inline-flex items-center justify-center rounded-md border border-edge bg-surface-sunken px-4 py-2.5 text-sm font-semibold text-content transition hover:bg-surface-hover"
                       >
                         详情
                       </Link>
@@ -1084,7 +1084,7 @@ function LoadingRows() {
       {[...Array(3)].map((_, index) => (
         <div
           key={index}
-          className="h-32 animate-pulse rounded-md border border-slate-100 bg-slate-50"
+          className="h-32 animate-pulse rounded-md border border-edge-subtle bg-surface-sunken"
         />
       ))}
     </>
@@ -1093,7 +1093,7 @@ function LoadingRows() {
 
 function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[44px] rounded-md bg-slate-50 px-3 py-2.5 text-sm font-semibold text-slate-700 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.22)]">
+    <div className="min-h-[44px] rounded-md bg-surface-sunken px-3 py-2.5 text-sm font-semibold text-content shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.22)]">
       {children}
     </div>
   );
@@ -1119,7 +1119,7 @@ function ActivityRequestList({
   return (
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-900">{title}</h3>
+        <h3 className="font-bold text-content">{title}</h3>
         <Badge tone={items.length ? "yellow" : "slate"}>
           {items.length} 条待处理
         </Badge>
@@ -1130,7 +1130,7 @@ function ActivityRequestList({
           return (
             <div
               key={item.id}
-              className="rounded-md border border-slate-100 bg-slate-50 p-4"
+              className="rounded-md border border-edge-subtle bg-surface-sunken p-4"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
@@ -1138,14 +1138,14 @@ function ActivityRequestList({
                     <Badge tone="yellow">
                       {MODERATION_STATUS_MAP[item.moderation_status]}
                     </Badge>
-                    <span className="text-xs font-medium text-slate-400">
+                    <span className="text-xs font-medium text-content-subtle">
                       申请 #{item.id} · {getActivityRequestTarget(item)}
                     </span>
                   </div>
-                  <h4 className="mt-2 font-semibold text-slate-900">
+                  <h4 className="mt-2 font-semibold text-content">
                     {"name" in item && item.name ? item.name : "活动修改申请"}
                   </h4>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
+                  <p className="mt-1 text-xs font-medium text-content-subtle">
                     <Clock size={14} className="mr-1 inline" />
                     {formatDateTime(item.request_at)}
                   </p>
@@ -1163,13 +1163,13 @@ function ActivityRequestList({
                     type="button"
                     disabled={busyKey === itemBusyKey}
                     onClick={() => onModerate(kind, item.id, "rejected")}
-                    className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
+                    className="border-tone-danger-edge bg-tone-danger-bg text-tone-danger-fg hover:bg-tone-danger-bg-hover"
                   >
                     <X size={16} /> 驳回
                   </SecondaryButton>
                 </div>
               </div>
-              <div className="mt-4 rounded-md border border-slate-100 bg-white p-3">
+              <div className="mt-4 rounded-md border border-edge-subtle bg-surface p-3">
                 {renderActivityRequestDetails(item)}
               </div>
             </div>
@@ -1216,8 +1216,8 @@ function renderActivityRequestDetails(
     <div className="grid gap-2">
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[72px_1fr] gap-3 text-sm">
-          <span className="font-semibold text-slate-500">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-slate-700">
+          <span className="font-semibold text-content-muted">{label}</span>
+          <span className="whitespace-pre-wrap break-words text-content">
             {String(value)}
           </span>
         </div>
@@ -1246,7 +1246,7 @@ function ExternalLink({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="rounded-md border border-slate-100 bg-white px-2.5 py-1 text-xs font-semibold text-primary-600 hover:text-primary-700"
+      className="rounded-md border border-edge-subtle bg-surface px-2.5 py-1 text-xs font-semibold text-tone-brand-fg hover:text-tone-brand-fg"
     >
       {children}
     </a>

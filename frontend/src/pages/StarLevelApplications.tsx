@@ -99,7 +99,7 @@ export function StarLevelApplications() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface className="flex items-center justify-center py-16 text-slate-500">
+        <Surface className="flex items-center justify-center py-16 text-content-muted">
           正在加载星级评价表...
         </Surface>
       ) : applications.length ? (
@@ -134,7 +134,7 @@ function StarApplicationCard({
     <Surface className="p-5 md:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
-          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">
             {application.club.logo_uri ? (
               <img
                 src={application.club.logo_uri}
@@ -149,7 +149,7 @@ function StarApplicationCard({
             <div className="flex flex-wrap items-center gap-2">
               <Link
                 to={`/club/${application.club_id}`}
-                className="truncate text-lg font-bold text-slate-900 hover:text-primary-600"
+                className="truncate text-lg font-bold text-content hover:text-tone-brand-fg"
               >
                 {application.club.name}
               </Link>
@@ -162,7 +162,7 @@ function StarApplicationCard({
                 </Badge>
               )}
             </div>
-            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-content-muted">
               <span className="inline-flex items-center gap-1">
                 <CalendarDays size={15} />
                 {application.academic_term.term_name}
@@ -193,17 +193,17 @@ function StarApplicationCard({
         </div>
       </div>
 
-      <div className="mt-5 grid gap-4 border-t border-slate-100 pt-5 lg:grid-cols-[1fr_280px]">
+      <div className="mt-5 grid gap-4 border-t border-edge-subtle pt-5 lg:grid-cols-[1fr_280px]">
         <div>
-          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-slate-800">
+          <div className="mb-2 flex items-center gap-2 text-sm font-semibold text-content">
             <FileText size={16} />
             特色说明
           </div>
-          <p className="whitespace-pre-wrap text-sm leading-6 text-slate-600">
+          <p className="whitespace-pre-wrap text-sm leading-6 text-content-muted">
             {application.uniqueness_statement || "未填写特色说明。"}
           </p>
         </div>
-        <div className="flex flex-col gap-2 text-sm text-slate-600">
+        <div className="flex flex-col gap-2 text-sm text-content-muted">
           <InfoRow
             label="目标级部"
             value={targetGrades.length ? targetGrades.join("、") : "未填写"}
@@ -238,9 +238,9 @@ function Metric({
   value?: number | string | null;
 }) {
   return (
-    <div className="rounded-md border border-slate-100 bg-slate-50 px-3 py-2">
-      <div className="text-xs font-semibold text-slate-400">{label}</div>
-      <div className="mt-1 font-bold text-slate-900">{value ?? "未填写"}</div>
+    <div className="rounded-md border border-edge-subtle bg-surface-sunken px-3 py-2">
+      <div className="text-xs font-semibold text-content-subtle">{label}</div>
+      <div className="mt-1 font-bold text-content">{value ?? "未填写"}</div>
     </div>
   );
 }
@@ -248,8 +248,8 @@ function Metric({
 function InfoRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
-      <span className="text-slate-400">{label}</span>
-      <span className="font-semibold text-slate-700">{value}</span>
+      <span className="text-content-subtle">{label}</span>
+      <span className="font-semibold text-content">{value}</span>
     </div>
   );
 }
@@ -267,7 +267,7 @@ function ExternalLinkButton({
       href={href}
       target="_blank"
       rel="noreferrer"
-      className="inline-flex items-center gap-1 rounded-md border border-slate-200 px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:border-primary-100 hover:text-primary-600"
+      className="inline-flex items-center gap-1 rounded-md border border-edge px-2.5 py-1.5 text-xs font-semibold text-content-muted hover:border-tone-brand-edge hover:text-tone-brand-fg"
     >
       {children}
       <ExternalLink size={13} />

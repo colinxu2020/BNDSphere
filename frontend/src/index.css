@@ -96,8 +96,8 @@
   --color-content-subtle: var(--content-subtle);
   --color-content-inverted: var(--content-inverted);
 
-  /* Inverted surface — the "selected" / dark-action idiom (`bg-slate-900
-     text-white`) used by filter pills and primary dark buttons. It genuinely
+  /* Inverted surface — the "selected" / dark-action idiom (a near-black chip
+     with light text) used by filter pills and primary dark buttons. It genuinely
      inverts: a dark chip on a light page becomes a light chip on a dark page, so
      "selected" keeps reading as selected in both schemes. */
   --color-surface-inverted: var(--surface-inverted);

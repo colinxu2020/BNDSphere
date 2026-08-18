@@ -7,19 +7,22 @@
  * (bg-slate-50, text-red-700). Raw steps are fixed values that no variable can
  * redirect, so every one of them is a hole in the dark scheme.
  *
- * The 500 raw utilities this project started with accumulated one
- * reasonable-looking line at a time, so this runs as a ratchet: it fails if the
- * count goes UP. During the semantic sweep, lower BASELINE as it drops. When the
- * sweep is finished BASELINE becomes 0 and the ratchet turns into a ban.
+ * The 502 raw utilities this project started with accumulated one
+ * reasonable-looking line at a time, so this ran as a ratchet during the sweep:
+ * fail if the count goes up, lower BASELINE as it drops.
+ *
+ * The sweep is complete and BASELINE is 0, so this is now a ban: any raw palette
+ * step reintroduced into src/ fails CI. If one is ever genuinely justified, add
+ * the file to ALLOWLIST with a comment saying why, rather than raising BASELINE.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
 
 /**
- * Remaining raw-palette utilities. Lower this as the sweep progresses; never
- * raise it. 0 once the sweep is complete.
+ * Permitted raw-palette utilities. The sweep is complete, so this is 0 and must
+ * stay 0. Never raise it.
  */
-const BASELINE = 165;
+const BASELINE = 0;
 
 const SRC = "src";
 

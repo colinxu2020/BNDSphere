@@ -564,7 +564,7 @@ export function ClubWorkspace() {
     >
       <Link
         to={`/club/${clubId}`}
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
+        className="inline-flex items-center gap-2 text-content-muted hover:text-content font-medium w-fit transition-colors"
       >
         <ArrowLeft size={18} /> 返回社团
       </Link>
@@ -580,7 +580,7 @@ export function ClubWorkspace() {
       />
 
       {isLoading ? (
-        <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
+        <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
       ) : (
         <>
           {Object.keys(loadErrors).length > 0 && (
@@ -604,7 +604,7 @@ export function ClubWorkspace() {
           {club && (
             <Surface>
               <div className="flex flex-col md:flex-row md:items-center gap-5">
-                <div className="w-20 h-20 rounded-md bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden border border-slate-200">
+                <div className="w-20 h-20 rounded-md bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden border border-edge">
                   {club.logo_uri ? (
                     <img
                       src={club.logo_uri}
@@ -612,7 +612,7 @@ export function ClubWorkspace() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <Hash className="text-slate-400" size={30} />
+                    <Hash className="text-content-subtle" size={30} />
                   )}
                 </div>
                 <div className="flex-1">
@@ -622,10 +622,10 @@ export function ClubWorkspace() {
                       {STAR_LEVEL_MAP[club.star_level]}
                     </Badge>
                   </div>
-                  <h2 className="text-2xl font-display font-bold text-slate-900">
+                  <h2 className="text-2xl font-display font-bold text-content">
                     {club.name}
                   </h2>
-                  <p className="text-slate-500 mt-1">{club.summary}</p>
+                  <p className="text-content-muted mt-1">{club.summary}</p>
                 </div>
               </div>
             </Surface>
@@ -635,12 +635,12 @@ export function ClubWorkspace() {
             <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
             {starRating ? (
               <div className="flex flex-col gap-5">
-                <div className="rounded-md border border-slate-100 bg-slate-50 p-5">
-                  <p className="text-sm font-medium text-slate-500">当前总分</p>
-                  <p className="mt-2 text-4xl font-display font-bold text-slate-900">
+                <div className="rounded-md border border-edge-subtle bg-surface-sunken p-5">
+                  <p className="text-sm font-medium text-content-muted">当前总分</p>
+                  <p className="mt-2 text-4xl font-display font-bold text-content">
                     {starRating.total_score}
                   </p>
-                  <p className="mt-2 text-sm font-semibold text-primary-600">
+                  <p className="mt-2 text-sm font-semibold text-tone-brand-fg">
                     {STAR_LEVEL_MAP[starRating.star_level]}
                   </p>
                 </div>
@@ -658,7 +658,7 @@ export function ClubWorkspace() {
                     社团历史 {starRating.breakdown.club_history}
                   </Badge>
                 </div>
-                <p className="text-sm text-slate-500">
+                <p className="text-sm text-content-muted">
                   内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
                   {starRating.club_age_years} 年。
                 </p>
@@ -697,19 +697,19 @@ export function ClubWorkspace() {
                       key={activityItem.id}
                       type="button"
                       onClick={() => selectActivityForUpdate(activityItem)}
-                      className={`rounded-md border p-4 text-left transition hover:bg-white ${
+                      className={`rounded-md border p-4 text-left transition hover:bg-surface ${
                         updateActivityId === String(activityItem.id)
-                          ? "border-primary-200 bg-primary-50"
-                          : "border-slate-100 bg-slate-50"
+                          ? "border-primary-200 bg-brand-subtle"
+                          : "border-edge-subtle bg-surface-sunken"
                       }`}
                     >
-                      <h3 className="font-semibold text-slate-900">
+                      <h3 className="font-semibold text-content">
                         {activityItem.name}
                       </h3>
-                      <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                      <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                         {activityItem.description}
                       </p>
-                      <p className="mt-2 text-xs font-medium text-slate-400">
+                      <p className="mt-2 text-xs font-medium text-content-subtle">
                         #{activityItem.id} ·{" "}
                         {formatDateTime(activityItem.start_time)} ·{" "}
                         {activityItem.location}
@@ -722,7 +722,7 @@ export function ClubWorkspace() {
               </div>
 
               {activityEditorMode && (
-                <div className="rounded-md border border-slate-100 bg-white p-5">
+                <div className="rounded-md border border-edge-subtle bg-surface p-5">
                   {activityEditorMode === "create" ? (
                     <form
                       onSubmit={submitActivityCreate}
@@ -906,10 +906,10 @@ export function ClubWorkspace() {
                         onClick={() =>
                           selectGeneralActivityForRecord(activityItem)
                         }
-                        className={`rounded-md p-4 text-left transition hover:bg-white ${
+                        className={`rounded-md p-4 text-left transition hover:bg-surface ${
                           isSelected
-                            ? "bg-primary-50 shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
-                            : "bg-slate-50 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]"
+                            ? "bg-brand-subtle shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
+                            : "bg-surface-sunken shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]"
                         }`}
                       >
                         <div className="flex flex-wrap items-center gap-2">
@@ -926,13 +926,13 @@ export function ClubWorkspace() {
                             <Badge tone="slate">未提交</Badge>
                           )}
                         </div>
-                        <h3 className="mt-3 font-semibold text-slate-900">
+                        <h3 className="mt-3 font-semibold text-content">
                           {activityItem.name}
                         </h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                        <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                           {activityItem.description}
                         </p>
-                        <p className="mt-2 text-xs font-medium text-slate-400">
+                        <p className="mt-2 text-xs font-medium text-content-subtle">
                           #{activityItem.id} ·{" "}
                           {formatDateTime(
                             activityItem.starts_at || activityItem.created_at,
@@ -948,7 +948,7 @@ export function ClubWorkspace() {
               </div>
 
               {selectedGeneralActivity && (
-                <div className="rounded-md bg-white p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
+                <div className="rounded-md bg-surface p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();
@@ -965,7 +965,7 @@ export function ClubWorkspace() {
                         onClose={() => setGeneralActivityId("")}
                       />
                       {selectedGeneralRecord && (
-                        <p className="mt-1 text-sm text-slate-500">
+                        <p className="mt-1 text-sm text-content-muted">
                           记录 #{selectedGeneralRecord.id}
                         </p>
                       )}
@@ -1059,10 +1059,10 @@ export function ClubWorkspace() {
                       type="button"
                       key={application.id}
                       onClick={() => selectStarApplication(application)}
-                      className={`rounded-md border p-5 text-left transition hover:bg-white ${
+                      className={`rounded-md border p-5 text-left transition hover:bg-surface ${
                         starUpdateId === String(application.id)
-                          ? "border-primary-200 bg-primary-50"
-                          : "border-slate-100 bg-slate-50"
+                          ? "border-primary-200 bg-brand-subtle"
+                          : "border-edge-subtle bg-surface-sunken"
                       }`}
                     >
                       <div className="flex flex-wrap gap-2">
@@ -1085,10 +1085,10 @@ export function ClubWorkspace() {
                           </Badge>
                         )}
                       </div>
-                      <h3 className="mt-3 font-semibold text-slate-900">
+                      <h3 className="mt-3 font-semibold text-content">
                         申请 #{application.id}
                       </h3>
-                      <p className="mt-1 text-sm text-slate-500">
+                      <p className="mt-1 text-sm text-content-muted">
                         申请竞赛分{" "}
                         {application.requested_contest_score ?? "未填"}
                         ，核定分 {application.approved_score ?? "未定"}
@@ -1101,7 +1101,7 @@ export function ClubWorkspace() {
               </div>
 
               {starEditorMode && (
-                <div className="rounded-md border border-slate-100 bg-white p-5">
+                <div className="rounded-md border border-edge-subtle bg-surface p-5">
                   {starEditorMode === "create" ? (
                     <form
                       onSubmit={submitStarCreate}
@@ -1245,15 +1245,15 @@ function EditorHeader({
   return (
     <div className="flex items-start justify-between gap-4">
       <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-slate-400">
+        <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
           {eyebrow}
         </p>
-        <h3 className="mt-1 truncate font-bold text-slate-900">{title}</h3>
+        <h3 className="mt-1 truncate font-bold text-content">{title}</h3>
       </div>
       <button
         type="button"
         onClick={onClose}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-100 hover:text-slate-900"
+        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-content-muted transition hover:bg-surface-hover hover:text-content"
         aria-label="收起编辑区域"
       >
         <X size={16} /> 收起
