@@ -10,9 +10,9 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { ClubCard } from "../components/ui/ClubCard";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
-import { CATEGORY_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
 import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
@@ -303,34 +303,7 @@ function HomeClubPanel({
       ) : clubs.length ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {clubs.map((club) => (
-            <Link
-              key={club.id}
-              to={`/club/${club.id}`}
-              className="flex gap-3 rounded-md border border-edge-subtle bg-surface-sunken p-3 transition hover:border-edge hover:bg-surface"
-            >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-surface">
-                {club.logo_uri ? (
-                  <img
-                    src={club.logo_uri}
-                    alt={club.name}
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <Users size={20} className="text-content-subtle" />
-                )}
-              </div>
-              <div className="min-w-0">
-                <p className="truncate font-semibold text-content">
-                  {club.name}
-                </p>
-                <p className="mt-1 line-clamp-2 text-sm text-content-muted">
-                  {club.summary}
-                </p>
-                <p className="mt-2 text-xs font-semibold text-content-subtle">
-                  {CATEGORY_MAP[club.category]}
-                </p>
-              </div>
-            </Link>
+            <ClubCard key={club.id} club={club} density="compact" />
           ))}
         </div>
       ) : (

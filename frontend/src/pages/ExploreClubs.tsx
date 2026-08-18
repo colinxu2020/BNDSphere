@@ -4,15 +4,13 @@ import {
   Plus,
   Search,
   Filter,
-  Hash,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
-import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
-import { StarLevel } from "../components/ui/StarLevel";
+import { ClubCard } from "../components/ui/ClubCard";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type Category = components["schemas"]["ClubCategoryEnum"];
@@ -155,44 +153,7 @@ export function ExploreClubs() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: idx * 0.05, duration: 0.3 }}
             >
-              <Link
-                to={`/club/${club.id}`}
-                className={cn(
-                  "group flex h-full items-start gap-4 border border-l-4 border-edge bg-surface p-5 rounded-md shadow-sm transition-all duration-200",
-                  "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none",
-                  categorySpine(club.category),
-                )}
-              >
-                <div className="w-16 h-16 rounded-md bg-surface-hover flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                  {club.logo_uri ? (
-                    <img
-                      src={club.logo_uri}
-                      alt={club.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Hash className="text-content-subtle stroke-[1.5]" size={28} />
-                  )}
-                </div>
-                <div className="flex flex-col">
-                  <div className="flex gap-2 items-center mb-1">
-                    <CategoryChip category={club.category} size="sm" />
-                    {club.star_level !== "none" && (
-                      <StarLevel
-                        level={club.star_level}
-                        size="sm"
-                        showLabel={false}
-                      />
-                    )}
-                  </div>
-                  <h3 className="font-semibold text-[17px] text-content leading-tight group-hover:text-tone-brand-fg transition-colors">
-                    {club.name}
-                  </h3>
-                  <p className="text-content-muted text-sm mt-1.5 line-clamp-2">
-                    {club.summary}
-                  </p>
-                </div>
-              </Link>
+              <ClubCard club={club} />
             </motion.div>
           ))}
         </div>
