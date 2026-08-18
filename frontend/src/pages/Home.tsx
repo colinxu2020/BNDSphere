@@ -405,7 +405,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
           <Image size={42} />
         </div>
       )}
-      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
+      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
         {active.name}
       </h1>
     </a>

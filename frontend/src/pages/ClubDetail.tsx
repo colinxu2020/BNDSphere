@@ -230,7 +230,7 @@ export function ClubDetail() {
               )}
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900 tracking-tight leading-[1.1] mb-2">
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900 mb-2">
               {club.name}
             </h1>
             <p className="text-lg md:text-xl text-slate-500 font-medium">

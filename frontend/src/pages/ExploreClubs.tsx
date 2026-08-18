@@ -79,7 +79,7 @@ export function ExploreClubs() {
     >
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
         <div>
-          <h1 className="text-4xl font-display font-bold text-slate-900 tracking-tight">
+          <h1 className="text-4xl font-display font-bold text-slate-900">
             探索社团
           </h1>
         </div>

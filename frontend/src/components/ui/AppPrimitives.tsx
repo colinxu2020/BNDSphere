@@ -31,7 +31,7 @@ export function PageHeader({
             {eyebrow}
           </span>
         )}
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900 tracking-tight">
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900">
           {title}
         </h1>
         {description && (

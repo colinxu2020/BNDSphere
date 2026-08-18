@@ -88,9 +88,16 @@ self-hosting decision rests on audience reliability, not on that inference.
 
 ### 2.2 Decisions
 
-1. **Self-host the Latin faces.** Subset `woff2` in `public/fonts/`, `@font-face` with
-   `font-display: swap`, served from our own origin. Removes the render-blocking CDN
-   `@import` and the third-party dependency.
+1. **Self-host the Latin faces**, served from our own origin with `font-display: swap`,
+   removing the render-blocking CDN `@import` and the third-party dependency.
+
+   *Implementation note (Phase 1, as built):* rather than hand-subsetting `woff2` into
+   `public/fonts/`, this uses the `@fontsource/inter` and `@fontsource/space-grotesk`
+   packages and imports only the latin-subset weights actually used — Inter 400/500/600/700
+   and Space Grotesk 600/700 (the only two display weights referenced in source). Vite
+   emits the files into `dist/assets/` with hashed names, so they are still served from our
+   origin, and the packages carry correct `unicode-range` metadata that hand-subsetting
+   would have to reproduce. Same guarantees, less bespoke tooling.
 2. **Specify the CJK stack explicitly** rather than letting each OS improvise: system
    CJK faces (`PingFang SC`, `Microsoft YaHei`, `Noto Sans SC`) after the Latin face,
    so numerals and Latin words still receive Inter's treatment while CJK glyphs get a
