@@ -25,7 +25,27 @@ function LayoutWrapper() {
   );
 }
 
+/**
+ * The design-system specimen route (Gate 4) exists only in development.
+ *
+ * `import.meta.env.DEV` is statically replaced with `false` in a production
+ * build, so this ternary is dead code there and the dynamic import inside it is
+ * unreachable — Rollup drops the module rather than emitting an unused chunk.
+ * Guarding the route registration alone would still ship the code.
+ */
+const devRoutes = import.meta.env.DEV
+  ? [
+      {
+        path: "_dev/specimen",
+        lazy: async () => ({
+          Component: (await import("./dev/Specimen")).default,
+        }),
+      },
+    ]
+  : [];
+
 const router = createBrowserRouter([
+  ...devRoutes,
   {
     path: "/",
     element: <LayoutWrapper />,

@@ -11,7 +11,44 @@
 @import "@fontsource/space-grotesk/latin-700.css";
 @import "tailwindcss";
 
+/* ---------------------------------------------------------------------------
+   Tier 1 — primitive ramps.
+   Completed to 50-950 so that referencing any step produces a real utility.
+   Tailwind emits nothing for an undefined step and does not warn, which is how
+   `text-primary-700` and `border-secondary-100` shipped as no-ops.
+
+   These are the Tailwind teal and blue ramps: every step the project already
+   defined (primary 50/100/500/600, secondary 50/500/600) matched them exactly,
+   so completing the ramps changes no existing colour.
+
+   Primitives are NOT the public API. Application code styles with the semantic
+   tokens below; the ramps exist to back them and to keep step references valid.
+   --------------------------------------------------------------------------- */
 @theme {
+  --color-primary-50: #f0fdfa;
+  --color-primary-100: #ccfbf1;
+  --color-primary-200: #99f6e4;
+  --color-primary-300: #5eead4;
+  --color-primary-400: #2dd4bf;
+  --color-primary-500: #14b8a6;
+  --color-primary-600: #0d9488;
+  --color-primary-700: #0f766e;
+  --color-primary-800: #115e59;
+  --color-primary-900: #134e4a;
+  --color-primary-950: #042f2e;
+
+  --color-secondary-50: #eff6ff;
+  --color-secondary-100: #dbeafe;
+  --color-secondary-200: #bfdbfe;
+  --color-secondary-300: #93c5fd;
+  --color-secondary-400: #60a5fa;
+  --color-secondary-500: #3b82f6;
+  --color-secondary-600: #2563eb;
+  --color-secondary-700: #1d4ed8;
+  --color-secondary-800: #1e40af;
+  --color-secondary-900: #1e3a8a;
+  --color-secondary-950: #172554;
+
   /* Neither Inter nor Space Grotesk contains CJK glyphs, so the CJK families
      are named explicitly instead of being left to each platform's default.
      Latin face first: numerals and Latin words still get Inter's treatment
@@ -36,17 +73,279 @@
   --text-3xl--line-height: 1.4;
   --text-4xl--line-height: 1.35;
   --text-5xl--line-height: 1.3;
-
-  --color-primary-50: #f0fdfa;
-  --color-primary-100: #ccfbf1;
-  --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
-
-  --color-secondary-50: #eff6ff;
-  --color-secondary-500: #3b82f6;
-  --color-secondary-600: #2563eb;
 }
 
+/* ---------------------------------------------------------------------------
+   Tier 2 — semantic tokens.
+
+   `@theme inline` registers the utility vocabulary (bg-surface, text-content,
+   border-edge, ...) while the actual values live in ordinary CSS variables
+   below. That separation is what lets the light/dark values be redefined in one
+   media query without any `dark:` variant in application code.
+   --------------------------------------------------------------------------- */
+@theme inline {
+  /* Surfaces */
+  --color-surface: var(--surface);
+  --color-surface-raised: var(--surface-raised);
+  --color-surface-sunken: var(--surface-sunken);
+  --color-surface-hover: var(--surface-hover);
+
+  /* Content */
+  --color-content: var(--content);
+  --color-content-muted: var(--content-muted);
+  --color-content-subtle: var(--content-subtle);
+  --color-content-inverted: var(--content-inverted);
+
+  /* Edges */
+  --color-edge: var(--edge);
+  --color-edge-subtle: var(--edge-subtle);
+  --color-edge-strong: var(--edge-strong);
+
+  /* Brand accents. `brand` is identity and emphasis — this product, this club,
+     this call to action. It is deliberately distinct from `tone-info`, which is
+     a system/informational state, even though their hues start out similar.
+     They may diverge later; code that conflates them would have to be untangled. */
+  --color-brand: var(--brand);
+  --color-brand-hover: var(--brand-hover);
+  --color-brand-subtle: var(--brand-subtle);
+  --color-brand-on: var(--brand-on);
+
+  /* Tier 3 — status tones, as background / foreground / edge triples.
+     One vocabulary for every component with a tone: neutral, brand, info,
+     success, warning, danger. Replaces the colour-named Badge tones and the
+     separately-invented StatusMessage tones. */
+  --color-tone-neutral-bg: var(--tone-neutral-bg);
+  --color-tone-neutral-fg: var(--tone-neutral-fg);
+  --color-tone-neutral-edge: var(--tone-neutral-edge);
+
+  --color-tone-brand-bg: var(--tone-brand-bg);
+  --color-tone-brand-fg: var(--tone-brand-fg);
+  --color-tone-brand-edge: var(--tone-brand-edge);
+
+  --color-tone-info-bg: var(--tone-info-bg);
+  --color-tone-info-fg: var(--tone-info-fg);
+  --color-tone-info-edge: var(--tone-info-edge);
+
+  --color-tone-success-bg: var(--tone-success-bg);
+  --color-tone-success-fg: var(--tone-success-fg);
+  --color-tone-success-edge: var(--tone-success-edge);
+
+  --color-tone-warning-bg: var(--tone-warning-bg);
+  --color-tone-warning-fg: var(--tone-warning-fg);
+  --color-tone-warning-edge: var(--tone-warning-edge);
+
+  --color-tone-danger-bg: var(--tone-danger-bg);
+  --color-tone-danger-fg: var(--tone-danger-fg);
+  --color-tone-danger-edge: var(--tone-danger-edge);
+
+  /* Club category identity. Eight fixed treatments so a category reads the same
+     colour everywhere. Hues vary in lightness as well as hue, so they stay
+     distinguishable without relying on hue perception and survive inversion.
+     Category colour is for small elements only — chip, left border, icon field —
+     never a large surface. 其他 (other) is deliberately neutral. */
+  --color-cat-science-bg: var(--cat-science-bg);
+  --color-cat-science-fg: var(--cat-science-fg);
+  --color-cat-science-edge: var(--cat-science-edge);
+
+  --color-cat-humanity-bg: var(--cat-humanity-bg);
+  --color-cat-humanity-fg: var(--cat-humanity-fg);
+  --color-cat-humanity-edge: var(--cat-humanity-edge);
+
+  --color-cat-arts-bg: var(--cat-arts-bg);
+  --color-cat-arts-fg: var(--cat-arts-fg);
+  --color-cat-arts-edge: var(--cat-arts-edge);
+
+  --color-cat-sports-bg: var(--cat-sports-bg);
+  --color-cat-sports-fg: var(--cat-sports-fg);
+  --color-cat-sports-edge: var(--cat-sports-edge);
+
+  --color-cat-business-bg: var(--cat-business-bg);
+  --color-cat-business-fg: var(--cat-business-fg);
+  --color-cat-business-edge: var(--cat-business-edge);
+
+  --color-cat-charity-bg: var(--cat-charity-bg);
+  --color-cat-charity-fg: var(--cat-charity-fg);
+  --color-cat-charity-edge: var(--cat-charity-edge);
+
+  --color-cat-campus-bg: var(--cat-campus-bg);
+  --color-cat-campus-fg: var(--cat-campus-fg);
+  --color-cat-campus-edge: var(--cat-campus-edge);
+
+  --color-cat-other-bg: var(--cat-other-bg);
+  --color-cat-other-fg: var(--cat-other-fg);
+  --color-cat-other-edge: var(--cat-other-edge);
+}
+
+/* --- Light scheme values --------------------------------------------------- */
+:root {
+  --surface: #ffffff;
+  --surface-raised: #ffffff;
+  --surface-sunken: #f8fafc;
+  --surface-hover: #f1f5f9;
+
+  --content: #0f172a;
+  --content-muted: #64748b;
+  --content-subtle: #94a3b8;
+  --content-inverted: #ffffff;
+
+  --edge: #e2e8f0;
+  --edge-subtle: #f1f5f9;
+  --edge-strong: #cbd5e1;
+
+  --brand: #14b8a6;
+  --brand-hover: #0d9488;
+  --brand-subtle: #f0fdfa;
+  --brand-on: #ffffff;
+
+  --tone-neutral-bg: #f8fafc;
+  --tone-neutral-fg: #475569;
+  --tone-neutral-edge: #e2e8f0;
+
+  --tone-brand-bg: #f0fdfa;
+  --tone-brand-fg: #0f766e;
+  --tone-brand-edge: #ccfbf1;
+
+  --tone-info-bg: #eff6ff;
+  --tone-info-fg: #1d4ed8;
+  --tone-info-edge: #dbeafe;
+
+  --tone-success-bg: #ecfdf5;
+  --tone-success-fg: #047857;
+  --tone-success-edge: #d1fae5;
+
+  --tone-warning-bg: #fffbeb;
+  --tone-warning-fg: #b45309;
+  --tone-warning-edge: #fef3c7;
+
+  --tone-danger-bg: #fef2f2;
+  --tone-danger-fg: #b91c1c;
+  --tone-danger-edge: #fee2e2;
+
+  /* Category hues, chosen as a set. Foregrounds are dark steps for AA contrast
+     on their own tinted background. */
+  --cat-science-bg: #ecfeff; /* cyan */
+  --cat-science-fg: #0e7490;
+  --cat-science-edge: #cffafe;
+
+  --cat-humanity-bg: #f5f3ff; /* violet */
+  --cat-humanity-fg: #6d28d9;
+  --cat-humanity-edge: #ede9fe;
+
+  --cat-arts-bg: #fdf2f8; /* pink */
+  --cat-arts-fg: #be185d;
+  --cat-arts-edge: #fce7f3;
+
+  --cat-sports-bg: #fff7ed; /* orange */
+  --cat-sports-fg: #c2410c;
+  --cat-sports-edge: #ffedd5;
+
+  --cat-business-bg: #fefce8; /* yellow, darker fg than sports */
+  --cat-business-fg: #a16207;
+  --cat-business-edge: #fef9c3;
+
+  --cat-charity-bg: #f0fdf4; /* green */
+  --cat-charity-fg: #15803d;
+  --cat-charity-edge: #dcfce7;
+
+  --cat-campus-bg: #eef2ff; /* indigo */
+  --cat-campus-fg: #4338ca;
+  --cat-campus-edge: #e0e7ff;
+
+  --cat-other-bg: #f8fafc; /* neutral by design */
+  --cat-other-fg: #475569;
+  --cat-other-edge: #e2e8f0;
+}
+
+/* --- Dark scheme values ---------------------------------------------------
+   Follows the operating system preference; there is no manual toggle. Only the
+   variables change — no `dark:` variant appears in application code.
+
+   Note that the light formula (a -50 tint behind -700 text) does not invert
+   cleanly: dark surfaces need a deep tint behind a light -300-ish foreground,
+   so the tone and category values here are chosen independently rather than
+   derived from their light counterparts. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --surface: #0f172a;
+    --surface-raised: #1e293b;
+    --surface-sunken: #020618;
+    --surface-hover: #283548;
+
+    --content: #f1f5f9;
+    --content-muted: #94a3b8;
+    --content-subtle: #64748b;
+    --content-inverted: #0f172a;
+
+    --edge: #334154;
+    --edge-subtle: #1e293b;
+    --edge-strong: #475569;
+
+    --brand: #2dd4bf;
+    --brand-hover: #5eead4;
+    --brand-subtle: #042f2e;
+    --brand-on: #042f2e;
+
+    --tone-neutral-bg: #1e293b;
+    --tone-neutral-fg: #cbd5e1;
+    --tone-neutral-edge: #334154;
+
+    --tone-brand-bg: #042f2e;
+    --tone-brand-fg: #5eead4;
+    --tone-brand-edge: #115e59;
+
+    --tone-info-bg: #172554;
+    --tone-info-fg: #93c5fd;
+    --tone-info-edge: #1e40af;
+
+    --tone-success-bg: #022c22;
+    --tone-success-fg: #6ee7b7;
+    --tone-success-edge: #065f46;
+
+    --tone-warning-bg: #422006;
+    --tone-warning-fg: #fcd34d;
+    --tone-warning-edge: #92400e;
+
+    --tone-danger-bg: #450a0a;
+    --tone-danger-fg: #fca5a5;
+    --tone-danger-edge: #991b1b;
+
+    --cat-science-bg: #083344;
+    --cat-science-fg: #67e8f9;
+    --cat-science-edge: #155e75;
+
+    --cat-humanity-bg: #2e1065;
+    --cat-humanity-fg: #c4b5fd;
+    --cat-humanity-edge: #5b21b6;
+
+    --cat-arts-bg: #500724;
+    --cat-arts-fg: #f9a8d4;
+    --cat-arts-edge: #9d174d;
+
+    --cat-sports-bg: #431407;
+    --cat-sports-fg: #fdba74;
+    --cat-sports-edge: #9a3412;
+
+    --cat-business-bg: #422006;
+    --cat-business-fg: #fde047;
+    --cat-business-edge: #854d0e;
+
+    --cat-charity-bg: #052e16;
+    --cat-charity-fg: #86efac;
+    --cat-charity-edge: #166534;
+
+    --cat-campus-bg: #1e1b4b;
+    --cat-campus-fg: #a5b4fc;
+    --cat-campus-edge: #3730a3;
+
+    --cat-other-bg: #1e293b;
+    --cat-other-fg: #cbd5e1;
+    --cat-other-edge: #334154;
+  }
+}
+
+/* Body still uses raw slate here on purpose: the semantic sweep that moves
+   application code onto these tokens is the next phase, and flipping the body
+   before the components would leave the app half-inverted. */
 body {
   @apply bg-slate-50 text-slate-900 antialiased font-sans;
 }

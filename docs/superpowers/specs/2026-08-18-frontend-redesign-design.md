@@ -439,11 +439,30 @@ on reintroduction, with a small allowlist file for deliberate exceptions. The 50
 utilities accumulated one reasonable-looking line at a time; this is what stops that
 recurring.
 
+*Phase 2 implementation notes.* The gate runs as a **ratchet** rather than a ban while the
+sweep is in progress: it fails if the count rises, and `BASELINE` is lowered as the count
+drops, reaching 0 when the sweep completes. This makes it useful during the sweep instead
+of only after it. Its authoritative count is **502**, not the 500 quoted in §1.3: the gate
+checks a wider property list (including `border-t`/`outline`/`placeholder`/`caret` and
+friends) than the exploratory grep did, and it counts the two raw utilities in
+`index.css`'s own `body` rule. Where the two figures differ, the gate's number governs.
+`src/dev/Specimen.tsx` is allowlisted, since it renders raw primitive ramps deliberately.
+
 ### Gate 3 — `tsc --noEmit` as a separate CI step
 
 Required. `vite build` transpiles TypeScript but does **not** type-check it, so the
 Docker build is not a type-safety gate. The script already exists and never runs
 automatically.
+
+*Phase 2 finding — the gate was weaker than this section assumed.* `@types/react` and
+`@types/react-dom` were **not installed at all**, and with `allowJs: true` TypeScript was
+inferring React's API from its JavaScript instead of erroring. So `tsc --noEmit` passed
+while barely type-checking the React surface: `React` namespace references failed, `key`
+was rejected on custom components, and `import.meta.env` was untyped. Fixed by adding
+`@types/react`, `@types/react-dom` and `"types": ["vite/client"]` to `tsconfig.json`.
+Existing code turned out to be type-correct — the error count went from 0 (unchecked) to
+0 (checked) — so this cost no cleanup, but it means Gate 3 only became a real gate in
+Phase 2. Enabling `strict` remains deliberately out of scope.
 
 ### Gate 4 — cross-platform and dark validation
 
