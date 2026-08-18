@@ -122,7 +122,7 @@ export function Register() {
           <button
             type="submit"
             disabled={isLoading}
-            className="mt-4 w-full py-3.5 bg-brand hover:bg-brand-hover text-content-on-inverted font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-brand/20"
+            className="mt-4 w-full py-3.5 bg-brand hover:bg-brand-hover text-brand-on font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-brand/20"
           >
             {isLoading ? "正在注册..." : "注册"}
           </button>

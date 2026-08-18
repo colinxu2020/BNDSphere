@@ -9,11 +9,12 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
+import { cn } from "../lib/utils";
 import { useActionFeedback } from "../lib/useActionFeedback";
 import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
-import { CategoryChip } from "../components/ui/CategoryChip";
+import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
 import { StarLevel } from "../components/ui/StarLevel";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
@@ -176,7 +177,12 @@ export function ClubDetail() {
         <ArrowLeft size={18} /> 返回探索
       </Link>
 
-      <div className="bg-surface p-8 md:p-12 rounded-md border border-edge-subtle shadow-sm relative overflow-hidden">
+      <div
+        className={cn(
+          "relative overflow-hidden rounded-md border border-l-4 border-edge bg-surface p-8 shadow-md md:p-12",
+          categorySpine(club.category),
+        )}
+      >
         <div className="flex flex-col md:flex-row gap-8 relative z-10 items-start md:items-center">
           <div className="w-28 h-28 md:w-40 md:h-40 rounded-md bg-surface-hover flex items-center justify-center shrink-0 shadow-inner overflow-hidden border border-edge">
             {club.logo_uri ? (
@@ -211,7 +217,7 @@ export function ClubDetail() {
               <button
                 onClick={joinClub}
                 disabled={isActionLoading}
-                className="flex-1 md:flex-none px-6 py-3 bg-brand hover:bg-brand-hover active:scale-95 text-content-on-inverted font-semibold rounded-md shadow-lg shadow-brand/25 transition-all text-center disabled:opacity-70"
+                className="flex-1 md:flex-none px-6 py-3 bg-brand hover:bg-brand-hover active:scale-95 text-brand-on font-semibold rounded-md shadow-lg shadow-brand/25 transition-all text-center disabled:opacity-70"
               >
                 加入社团
               </button>
@@ -245,7 +251,7 @@ export function ClubDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Main Details */}
         <div className="lg:col-span-2 flex flex-col gap-8">
-          <section className="bg-surface p-8 rounded-md border border-edge-subtle shadow-sm">
+          <section className="bg-surface p-8 rounded-md border border-edge shadow-sm">
             <h2 className="text-xl font-display font-bold text-content mb-4 flex items-center gap-2">
               关于社团
             </h2>
@@ -271,7 +277,7 @@ export function ClubDetail() {
                 {club.club_activities.map((act) => (
                   <div
                     key={act.id}
-                    className="bg-surface border border-edge p-6 rounded-md flex flex-col sm:flex-row gap-4 sm:items-center justify-between shadow-sm hover:shadow-md transition-shadow group"
+                    className="group flex flex-col justify-between gap-4 rounded-md border border-edge bg-surface p-6 shadow-sm transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none sm:flex-row sm:items-center"
                   >
                     <div className="flex flex-col gap-1">
                       <h3 className="font-semibold text-lg text-content group-hover:text-tone-brand-fg transition-colors">
@@ -303,7 +309,7 @@ export function ClubDetail() {
 
         {/* Right Column - Sidestats */}
         <div className="flex flex-col gap-6">
-          <div className="bg-surface p-6 rounded-md border border-edge-subtle shadow-sm flex flex-col gap-4">
+          <div className="bg-surface p-6 rounded-md border border-edge shadow-sm flex flex-col gap-4">
             <h3 className="font-display font-bold text-lg text-content">
               成员
             </h3>

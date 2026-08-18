@@ -83,7 +83,7 @@ export function ExploreClubs() {
         </div>
         <Link
           to="/clubs/new"
-          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand hover:bg-brand-hover text-content-on-inverted rounded-md font-semibold shadow-md shadow-brand/20 transition-all active:scale-[0.98]"
+          className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand hover:bg-brand-hover text-brand-on rounded-md font-semibold shadow-md shadow-brand/20 transition-all active:scale-[0.98]"
         >
           <Plus size={18} /> 创建社团
         </Link>

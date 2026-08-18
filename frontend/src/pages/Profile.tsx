@@ -259,7 +259,7 @@ export function Profile() {
                 <button
                   type="submit"
                   disabled={isSubmitting}
-                  className="mt-4 w-full py-3.5 bg-brand hover:bg-brand-hover text-content-on-inverted font-semibold rounded-md transition-all shadow-md active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
+                  className="mt-4 w-full py-3.5 bg-brand hover:bg-brand-hover text-brand-on font-semibold rounded-md transition-all shadow-md active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? "正在提交..." : "提交审核请求"}
                 </button>

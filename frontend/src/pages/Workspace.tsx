@@ -114,7 +114,7 @@ export function Workspace() {
             </SecondaryButton>
             <Link
               to="/clubs/new"
-              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 font-semibold text-content-on-inverted shadow-md shadow-brand/20 hover:bg-brand-hover"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-brand px-4 py-2.5 font-semibold text-brand-on shadow-md shadow-brand/20 hover:bg-brand-hover"
             >
               <Plus size={16} /> 创建社团
             </Link>
