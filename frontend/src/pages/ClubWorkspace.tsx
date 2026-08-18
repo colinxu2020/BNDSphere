@@ -14,9 +14,10 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import { CategoryChip } from "../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
-import { AUDIT_TONE, type Tone } from "../lib/tones";
+import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   AUDIT_STATUS_MAP,
@@ -77,8 +78,7 @@ export function ClubWorkspace() {
   const [clubSummary, setClubSummary] = useState("");
   const [clubDescription, setClubDescription] = useState("");
   const [clubLogo, setClubLogo] = useState("");
-  const [clubMessage, setClubMessage] = useState<unknown>(null);
-  const [clubTone, setClubTone] = useState<Tone>("danger");
+  const clubFeedback = useActionFeedback();
   const [isClubSubmitting, setIsClubSubmitting] = useState(false);
 
   const [activityName, setActivityName] = useState("");
@@ -86,9 +86,7 @@ export function ClubWorkspace() {
   const [activityStart, setActivityStart] = useState("");
   const [activityEnd, setActivityEnd] = useState("");
   const [activityLocation, setActivityLocation] = useState("");
-  const [activityCreateMessage, setActivityCreateMessage] =
-    useState<unknown>(null);
-  const [activityCreateTone, setActivityCreateTone] = useState<Tone>("danger");
+  const activityCreateFeedback = useActionFeedback();
   const [isActivityCreating, setIsActivityCreating] = useState(false);
   const [activityEditorMode, setActivityEditorMode] = useState<
     "create" | "update" | null
@@ -104,9 +102,7 @@ export function ClubWorkspace() {
   const [updateActivityPictureUrls, setUpdateActivityPictureUrls] = useState<
     string[]
   >([]);
-  const [activityUpdateMessage, setActivityUpdateMessage] =
-    useState<unknown>(null);
-  const [activityUpdateTone, setActivityUpdateTone] = useState<Tone>("danger");
+  const activityUpdateFeedback = useActionFeedback();
   const [isActivityUpdating, setIsActivityUpdating] = useState(false);
 
   const [generalActivityId, setGeneralActivityId] = useState("");
@@ -114,15 +110,13 @@ export function ClubWorkspace() {
     useState<ParticipationType>("participate_only");
   const [requestedScore, setRequestedScore] = useState("");
   const [proofFileUrls, setProofFileUrls] = useState<string[]>([]);
-  const [recordMessage, setRecordMessage] = useState<unknown>(null);
-  const [recordTone, setRecordTone] = useState<Tone>("danger");
+  const recordFeedback = useActionFeedback();
   const [isRecordSubmitting, setIsRecordSubmitting] = useState(false);
 
   const [starAttachment, setStarAttachment] = useState("");
   const [starScore, setStarScore] = useState("");
   const [starStatement, setStarStatement] = useState("");
-  const [starCreateMessage, setStarCreateMessage] = useState<unknown>(null);
-  const [starCreateTone, setStarCreateTone] = useState<Tone>("danger");
+  const starCreateFeedback = useActionFeedback();
   const [isStarCreating, setIsStarCreating] = useState(false);
   const [starEditorMode, setStarEditorMode] = useState<
     "create" | "update" | null
@@ -132,8 +126,7 @@ export function ClubWorkspace() {
   const [starUpdateAttachment, setStarUpdateAttachment] = useState("");
   const [starUpdateScore, setStarUpdateScore] = useState("");
   const [starUpdateStatement, setStarUpdateStatement] = useState("");
-  const [starUpdateMessage, setStarUpdateMessage] = useState<unknown>(null);
-  const [starUpdateTone, setStarUpdateTone] = useState<Tone>("danger");
+  const starUpdateFeedback = useActionFeedback();
   const [isStarUpdating, setIsStarUpdating] = useState(false);
 
   const refresh = async () => {
@@ -252,7 +245,7 @@ export function ClubWorkspace() {
     setUpdateActivityEnd(toDateTimeLocalValue(activityItem.end_time));
     setUpdateActivityLocation(activityItem.location);
     setUpdateActivityPictureUrls(activityItem.picture_urls || []);
-    setActivityUpdateMessage(null);
+    activityUpdateFeedback.clear();
   };
 
   const openActivityCreate = () => {
@@ -263,7 +256,7 @@ export function ClubWorkspace() {
     setActivityStart("");
     setActivityEnd("");
     setActivityLocation("");
-    setActivityCreateMessage(null);
+    activityCreateFeedback.clear();
   };
 
   const closeActivityEditor = () => {
@@ -285,13 +278,13 @@ export function ClubWorkspace() {
       setRequestedScore("");
       setProofFileUrls([]);
     }
-    setRecordMessage(null);
+    recordFeedback.clear();
   };
 
   const submitClubUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsClubSubmitting(true);
-    setClubMessage(null);
+    clubFeedback.clear();
     try {
       const { data, error } = await client.POST(
         "/api/v1/clubs/{club_id}/update-requests",
@@ -305,15 +298,12 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setClubTone("danger");
-        setClubMessage(error);
+        clubFeedback.fail(error);
       } else {
-        setClubTone("success");
-        setClubMessage(data);
+        clubFeedback.succeed(data);
       }
     } catch (error) {
-      setClubTone("danger");
-      setClubMessage(error);
+      clubFeedback.fail(error);
     } finally {
       setIsClubSubmitting(false);
     }
@@ -322,7 +312,7 @@ export function ClubWorkspace() {
   const submitActivityCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsActivityCreating(true);
-    setActivityCreateMessage(null);
+    activityCreateFeedback.clear();
     try {
       const { data, error } = await client.POST(
         "/api/v1/clubs/{club_id}/activities/create-requests",
@@ -338,16 +328,13 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setActivityCreateTone("danger");
-        setActivityCreateMessage(error);
+        activityCreateFeedback.fail(error);
       } else {
-        setActivityCreateTone("success");
-        setActivityCreateMessage("活动创建申请已提交");
+        activityCreateFeedback.succeed("活动创建申请已提交");
         refresh();
       }
     } catch (error) {
-      setActivityCreateTone("danger");
-      setActivityCreateMessage(error);
+      activityCreateFeedback.fail(error);
     } finally {
       setIsActivityCreating(false);
     }
@@ -356,13 +343,12 @@ export function ClubWorkspace() {
   const submitActivityUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedUpdateActivity) {
-      setActivityUpdateTone("danger");
-      setActivityUpdateMessage("请先选择一个社团活动");
+      activityUpdateFeedback.fail("请先选择一个社团活动");
       return;
     }
 
     setIsActivityUpdating(true);
-    setActivityUpdateMessage(null);
+    activityUpdateFeedback.clear();
     const originalStart = toDateTimeLocalValue(
       selectedUpdateActivity.start_time,
     );
@@ -403,15 +389,12 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setActivityUpdateTone("danger");
-        setActivityUpdateMessage(error);
+        activityUpdateFeedback.fail(error);
       } else {
-        setActivityUpdateTone("success");
-        setActivityUpdateMessage("活动修改申请已提交");
+        activityUpdateFeedback.succeed("活动修改申请已提交");
       }
     } catch (error) {
-      setActivityUpdateTone("danger");
-      setActivityUpdateMessage(error);
+      activityUpdateFeedback.fail(error);
     } finally {
       setIsActivityUpdating(false);
     }
@@ -419,7 +402,7 @@ export function ClubWorkspace() {
 
   const submitRecord = async (mode: "create" | "update") => {
     setIsRecordSubmitting(true);
-    setRecordMessage(null);
+    recordFeedback.clear();
     const payload = {
       activity_id: toNumberOrZero(generalActivityId),
       participation_type: participationType,
@@ -441,16 +424,13 @@ export function ClubWorkspace() {
 
       const { data, error } = await request;
       if (error) {
-        setRecordTone("danger");
-        setRecordMessage(error);
+        recordFeedback.fail(error);
       } else {
-        setRecordTone("success");
-        setRecordMessage(data);
+        recordFeedback.succeed(data);
         refresh();
       }
     } catch (error) {
-      setRecordTone("danger");
-      setRecordMessage(error);
+      recordFeedback.fail(error);
     } finally {
       setIsRecordSubmitting(false);
     }
@@ -459,7 +439,7 @@ export function ClubWorkspace() {
   const submitStarCreate = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsStarCreating(true);
-    setStarCreateMessage(null);
+    starCreateFeedback.clear();
     try {
       const { data, error } = await client.POST(
         "/api/v1/clubs/{club_id}/star-level/",
@@ -473,16 +453,13 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setStarCreateTone("danger");
-        setStarCreateMessage(error);
+        starCreateFeedback.fail(error);
       } else {
-        setStarCreateTone("success");
-        setStarCreateMessage(data);
+        starCreateFeedback.succeed(data);
         refresh();
       }
     } catch (error) {
-      setStarCreateTone("danger");
-      setStarCreateMessage(error);
+      starCreateFeedback.fail(error);
     } finally {
       setIsStarCreating(false);
     }
@@ -490,8 +467,7 @@ export function ClubWorkspace() {
 
   const selectStarApplication = (application: StarApplication) => {
     setStarEditorMode("update");
-    setStarUpdateTone("success");
-    setStarUpdateMessage(null);
+    starUpdateFeedback.succeed(null);
     setStarUpdateId(String(application.id));
     setStarUpdateAttachment(application.contest_attachment || "");
     setStarUpdateScore(
@@ -508,7 +484,7 @@ export function ClubWorkspace() {
     setStarAttachment("");
     setStarScore("");
     setStarStatement("");
-    setStarCreateMessage(null);
+    starCreateFeedback.clear();
   };
 
   const closeStarEditor = () => {
@@ -519,7 +495,7 @@ export function ClubWorkspace() {
   const submitStarUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
     setIsStarUpdating(true);
-    setStarUpdateMessage(null);
+    starUpdateFeedback.clear();
     try {
       const { data, error } = await client.PATCH(
         "/api/v1/star-level/{star_level_id}",
@@ -533,16 +509,13 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setStarUpdateTone("danger");
-        setStarUpdateMessage(error);
+        starUpdateFeedback.fail(error);
       } else {
-        setStarUpdateTone("success");
-        setStarUpdateMessage(data);
+        starUpdateFeedback.succeed(data);
         refresh();
       }
     } catch (error) {
-      setStarUpdateTone("danger");
-      setStarUpdateMessage(error);
+      starUpdateFeedback.fail(error);
     } finally {
       setIsStarUpdating(false);
     }
@@ -779,8 +752,8 @@ export function ClubWorkspace() {
                         />
                       </Field>
                       <StatusMessage
-                        value={activityCreateMessage}
-                        tone={activityCreateTone}
+                        value={activityCreateFeedback.message}
+                        tone={activityCreateFeedback.tone}
                       />
                       <PrimaryButton type="submit" loading={isActivityCreating}>
                         提交活动申请
@@ -854,8 +827,8 @@ export function ClubWorkspace() {
                         accept="image/*"
                       />
                       <StatusMessage
-                        value={activityUpdateMessage}
-                        tone={activityUpdateTone}
+                        value={activityUpdateFeedback.message}
+                        tone={activityUpdateFeedback.tone}
                       />
                       <PrimaryButton type="submit" loading={isActivityUpdating}>
                         提交修改申请
@@ -1006,7 +979,7 @@ export function ClubWorkspace() {
                           tone="info"
                         />
                       )}
-                    <StatusMessage value={recordMessage} tone={recordTone} />
+                    <StatusMessage value={recordFeedback.message} tone={recordFeedback.tone} />
                     <PrimaryButton
                       type="submit"
                       loading={isRecordSubmitting}
@@ -1120,8 +1093,8 @@ export function ClubWorkspace() {
                         />
                       </Field>
                       <StatusMessage
-                        value={starCreateMessage}
-                        tone={starCreateTone}
+                        value={starCreateFeedback.message}
+                        tone={starCreateFeedback.tone}
                       />
                       <PrimaryButton type="submit" loading={isStarCreating}>
                         提交星级申请
@@ -1167,8 +1140,8 @@ export function ClubWorkspace() {
                         更新申请
                       </PrimaryButton>
                       <StatusMessage
-                        value={starUpdateMessage}
-                        tone={starUpdateTone}
+                        value={starUpdateFeedback.message}
+                        tone={starUpdateFeedback.tone}
                       />
                     </form>
                   ) : (
@@ -1204,7 +1177,7 @@ export function ClubWorkspace() {
                 accept="image/*"
                 hint="上传后作为社团资料变更申请的 Logo。"
               />
-              <StatusMessage value={clubMessage} tone={clubTone} />
+              <StatusMessage value={clubFeedback.message} tone={clubFeedback.tone} />
               <PrimaryButton type="submit" loading={isClubSubmitting}>
                 提交变更申请
               </PrimaryButton>
