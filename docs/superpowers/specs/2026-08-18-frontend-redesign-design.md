@@ -2,7 +2,10 @@
 
 **Date:** 2026-08-18
 **Target branch:** `origin/release/26.08.21` (React 19 rewrite)
-**Status:** Approved design. Implementation planning not yet started.
+**Status:** Approved design, largely implemented on `design/frontend-redesign-26.08.21`.
+Phases 0–5 complete; Phase 6 partially complete; Phase 7 (Gate 4) outstanding, since it
+requires human review across the platform × scheme matrix. Sections marked
+"as built" / "Phase N finding" record where implementation corrected this document.
 
 ## 1. Context
 
@@ -59,6 +62,24 @@ CSS, confirmed by grepping `dist/assets/*.css` (0 occurrences of either token):
 
 Tailwind v4 emits nothing for a utility referencing an undefined theme step and does
 not warn. Both classes look plausible and compile clean.
+
+### 1.4 Implementation status
+
+| Phase | State |
+|---|---|
+| Mobile auth-nav bugfix (§5.3) | done — shipped first, standalone |
+| 0 Scaffold cleanup | done |
+| 1 Typography foundation | done |
+| 2 Token layer + Gates 1–3 | done |
+| 3 Semantic sweep + dark scheme | done — 502 raw utilities → 0 |
+| 4 Shell rebuild | done, plus three further mobile defects (§5.2) |
+| 5 Identity + visual language | done — §4.6 |
+| 6 Workflow extraction → decomposition | partial — §6.1b |
+| 7 Gate 4 validation | **outstanding** — needs human review |
+
+Nothing in Phases 1–6 has been visually reviewed on a real device in either scheme. The
+gates prove the tokens resolve and the types hold; they say nothing about whether it looks
+right. That is Gate 4's entire purpose and it has not been run.
 
 ## 2. Typography
 
@@ -252,9 +273,14 @@ The canonical progression is a **single ranked scale**:
 荣誉社团 is the **highest level in that progression**, not a parallel honour.
 
 Currently `STAR_LEVEL_MAP[club.star_level]` renders "三星社团" as badge text
-(`ClubDetail.tsx:228`) and **no star is drawn anywhere in the application**, despite the
-system having its own nav entry (星级评价) and its own applications pipeline
-(`StarLevelApplications.tsx`).
+(`ClubDetail.tsx:228`), despite the system having its own nav entry (星级评价) and its own
+applications pipeline (`StarLevelApplications.tsx`).
+
+*Correction (Phase 3).* This section originally said "no star is drawn anywhere in the
+application". That was imprecise: a single `Sparkles` glyph did render beside the level in
+`ClubDetail` and `ExploreClubs`. But it was identical for 一星 and 五星, so it marked
+*that* a club had a rank while conveying nothing about *which* — which is arguably worse
+than nothing, since it looks like information. It is what `StarLevel` replaces.
 
 A `StarLevel` component encodes the progression explicitly:
 
@@ -328,7 +354,44 @@ animating in on first display of a club's rank, list stagger on load, poster car
 transition. All behind `prefers-reduced-motion`. The existing `active:scale-[0.98]` on
 buttons is a good instinct already present — keep it and apply it consistently.
 
-### 4.6 Out of scope
+### 4.6 The visual language, as built (Phase 5)
+
+The direction approved in design — energetic, youthful — was implemented as **posted
+objects on a 展板**, grounded in the subject: club recruitment at this school happens on a
+board of colour-coded, stamped posters, and `Home` is already structured that way.
+
+Four decisions, all of which live in `index.css` rather than in components:
+
+- **Shape.** The radius scale is redefined in `@theme`, so all 165 `rounded-md` call sites
+  moved at once. The default step is 12px rather than Tailwind's 6px; cards read as posted
+  objects rather than table cells.
+- **Elevation — hard offsets, no blur.** `--shadow-*` is redefined to offsets against a
+  scheme-aware `--shadow-ink`. This replaces the blurred-drop-shadow idiom, which read as
+  generic and was nearly invisible on dark surfaces — the weakness §3.3 flagged and could
+  not otherwise fix. An offset is a drawn edge, so it survives inversion, and it completes
+  the instinct already in the codebase: the global 1.5px border override.
+- **The category spine.** Club cards carry a thick left edge in their category colour;
+  activity cards carry a level spine. An edge, not a fill, so §4.3's small-element rule
+  holds.
+- **Type.** Page titles `text-4xl md:text-5xl`, section titles `text-2xl`; the eyebrow
+  label uses Space Grotesk with wider tracking, since it is the one Latin-only element in
+  a Chinese interface and therefore the one place a Latin display face belongs.
+
+**Restraint.** The boldness is spent on the offset and the spine. Everything else stays
+quiet, and the offsets are deliberately small (2-4px) to stay short of decorative
+neo-brutalism.
+
+**Clarification to the §4.4 colour rule.** "Colour means state in the workbench" holds for
+queue and list rows, but a *club header* inside the workbench exists to tell you which club
+you are managing, so it takes the full identity treatment. Identity where you are
+identifying something; state everywhere else.
+
+**Activity level tokens.** §3.2 established that activity levels are a taxonomy rather than
+a status. They are implemented as their own `--lvl-*` triples (校级 / 大型 / 社联) rather
+than borrowing category hues, which would make a 校级 activity chip look like a 科学 club
+chip.
+
+### 4.7 Out of scope
 
 Illustrated empty-state artwork (needs an illustrator; icon plus good copy gets most of
 the value), a mascot, and per-club custom theming (unmanageable at 8 categories × 7 star
@@ -376,8 +439,26 @@ information architecture genuinely needs more mobile navigation than the bottom 
 hold (see §4.4 on restructuring), a drawer can be added then, with real destinations to
 put in it.
 
-`<main>` takes the bottom-bar clearance once (`pt-6 pb-24 … md:pb-6`, matching the bar's
-own `md:hidden`), and the 14 per-page `pb-20` workarounds are deleted.
+`<main>` takes the bottom-bar clearance once, matching the bar's own `md:hidden`, and the
+14 per-page `pb-20` workarounds are deleted.
+
+*Three further mobile defects found while implementing (Phase 4b), all correctness rather
+than style:*
+
+- The fixed bottom bar sat **underneath the iOS home indicator**. `env()` reports nothing
+  without `viewport-fit=cover`, which was missing from the viewport meta. The bar now pads
+  by `env(safe-area-inset-bottom)` and `<main>` clears both bar and inset via
+  `calc(6rem + env(safe-area-inset-bottom))`.
+- Bottom-bar links, the login/register buttons and the avatar trigger were **36–40px**
+  tall, below the 44px touch minimum. They are now ≥44px on phones and keep tighter
+  desktop sizing above `md`.
+- Active navigation was conveyed by **colour alone** in both nav sets. Both now set
+  `aria-current="page"`.
+
+*And one in the board panel:* it auto-advanced every five seconds with no way to stop it,
+failing **WCAG 2.2.2 (Pause, Stop, Hide)** and ignoring `prefers-reduced-motion`. It now
+holds still under reduced motion, pauses on hover or focus, and its indicators are real
+buttons, so the board is keyboard-operable.
 
 ### 5.3 Pulled out as a standalone bugfix
 
@@ -415,6 +496,36 @@ length first would yield smaller files each still carrying its own copy of the f
 state and the audit queue — more files, identical duplication, and the extraction still
 to do across more places. `Federation` and `ClubWorkspace` are largely *made of* these
 three workflows, which is why they are the largest.
+
+### 6.1b Status (Phase 6, as built)
+
+**Done — workflow extraction.** `useActionFeedback` replaces all **twelve** hand-rolled
+feedback pairs across seven pages (the count in §6.1 said nine; the exact number is
+twelve, six of them in `ClubWorkspace` alone). `Admin`'s local `setResult` helper was
+exactly the hook's `report`, so its 27 call sites now route through it via the existing
+`RefreshContext` value rather than renaming the context API.
+
+The status→tone table turned out to exist **four** times, not the two §6.1 implies:
+`getAuditTone` in `Federation`, an identical `getAuditTone` in `ClubWorkspace`, a local
+`AUDIT_TONE` const in `StarLevelApplications`, and the same ternary inlined in
+`Moderation`, `GeneralActivityDetail` and `ClubWorkspace`. All now read `lib/tones.ts`.
+
+**Done — `Admin`.** Decomposed along the boundaries its author had already drawn: a
+115-line shell plus `context.tsx`, `primitives.tsx` and one file per section, none over
+300 lines. A move plus import bookkeeping, no behaviour change.
+
+**Deferred — `Federation` and `ClubWorkspace`.** `ClubWorkspace`'s state surface is
+reduced (55 `useState` → 43) as the spec's prerequisite, but the splits themselves are
+**not done**, deliberately. Both are single functions of ~1,000+ lines whose sections share
+state in ways that are not visible without tracing every setter, and this project has no
+test framework by design (§7). Splitting them is the one remaining task where a subtle
+break would not be caught by any gate — `tsc`, the build, Gate 1 and Gate 2 all pass
+happily through a mis-scoped state variable. It wants a reviewer, not an unattended pass.
+
+**Not done — `AuditQueue`.** The 19 approve/reject sites still each carry their own list
+and handler. Extracting a shared component means settling a common shape for six different
+endpoints, which is design work rather than mechanical extraction, and it is entangled with
+the two deferred splits above.
 
 ### 6.2 Scope boundary
 
@@ -464,6 +575,15 @@ friends) than the exploratory grep did, and it counts the two raw utilities in
 `index.css`'s own `body` rule. Where the two figures differ, the gate's number governs.
 `src/dev/Specimen.tsx` is allowlisted, since it renders raw primitive ramps deliberately.
 
+*Extension (Phase 5).* The gate originally checked only named palette steps, and therefore
+reported **zero while five violations were live**: arbitrary values carrying literal
+colours, e.g. `shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]`. These name no palette
+step but are the identical defect — a fixed colour no variable can redirect, so it cannot
+follow the dark scheme. The gate now checks literal `rgb()`/`rgba()`/`hsl()`/hex inside
+arbitrary values too, verified by planting a violation and watching it fail. `drop-shadow`
+is exempt: a text halo over user-uploaded posters must stay dark in both schemes to remain
+legible.
+
 ### Gate 3 — `tsc --noEmit` as a separate CI step
 
 Required. `vite build` transpiles TypeScript but does **not** type-check it, so the
@@ -511,6 +631,8 @@ Gate 4 covers:
 - overlays and shadows/elevation
 
 ## 8. Sequencing
+
+*Progress is recorded in §1.4 below.*
 
 | # | Phase | Notes |
 |---|---|---|
