@@ -11,7 +11,6 @@ import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
 import { cn } from "../lib/utils";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";

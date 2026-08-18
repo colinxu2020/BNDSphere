@@ -4,7 +4,6 @@ import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";

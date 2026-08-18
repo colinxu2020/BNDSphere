@@ -16,7 +16,7 @@ import {
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import { AUDIT_TONE, type Tone } from "../lib/tones";
+import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,

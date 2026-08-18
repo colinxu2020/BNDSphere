@@ -9,7 +9,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import { AUDIT_TONE, type Tone } from "../lib/tones";
+import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import { MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime, stringifyBackendValue } from "../lib/format";

@@ -4,7 +4,6 @@ import { Building2, Save } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { CATEGORY_OPTIONS } from "../lib/labels";
 import {

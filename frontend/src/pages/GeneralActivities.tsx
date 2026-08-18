@@ -4,18 +4,16 @@ import {
   Filter,
   Search,
 } from "@/src/components/ui/Icons";
-import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import { ActivityCard } from "../components/ui/ActivityCard";
 import type { components } from "../api/schema";
-import { ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
 import {
-  Badge,
   EmptyState,
   PageHeader,
   StatusMessage,
   inputClassName,
 } from "../components/ui/AppPrimitives";
+import { ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
 import { cn } from "../lib/utils";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];

@@ -9,7 +9,6 @@ import {
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import type { components } from "../api/schema";
 import {
   PageHeader,
   SecondaryButton,

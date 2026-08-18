@@ -1,25 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
-import {
-  Bell,
-  CalendarDays,
-  RefreshCw,
-  Save,
-  Shield,
-  Trash2,
-  Users,
-} from "@/src/components/ui/Icons";
+import React, { useEffect, useState } from "react";
+import { Save, Trash2 } from "@/src/components/ui/Icons";
 import { client } from "../../api/client";
-import type { Tone } from "../../lib/tones";
 import type { components } from "../../api/schema";
-import {
-  ACTIVITY_LEVEL_MAP,
-  ACTIVITY_LEVEL_OPTIONS,
-  CLUB_STATUS_MAP,
-  CLUB_STATUS_OPTIONS,
-  ROLE_MAP,
-  ROLE_OPTIONS,
-  STAR_LEVEL_OPTIONS,
-} from "../../lib/labels";
+import { ACTIVITY_LEVEL_MAP, ACTIVITY_LEVEL_OPTIONS } from "../../lib/labels";
 import {
   formatDate,
   fromDateTimeLocalValue,
@@ -27,12 +10,9 @@ import {
   toDateTimeLocalValue,
 } from "../../lib/format";
 import {
-  Badge,
   Field,
-  PageHeader,
   PrimaryButton,
   SecondaryButton,
-  StatusMessage,
   inputClassName,
   selectClassName,
   textareaClassName,
