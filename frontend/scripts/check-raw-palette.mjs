@@ -19,7 +19,7 @@ import { join, extname } from "node:path";
  * Remaining raw-palette utilities. Lower this as the sweep progresses; never
  * raise it. 0 once the sweep is complete.
  */
-const BASELINE = 502;
+const BASELINE = 405;
 
 const SRC = "src";
 

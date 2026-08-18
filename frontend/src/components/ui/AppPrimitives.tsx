@@ -4,13 +4,13 @@ import { cn } from "../../lib/utils";
 import { stringifyBackendValue } from "../../lib/format";
 
 export const inputClassName =
-  "w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle";
 
 export const selectClassName =
-  "w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content";
 
 export const textareaClassName =
-  "w-full min-w-0 px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 placeholder:text-slate-400 min-h-[120px] resize-none";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle min-h-[120px] resize-none";
 
 export function PageHeader({
   eyebrow,
@@ -27,15 +27,15 @@ export function PageHeader({
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
       <div className="flex flex-col gap-2">
         {eyebrow && (
-          <span className="text-xs font-bold tracking-wider uppercase text-primary-600">
+          <span className="text-xs font-bold tracking-wider uppercase text-tone-brand-fg">
             {eyebrow}
           </span>
         )}
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-slate-900">
+        <h1 className="text-3xl md:text-4xl font-display font-bold text-content">
           {title}
         </h1>
         {description && (
-          <p className="text-slate-500 text-lg max-w-2xl">{description}</p>
+          <p className="text-content-muted text-lg max-w-2xl">{description}</p>
         )}
       </div>
       {action}
@@ -53,7 +53,7 @@ export function Surface({
   return (
     <section
       className={cn(
-        "bg-white rounded-md border border-slate-100 shadow-sm p-6 md:p-8",
+        "bg-surface rounded-md border border-edge-subtle shadow-sm p-6 md:p-8",
         className,
       )}
     >
@@ -80,7 +80,7 @@ export function SectionTitle({
       {icon && (
         <div
           className={cn(
-            "w-10 h-10 rounded-md bg-primary-50 text-primary-600 flex items-center justify-center shrink-0",
+            "w-10 h-10 rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center shrink-0",
             iconClassName,
           )}
         >
@@ -88,11 +88,11 @@ export function SectionTitle({
         </div>
       )}
       <div>
-        <h2 className="text-xl font-display font-bold text-slate-900">
+        <h2 className="text-xl font-display font-bold text-content">
           {title}
         </h2>
         {description && (
-          <p className="text-sm text-slate-500 mt-1">{description}</p>
+          <p className="text-sm text-content-muted mt-1">{description}</p>
         )}
       </div>
     </div>
@@ -110,12 +110,12 @@ export function Field({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+      <span className="block text-sm font-medium text-content mb-1.5 ml-1">
         {label}
       </span>
       {children}
       {hint && (
-        <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>
+        <span className="block text-xs text-content-subtle mt-1.5 ml-1">{hint}</span>
       )}
     </label>
   );
@@ -132,7 +132,7 @@ export function PrimaryButton({
       {...props}
       disabled={props.disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-md transition-all shadow-md shadow-primary-500/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand hover:bg-brand-hover text-brand-on font-semibold rounded-md transition-all shadow-md shadow-brand/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed",
         className,
       )}
     >
@@ -150,7 +150,7 @@ export function SecondaryButton({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-sunken hover:bg-surface-hover border border-edge text-content font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
         className,
       )}
     >
@@ -168,7 +168,7 @@ export function DangerButton({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 border border-red-100 text-red-700 font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-tone-danger-bg hover:bg-tone-danger-bg-hover border border-tone-danger-edge text-tone-danger-fg font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
         className,
       )}
     >
@@ -191,9 +191,9 @@ export function StatusMessage({
   if (!text) return null;
 
   const toneClass = {
-    error: "bg-red-50 text-red-700 border-red-100",
-    success: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    info: "bg-slate-50 text-slate-600 border-slate-100",
+    error: "bg-tone-danger-bg text-tone-danger-fg border-tone-danger-edge",
+    success: "bg-tone-success-bg text-tone-success-fg border-tone-success-edge",
+    info: "bg-surface-sunken text-content-muted border-edge-subtle",
   }[tone];
 
   return (
@@ -231,15 +231,15 @@ export function EmptyState({
   icon?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col items-center justify-center py-16 text-center bg-white border border-slate-100 border-dashed rounded-md">
-      <div className="bg-slate-50 w-14 h-14 rounded-md flex items-center justify-center mb-4 text-slate-400">
+    <div className="flex flex-col items-center justify-center py-16 text-center bg-surface border border-edge-subtle border-dashed rounded-md">
+      <div className="bg-surface-sunken w-14 h-14 rounded-md flex items-center justify-center mb-4 text-content-subtle">
         {icon || <Inbox size={24} />}
       </div>
-      <h3 className="text-lg font-display font-semibold text-slate-800">
+      <h3 className="text-lg font-display font-semibold text-content">
         {title}
       </h3>
       {description && (
-        <p className="text-sm text-slate-500 max-w-sm mt-2">{description}</p>
+        <p className="text-sm text-content-muted max-w-sm mt-2">{description}</p>
       )}
     </div>
   );
@@ -249,7 +249,7 @@ export function InlineError({ value }: { value?: unknown }) {
   const text = stringifyBackendValue(value);
   if (!text) return null;
   return (
-    <div className="flex items-start gap-2 rounded-md bg-red-50 border border-red-100 p-3 text-sm text-red-700 whitespace-pre-wrap">
+    <div className="flex items-start gap-2 rounded-md bg-tone-danger-bg border border-tone-danger-edge p-3 text-sm text-tone-danger-fg whitespace-pre-wrap">
       <AlertCircle size={16} className="mt-0.5 shrink-0" />
       <span>{text}</span>
     </div>
@@ -264,12 +264,12 @@ export function Badge({
   tone?: "slate" | "primary" | "yellow" | "green" | "red" | "blue";
 }) {
   const toneClass = {
-    slate: "bg-slate-50 text-slate-600 border-slate-100",
-    primary: "bg-primary-50 text-primary-700 border-primary-100",
-    yellow: "bg-yellow-50 text-yellow-700 border-yellow-100",
-    green: "bg-emerald-50 text-emerald-700 border-emerald-100",
-    red: "bg-red-50 text-red-700 border-red-100",
-    blue: "bg-secondary-50 text-secondary-600 border-secondary-100",
+    slate: "bg-surface-sunken text-content-muted border-edge-subtle",
+    primary: "bg-brand-subtle text-tone-brand-fg border-tone-brand-edge",
+    yellow: "bg-tone-warning-bg text-tone-warning-fg border-tone-warning-edge",
+    green: "bg-tone-success-bg text-tone-success-fg border-tone-success-edge",
+    red: "bg-tone-danger-bg text-tone-danger-fg border-tone-danger-edge",
+    blue: "bg-tone-info-bg text-tone-info-fg border-tone-info-edge",
   }[tone];
 
   return (

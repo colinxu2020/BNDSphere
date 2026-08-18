@@ -135,6 +135,9 @@
   --color-tone-warning-edge: var(--tone-warning-edge);
 
   --color-tone-danger-bg: var(--tone-danger-bg);
+  /* Only danger needs a hover step so far (DangerButton); the other tones get
+     one when something actually requires it. */
+  --color-tone-danger-bg-hover: var(--tone-danger-bg-hover);
   --color-tone-danger-fg: var(--tone-danger-fg);
   --color-tone-danger-edge: var(--tone-danger-edge);
 
@@ -218,6 +221,7 @@
   --tone-warning-edge: #fef3c7;
 
   --tone-danger-bg: #fef2f2;
+  --tone-danger-bg-hover: #fee2e2;
   --tone-danger-fg: #b91c1c;
   --tone-danger-edge: #fee2e2;
 
@@ -306,6 +310,7 @@
     --tone-warning-edge: #92400e;
 
     --tone-danger-bg: #450a0a;
+    --tone-danger-bg-hover: #7f1d1d;
     --tone-danger-fg: #fca5a5;
     --tone-danger-edge: #991b1b;
 
@@ -343,11 +348,11 @@
   }
 }
 
-/* Body still uses raw slate here on purpose: the semantic sweep that moves
-   application code onto these tokens is the next phase, and flipping the body
-   before the components would leave the app half-inverted. */
+/* The light values of these tokens are byte-identical to the slate steps they
+   replace (#f8fafc, #0f172a), so light mode is unchanged; dark now follows the
+   system. */
 body {
-  @apply bg-slate-50 text-slate-900 antialiased font-sans;
+  @apply bg-surface-sunken text-content antialiased font-sans;
 }
 
 .border {

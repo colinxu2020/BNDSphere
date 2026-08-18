@@ -125,8 +125,8 @@ export function RootLayout({ children }: { children: ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 text-slate-900">
-      <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
+    <div className="min-h-screen bg-surface-sunken text-content">
+      <header className="sticky top-0 z-50 border-b border-edge bg-surface">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10 w-auto" />
@@ -144,8 +144,8 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   className={cn(
                     "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
                     isActive
-                      ? "bg-slate-100 text-slate-950"
-                      : "text-slate-500 hover:bg-slate-50 hover:text-slate-900",
+                      ? "bg-surface-hover text-content"
+                      : "text-content-muted hover:bg-surface-sunken hover:text-content",
                   )}
                 >
                   <link.icon size={16} />
@@ -160,13 +160,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
               <>
                 <Link
                   to="/login"
-                  className="rounded-md border border-slate-200 px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="rounded-md border border-edge px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken"
                 >
                   登录
                 </Link>
                 <Link
                   to="/register"
-                  className="rounded-md bg-primary-500 px-3 py-2 text-sm font-semibold text-white hover:bg-primary-600"
+                  className="rounded-md bg-brand px-3 py-2 text-sm font-semibold text-brand-on hover:bg-brand-hover"
                 >
                   注册
                 </Link>
@@ -177,7 +177,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   type="button"
                   ref={userMenuTriggerRef}
                   onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-slate-600"
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-content-muted"
                   aria-label="用户菜单"
                   aria-haspopup="menu"
                   aria-expanded={userMenuOpen}
@@ -204,16 +204,16 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   onClick={() => setUserMenuOpen(false)}
                   className="absolute right-0 top-full z-50 w-56 pt-2"
                 >
-                  <div className="rounded-md border border-slate-200 bg-white p-2 shadow-lg">
+                  <div className="rounded-md border border-edge bg-surface p-2 shadow-lg">
                     <div className="px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-slate-900">
+                      <p className="truncate text-sm font-semibold text-content">
                         {user?.username || "已登录用户"}
                       </p>
-                      <p className="truncate text-xs text-slate-500">
+                      <p className="truncate text-xs text-content-muted">
                         {user?.email || "未设置邮箱"}
                       </p>
                     </div>
-                    <div className="my-1 h-px bg-slate-100" />
+                    <div className="my-1 h-px bg-surface-hover" />
                     <MenuItem to="/profile" icon={<User size={16} />}>
                       个人主页
                     </MenuItem>
@@ -236,7 +236,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                      className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg"
                     >
                       <LogOut size={16} />
                       退出登录
@@ -248,7 +248,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             )}
             <button
               type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 md:hidden"
+              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-edge text-content-muted md:hidden"
               aria-label="打开导航"
             >
               <Menu size={18} />
@@ -261,7 +261,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
         {children}
       </main>
 
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white md:hidden">
+      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface md:hidden">
         <div className="grid grid-cols-3 gap-1 px-2 py-2">
           {navLinks.map((link) => {
             const isActive =
@@ -273,7 +273,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 to={link.path}
                 className={cn(
                   "flex flex-col items-center gap-1 rounded-md px-2 py-2 text-xs font-semibold",
-                  isActive ? "text-slate-950" : "text-slate-500",
+                  isActive ? "text-content" : "text-content-muted",
                 )}
               >
                 <link.icon size={18} />
@@ -300,7 +300,7 @@ function MenuItem({
     <Link
       to={to}
       role="menuitem"
-      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken"
     >
       {icon}
       {children}

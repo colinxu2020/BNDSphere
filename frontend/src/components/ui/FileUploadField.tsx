@@ -83,10 +83,10 @@ export function FileUploadField({
 
   return (
     <div className="block min-w-0">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+      <span className="block text-sm font-medium text-content mb-1.5 ml-1">
         {label}
       </span>
-      <div className="min-w-0 rounded-md border border-slate-200 bg-slate-50 p-4">
+      <div className="min-w-0 rounded-md border border-edge bg-surface-sunken p-4">
         <input
           ref={inputRef}
           type="file"
@@ -101,7 +101,7 @@ export function FileUploadField({
             type="button"
             onClick={() => inputRef.current?.click()}
             disabled={isUploading}
-            className="bg-white"
+            className="bg-surface"
           >
             {isUploading ? (
               <Loader2 size={16} className="animate-spin" />
@@ -110,7 +110,7 @@ export function FileUploadField({
             )}
             {isUploading ? "上传中..." : "选择文件"}
           </SecondaryButton>
-          {hint && <p className="min-w-0 text-xs text-slate-400">{hint}</p>}
+          {hint && <p className="min-w-0 text-xs text-content-subtle">{hint}</p>}
         </div>
 
         {urls.length > 0 && (
@@ -118,13 +118,13 @@ export function FileUploadField({
             {urls.map((url) => (
               <div
                 key={url}
-                className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-slate-100 bg-white px-3 py-2"
+                className="flex min-w-0 items-center justify-between gap-3 rounded-md border border-edge-subtle bg-surface px-3 py-2"
               >
                 <a
                   href={url}
                   target="_blank"
                   rel="noreferrer"
-                  className="min-w-0 truncate text-sm font-medium text-slate-600 hover:text-primary-600"
+                  className="min-w-0 truncate text-sm font-medium text-content-muted hover:text-tone-brand-fg"
                 >
                   {url}
                 </a>
@@ -132,7 +132,7 @@ export function FileUploadField({
                   type="button"
                   onClick={() => removeUrl(url)}
                   className={cn(
-                    "shrink-0 w-8 h-8 rounded-lg bg-slate-50 text-slate-400 hover:bg-red-50 hover:text-red-600",
+                    "shrink-0 w-8 h-8 rounded-lg bg-surface-sunken text-content-subtle hover:bg-tone-danger-bg hover:text-tone-danger-fg",
                     "inline-flex items-center justify-center transition-colors",
                   )}
                   aria-label="移除文件"
@@ -145,7 +145,7 @@ export function FileUploadField({
         )}
 
         {message && (
-          <div className="mt-3 rounded-md border border-red-100 bg-red-50 px-3 py-2 text-sm text-red-700 whitespace-pre-wrap">
+          <div className="mt-3 rounded-md border border-tone-danger-edge bg-tone-danger-bg px-3 py-2 text-sm text-tone-danger-fg whitespace-pre-wrap">
             {stringifyBackendValue(message)}
           </div>
         )}
