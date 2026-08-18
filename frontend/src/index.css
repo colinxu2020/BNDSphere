@@ -204,6 +204,23 @@
   --color-tone-danger-fg: var(--tone-danger-fg);
   --color-tone-danger-edge: var(--tone-danger-edge);
 
+  /* Activity level identity — 校级 / 大型 / 社联. A separate taxonomy from club
+     categories, so it gets its own hues rather than borrowing category colours,
+     which would make a 校级 activity chip look like a 科学 club chip. Kept away
+     from the status tones too: a level is what an activity IS, not how it is
+     doing. Same small-element rule as categories. */
+  --color-lvl-school-bg: var(--lvl-school-bg);
+  --color-lvl-school-fg: var(--lvl-school-fg);
+  --color-lvl-school-edge: var(--lvl-school-edge);
+
+  --color-lvl-large-bg: var(--lvl-large-bg);
+  --color-lvl-large-fg: var(--lvl-large-fg);
+  --color-lvl-large-edge: var(--lvl-large-edge);
+
+  --color-lvl-federation-bg: var(--lvl-federation-bg);
+  --color-lvl-federation-fg: var(--lvl-federation-fg);
+  --color-lvl-federation-edge: var(--lvl-federation-edge);
+
   /* Club category identity. Eight fixed treatments so a category reads the same
      colour everywhere. Hues vary in lightness as well as hue, so they stay
      distinguishable without relying on hue perception and survive inversion.
@@ -335,6 +352,18 @@
   --cat-campus-fg: #4338ca;
   --cat-campus-edge: #e0e7ff;
 
+  --lvl-school-bg: #eef2ff; /* indigo-leaning, the widest scope */
+  --lvl-school-fg: #3730a3;
+  --lvl-school-edge: #e0e7ff;
+
+  --lvl-large-bg: #fdf4ff; /* fuchsia, the most prominent */
+  --lvl-large-fg: #a21caf;
+  --lvl-large-edge: #fae8ff;
+
+  --lvl-federation-bg: #f0fdfa; /* the federation's own teal */
+  --lvl-federation-fg: #0f766e;
+  --lvl-federation-edge: #ccfbf1;
+
   --cat-other-bg: #f8fafc; /* neutral by design */
   --cat-other-fg: #475569;
   --cat-other-edge: #e2e8f0;
@@ -438,6 +467,18 @@
     --cat-campus-bg: #1e1b4b;
     --cat-campus-fg: #a5b4fc;
     --cat-campus-edge: #3730a3;
+
+    --lvl-school-bg: #1e1b4b;
+    --lvl-school-fg: #a5b4fc;
+    --lvl-school-edge: #3730a3;
+
+    --lvl-large-bg: #4a044e;
+    --lvl-large-fg: #f0abfc;
+    --lvl-large-edge: #86198f;
+
+    --lvl-federation-bg: #042f2e;
+    --lvl-federation-fg: #5eead4;
+    --lvl-federation-edge: #115e59;
 
     --cat-other-bg: #1e293b;
     --cat-other-fg: #cbd5e1;

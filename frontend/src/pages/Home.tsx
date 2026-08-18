@@ -117,11 +117,15 @@ export function Home() {
       transition={{ duration: 0.25 }}
       className="grid gap-6"
     >
+      {/* The board is the hero, so the page title is not shown — but the page
+          still needs one heading for structure and screen readers. */}
+      <h1 className="sr-only">十一学校社团云平台 · 展板</h1>
+
       {error && <StatusMessage value={error} />}
 
       <div className="grid gap-6 lg:grid-cols-[1.55fr_0.85fr]">
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
-          <section className="order-1 overflow-hidden rounded-md border border-edge bg-surface lg:h-[360px]">
+          <section className="order-1 lg:h-[360px]">
             {isLoading ? (
               <div className="aspect-[16/7] animate-pulse bg-surface-hover lg:h-full lg:aspect-auto" />
             ) : boardItems.length ? (
@@ -352,40 +356,94 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
   );
 }
 
+/**
+ * The 展板 — the board itself, and the front door of the product.
+ *
+ * Three corrections to the previous version:
+ *
+ *  - It auto-advanced every five seconds with no way to stop it, which fails
+ *    WCAG 2.2.2 (Pause, Stop, Hide) and ignored prefers-reduced-motion. It now
+ *    holds still for anyone who asks for reduced motion, and pauses while the
+ *    pointer or keyboard focus is on it.
+ *  - There was no way to tell how many posters existed or to reach a specific
+ *    one. The indicators are real buttons, so the board is keyboard-operable.
+ *  - The caption floated over the artwork behind a hardcoded rgba halo. It now
+ *    sits in a solid bar on the inverted surface, which is legible over any
+ *    poster and follows the scheme. It is also no longer an <h1>: it is one
+ *    panel among several, and the page's other panels use <h2>.
+ */
 function BoardPanel({ items }: { items: GeneralActivity[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
+  const [paused, setPaused] = useState(false);
   const active = items[activeIndex] || items[0];
 
   useEffect(() => {
-    if (items.length <= 1) return;
+    if (items.length <= 1 || paused) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % items.length);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [items.length]);
+  }, [items.length, paused]);
+
+  // Guard against the list shrinking under us.
+  useEffect(() => {
+    if (activeIndex >= items.length) setActiveIndex(0);
+  }, [activeIndex, items.length]);
 
   return (
-    <a
-      href={active.article_url || `/activities/${active.id}`}
-      target={active.article_url ? "_blank" : undefined}
-      rel="noreferrer"
-      className="group relative block bg-surface-media lg:h-full"
+    <div
+      className="relative flex h-full flex-col overflow-hidden rounded-md border border-edge bg-surface-media shadow-md"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocusCapture={() => setPaused(true)}
+      onBlurCapture={() => setPaused(false)}
     >
-      {active.poster_uri ? (
-        <img
-          src={active.poster_uri}
-          alt={active.name}
-          className="block h-auto w-full lg:h-full lg:object-fill"
-        />
-      ) : (
-        <div className="flex aspect-[16/7] items-center justify-center bg-surface-media text-content-on-inverted-muted">
-          <Image size={42} />
-        </div>
-      )}
-      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold text-content-on-inverted drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
-        {active.name}
-      </h1>
-    </a>
+      <a
+        href={active.article_url || `/activities/${active.id}`}
+        target={active.article_url ? "_blank" : undefined}
+        rel="noreferrer"
+        className="group relative block flex-1 outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
+      >
+        {active.poster_uri ? (
+          <img
+            src={active.poster_uri}
+            alt={active.name}
+            className="block h-full w-full object-cover"
+          />
+        ) : (
+          <div className="flex h-full min-h-48 items-center justify-center text-content-on-inverted-muted">
+            <Image size={42} />
+          </div>
+        )}
+      </a>
+
+      <div className="flex items-center justify-between gap-3 bg-surface-inverted px-4 py-3">
+        <h2 className="min-w-0 truncate font-display text-lg font-bold text-content-on-inverted">
+          {active.name}
+        </h2>
+        {items.length > 1 && (
+          <div className="flex shrink-0 items-center gap-1.5">
+            {items.map((item, index) => (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => setActiveIndex(index)}
+                aria-label={`显示第 ${index + 1} 张展板:${item.name}`}
+                aria-current={index === activeIndex}
+                className={cn(
+                  "h-2.5 w-2.5 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/60",
+                  index === activeIndex
+                    ? "bg-content-on-inverted"
+                    : "bg-content-on-inverted-muted hover:bg-content-on-inverted",
+                )}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 

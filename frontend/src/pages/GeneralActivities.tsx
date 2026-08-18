@@ -1,16 +1,14 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
 import {
-  ArrowUpRight,
-  CalendarDays,
   Filter,
   Search,
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { ActivityCard } from "../components/ui/ActivityCard";
 import type { components } from "../api/schema";
-import { ACTIVITY_LEVEL_MAP, ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
-import { formatDate } from "../lib/format";
+import { ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
 import {
   Badge,
   EmptyState,
@@ -135,37 +133,7 @@ export function GeneralActivities() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.04, duration: 0.25 }}
             >
-              <Link
-                to={`/activities/${activityItem.id}`}
-                className="group block h-full bg-surface p-6 rounded-md border border-edge/60 shadow-sm hover:shadow-sm hover:border-edge-strong transition-all duration-300"
-              >
-                <div className="flex items-start justify-between gap-4">
-                  <div className="w-12 h-12 rounded-md border border-edge-subtle bg-surface-sunken text-content-muted flex items-center justify-center shrink-0">
-                    <CalendarDays size={22} />
-                  </div>
-                  <ArrowUpRight
-                    size={18}
-                    className="text-content-subtle group-hover:text-content group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
-                  />
-                </div>
-                <div className="mt-5">
-                  <Badge tone="neutral">
-                    {ACTIVITY_LEVEL_MAP[activityItem.level]}
-                  </Badge>
-                  <h3 className="mt-3 text-lg font-semibold text-content group-hover:text-content transition-colors">
-                    {activityItem.name}
-                  </h3>
-                  <p className="text-sm text-content-muted line-clamp-2 mt-2">
-                    {activityItem.description}
-                  </p>
-                  <div className="flex items-center gap-3 mt-5 text-xs font-medium text-content-subtle">
-                    <span>{formatDate(activityItem.created_at)}</span>
-                    <span>
-                      {activityItem.club_records?.length || 0} 条社团记录
-                    </span>
-                  </div>
-                </div>
-              </Link>
+              <ActivityCard activity={activityItem} />
             </motion.div>
           ))}
         </div>

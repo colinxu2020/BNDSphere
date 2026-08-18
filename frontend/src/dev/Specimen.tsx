@@ -16,6 +16,7 @@
  * forced one so the two can be compared.
  */
 
+import { ActivityLevelChip } from "../components/ui/ActivityCard";
 import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
 
@@ -235,6 +236,17 @@ export default function Specimen() {
                 ← 密集表格用的紧凑变体
               </span>
             </div>
+          </div>
+        </Section>
+
+        <Section
+          title="活动级别 Activity levels"
+          note="校级 / 大型 / 社联 —— 活动级别是它“是什么”,因此与社团类别一样属于身份标识,而非状态色调,并使用独立色相,以免与类别色混淆。"
+        >
+          <div className="flex flex-wrap gap-3">
+            {(["school", "large", "club_federation"] as const).map((lvl) => (
+              <ActivityLevelChip key={lvl} level={lvl} />
+            ))}
           </div>
         </Section>
 
