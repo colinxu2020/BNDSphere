@@ -85,7 +85,7 @@ export function GeneralActivities() {
       <div className="flex flex-col gap-4">
         <div className="relative w-full">
           <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
-            <Search className="h-5 w-5 text-slate-400" />
+            <Search className="h-5 w-5 text-content-subtle" />
           </div>
           <input
             className={cn(inputClassName, "pl-11")}
@@ -104,8 +104,8 @@ export function GeneralActivities() {
                 className={cn(
                   "px-4 py-2 rounded-md text-sm font-semibold transition-all shadow-sm whitespace-nowrap",
                   level === option.value
-                    ? "bg-slate-900 text-white shadow-slate-900/10"
-                    : "bg-white text-slate-600 border border-slate-200 hover:bg-slate-50",
+                    ? "bg-surface-inverted text-content-on-inverted shadow-black/10"
+                    : "bg-surface text-content-muted border border-edge hover:bg-surface-sunken",
                 )}
               >
                 {option.label}
@@ -122,7 +122,7 @@ export function GeneralActivities() {
           {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className="animate-pulse bg-white h-40 rounded-md border border-slate-100"
+              className="animate-pulse bg-surface h-40 rounded-md border border-edge-subtle"
             />
           ))}
         </div>
@@ -137,28 +137,28 @@ export function GeneralActivities() {
             >
               <Link
                 to={`/activities/${activityItem.id}`}
-                className="group block h-full bg-white p-6 rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-slate-300 transition-all duration-300"
+                className="group block h-full bg-surface p-6 rounded-md border border-edge/60 shadow-sm hover:shadow-sm hover:border-edge-strong transition-all duration-300"
               >
                 <div className="flex items-start justify-between gap-4">
-                  <div className="w-12 h-12 rounded-md border border-slate-100 bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+                  <div className="w-12 h-12 rounded-md border border-edge-subtle bg-surface-sunken text-content-muted flex items-center justify-center shrink-0">
                     <CalendarDays size={22} />
                   </div>
                   <ArrowUpRight
                     size={18}
-                    className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
+                    className="text-content-subtle group-hover:text-content group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
                   />
                 </div>
                 <div className="mt-5">
                   <Badge tone="slate">
                     {ACTIVITY_LEVEL_MAP[activityItem.level]}
                   </Badge>
-                  <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-slate-950 transition-colors">
+                  <h3 className="mt-3 text-lg font-semibold text-content group-hover:text-content transition-colors">
                     {activityItem.name}
                   </h3>
-                  <p className="text-sm text-slate-500 line-clamp-2 mt-2">
+                  <p className="text-sm text-content-muted line-clamp-2 mt-2">
                     {activityItem.description}
                   </p>
-                  <div className="flex items-center gap-3 mt-5 text-xs font-medium text-slate-400">
+                  <div className="flex items-center gap-3 mt-5 text-xs font-medium text-content-subtle">
                     <span>{formatDate(activityItem.created_at)}</span>
                     <span>
                       {activityItem.club_records?.length || 0} 条社团记录

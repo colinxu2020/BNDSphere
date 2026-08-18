@@ -29,13 +29,16 @@ type MyClubActivity = {
   distanceMs: number;
 };
 
+// Rotating accents that distinguish adjacent calendar entries. These carry no
+// meaning, which is why they are the accent-* tokens and not the club category
+// hues — those do carry meaning and must stay stable per category.
 const calendarColors = [
-  "bg-sky-500",
-  "bg-emerald-500",
-  "bg-amber-500",
-  "bg-rose-500",
-  "bg-violet-500",
-  "bg-cyan-500",
+  "bg-accent-1",
+  "bg-accent-2",
+  "bg-accent-3",
+  "bg-accent-4",
+  "bg-accent-5",
+  "bg-accent-6",
 ];
 
 export function Home() {
@@ -117,9 +120,9 @@ export function Home() {
 
       <div className="grid gap-6 lg:grid-cols-[1.55fr_0.85fr]">
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
-          <section className="order-1 overflow-hidden rounded-md border border-slate-200 bg-white lg:h-[360px]">
+          <section className="order-1 overflow-hidden rounded-md border border-edge bg-surface lg:h-[360px]">
             {isLoading ? (
-              <div className="aspect-[16/7] animate-pulse bg-slate-100 lg:h-full lg:aspect-auto" />
+              <div className="aspect-[16/7] animate-pulse bg-surface-hover lg:h-full lg:aspect-auto" />
             ) : boardItems.length ? (
               <BoardPanel items={boardItems} />
             ) : (
@@ -142,17 +145,17 @@ export function Home() {
         </div>
 
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
-          <section className="order-2 rounded-md border border-slate-200 bg-white p-3">
+          <section className="order-2 rounded-md border border-edge bg-surface p-3">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <CalendarDays size={16} className="text-slate-500" />
+                <CalendarDays size={16} className="text-content-muted" />
                 <h2 className="font-display text-base font-bold">活动日历</h2>
               </div>
-              <span className="text-sm font-medium text-slate-500">
+              <span className="text-sm font-medium text-content-muted">
                 {calendar.monthLabel}
               </span>
             </div>
-            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-slate-400">
+            <div className="grid grid-cols-7 gap-1 text-center text-xs font-semibold text-content-subtle">
               {["一", "二", "三", "四", "五", "六", "日"].map((day) => (
                 <span key={day} className="py-1">
                   {day}
@@ -166,14 +169,14 @@ export function Home() {
                   className={cn(
                     "group relative flex h-9 flex-col items-center justify-center rounded-sm border border-transparent text-sm",
                     day.activities.length &&
-                      "hover:bg-sky-50 focus-within:bg-sky-50",
+                      "hover:bg-tone-info-bg focus-within:bg-tone-info-bg",
                   )}
                 >
                   {day.date && (
                     <>
                       <button
                         type="button"
-                        className="flex h-full w-full flex-col items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-sky-300"
+                        className="flex h-full w-full flex-col items-center justify-center rounded-sm outline-none focus-visible:ring-2 focus-visible:ring-tone-info-edge"
                         tabIndex={day.activities.length ? 0 : -1}
                         aria-label={
                           day.activities.length
@@ -185,8 +188,8 @@ export function Home() {
                           className={cn(
                             "font-semibold",
                             day.activities.length
-                              ? "text-sky-700"
-                              : "text-slate-300",
+                              ? "text-tone-info-fg"
+                              : "text-content-subtle",
                           )}
                         >
                           {day.date.getDate()}
@@ -208,12 +211,12 @@ export function Home() {
                       {day.activities.length > 0 && (
                         <div
                           className={cn(
-                            "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 rounded-md bg-slate-950 p-3 text-left text-white opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100",
+                            "pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-64 -translate-x-1/2 rounded-md bg-surface-inverted p-3 text-left text-content-on-inverted opacity-0 shadow-xl transition group-hover:opacity-100 group-focus-within:opacity-100",
                             index % 7 >= 5 && "left-auto right-0 translate-x-0",
                             index % 7 <= 1 && "left-0 translate-x-0",
                           )}
                         >
-                          <div className="mb-2 text-xs font-semibold text-slate-300">
+                          <div className="mb-2 text-xs font-semibold text-content-on-inverted-muted">
                             {day.date.getMonth() + 1} 月 {day.date.getDate()} 日
                           </div>
                           <div className="space-y-2">
@@ -222,14 +225,14 @@ export function Home() {
                                 <p className="text-sm font-semibold">
                                   {activity.name}
                                 </p>
-                                <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-300">
+                                <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-content-on-inverted-muted">
                                   {activity.description || "暂无简介"}
                                 </p>
                               </div>
                             ))}
                           </div>
                           {day.activities.length > 3 && (
-                            <p className="mt-2 text-xs text-slate-400">
+                            <p className="mt-2 text-xs text-content-subtle">
                               另有 {day.activities.length - 3} 个活动
                             </p>
                           )}
@@ -262,16 +265,16 @@ function HomeClubPanel({
   return (
     <section
       className={cn(
-        "order-3 rounded-md border border-slate-200 bg-white p-5 lg:flex-1",
+        "order-3 rounded-md border border-edge bg-surface p-5 lg:flex-1",
         isLoggedIn ? "min-h-[300px]" : "min-h-[220px]",
       )}
     >
       <div className="mb-4 flex items-center justify-between">
         <div className="flex items-center gap-2">
           {isLoggedIn ? (
-            <CalendarDays size={18} className="text-slate-500" />
+            <CalendarDays size={18} className="text-content-muted" />
           ) : (
-            <Users size={18} className="text-slate-500" />
+            <Users size={18} className="text-content-muted" />
           )}
           <h2 className="font-display text-lg font-bold">
             {isLoggedIn ? "我的社团活动" : "社团风采"}
@@ -279,7 +282,7 @@ function HomeClubPanel({
         </div>
         <Link
           to={isLoggedIn ? "/activities" : "/explore"}
-          className="inline-flex items-center gap-1 text-sm font-semibold text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-1 text-sm font-semibold text-content-muted hover:text-content"
         >
           查看更多 <ArrowUpRight size={14} />
         </Link>
@@ -290,7 +293,7 @@ function HomeClubPanel({
           {[...Array(4)].map((_, index) => (
             <div
               key={index}
-              className="h-28 animate-pulse rounded-md bg-slate-100"
+              className="h-28 animate-pulse rounded-md bg-surface-hover"
             />
           ))}
         </div>
@@ -302,9 +305,9 @@ function HomeClubPanel({
             <Link
               key={club.id}
               to={`/club/${club.id}`}
-              className="flex gap-3 rounded-md border border-slate-100 bg-slate-50 p-3 transition hover:border-slate-200 hover:bg-white"
+              className="flex gap-3 rounded-md border border-edge-subtle bg-surface-sunken p-3 transition hover:border-edge hover:bg-surface"
             >
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-white">
+              <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-sm bg-surface">
                 {club.logo_uri ? (
                   <img
                     src={club.logo_uri}
@@ -312,17 +315,17 @@ function HomeClubPanel({
                     className="h-full w-full object-cover"
                   />
                 ) : (
-                  <Users size={20} className="text-slate-400" />
+                  <Users size={20} className="text-content-subtle" />
                 )}
               </div>
               <div className="min-w-0">
-                <p className="truncate font-semibold text-slate-900">
+                <p className="truncate font-semibold text-content">
                   {club.name}
                 </p>
-                <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                   {club.summary}
                 </p>
-                <p className="mt-2 text-xs font-semibold text-slate-400">
+                <p className="mt-2 text-xs font-semibold text-content-subtle">
                   {CATEGORY_MAP[club.category]}
                 </p>
               </div>
@@ -342,9 +345,9 @@ function HomeClubPanel({
 
 function AnnouncementPanel({ items }: { items: Announcement[] }) {
   return (
-    <section className="order-4 rounded-md border border-slate-200 bg-white p-5 lg:flex-1">
+    <section className="order-4 rounded-md border border-edge bg-surface p-5 lg:flex-1">
       <div className="mb-4 flex items-center gap-2">
-        <Megaphone size={18} className="text-slate-500" />
+        <Megaphone size={18} className="text-content-muted" />
         <h2 className="font-display text-lg font-bold">公告</h2>
       </div>
 
@@ -356,13 +359,13 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
               href={item.link_url || undefined}
               target={item.link_url ? "_blank" : undefined}
               rel="noreferrer"
-              className="block rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
+              className="block rounded-md border border-edge-subtle bg-surface-sunken p-3 hover:bg-surface"
             >
-              <p className="font-semibold text-slate-900">{item.title}</p>
-              <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+              <p className="font-semibold text-content">{item.title}</p>
+              <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                 {item.body}
               </p>
-              <p className="mt-2 text-xs text-slate-400">
+              <p className="mt-2 text-xs text-content-subtle">
                 {formatDate(item.created_at)}
               </p>
             </a>
@@ -392,7 +395,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
       href={active.article_url || `/activities/${active.id}`}
       target={active.article_url ? "_blank" : undefined}
       rel="noreferrer"
-      className="group relative block bg-slate-950 lg:h-full"
+      className="group relative block bg-surface-media lg:h-full"
     >
       {active.poster_uri ? (
         <img
@@ -401,11 +404,11 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
           className="block h-auto w-full lg:h-full lg:object-fill"
         />
       ) : (
-        <div className="flex aspect-[16/7] items-center justify-center bg-slate-800 text-slate-500">
+        <div className="flex aspect-[16/7] items-center justify-center bg-surface-media text-content-on-inverted-muted">
           <Image size={42} />
         </div>
       )}
-      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
+      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold text-content-on-inverted drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
         {active.name}
       </h1>
     </a>
@@ -428,18 +431,18 @@ function MyClubActivityList({
         <Link
           key={`${item.club.id}-${item.activity.id}`}
           to={`/club/${item.club.id}`}
-          className="block rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
+          className="block rounded-md border border-edge-subtle bg-surface-sunken p-3 hover:bg-surface"
         >
           <div className="flex items-center justify-between gap-3">
-            <p className="font-semibold text-slate-900">{item.activity.name}</p>
+            <p className="font-semibold text-content">{item.activity.name}</p>
             <Badge tone={getMyClubActivityTone(item.status)}>
               {MY_CLUB_ACTIVITY_STATUS_TEXT[item.status]}
             </Badge>
           </div>
-          <p className="mt-2 line-clamp-2 text-sm text-slate-500">
+          <p className="mt-2 line-clamp-2 text-sm text-content-muted">
             {item.activity.description}
           </p>
-          <p className="mt-2 text-xs text-slate-400">
+          <p className="mt-2 text-xs text-content-subtle">
             {item.club.name} · {formatDate(item.activity.start_time)}
           </p>
         </Link>
@@ -458,9 +461,9 @@ function EmptyPanel({
   description?: string;
 }) {
   return (
-    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
-      <div className="mb-3 text-slate-400">{icon}</div>
-      <p className="font-semibold text-slate-700">{title}</p>
+    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-edge bg-surface-sunken p-6 text-center text-content-muted">
+      <div className="mb-3 text-content-subtle">{icon}</div>
+      <p className="font-semibold text-content">{title}</p>
       {description && <p className="mt-1 max-w-sm text-sm">{description}</p>}
     </div>
   );

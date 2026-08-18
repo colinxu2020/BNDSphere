@@ -66,13 +66,13 @@ export function GeneralActivityDetail() {
     >
       <Link
         to="/activities"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
+        className="inline-flex items-center gap-2 text-content-muted hover:text-content font-medium w-fit transition-colors"
       >
         <ArrowLeft size={18} /> 返回活动
       </Link>
 
       {isLoading ? (
-        <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
+        <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
       ) : error ? (
         <StatusMessage value={error} />
       ) : activityInfo ? (
@@ -91,7 +91,7 @@ export function GeneralActivityDetail() {
             <SectionTitle
               icon={<CheckCircle2 size={20} />}
               className="items-center"
-              iconClassName="border border-slate-100 bg-slate-50 text-slate-600"
+              iconClassName="border border-edge-subtle bg-surface-sunken text-content-muted"
               title="社团记录"
             />
             {activityInfo.club_records?.length ? (
@@ -99,7 +99,7 @@ export function GeneralActivityDetail() {
                 {activityInfo.club_records.map((record) => (
                   <div
                     key={record.id}
-                    className="rounded-md border border-slate-100 bg-slate-50 p-5"
+                    className="rounded-md border border-edge-subtle bg-surface-sunken p-5"
                   >
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div>
@@ -122,12 +122,12 @@ export function GeneralActivityDetail() {
                         <h3 className="mt-3">
                           <Link
                             to={`/club/${record.club_id}`}
-                            className="font-semibold text-slate-900 hover:text-primary-600 transition-colors"
+                            className="font-semibold text-content hover:text-tone-brand-fg transition-colors"
                           >
                             社团 #{record.club_id}
                           </Link>
                         </h3>
-                        <p className="text-sm text-slate-500 mt-1">
+                        <p className="text-sm text-content-muted mt-1">
                           申请分值 {record.requested_score}，提交于{" "}
                           {formatDateTime(record.created_at)}
                         </p>
@@ -141,7 +141,7 @@ export function GeneralActivityDetail() {
                             href={file}
                             target="_blank"
                             rel="noreferrer"
-                            className="text-xs font-medium text-slate-600 bg-white border border-slate-100 rounded-lg px-2.5 py-1 hover:text-primary-600"
+                            className="text-xs font-medium text-content-muted bg-surface border border-edge-subtle rounded-lg px-2.5 py-1 hover:text-tone-brand-fg"
                           >
                             证明材料
                           </a>

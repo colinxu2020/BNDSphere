@@ -175,7 +175,7 @@ export function ClubDetail() {
   if (isLoading) {
     return (
       <div className="animate-pulse space-y-8 flex flex-col">
-        <div className="h-64 bg-slate-200 rounded-md w-full mt-4"></div>
+        <div className="h-64 bg-surface-skeleton rounded-md w-full mt-4"></div>
       </div>
     );
   }
@@ -184,7 +184,7 @@ export function ClubDetail() {
     return <StatusMessage value={error} />;
   }
 
-  if (!club) return <div className="text-slate-500">未找到社团信息</div>;
+  if (!club) return <div className="text-content-muted">未找到社团信息</div>;
 
   return (
     <motion.div
@@ -195,14 +195,14 @@ export function ClubDetail() {
     >
       <Link
         to="/explore"
-        className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
+        className="inline-flex items-center gap-2 text-content-muted hover:text-content font-medium w-fit transition-colors"
       >
         <ArrowLeft size={18} /> 返回探索
       </Link>
 
-      <div className="bg-white p-8 md:p-12 rounded-md border border-slate-100 shadow-sm relative overflow-hidden">
+      <div className="bg-surface p-8 md:p-12 rounded-md border border-edge-subtle shadow-sm relative overflow-hidden">
         <div className="flex flex-col md:flex-row gap-8 relative z-10 items-start md:items-center">
-          <div className="w-28 h-28 md:w-40 md:h-40 rounded-md bg-slate-100 flex items-center justify-center shrink-0 shadow-inner overflow-hidden border border-slate-200">
+          <div className="w-28 h-28 md:w-40 md:h-40 rounded-md bg-surface-hover flex items-center justify-center shrink-0 shadow-inner overflow-hidden border border-edge">
             {club.logo_uri ? (
               <img
                 src={club.logo_uri}
@@ -210,30 +210,30 @@ export function ClubDetail() {
                 className="w-full h-full object-cover"
               />
             ) : (
-              <Hash className="text-slate-400 stroke-[1.5]" size={48} />
+              <Hash className="text-content-subtle stroke-[1.5]" size={48} />
             )}
           </div>
 
           <div className="flex flex-col flex-grow">
             <div className="flex gap-2 items-center mb-3">
-              <span className="text-xs font-bold tracking-wider text-primary-600 bg-primary-50 px-3 py-1 rounded-md border border-primary-100">
+              <span className="text-xs font-bold tracking-wider text-tone-brand-fg bg-brand-subtle px-3 py-1 rounded-md border border-tone-brand-edge">
                 {CATEGORY_MAP[club.category] || club.category}
               </span>
               {club.star_level && club.star_level !== "none" && (
-                <span className="flex items-center gap-1 text-xs font-bold text-yellow-600 bg-yellow-50 px-3 py-1 rounded-md border border-yellow-100">
+                <span className="flex items-center gap-1 text-xs font-bold text-tone-warning-fg bg-tone-warning-bg px-3 py-1 rounded-md border border-tone-warning-edge">
                   <Sparkles
                     size={14}
-                    className="fill-yellow-500 text-yellow-500"
+                    className="fill-tone-warning-fg text-tone-warning-fg"
                   />
                   {STAR_LEVEL_MAP[club.star_level] || club.star_level}
                 </span>
               )}
             </div>
 
-            <h1 className="text-3xl md:text-5xl font-display font-bold text-slate-900 mb-2">
+            <h1 className="text-3xl md:text-5xl font-display font-bold text-content mb-2">
               {club.name}
             </h1>
-            <p className="text-lg md:text-xl text-slate-500 font-medium">
+            <p className="text-lg md:text-xl text-content-muted font-medium">
               {club.summary}
             </p>
           </div>
@@ -243,7 +243,7 @@ export function ClubDetail() {
               <button
                 onClick={joinClub}
                 disabled={isActionLoading}
-                className="flex-1 md:flex-none px-6 py-3 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-semibold rounded-md shadow-lg shadow-primary-500/25 transition-all text-center disabled:opacity-70"
+                className="flex-1 md:flex-none px-6 py-3 bg-brand hover:bg-brand-hover active:scale-95 text-content-on-inverted font-semibold rounded-md shadow-lg shadow-brand/25 transition-all text-center disabled:opacity-70"
               >
                 加入社团
               </button>
@@ -252,7 +252,7 @@ export function ClubDetail() {
               <button
                 onClick={leaveClub}
                 disabled={isActionLoading}
-                className="flex-1 md:flex-none px-6 py-3 bg-slate-50 hover:bg-slate-100 border border-slate-200 active:scale-95 text-slate-800 font-semibold rounded-md transition-all text-center disabled:opacity-70"
+                className="flex-1 md:flex-none px-6 py-3 bg-surface-sunken hover:bg-surface-hover border border-edge active:scale-95 text-content font-semibold rounded-md transition-all text-center disabled:opacity-70"
               >
                 退出社团
               </button>
@@ -260,7 +260,7 @@ export function ClubDetail() {
             {canManage && (
               <Link
                 to={`/club/${club.id}/manage`}
-                className="flex-1 md:flex-none px-6 py-3 bg-slate-900 hover:bg-slate-800 active:scale-95 text-white font-semibold rounded-md transition-all text-center inline-flex items-center justify-center gap-2"
+                className="flex-1 md:flex-none px-6 py-3 bg-surface-inverted hover:bg-surface-inverted-hover active:scale-95 text-content-on-inverted font-semibold rounded-md transition-all text-center inline-flex items-center justify-center gap-2"
               >
                 <Settings size={16} /> 管理
               </Link>
@@ -277,23 +277,23 @@ export function ClubDetail() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left Column - Main Details */}
         <div className="lg:col-span-2 flex flex-col gap-8">
-          <section className="bg-white p-8 rounded-md border border-slate-100 shadow-sm">
-            <h2 className="text-xl font-display font-bold text-slate-900 mb-4 flex items-center gap-2">
+          <section className="bg-surface p-8 rounded-md border border-edge-subtle shadow-sm">
+            <h2 className="text-xl font-display font-bold text-content mb-4 flex items-center gap-2">
               关于社团
             </h2>
-            <div className="prose prose-slate prose-p:leading-relaxed prose-p:text-slate-600 max-w-none text-[17px]">
+            <div className="text-[17px] leading-relaxed text-content-muted">
               <p>{club.description || "暂无详细介绍。"}</p>
             </div>
           </section>
 
           <section className="flex flex-col gap-4">
             <div className="flex flex-wrap items-center justify-between gap-3 px-2">
-              <h2 className="text-xl font-display font-bold text-slate-900 flex items-center gap-2">
-                <Calendar className="text-slate-500" /> 社团活动
+              <h2 className="text-xl font-display font-bold text-content flex items-center gap-2">
+                <Calendar className="text-content-muted" /> 社团活动
               </h2>
               <div className="text-right">
-                <p className="text-sm text-slate-500 font-medium">已组织活动</p>
-                <p className="text-base font-semibold text-slate-900">
+                <p className="text-sm text-content-muted font-medium">已组织活动</p>
+                <p className="text-base font-semibold text-content">
                   {club.club_activities?.length || 0} 场 / 学期
                 </p>
               </div>
@@ -303,21 +303,21 @@ export function ClubDetail() {
                 {club.club_activities.map((act) => (
                   <div
                     key={act.id}
-                    className="bg-white border border-slate-200 p-6 rounded-md flex flex-col sm:flex-row gap-4 sm:items-center justify-between shadow-sm hover:shadow-md transition-shadow group"
+                    className="bg-surface border border-edge p-6 rounded-md flex flex-col sm:flex-row gap-4 sm:items-center justify-between shadow-sm hover:shadow-md transition-shadow group"
                   >
                     <div className="flex flex-col gap-1">
-                      <h3 className="font-semibold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">
+                      <h3 className="font-semibold text-lg text-content group-hover:text-tone-brand-fg transition-colors">
                         {act.name}
                       </h3>
-                      <p className="text-slate-500 text-sm line-clamp-1">
+                      <p className="text-content-muted text-sm line-clamp-1">
                         {act.description}
                       </p>
-                      <div className="flex items-center gap-4 mt-2 text-xs font-medium text-slate-400">
-                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                      <div className="flex items-center gap-4 mt-2 text-xs font-medium text-content-subtle">
+                        <span className="flex items-center gap-1.5 bg-surface-sunken px-2 py-1 rounded-md">
                           <Calendar size={14} />{" "}
                           {new Date(act.start_time).toLocaleDateString()}
                         </span>
-                        <span className="flex items-center gap-1.5 bg-slate-50 px-2 py-1 rounded-md">
+                        <span className="flex items-center gap-1.5 bg-surface-sunken px-2 py-1 rounded-md">
                           <MapPin size={14} /> {act.location}
                         </span>
                       </div>
@@ -326,7 +326,7 @@ export function ClubDetail() {
                 ))}
               </div>
             ) : (
-              <div className="bg-slate-50 border border-slate-100 border-dashed rounded-md p-8 text-center text-slate-500">
+              <div className="bg-surface-sunken border border-edge-subtle border-dashed rounded-md p-8 text-center text-content-muted">
                 当前暂无即将举办的活动，请后续关注！
               </div>
             )}
@@ -335,12 +335,12 @@ export function ClubDetail() {
 
         {/* Right Column - Sidestats */}
         <div className="flex flex-col gap-6">
-          <div className="bg-white p-6 rounded-md border border-slate-100 shadow-sm flex flex-col gap-4">
-            <h3 className="font-display font-bold text-lg text-slate-900">
+          <div className="bg-surface p-6 rounded-md border border-edge-subtle shadow-sm flex flex-col gap-4">
+            <h3 className="font-display font-bold text-lg text-content">
               成员
             </h3>
             <div>
-              <p className="text-sm font-medium text-slate-600">
+              <p className="text-sm font-medium text-content-muted">
                 {activeMembers.length} 名成员
               </p>
             </div>
@@ -350,17 +350,17 @@ export function ClubDetail() {
                   <Link
                     key={member.id}
                     to={`/users/${member.user_id}`}
-                    className="flex items-center justify-between gap-3 rounded-md bg-slate-50 border border-slate-100 px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors"
+                    className="flex items-center justify-between gap-3 rounded-md bg-surface-sunken border border-edge-subtle px-3 py-2 text-sm font-medium text-content-muted hover:text-tone-brand-fg transition-colors"
                   >
                     <span>用户 #{member.user_id}</span>
-                    <span className="text-xs text-slate-400">
+                    <span className="text-xs text-content-subtle">
                       {member.membership}
                     </span>
                   </Link>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-slate-500">暂无成员数据。</p>
+              <p className="text-sm text-content-muted">暂无成员数据。</p>
             )}
           </div>
         </div>
