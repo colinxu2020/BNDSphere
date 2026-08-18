@@ -1,8 +1,6 @@
 import { client } from "./client";
 import type { components } from "./schema";
 
-const PUBLIC_BUCKET_BASE = "https://r2.pulldown.dev";
-
 export type UploadScene = components["schemas"]["UploadScene"];
 
 type UploadOptions = {
@@ -55,7 +53,21 @@ export async function uploadFile(
     throw new Error(text || `Upload failed with HTTP ${response.status}`);
   }
 
-  return `${PUBLIC_BUCKET_BASE}/${data.object_key}`;
+  const { data: confirmed, error: confirmError } = await client.POST("/api/v1/uploads/confirm", {
+    body: {
+      scene,
+      object_key: data.object_key,
+    },
+  });
+
+  if (confirmError) {
+    throw confirmError;
+  }
+  if (!confirmed) {
+    throw new Error("Upload confirmation response is empty.");
+  }
+
+  return confirmed.url;
 }
 
 async function resizeImageFile(

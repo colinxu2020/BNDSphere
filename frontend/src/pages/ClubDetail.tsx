@@ -40,11 +40,13 @@ export function ClubDetail() {
   const [actionMessage, setActionMessage] = useState<unknown>(null);
   const [actionTone, setActionTone] = useState<"error" | "success">("error");
   const [isActionLoading, setIsActionLoading] = useState(false);
+  const [hasSubmittedJoinRequest, setHasSubmittedJoinRequest] = useState(false);
 
   useEffect(() => {
     const fetchClubInfo = async () => {
       setIsLoading(true);
       setError(null);
+      setHasSubmittedJoinRequest(false);
       try {
         const { data, error } = await client.GET("/api/v1/clubs/{club_id}", {
           params: { path: { club_id: Number(id) } },
@@ -79,7 +81,7 @@ export function ClubDetail() {
         ?.membership || null,
     [club?.members, user?.id],
   );
-  const canJoin = !currentMembership;
+  const canJoin = !currentMembership && !hasSubmittedJoinRequest;
   const canLeave = currentMembership === "member" || currentMembership === "pending";
   const canManage = currentMembership ? MANAGER_ROLES.has(currentMembership) : false;
   const activeMembers = useMemo(
@@ -91,11 +93,15 @@ export function ClubDetail() {
   );
 
   const joinClub = async () => {
+    const message = window.prompt("请输入入社申请留言（可以留空）", "");
+    if (message === null) return;
+
     setIsActionLoading(true);
     setActionMessage(null);
     try {
-      const { data, error } = await client.POST("/api/v1/clubs/{club_id}/members", {
+      const { error } = await client.POST("/api/v1/clubs/{club_id}/membership-requests", {
         params: { path: { club_id: Number(id) } },
+        body: { message },
       });
       if (error) {
         setActionTone("error");
@@ -103,12 +109,7 @@ export function ClubDetail() {
       } else {
         setActionTone("success");
         setActionMessage("加入申请已提交");
-        if (data && club) {
-          setClub({
-            ...club,
-            members: [...club.members.filter((member) => member.user_id !== data.user_id), data],
-          });
-        }
+        setHasSubmittedJoinRequest(true);
       }
     } catch (requestError) {
       setActionTone("error");

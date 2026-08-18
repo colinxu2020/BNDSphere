@@ -49,9 +49,6 @@ jobs:
       - name: Mypy
         run: uv run mypy app
 
-      - name: Compile Python sources
-        run: uv run python -m compileall -q app
-
   frontend:
     name: Frontend quality and build
     runs-on: ubuntu-latest

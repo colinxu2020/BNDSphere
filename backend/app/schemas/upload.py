@@ -27,6 +27,7 @@ SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
     {
         UploadScene.AVATAR: "avatar",
         UploadScene.CLUB_LOGO: "club_logo",
+        UploadScene.ACTIVITY_POSTER: "activity_poster",
         UploadScene.APPLICATION_FILE: "application_files",
     },
 )
@@ -87,8 +88,16 @@ def _validate_logo_uri(url: HttpUrl | None) -> HttpUrl | None:
     return ensure_uploaded_object_url(UploadScene.CLUB_LOGO, url)
 
 
+def _validate_activity_poster_uri(url: HttpUrl | None) -> HttpUrl | None:
+    return ensure_uploaded_object_url(UploadScene.ACTIVITY_POSTER, url)
+
+
 AvatarUri = Annotated[HttpUrl | None, AfterValidator(_validate_avatar_uri)]
 LogoUri = Annotated[HttpUrl | None, AfterValidator(_validate_logo_uri)]
+ActivityPosterUri = Annotated[
+    HttpUrl | None,
+    AfterValidator(_validate_activity_poster_uri),
+]
 
 
 class InitiateUploadRequest(BaseModel):

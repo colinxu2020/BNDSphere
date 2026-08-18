@@ -52,11 +52,6 @@ class ClubUpdate(BaseModel):
         ensure_non_nullable_fields_present(self, {"summary", "description"})
         return self
 
-    @model_validator(mode="after")
-    def validate_non_nullable_fields(self) -> Self:
-        ensure_non_nullable_fields_present(self, {"summary", "description"})
-        return self
-
 
 class FederationClubUpdate(ClubUpdate):
     star_level: ClubStarLevelEnum | None = Field(None)

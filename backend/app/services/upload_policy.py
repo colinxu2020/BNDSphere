@@ -69,7 +69,7 @@ UPLOAD_POLICIES: Mapping[UploadScene, UploadPolicy] = MappingProxyType(
         ),
         UploadScene.ACTIVITY_POSTER: image_upload_policy(
             scene=UploadScene.ACTIVITY_POSTER,
-            oss_dir="activity_poster",
+            oss_dir=SCENE_OSS_DIRS[UploadScene.ACTIVITY_POSTER],
         ),
         UploadScene.APPLICATION_FILE: UploadPolicy(
             scene=UploadScene.APPLICATION_FILE,
