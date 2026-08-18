@@ -9,6 +9,7 @@ import { useParams, Link } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
+import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { CategoryChip } from "../components/ui/CategoryChip";
@@ -26,7 +27,7 @@ export function ClubDetail() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [actionMessage, setActionMessage] = useState<unknown>(null);
-  const [actionTone, setActionTone] = useState<"error" | "success">("error");
+  const [actionTone, setActionTone] = useState<Tone>("danger");
   const [isActionLoading, setIsActionLoading] = useState(false);
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export function ClubDetail() {
         },
       );
       if (error) {
-        setActionTone("error");
+        setActionTone("danger");
         setActionMessage(error);
       } else {
         setActionTone("success");
@@ -111,7 +112,7 @@ export function ClubDetail() {
         }
       }
     } catch (requestError) {
-      setActionTone("error");
+      setActionTone("danger");
       setActionMessage(requestError);
     } finally {
       setIsActionLoading(false);
@@ -129,7 +130,7 @@ export function ClubDetail() {
         },
       );
       if (error) {
-        setActionTone("error");
+        setActionTone("danger");
         setActionMessage(error);
       } else {
         setActionTone("success");
@@ -146,7 +147,7 @@ export function ClubDetail() {
         }
       }
     } catch (requestError) {
-      setActionTone("error");
+      setActionTone("danger");
       setActionMessage(requestError);
     } finally {
       setIsActionLoading(false);

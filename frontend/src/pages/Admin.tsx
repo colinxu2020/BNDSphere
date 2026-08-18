@@ -10,6 +10,7 @@ import {
   Users,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -66,13 +67,11 @@ const sections: { id: SectionId; label: string; icon: React.ReactNode }[] = [
 export function Admin() {
   const [activeSection, setActiveSection] = useState<SectionId>("users");
   const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success" | "info">(
-    "info",
-  );
+  const [messageTone, setMessageTone] = useState<Tone>("info");
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const setResult = (error: unknown, data: unknown) => {
-    setMessageTone(error ? "error" : "success");
+    setMessageTone(error ? "danger" : "success");
     setMessage(error || data || "操作已完成");
   };
 
@@ -88,11 +87,11 @@ export function Admin() {
         setMessageTone("success");
         setMessage(`服务正常（HTTP ${response.status}）`);
       } else {
-        setMessageTone("error");
+        setMessageTone("danger");
         setMessage(error || `健康检查失败（HTTP ${response.status}）`);
       }
     } catch (error) {
-      setMessageTone("error");
+      setMessageTone("danger");
       setMessage(error || "无法连接后端健康检查接口，请确认后端服务正在运行");
     }
   };
@@ -1278,7 +1277,7 @@ function ListButton({
         <p className="min-w-0 truncate text-sm font-semibold text-content">
           {title}
         </p>
-        {badge && <Badge tone="primary">{badge}</Badge>}
+        {badge && <Badge tone="brand">{badge}</Badge>}
       </div>
       {meta && <p className="mt-1 truncate text-xs text-content-muted">{meta}</p>}
     </button>

@@ -10,6 +10,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
@@ -37,12 +38,6 @@ const GRADE_MAP: Record<UserGrade, string> = {
   inter_grade_10: "国际高一",
   inter_grade_11: "国际高二",
   inter_grade_12: "国际高三",
-};
-
-const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
-  pending: "yellow",
-  approved: "green",
-  rejected: "red",
 };
 
 export function StarLevelApplications() {
@@ -153,7 +148,7 @@ function StarApplicationCard({
               >
                 {application.club.name}
               </Link>
-              <Badge tone="slate">
+              <Badge tone="neutral">
                 {CATEGORY_MAP[application.club.category]}
               </Badge>
               {auditStatus && (

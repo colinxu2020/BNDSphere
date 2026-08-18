@@ -2,6 +2,7 @@ import type { ButtonHTMLAttributes, ReactNode } from "react";
 import { AlertCircle, Inbox } from "@/src/components/ui/Icons";
 import { cn } from "../../lib/utils";
 import { stringifyBackendValue } from "../../lib/format";
+import { TONE_CLASSES, type Tone } from "../../lib/tones";
 
 export const inputClassName =
   "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle";
@@ -179,10 +180,10 @@ export function DangerButton({
 
 export function StatusMessage({
   value,
-  tone = "error",
+  tone = "danger",
 }: {
   value?: unknown;
-  tone?: "error" | "success" | "info";
+  tone?: Tone;
 }) {
   const text =
     tone === "success"
@@ -190,11 +191,7 @@ export function StatusMessage({
       : stringifyBackendValue(value);
   if (!text) return null;
 
-  const toneClass = {
-    error: "bg-tone-danger-bg text-tone-danger-fg border-tone-danger-edge",
-    success: "bg-tone-success-bg text-tone-success-fg border-tone-success-edge",
-    info: "bg-surface-sunken text-content-muted border-edge-subtle",
-  }[tone];
+  const toneClass = TONE_CLASSES[tone];
 
   return (
     <div
@@ -258,19 +255,12 @@ export function InlineError({ value }: { value?: unknown }) {
 
 export function Badge({
   children,
-  tone = "slate",
+  tone = "neutral",
 }: {
   children: ReactNode;
-  tone?: "slate" | "primary" | "yellow" | "green" | "red" | "blue";
+  tone?: Tone;
 }) {
-  const toneClass = {
-    slate: "bg-surface-sunken text-content-muted border-edge-subtle",
-    primary: "bg-brand-subtle text-tone-brand-fg border-tone-brand-edge",
-    yellow: "bg-tone-warning-bg text-tone-warning-fg border-tone-warning-edge",
-    green: "bg-tone-success-bg text-tone-success-fg border-tone-success-edge",
-    red: "bg-tone-danger-bg text-tone-danger-fg border-tone-danger-edge",
-    blue: "bg-tone-info-bg text-tone-info-fg border-tone-info-edge",
-  }[tone];
+  const toneClass = TONE_CLASSES[tone];
 
   return (
     <span

@@ -96,7 +96,7 @@ export function UserProfile() {
                 <p className="text-content-muted font-medium">{user.email}</p>
               )}
               <div className="flex items-center gap-2 mt-2">
-                <Badge tone="primary">{ROLE_MAP[user.role]}</Badge>
+                <Badge tone="brand">{ROLE_MAP[user.role]}</Badge>
                 <span className="text-xs text-content-subtle font-medium">
                   加入于 {formatDate(user.created_at)}
                 </span>

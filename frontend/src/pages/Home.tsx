@@ -10,6 +10,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
@@ -475,10 +476,10 @@ const MY_CLUB_ACTIVITY_STATUS_TEXT: Record<MyClubActivityStatus, string> = {
   upcoming: "即将开始",
 };
 
-function getMyClubActivityTone(status: MyClubActivityStatus) {
-  if (status === "ongoing") return "green";
-  if (status === "ended") return "slate";
-  return "blue";
+function getMyClubActivityTone(status: MyClubActivityStatus): Tone {
+  if (status === "ongoing") return "success";
+  if (status === "ended") return "neutral";
+  return "info";
 }
 
 function getJoinedClubIds(clubs: ClubInfo[], userId?: number | null) {

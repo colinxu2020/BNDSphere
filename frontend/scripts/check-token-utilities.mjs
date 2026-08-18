@@ -24,17 +24,17 @@ import { join, extname } from "node:path";
 const SRC = "src";
 const DIST_ASSETS = "dist/assets";
 
-/** Token namespaces this project defines in index.css. */
-const NAMESPACES = [
-  "primary",
-  "secondary",
-  "surface",
-  "content",
-  "edge",
-  "brand",
-  "tone",
-  "cat",
-];
+/**
+ * Token namespaces this project defines in index.css, split by whether the
+ * namespace alone is a complete utility.
+ *
+ * `bg-surface` and `text-content` are valid on their own; `tone` and `cat` never
+ * are, and neither is a bare `primary`/`secondary` without a step. Requiring a
+ * suffix for the second group keeps prose out of the results — "Status-to-tone
+ * mapping" in a comment would otherwise be read as the utility `to-tone`.
+ */
+const NAMESPACES_STANDALONE = ["surface", "content", "edge", "brand"];
+const NAMESPACES_SUFFIXED = ["primary", "secondary", "tone", "cat"];
 
 /** Utility prefixes that resolve against a colour token. */
 const PROPERTIES = [
@@ -68,7 +68,8 @@ const candidatePattern = new RegExp(
     // property prefix
     String.raw`(${PROPERTIES.join("|")})-` +
     // our namespace, plus any token path segments
-    String.raw`((?:${NAMESPACES.join("|")})(?:-[a-z0-9]+)*)` +
+    String.raw`((?:(?:${NAMESPACES_STANDALONE.join("|")})(?:-[a-z0-9]+)*` +
+    String.raw`|(?:${NAMESPACES_SUFFIXED.join("|")})(?:-[a-z0-9]+)+))` +
     // optional /opacity modifier
     String.raw`(\/\d{1,3})?`,
   "g",

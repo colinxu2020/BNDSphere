@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { ArrowLeft, CheckCircle2 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -105,13 +106,7 @@ export function GeneralActivityDetail() {
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
-                            tone={
-                              record.audit_status === "approved"
-                                ? "green"
-                                : record.audit_status === "rejected"
-                                  ? "red"
-                                  : "yellow"
-                            }
+                            tone={AUDIT_TONE[record.audit_status ?? "pending"]}
                           >
                             {AUDIT_STATUS_MAP[record.audit_status]}
                           </Badge>

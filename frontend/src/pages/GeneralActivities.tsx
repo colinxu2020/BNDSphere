@@ -149,7 +149,7 @@ export function GeneralActivities() {
                   />
                 </div>
                 <div className="mt-5">
-                  <Badge tone="slate">
+                  <Badge tone="neutral">
                     {ACTIVITY_LEVEL_MAP[activityItem.level]}
                   </Badge>
                   <h3 className="mt-3 text-lg font-semibold text-content group-hover:text-content transition-colors">

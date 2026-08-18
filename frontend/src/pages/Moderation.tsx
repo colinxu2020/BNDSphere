@@ -8,6 +8,7 @@ import {
   X,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime, stringifyBackendValue } from "../lib/format";
@@ -106,7 +107,7 @@ export function Moderation() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
   const [actionMessage, setActionMessage] = useState<unknown>(null);
-  const [actionTone, setActionTone] = useState<"error" | "success">("error");
+  const [actionTone, setActionTone] = useState<Tone>("danger");
   const [busyId, setBusyId] = useState<number | null>(null);
 
   const fetchQueue = async () => {
@@ -222,7 +223,7 @@ export function Moderation() {
       }
 
       if (result.error) {
-        setActionTone("error");
+        setActionTone("danger");
         setActionMessage(result.error);
       } else {
         setActionTone("success");
@@ -230,7 +231,7 @@ export function Moderation() {
         fetchQueue();
       }
     } catch (requestError) {
-      setActionTone("error");
+      setActionTone("danger");
       setActionMessage(requestError);
     } finally {
       setBusyId(null);
@@ -322,13 +323,7 @@ export function Moderation() {
                   <div className="min-w-0">
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge
-                        tone={
-                          item.moderation_status === "approved"
-                            ? "green"
-                            : item.moderation_status === "rejected"
-                              ? "red"
-                              : "yellow"
-                        }
+                        tone={AUDIT_TONE[item.moderation_status ?? "pending"]}
                       >
                         {MODERATION_STATUS_MAP[item.moderation_status]}
                       </Badge>

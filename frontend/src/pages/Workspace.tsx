@@ -165,15 +165,15 @@ export function Workspace() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge tone="primary">
+                      <Badge tone="brand">
                         {membership
                           ? MEMBERSHIP_MAP[membership.membership]
                           : ""}
                       </Badge>
-                      <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
-                      <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
+                      <Badge tone="neutral">{CATEGORY_MAP[club.category]}</Badge>
+                      <Badge tone="info">{CLUB_STATUS_MAP[club.status]}</Badge>
                       {club.star_level !== "none" && (
-                        <Badge tone="yellow">
+                        <Badge tone="warning">
                           {STAR_LEVEL_MAP[club.star_level]}
                         </Badge>
                       )}

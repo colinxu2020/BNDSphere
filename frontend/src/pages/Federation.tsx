@@ -15,6 +15,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
+import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -77,7 +78,7 @@ export function Federation() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const [messageTone, setMessageTone] = useState<Tone>("danger");
 
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
@@ -268,7 +269,7 @@ export function Federation() {
 
   const setResult = (error: unknown, successMessage: string) => {
     if (error) {
-      setMessageTone("error");
+      setMessageTone("danger");
       setMessage(error);
       return;
     }
@@ -590,7 +591,7 @@ export function Federation() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={getAuditTone(record.audit_status)}>
+                    <Badge tone={AUDIT_TONE[record.audit_status]}>
                       {AUDIT_STATUS_MAP[record.audit_status]}
                     </Badge>
                     <Badge>
@@ -719,7 +720,7 @@ export function Federation() {
                 >
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge
-                      tone={getAuditTone(application.audit_status || "pending")}
+                      tone={AUDIT_TONE[application.audit_status || "pending"]}
                     >
                       {application.audit_status
                         ? AUDIT_STATUS_MAP[application.audit_status]
@@ -916,7 +917,7 @@ export function Federation() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="primary">
+                    <Badge tone="brand">
                       {ACTIVITY_LEVEL_MAP[activity.level]}
                     </Badge>
                     <Badge>{activity.club_records?.length || 0} 条记录</Badge>
@@ -1120,7 +1121,7 @@ function ActivityRequestList({
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-content">{title}</h3>
-        <Badge tone={items.length ? "yellow" : "slate"}>
+        <Badge tone={items.length ? "warning" : "neutral"}>
           {items.length} 条待处理
         </Badge>
       </div>
@@ -1135,7 +1136,7 @@ function ActivityRequestList({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="yellow">
+                    <Badge tone="warning">
                       {MODERATION_STATUS_MAP[item.moderation_status]}
                     </Badge>
                     <span className="text-xs font-medium text-content-subtle">
@@ -1312,8 +1313,3 @@ function getStarPreviewLevelText(
     : STAR_LEVEL_MAP[preview.approved_level];
 }
 
-function getAuditTone(status: AuditStatus) {
-  if (status === "approved") return "green";
-  if (status === "rejected") return "red";
-  return "yellow";
-}

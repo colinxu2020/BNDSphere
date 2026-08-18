@@ -14,6 +14,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { AUDIT_TONE, type Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import {
   AUDIT_STATUS_MAP,
@@ -77,7 +78,7 @@ export function ClubWorkspace() {
   const [clubDescription, setClubDescription] = useState("");
   const [clubLogo, setClubLogo] = useState("");
   const [clubMessage, setClubMessage] = useState<unknown>(null);
-  const [clubTone, setClubTone] = useState<"error" | "success">("error");
+  const [clubTone, setClubTone] = useState<Tone>("danger");
   const [isClubSubmitting, setIsClubSubmitting] = useState(false);
 
   const [activityName, setActivityName] = useState("");
@@ -87,9 +88,7 @@ export function ClubWorkspace() {
   const [activityLocation, setActivityLocation] = useState("");
   const [activityCreateMessage, setActivityCreateMessage] =
     useState<unknown>(null);
-  const [activityCreateTone, setActivityCreateTone] = useState<
-    "error" | "success"
-  >("error");
+  const [activityCreateTone, setActivityCreateTone] = useState<Tone>("danger");
   const [isActivityCreating, setIsActivityCreating] = useState(false);
   const [activityEditorMode, setActivityEditorMode] = useState<
     "create" | "update" | null
@@ -107,9 +106,7 @@ export function ClubWorkspace() {
   >([]);
   const [activityUpdateMessage, setActivityUpdateMessage] =
     useState<unknown>(null);
-  const [activityUpdateTone, setActivityUpdateTone] = useState<
-    "error" | "success"
-  >("error");
+  const [activityUpdateTone, setActivityUpdateTone] = useState<Tone>("danger");
   const [isActivityUpdating, setIsActivityUpdating] = useState(false);
 
   const [generalActivityId, setGeneralActivityId] = useState("");
@@ -118,16 +115,14 @@ export function ClubWorkspace() {
   const [requestedScore, setRequestedScore] = useState("");
   const [proofFileUrls, setProofFileUrls] = useState<string[]>([]);
   const [recordMessage, setRecordMessage] = useState<unknown>(null);
-  const [recordTone, setRecordTone] = useState<"error" | "success">("error");
+  const [recordTone, setRecordTone] = useState<Tone>("danger");
   const [isRecordSubmitting, setIsRecordSubmitting] = useState(false);
 
   const [starAttachment, setStarAttachment] = useState("");
   const [starScore, setStarScore] = useState("");
   const [starStatement, setStarStatement] = useState("");
   const [starCreateMessage, setStarCreateMessage] = useState<unknown>(null);
-  const [starCreateTone, setStarCreateTone] = useState<"error" | "success">(
-    "error",
-  );
+  const [starCreateTone, setStarCreateTone] = useState<Tone>("danger");
   const [isStarCreating, setIsStarCreating] = useState(false);
   const [starEditorMode, setStarEditorMode] = useState<
     "create" | "update" | null
@@ -138,9 +133,7 @@ export function ClubWorkspace() {
   const [starUpdateScore, setStarUpdateScore] = useState("");
   const [starUpdateStatement, setStarUpdateStatement] = useState("");
   const [starUpdateMessage, setStarUpdateMessage] = useState<unknown>(null);
-  const [starUpdateTone, setStarUpdateTone] = useState<"error" | "success">(
-    "error",
-  );
+  const [starUpdateTone, setStarUpdateTone] = useState<Tone>("danger");
   const [isStarUpdating, setIsStarUpdating] = useState(false);
 
   const refresh = async () => {
@@ -312,14 +305,14 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setClubTone("error");
+        setClubTone("danger");
         setClubMessage(error);
       } else {
         setClubTone("success");
         setClubMessage(data);
       }
     } catch (error) {
-      setClubTone("error");
+      setClubTone("danger");
       setClubMessage(error);
     } finally {
       setIsClubSubmitting(false);
@@ -345,7 +338,7 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setActivityCreateTone("error");
+        setActivityCreateTone("danger");
         setActivityCreateMessage(error);
       } else {
         setActivityCreateTone("success");
@@ -353,7 +346,7 @@ export function ClubWorkspace() {
         refresh();
       }
     } catch (error) {
-      setActivityCreateTone("error");
+      setActivityCreateTone("danger");
       setActivityCreateMessage(error);
     } finally {
       setIsActivityCreating(false);
@@ -363,7 +356,7 @@ export function ClubWorkspace() {
   const submitActivityUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selectedUpdateActivity) {
-      setActivityUpdateTone("error");
+      setActivityUpdateTone("danger");
       setActivityUpdateMessage("请先选择一个社团活动");
       return;
     }
@@ -410,14 +403,14 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setActivityUpdateTone("error");
+        setActivityUpdateTone("danger");
         setActivityUpdateMessage(error);
       } else {
         setActivityUpdateTone("success");
         setActivityUpdateMessage("活动修改申请已提交");
       }
     } catch (error) {
-      setActivityUpdateTone("error");
+      setActivityUpdateTone("danger");
       setActivityUpdateMessage(error);
     } finally {
       setIsActivityUpdating(false);
@@ -448,7 +441,7 @@ export function ClubWorkspace() {
 
       const { data, error } = await request;
       if (error) {
-        setRecordTone("error");
+        setRecordTone("danger");
         setRecordMessage(error);
       } else {
         setRecordTone("success");
@@ -456,7 +449,7 @@ export function ClubWorkspace() {
         refresh();
       }
     } catch (error) {
-      setRecordTone("error");
+      setRecordTone("danger");
       setRecordMessage(error);
     } finally {
       setIsRecordSubmitting(false);
@@ -480,7 +473,7 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setStarCreateTone("error");
+        setStarCreateTone("danger");
         setStarCreateMessage(error);
       } else {
         setStarCreateTone("success");
@@ -488,7 +481,7 @@ export function ClubWorkspace() {
         refresh();
       }
     } catch (error) {
-      setStarCreateTone("error");
+      setStarCreateTone("danger");
       setStarCreateMessage(error);
     } finally {
       setIsStarCreating(false);
@@ -540,7 +533,7 @@ export function ClubWorkspace() {
         },
       );
       if (error) {
-        setStarUpdateTone("error");
+        setStarUpdateTone("danger");
         setStarUpdateMessage(error);
       } else {
         setStarUpdateTone("success");
@@ -548,7 +541,7 @@ export function ClubWorkspace() {
         refresh();
       }
     } catch (error) {
-      setStarUpdateTone("error");
+      setStarUpdateTone("danger");
       setStarUpdateMessage(error);
     } finally {
       setIsStarUpdating(false);
@@ -617,8 +610,8 @@ export function ClubWorkspace() {
                 </div>
                 <div className="flex-1">
                   <div className="flex flex-wrap gap-2 mb-2">
-                    <Badge tone="primary">{CATEGORY_MAP[club.category]}</Badge>
-                    <Badge tone="yellow">
+                    <Badge tone="brand">{CATEGORY_MAP[club.category]}</Badge>
+                    <Badge tone="warning">
                       {STAR_LEVEL_MAP[club.star_level]}
                     </Badge>
                   </div>
@@ -645,16 +638,16 @@ export function ClubWorkspace() {
                   </p>
                 </div>
                 <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <Badge tone="primary">
+                  <Badge tone="brand">
                     会议出勤 {starRating.breakdown.meeting_attendance}
                   </Badge>
-                  <Badge tone="primary">
+                  <Badge tone="brand">
                     活动参与 {starRating.breakdown.activity_participation}
                   </Badge>
-                  <Badge tone="primary">
+                  <Badge tone="brand">
                     内部活动 {starRating.breakdown.internal_activities}
                   </Badge>
-                  <Badge tone="primary">
+                  <Badge tone="brand">
                     社团历史 {starRating.breakdown.club_history}
                   </Badge>
                 </div>
@@ -915,7 +908,7 @@ export function ClubWorkspace() {
                         <div className="flex flex-wrap items-center gap-2">
                           {record ? (
                             <>
-                              <Badge tone={getAuditTone(record.audit_status)}>
+                              <Badge tone={AUDIT_TONE[record.audit_status]}>
                                 {AUDIT_STATUS_MAP[record.audit_status]}
                               </Badge>
                               <Badge>
@@ -923,7 +916,7 @@ export function ClubWorkspace() {
                               </Badge>
                             </>
                           ) : (
-                            <Badge tone="slate">未提交</Badge>
+                            <Badge tone="neutral">未提交</Badge>
                           )}
                         </div>
                         <h3 className="mt-3 font-semibold text-content">
@@ -1067,20 +1060,14 @@ export function ClubWorkspace() {
                     >
                       <div className="flex flex-wrap gap-2">
                         <Badge
-                          tone={
-                            application.audit_status === "approved"
-                              ? "green"
-                              : application.audit_status === "rejected"
-                                ? "red"
-                                : "yellow"
-                          }
+                          tone={AUDIT_TONE[application.audit_status ?? "pending"]}
                         >
                           {application.audit_status
                             ? AUDIT_STATUS_MAP[application.audit_status]
                             : "未审核"}
                         </Badge>
                         {application.approved_level && (
-                          <Badge tone="primary">
+                          <Badge tone="brand">
                             {STAR_LEVEL_MAP[application.approved_level]}
                           </Badge>
                         )}
@@ -1267,8 +1254,3 @@ function sameStringArray(left: string[], right: string[]) {
   return left.every((item, index) => item === right[index]);
 }
 
-function getAuditTone(status: components["schemas"]["AuditStatusEnum"]) {
-  if (status === "approved") return "green";
-  if (status === "rejected") return "red";
-  return "yellow";
-}

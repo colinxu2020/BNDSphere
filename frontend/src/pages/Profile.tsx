@@ -3,6 +3,7 @@ import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
+import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
@@ -22,7 +23,7 @@ export function Profile() {
   const [updateAvatar, setUpdateAvatar] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [updateMessage, setUpdateMessage] = useState<unknown>(null);
-  const [updateTone, setUpdateTone] = useState<"error" | "success">("error");
+  const [updateTone, setUpdateTone] = useState<Tone>("danger");
   const [loadError, setLoadError] = useState<unknown>(null);
 
   useEffect(() => {
@@ -81,7 +82,7 @@ export function Profile() {
       );
 
       if (error) {
-        setUpdateTone("error");
+        setUpdateTone("danger");
         setUpdateMessage(error);
       } else {
         setUpdateTone("success");
@@ -92,7 +93,7 @@ export function Profile() {
         }, 2000);
       }
     } catch (err: any) {
-      setUpdateTone("error");
+      setUpdateTone("danger");
       setUpdateMessage(err);
     } finally {
       setIsSubmitting(false);

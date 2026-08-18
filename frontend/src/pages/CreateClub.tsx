@@ -3,6 +3,7 @@ import { motion } from "motion/react";
 import { Building2, Save } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
+import type { Tone } from "../lib/tones";
 import type { components } from "../api/schema";
 import { CATEGORY_OPTIONS } from "../lib/labels";
 import {
@@ -29,7 +30,7 @@ export function CreateClub() {
   const [logoUri, setLogoUri] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<unknown>(null);
-  const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const [messageTone, setMessageTone] = useState<Tone>("danger");
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -48,7 +49,7 @@ export function CreateClub() {
       });
 
       if (error) {
-        setMessageTone("error");
+        setMessageTone("danger");
         setMessage(error);
         return;
       }
@@ -59,7 +60,7 @@ export function CreateClub() {
         navigate(`/club/${data.id}`);
       }
     } catch (error) {
-      setMessageTone("error");
+      setMessageTone("danger");
       setMessage(error);
     } finally {
       setIsSubmitting(false);

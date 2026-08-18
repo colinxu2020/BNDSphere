@@ -130,3 +130,4 @@ secrets
 .env
 
 .codegraph/
+.DS_Store
