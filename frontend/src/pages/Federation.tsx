@@ -1094,7 +1094,7 @@ function LoadingRows() {
 
 function ReadOnlyValue({ children }: { children: React.ReactNode }) {
   return (
-    <div className="min-h-[44px] rounded-md bg-surface-sunken px-3 py-2.5 text-sm font-semibold text-content shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.22)]">
+    <div className="min-h-[44px] rounded-md bg-surface-sunken px-3 py-2.5 text-sm font-semibold text-content ring-[1.5px] ring-edge">
       {children}
     </div>
   );

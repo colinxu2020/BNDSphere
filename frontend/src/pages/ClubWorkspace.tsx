@@ -901,8 +901,8 @@ export function ClubWorkspace() {
                         }
                         className={`rounded-md p-4 text-left transition hover:bg-surface ${
                           isSelected
-                            ? "bg-brand-subtle shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
-                            : "bg-surface-sunken shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]"
+                            ? "bg-brand-subtle ring-[1.5px] ring-brand/40"
+                            : "bg-surface-sunken ring-[1.5px] ring-edge"
                         }`}
                       >
                         <div className="flex flex-wrap items-center gap-2">
@@ -941,7 +941,7 @@ export function ClubWorkspace() {
               </div>
 
               {selectedGeneralActivity && (
-                <div className="rounded-md bg-surface p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
+                <div className="rounded-md bg-surface p-5 ring-[1.5px] ring-edge">
                   <form
                     onSubmit={(event) => {
                       event.preventDefault();

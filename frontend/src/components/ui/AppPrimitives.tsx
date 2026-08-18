@@ -28,11 +28,11 @@ export function PageHeader({
     <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
       <div className="flex flex-col gap-2">
         {eyebrow && (
-          <span className="text-xs font-bold tracking-wider uppercase text-tone-brand-fg">
+          <span className="font-display text-xs font-bold tracking-[0.18em] uppercase text-tone-brand-fg">
             {eyebrow}
           </span>
         )}
-        <h1 className="text-3xl md:text-4xl font-display font-bold text-content">
+        <h1 className="text-4xl md:text-5xl font-display font-bold text-content">
           {title}
         </h1>
         {description && (
@@ -89,7 +89,7 @@ export function SectionTitle({
         </div>
       )}
       <div>
-        <h2 className="text-xl font-display font-bold text-content">
+        <h2 className="text-2xl font-display font-bold text-content">
           {title}
         </h2>
         {description && (

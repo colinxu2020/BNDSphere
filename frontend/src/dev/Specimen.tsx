@@ -16,7 +16,7 @@
  * forced one so the two can be compared.
  */
 
-import { CategoryChip } from "../components/ui/CategoryChip";
+import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
 
 const TONES = [
@@ -421,6 +421,49 @@ export default function Specimen() {
           </div>
           <div className="motion-safe:animate-pulse bg-brand-subtle border-tone-brand-edge text-tone-brand-fg mt-4 rounded-md border p-3 text-sm font-semibold">
             此块使用 motion-safe:animate-pulse —— 在“减弱动态效果”下应静止。
+          </div>
+        </Section>
+
+        <Section
+          title="形状与层级 Shape & elevation"
+          note="卡片以硬投影表现层级 —— 没有模糊。模糊阴影在深色表面上几乎消失,而硬投影是一条画出来的边,在两套配色下都成立,也与全局 1.5px 描边一致。悬停时卡片向左上位移,像从板面上被拈起。"
+        >
+          <div className="grid gap-4 md:grid-cols-3">
+            {(["sm", "md", "lg"] as const).map((step) => (
+              <div
+                key={step}
+                className={`border-edge bg-surface rounded-md border p-4 ${
+                  step === "sm"
+                    ? "shadow-sm"
+                    : step === "md"
+                      ? "shadow-md"
+                      : "shadow-lg"
+                }`}
+              >
+                <code className="text-content-subtle text-xs">
+                  shadow-{step}
+                </code>
+                <p className="text-content mt-1 text-sm font-semibold">
+                  硬投影层级
+                </p>
+              </div>
+            ))}
+          </div>
+          <div className="mt-5 grid gap-4 md:grid-cols-2">
+            {(["science", "arts"] as const).map((cat) => (
+              <div
+                key={cat}
+                className={`border-edge bg-surface rounded-md border border-l-4 p-4 shadow-sm transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none ${categorySpine(cat)}`}
+              >
+                <CategoryChip category={cat} size="sm" />
+                <p className="text-content mt-2 font-semibold">
+                  类别脊边 · 悬停以查看位移
+                </p>
+                <p className="text-content-muted text-sm">
+                  边而非填充,因此仍遵守“类别色仅用于小元素”的约束。
+                </p>
+              </div>
+            ))}
           </div>
         </Section>
 

@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
-import { CategoryChip } from "../components/ui/CategoryChip";
+import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
 import { StarLevel } from "../components/ui/StarLevel";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
@@ -157,7 +157,11 @@ export function ExploreClubs() {
             >
               <Link
                 to={`/club/${club.id}`}
-                className="group flex items-start gap-4 p-5 bg-surface rounded-md border border-edge/60 shadow-sm hover:shadow-sm hover:border-tone-brand-edge transition-all duration-300 h-full"
+                className={cn(
+                  "group flex h-full items-start gap-4 border border-l-4 border-edge bg-surface p-5 rounded-md shadow-sm transition-all duration-200",
+                  "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none",
+                  categorySpine(club.category),
+                )}
               >
                 <div className="w-16 h-16 rounded-md bg-surface-hover flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
                   {club.logo_uri ? (

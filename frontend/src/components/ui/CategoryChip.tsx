@@ -38,6 +38,30 @@ const CHIP: Record<ClubCategory, string> = {
   other: "bg-cat-other-bg text-cat-other-fg border-cat-other-edge",
 };
 
+/**
+ * The category spine — a thick left edge in the category's own colour.
+ *
+ * This is the signature device: a club card reads as a posted, colour-tabbed
+ * thing rather than a table row, and a directory becomes scannable by category
+ * at a glance without any of them shouting. It stays within the small-element
+ * rule because it is an edge, not a fill.
+ */
+const SPINE: Record<ClubCategory, string> = {
+  science: "border-l-cat-science-fg",
+  humanity: "border-l-cat-humanity-fg",
+  arts: "border-l-cat-arts-fg",
+  sports: "border-l-cat-sports-fg",
+  business: "border-l-cat-business-fg",
+  charity: "border-l-cat-charity-fg",
+  campus: "border-l-cat-campus-fg",
+  other: "border-l-cat-other-fg",
+};
+
+/** Pair with `border-l-4` on the element. */
+export function categorySpine(category: ClubCategory): string {
+  return SPINE[category] ?? SPINE.other;
+}
+
 const SIZES = {
   sm: "px-2 py-0.5 text-[10px]",
   md: "px-2.5 py-1 text-xs",

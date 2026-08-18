@@ -135,7 +135,7 @@ export function Workspace() {
               to={`/club/${club.id}/manage`}
               className="group block"
             >
-              <Surface className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
+              <Surface className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-lg">
                 <div className="flex items-start gap-4">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">
                     {club.logo_uri ? (

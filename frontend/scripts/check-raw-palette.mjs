@@ -14,6 +14,11 @@
  * The sweep is complete and BASELINE is 0, so this is now a ban: any raw palette
  * step reintroduced into src/ fails CI. If one is ever genuinely justified, add
  * the file to ALLOWLIST with a comment saying why, rather than raising BASELINE.
+ *
+ * It checks two shapes: named palette steps (bg-slate-50) and literal colours
+ * inside arbitrary values (shadow-[...rgba(...)], bg-[#14b8a6]). The second was
+ * added after five rgba-bearing arbitrary shadows were found by hand, having
+ * passed a gate that reported zero.
  */
 import { readFileSync, readdirSync, statSync } from "node:fs";
 import { join, extname } from "node:path";
@@ -60,6 +65,21 @@ const pattern = new RegExp(
 );
 
 /**
+ * Literal colours inside arbitrary values, e.g.
+ * `shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]` or `bg-[#14b8a6]`.
+ *
+ * These slipped past the palette check entirely — they name no palette step — while
+ * being exactly the same defect: a fixed colour that no variable can redirect, so
+ * it cannot follow the dark scheme. Five of them were found by hand in arbitrary
+ * shadow values after the sweep had supposedly reached zero.
+ *
+ * `drop-shadow` is exempt: a text halo over user-uploaded imagery has to stay dark
+ * in both schemes to keep the text legible, so a literal there is correct.
+ */
+const literalColorPattern =
+  /(?<![\w-])(?!drop-shadow)[a-z-]+-\[[^\]]*(?:rgba?\(|#[0-9a-fA-F]{3,8}|hsla?\()[^\]]*\]/g;
+
+/**
  * Files exempt from the ratchet. The specimen page renders raw palette swatches
  * on purpose, to show what the tokens are built from.
  */
@@ -81,7 +101,10 @@ let total = 0;
 
 for (const file of walk(SRC)) {
   if (ALLOWLIST.includes(file)) continue;
-  const hits = (readFileSync(file, "utf8").match(pattern) ?? []).length;
+  const text = readFileSync(file, "utf8");
+  const hits =
+    (text.match(pattern) ?? []).length +
+    (text.match(literalColorPattern) ?? []).length;
   if (hits > 0) {
     perFile.push({ file, hits });
     total += hits;
