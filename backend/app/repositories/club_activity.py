@@ -2,7 +2,7 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.orm import selectinload
 
 from app.models import Club
@@ -59,6 +59,18 @@ class ClubActivityCreateRequestRepository(
 ):
     model = ClubActivityCreateRequest
 
+    async def count_pending(self) -> int:
+        """Count pending requests in SQL.
+
+        A COUNT query rather than loading the rows and taking len(): this exists to
+        make the navigation badge cheap, so materialising every pending request in
+        Python would defeat the point.
+        """
+        stmt = select(func.count()).select_from(self.model).where(
+            self.model.moderation_status == ModerationStatusEnum.pending,
+        )
+        return (await self.db.execute(stmt)).scalar_one()
+
     async def get_pending_requests(self) -> Page[ClubActivityCreateRequest]:
         stmt = select(self.model).where(
             self.model.moderation_status == ModerationStatusEnum.pending,
@@ -74,6 +86,18 @@ class ClubActivityUpdateRequestRepository(
     ],
 ):
     model = ClubActivityUpdateRequest
+
+    async def count_pending(self) -> int:
+        """Count pending requests in SQL.
+
+        A COUNT query rather than loading the rows and taking len(): this exists to
+        make the navigation badge cheap, so materialising every pending request in
+        Python would defeat the point.
+        """
+        stmt = select(func.count()).select_from(self.model).where(
+            self.model.moderation_status == ModerationStatusEnum.pending,
+        )
+        return (await self.db.execute(stmt)).scalar_one()
 
     async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         stmt = select(self.model).where(

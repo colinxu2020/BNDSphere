@@ -2,7 +2,7 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
@@ -68,6 +68,18 @@ class UserUpdateRequestRepository(
     ],
 ):
     model = UserUpdateRequest
+
+    async def count_pending(self) -> int:
+        """Count pending requests in SQL.
+
+        A COUNT query rather than loading the rows and taking len(): this exists to
+        make the navigation badge cheap, so materialising every pending request in
+        Python would defeat the point.
+        """
+        stmt = select(func.count()).select_from(self.model).where(
+            self.model.moderation_status == ModerationStatusEnum.pending,
+        )
+        return (await self.db.execute(stmt)).scalar_one()
 
     async def get_pending_requests(self) -> Page[UserUpdateRequest]:
         stmt = select(self.model).where(

@@ -1,5 +1,6 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
+from typing import cast
 
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
@@ -14,7 +15,12 @@ from app.repositories.club import (
     ClubRepository,
     ClubUpdateRequestRepository,
 )
-from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
+from app.schemas.club import (
+    AdminClubUpdate,
+    ClubCreate,
+    ClubMemberUpdate,
+    ClubSummaryInfo,
+)
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
     ClubUpdateRequestCreatePublic,
@@ -93,6 +99,15 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         status: ClubStatusEnum | None = None,
     ) -> Page[Club]:
         return await self.repository.get_multi(search, category, status)
+
+    async def get_multi_summary(
+        self,
+        search: str | None = None,
+        category: ClubCategoryEnum | None = None,
+        status: ClubStatusEnum | None = None,
+    ) -> Page[ClubSummaryInfo]:
+        """Card/list view of clubs, with member counts computed in SQL."""
+        return await self.repository.get_multi_summary(search, category, status)
 
     async def request_club_update(
         self,
@@ -198,6 +213,9 @@ class ClubUpdateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubUpdateRequest]:
         return await self.repository.get_pending_requests()
+
+    async def count_pending_requests(self) -> int:
+        return await self.repository.count_pending()
 
     async def moderate_request(
         self,

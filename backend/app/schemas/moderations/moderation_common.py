@@ -54,3 +54,19 @@ class UpdateRequestCreateBase(BaseModel):
             )
 
         return self
+
+
+class ModerationPendingSummary(BaseModel):
+    """Pending counts per moderation queue.
+
+    Exists so the navigation rail can show a badge without fetching all four
+    moderation lists. Deliberately narrow: counts the UI actually renders, nothing
+    more. It is not a general statistics endpoint, and it does not change how any
+    queue is read or moderated.
+    """
+
+    user_update_requests: int = Field(..., ge=0)
+    club_update_requests: int = Field(..., ge=0)
+    club_activity_create_requests: int = Field(..., ge=0)
+    club_activity_update_requests: int = Field(..., ge=0)
+    total: int = Field(..., ge=0)

@@ -209,6 +209,9 @@ class ClubActivityCreateRequestService(
     async def get_pending_requests(self) -> Page[ClubActivityCreateRequest]:
         return await self.repository.get_pending_requests()
 
+    async def count_pending_requests(self) -> int:
+        return await self.repository.count_pending()
+
     async def moderate_request(
         self,
         request: ClubActivityCreateRequest,
@@ -282,6 +285,9 @@ class ClubActivityUpdateRequestService(
 
     async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         return await self.repository.get_pending_requests()
+
+    async def count_pending_requests(self) -> int:
+        return await self.repository.count_pending()
 
     async def moderate_request(
         self,

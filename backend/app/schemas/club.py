@@ -32,6 +32,29 @@ class ClubInfo(ClubBase, IdMixin):
     general_activity_records: list[ClubGeneralActivityInfo]
 
 
+class ClubSummaryInfo(ClubBase, IdMixin):
+    """Card/list representation of a club.
+
+    ClubInfo embeds members, club_activities and general_activity_records, so a
+    browse grid of clubs downloads every member of every club just to render a
+    count. This is the shape those surfaces actually need, with member_count in
+    place of the nested collections.
+
+    Additive: ClubInfo and every endpoint returning it are unchanged.
+
+    member_count counts all membership rows, matching what the previous clients
+    computed from `len(members)`. Narrowing it to active members only would change
+    a number already shown in the product, so that stays a separate decision.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    created_at: datetime
+    status: ClubStatusEnum
+    star_level: ClubStarLevelEnum
+    member_count: int = Field(..., ge=0)
+
+
 class ClubCreate(ClubBase):
     pass
 

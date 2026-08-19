@@ -104,6 +104,9 @@ class UserUpdateRequestService(
     async def get_pending_requests(self) -> Page[UserUpdateRequest]:
         return await self.repository.get_pending_requests()
 
+    async def count_pending_requests(self) -> int:
+        return await self.repository.count_pending()
+
     async def moderate_request(
         self,
         request: UserUpdateRequest,

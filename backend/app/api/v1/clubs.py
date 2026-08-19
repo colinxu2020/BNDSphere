@@ -19,6 +19,7 @@ from app.models.user import User
 from app.schemas.club import (
     ClubCreate,
     ClubInfo,
+    ClubSummaryInfo,
     ClubMemberInfo,
 )
 from app.schemas.moderations.club import (
@@ -31,6 +32,31 @@ from app.services.errors import (
 )
 
 router = APIRouter(tags=["Clubs"])
+
+
+@router.get(
+    "/summary",
+)
+async def list_clubs_summary(
+    service: ClubServiceDep,
+    search: str | None = None,
+    category: ClubCategoryEnum | None = None,
+) -> Page[ClubSummaryInfo]:
+    """Search clubs, card/list representation.
+
+    Same filters and ordering as GET /clubs/, but returns member_count instead of
+    the nested members, club_activities and general_activity_records collections —
+    a browse grid needs the count, not the collections.
+
+    Declared before /{club_id} on purpose: that route takes an int, so a request
+    for /clubs/summary would otherwise be rejected as an invalid id rather than
+    reaching this handler.
+    """
+    return await service.get_multi_summary(
+        search,
+        category,
+        status=ClubStatusEnum.normal,
+    )
 
 
 @router.get(
