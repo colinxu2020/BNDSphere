@@ -60,7 +60,7 @@ export function Admin() {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 grid min-w-0 gap-6"
     >
-      <PageHeader
+      <PageHeader density="compact"
         eyebrow="Admin"
         title="管理员控制台"
         action={

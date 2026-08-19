@@ -244,7 +244,7 @@ export function Moderation() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col gap-8"
     >
-      <PageHeader
+      <PageHeader density="compact"
         eyebrow="Moderation"
         title="审核台"
         description="处理用户资料、社团资料和社团活动请求。错误与返回值会直接显示后端响应。"

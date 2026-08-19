@@ -13,30 +13,56 @@ export const selectClassName =
 export const textareaClassName =
   "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus-visible:ring-2 focus-visible:ring-brand-strong/30 focus-visible:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle min-h-[120px] resize-none";
 
+/**
+ * A page title block.
+ *
+ * `density="compact"` matches Surface and SectionTitle: public surfaces carry the
+ * full display size, workbenches step down, because an operator wants the work on
+ * screen rather than the page name.
+ */
 export function PageHeader({
   eyebrow,
   title,
   description,
   action,
+  density = "comfortable",
 }: {
   eyebrow?: string;
   title: string;
   description?: string;
   action?: ReactNode;
+  density?: "comfortable" | "compact";
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
+    <div
+      className={cn(
+        "flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between",
+        density === "compact" ? "mt-0" : "mt-4",
+      )}
+    >
       <div className="flex flex-col gap-2">
         {eyebrow && (
           <span className="font-display text-xs font-bold tracking-[0.18em] uppercase text-tone-brand-fg">
             {eyebrow}
           </span>
         )}
-        <h1 className="text-4xl md:text-5xl font-display font-bold text-content">
+        <h1
+          className={cn(
+            "font-display font-bold text-content",
+            density === "compact" ? "text-2xl" : "text-4xl md:text-5xl",
+          )}
+        >
           {title}
         </h1>
         {description && (
-          <p className="text-content-muted text-lg max-w-2xl">{description}</p>
+          <p
+            className={cn(
+              "max-w-2xl text-content-muted",
+              density === "compact" ? "text-sm" : "text-lg",
+            )}
+          >
+            {description}
+          </p>
         )}
       </div>
       {action}

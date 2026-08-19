@@ -536,7 +536,7 @@ export function ClubWorkspace() {
         <ArrowLeft size={18} /> 返回社团
       </Link>
 
-      <PageHeader
+      <PageHeader density="compact"
         eyebrow="Workspace"
         title={club?.name || `社团 #${clubId} 工作台`}
         action={

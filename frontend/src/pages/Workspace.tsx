@@ -100,7 +100,7 @@ export function Workspace() {
       exit={{ opacity: 0, y: -10 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6"
     >
-      <PageHeader
+      <PageHeader density="compact"
         eyebrow="My Clubs"
         title="我管理的社团"
         action={
