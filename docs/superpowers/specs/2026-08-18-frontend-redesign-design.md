@@ -612,11 +612,46 @@ range that did not cover everything. Not a boundary problem — the boundaries a
 but the mechanical assembly of six discontiguous regions is where scripted surgery stops
 being reliable, and a half-correct result is worse than none.
 
-**`ClubWorkspace`: 1,225 → 1,192 lines.** Only the safe first step is done (`EditorHeader`
-and `sameStringArray` moved to `clubWorkspace/helpers.tsx`). Its six concerns are not
-split. Its state surface was reduced earlier (55 → 43 `useState`), which is the
-prerequisite, but the split itself wants a reviewer for the same reason the Federation
-back-out happened.
+**`Federation`: complete (2026-08-19).** 1,313 → **154** lines: data loading, layout and
+four panels. `ActivityEditorPanel`, `StarApplicationsPanel` (369), `ClubRecordsPanel`
+(251), `ActivityRequestsPanel` (98), plus `shared.tsx` (218) and `starReview.ts` (75).
+
+What made the difference on the second attempt: **assert every region boundary before
+moving anything** — first and last line of each state block, memo, handler run and JSX
+block, plus the presence of each named handler — instead of trusting line numbers. And
+verify behaviourally afterwards: submitting the create form through the extracted
+`ActivityEditorPanel` took the API from 3 activities to 4 and returned the new record, so
+the move demonstrably preserved behaviour rather than merely type-checking.
+
+**`ClubWorkspace`: 1,225 → 1,191 lines.** Only the safe first step is done (`EditorHeader`
+and `sameStringArray` in `clubWorkspace/helpers.tsx`). Its state surface was reduced
+earlier (55 → 43 `useState`).
+
+*Second back-out (2026-08-19).* Extracting 综评活动记录 was attempted and reverted. The
+concern's own state group, feedback hook and submit handler are genuinely local, but the
+JSX also reaches three things still in the parent — `selectedGeneralActivity` and
+`selectedGeneralRecord` (memos over `generalActivities`/`records` and the form's selection)
+and `selectGeneralActivityForRecord` (the handler that fills the form). Those belong with
+the concern, so the boundary is sound; the extraction is simply larger than the state
+grouping suggests.
+
+**Map for the next attempt**, so it is not rediscovered. Sections, by JSX line in the
+current file:
+
+| Lines | Section | Local state |
+|---|---|---|
+| 554–568 | 加载反馈 (diagnostic) | none — shared `loadErrors` |
+| 572–596 | club header | none — shared `club` |
+| 599–634 | 星级评价 display | none — shared `starRating` |
+| 636–844 | 社团活动 create/edit | `activityName`…`isActivityUpdating` |
+| 846–998 | 综评活动记录 | `generalActivityId`…`isRecordSubmitting` **+ 2 memos + 1 handler** |
+| 1000–1154 | 星级评价表 editor | `starAttachment`…`isStarUpdating` |
+| 1156–1186 | 社团资料变更申请 | `clubSummary`…`isClubSubmitting` |
+
+Shared across all of them: `club`, `activities`, `generalActivities`, `records`,
+`starApplications`, `starRating`, `isLoading`, `loadErrors`, `refresh`. Take each concern's
+**memos and selection handlers together with its state group**, not the state group alone.
+社团资料变更申请 is the smallest and the safest place to start.
 
 **§6.1's `AuditQueue` is deliberately not built.** The genuinely demonstrated shared
 mechanics — the status→tone table and the feedback hook — are extracted and adopted
