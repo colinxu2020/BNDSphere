@@ -623,35 +623,38 @@ verify behaviourally afterwards: submitting the create form through the extracte
 `ActivityEditorPanel` took the API from 3 activities to 4 and returned the new record, so
 the move demonstrably preserved behaviour rather than merely type-checking.
 
-**`ClubWorkspace`: 1,225 → 1,191 lines.** Only the safe first step is done (`EditorHeader`
-and `sameStringArray` in `clubWorkspace/helpers.tsx`). Its state surface was reduced
-earlier (55 → 43 `useState`).
+**`ClubWorkspace`: complete (2026-08-19).** 1,225 → **194** lines — data loading, layout
+and six sections:
 
-*Second back-out (2026-08-19).* Extracting 综评活动记录 was attempted and reverted. The
-concern's own state group, feedback hook and submit handler are genuinely local, but the
-JSX also reaches three things still in the parent — `selectedGeneralActivity` and
-`selectedGeneralRecord` (memos over `generalActivities`/`records` and the form's selection)
-and `selectGeneralActivityForRecord` (the handler that fills the form). Those belong with
-the concern, so the boundary is sound; the extraction is simply larger than the state
-grouping suggests.
-
-**Map for the next attempt**, so it is not rediscovered. Sections, by JSX line in the
-current file:
-
-| Lines | Section | Local state |
+| Module | Lines | Concern |
 |---|---|---|
-| 554–568 | 加载反馈 (diagnostic) | none — shared `loadErrors` |
-| 572–596 | club header | none — shared `club` |
-| 599–634 | 星级评价 display | none — shared `starRating` |
-| 636–844 | 社团活动 create/edit | `activityName`…`isActivityUpdating` |
-| 846–998 | 综评活动记录 | `generalActivityId`…`isRecordSubmitting` **+ 2 memos + 1 handler** |
-| 1000–1154 | 星级评价表 editor | `starAttachment`…`isStarUpdating` |
-| 1156–1186 | 社团资料变更申请 | `clubSummary`…`isClubSubmitting` |
+| `ClubWorkspace.tsx` | **194** | shell |
+| `ClubActivitiesSection` | 409 | 社团活动申请 |
+| `ClubStarApplicationsSection` | 308 | 星级申请 |
+| `ClubRecordsSection` | 281 | 综评活动记录 |
+| `displaySections` | 120 | load errors, club header, star rating |
+| `ClubProfileRequestSection` | 114 | 社团资料变更申请 |
+| `helpers` | 42 | `EditorHeader`, `sameStringArray` |
 
-Shared across all of them: `club`, `activities`, `generalActivities`, `records`,
-`starApplications`, `starRating`, `isLoading`, `loadErrors`, `refresh`. Take each concern's
-**memos and selection handlers together with its state group**, not the state group alone.
-社团资料变更申请 is the smallest and the safest place to start.
+Three rules made this work after two back-outs, and they are the transferable part:
+
+1. **Move each concern's derived values and selection handlers with its state group.**
+   A state group is not a concern. 综评活动记录 failed the first time because two memos
+   and the form-filling handler stayed behind.
+2. **Assert every region boundary before moving** — first and last line of each block,
+   and each named handler present — rather than trusting line numbers.
+3. **Read types from the file being changed.** `StarLevelApplicationInfo` and
+   `StarRatingResponse` were both different from the names they seemed to have.
+
+By the last extraction this produced **zero type errors on the first pass**.
+
+Each extraction was verified behaviourally, not by type check. The most useful lesson
+came from getting that wrong: for 社团活动申请 the first check looked for "申请" in the
+page text, which is trivially present in the section's own title, so it passed while
+nothing had happened — the form was still open with an empty required field silently
+blocking submit. Redone by filling every field, asserting `checkValidity()`, submitting
+via `requestSubmit()` and then reading the API: `club_activity_create_requests` went
+0 → 1. **A verification that cannot fail is not a verification.**
 
 **§6.1's `AuditQueue` is deliberately not built.** The genuinely demonstrated shared
 mechanics — the status→tone table and the feedback hook — are extracted and adopted
