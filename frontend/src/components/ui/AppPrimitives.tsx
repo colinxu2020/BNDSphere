@@ -44,17 +44,29 @@ export function PageHeader({
   );
 }
 
+/**
+ * A panel.
+ *
+ * `density="compact"` is for the operational workbenches. Public surfaces are
+ * expressive and can afford air; a 社联 staffer working through 待审核 items wants
+ * more on screen and less decoration, so the compact variant tightens padding and
+ * drops the offset to the smallest step. Same component either way, so the two
+ * never drift apart.
+ */
 export function Surface({
   children,
   className,
+  density = "comfortable",
 }: {
   children: ReactNode;
   className?: string;
+  density?: "comfortable" | "compact";
 }) {
   return (
     <section
       className={cn(
-        "bg-surface rounded-md border border-edge-subtle shadow-sm p-6 md:p-8",
+        "bg-surface rounded-md border border-edge shadow-sm",
+        density === "compact" ? "p-4 md:p-5" : "p-6 md:p-8",
         className,
       )}
     >
@@ -69,19 +81,28 @@ export function SectionTitle({
   iconClassName,
   title,
   description,
+  density = "comfortable",
 }: {
   icon?: ReactNode;
   className?: string;
   iconClassName?: string;
   title: string;
   description?: string;
+  density?: "comfortable" | "compact";
 }) {
   return (
-    <div className={cn("flex items-start gap-3 mb-6", className)}>
+    <div
+      className={cn(
+        "flex items-start gap-3",
+        density === "compact" ? "mb-4" : "mb-6",
+        className,
+      )}
+    >
       {icon && (
         <div
           className={cn(
-            "w-10 h-10 rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center shrink-0",
+            "rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center shrink-0",
+            density === "compact" ? "w-8 h-8" : "w-10 h-10",
             iconClassName,
           )}
         >
@@ -89,7 +110,12 @@ export function SectionTitle({
         </div>
       )}
       <div>
-        <h2 className="text-2xl font-display font-bold text-content">
+        <h2
+          className={cn(
+            "font-display font-bold text-content",
+            density === "compact" ? "text-lg" : "text-2xl",
+          )}
+        >
           {title}
         </h2>
         {description && (

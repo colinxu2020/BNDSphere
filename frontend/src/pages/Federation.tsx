@@ -538,8 +538,8 @@ export function Federation() {
       {feedback.message && <StatusMessage value={feedback.message} tone={feedback.tone} />}
       {loadError && <StatusMessage value={loadError} />}
 
-      <Surface>
-        <SectionTitle
+      <Surface density="compact">
+        <SectionTitle density="compact"
           icon={<FilePenLine size={20} />}
           title="审核社团活动"
           description="处理社团提交的活动创建和修改申请。"
@@ -562,8 +562,8 @@ export function Federation() {
         </div>
       </Surface>
 
-      <Surface>
-        <SectionTitle
+      <Surface density="compact">
+        <SectionTitle density="compact"
           icon={<ShieldCheck size={20} />}
           title="审核社团综评记录"
         />
@@ -693,8 +693,8 @@ export function Federation() {
         </div>
       </Surface>
 
-      <Surface>
-        <SectionTitle icon={<Award size={20} />} title="审核星级评价表" />
+      <Surface density="compact">
+        <SectionTitle density="compact" icon={<Award size={20} />} title="审核星级评价表" />
         <div
           className={cn(
             "grid gap-6",
@@ -878,9 +878,9 @@ export function Federation() {
         </div>
       </Surface>
 
-      <Surface>
+      <Surface density="compact">
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-          <SectionTitle
+          <SectionTitle density="compact"
             className="mb-0"
             icon={<CalendarDays size={20} />}
             title="管理大型活动"

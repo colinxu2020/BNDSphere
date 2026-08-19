@@ -96,7 +96,7 @@ export function StarLevelApplications() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface className="flex items-center justify-center py-16 text-content-muted">
+        <Surface density="compact" className="flex items-center justify-center py-16 text-content-muted">
           正在加载星级评价表...
         </Surface>
       ) : applications.length ? (
@@ -128,7 +128,7 @@ function StarApplicationCard({
   ].filter(Boolean);
 
   return (
-    <Surface className="p-5 md:p-6">
+    <Surface density="compact" className="p-5 md:p-6">
       <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
         <div className="flex min-w-0 items-start gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">

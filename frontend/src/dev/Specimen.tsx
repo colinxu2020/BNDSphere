@@ -16,6 +16,8 @@
  * forced one so the two can be compared.
  */
 
+import { Inbox } from "@/src/components/ui/Icons";
+import { SectionTitle, Surface } from "../components/ui/AppPrimitives";
 import { ActivityLevelChip } from "../components/ui/ActivityCard";
 import { CategoryChip, categorySpine } from "../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
@@ -433,6 +435,35 @@ export default function Specimen() {
           </div>
           <div className="motion-safe:animate-pulse bg-brand-subtle border-tone-brand-edge text-tone-brand-fg mt-4 rounded-md border p-3 text-sm font-semibold">
             此块使用 motion-safe:animate-pulse —— 在“减弱动态效果”下应静止。
+          </div>
+        </Section>
+
+        <Section
+          title="面板密度 Panel density"
+          note="公共界面可以留白,工作台需要在一屏内看到更多内容并减少装饰。同一个 Surface 组件的两种密度,因此二者不会各自漂移。"
+        >
+          <div className="grid gap-4 md:grid-cols-2">
+            <Surface>
+              <SectionTitle
+                icon={<Inbox size={20} />}
+                title="公共界面"
+                description="comfortable · p-6 md:p-8"
+              />
+              <p className="text-content-muted text-sm">
+                用于社团主页、活动页等表达性界面。
+              </p>
+            </Surface>
+            <Surface density="compact">
+              <SectionTitle
+                density="compact"
+                icon={<Inbox size={16} />}
+                title="工作台"
+                description="compact · p-4 md:p-5"
+              />
+              <p className="text-content-muted text-sm">
+                用于审核队列、管理控制台等操作性界面。
+              </p>
+            </Surface>
           </div>
         </Section>
 

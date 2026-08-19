@@ -125,7 +125,7 @@ export function Workspace() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface className="flex items-center justify-center py-16 text-content-muted">
+        <Surface density="compact" className="flex items-center justify-center py-16 text-content-muted">
           正在加载你管理的社团...
         </Surface>
       ) : managedClubs.length ? (
@@ -136,7 +136,7 @@ export function Workspace() {
               to={`/club/${club.id}/manage`}
               className="group block"
             >
-              <Surface className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-lg">
+              <Surface density="compact" className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-lg">
                 <div className="flex items-start gap-4">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">
                     {club.logo_uri ? (

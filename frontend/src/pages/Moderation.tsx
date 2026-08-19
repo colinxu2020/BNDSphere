@@ -274,7 +274,7 @@ export function Moderation() {
         </div>
       </div>
 
-      <Surface>
+      <Surface density="compact">
         <div className="flex items-start gap-3 mb-6">
           <div className="w-10 h-10 rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center">
             <FilePenLine size={20} />

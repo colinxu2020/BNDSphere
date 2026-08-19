@@ -550,8 +550,8 @@ export function ClubWorkspace() {
       ) : (
         <>
           {Object.keys(loadErrors).length > 0 && (
-            <Surface>
-              <SectionTitle
+            <Surface density="compact">
+              <SectionTitle density="compact"
                 title="加载反馈"
                 description="以下内容直接来自后端响应。"
               />
@@ -568,7 +568,7 @@ export function ClubWorkspace() {
           )}
 
           {club && (
-            <Surface>
+            <Surface density="compact">
               <div className="flex flex-col md:flex-row md:items-center gap-5">
                 <div className="w-20 h-20 rounded-md bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden border border-edge">
                   {club.logo_uri ? (
@@ -595,8 +595,8 @@ export function ClubWorkspace() {
             </Surface>
           )}
 
-          <Surface>
-            <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
+          <Surface density="compact">
+            <SectionTitle density="compact" icon={<Sparkles size={20} />} title="星级评价" />
             {starRating ? (
               <div className="flex flex-col gap-5">
                 <div className="rounded-md border border-edge-subtle bg-surface-sunken p-5">
@@ -632,9 +632,9 @@ export function ClubWorkspace() {
             )}
           </Surface>
 
-          <Surface>
+          <Surface density="compact">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle
+              <SectionTitle density="compact"
                 className="mb-0"
                 icon={<CalendarDays size={20} />}
                 title="社团活动申请"
@@ -842,8 +842,8 @@ export function ClubWorkspace() {
             </div>
           </Surface>
 
-          <Surface>
-            <SectionTitle
+          <Surface density="compact">
+            <SectionTitle density="compact"
               icon={<FileCheck2 size={20} />}
               title="综评活动记录"
               description="点击“未提交”的大型活动可新建记录；点击已提交的活动可查看或修改记录。"
@@ -996,9 +996,9 @@ export function ClubWorkspace() {
             </div>
           </Surface>
 
-          <Surface>
+          <Surface density="compact">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle
+              <SectionTitle density="compact"
                 className="mb-0"
                 icon={<Award size={20} />}
                 title="星级申请"
@@ -1152,8 +1152,8 @@ export function ClubWorkspace() {
             </div>
           </Surface>
 
-          <Surface>
-            <SectionTitle icon={<Save size={20} />} title="社团资料变更申请" />
+          <Surface density="compact">
+            <SectionTitle density="compact" icon={<Save size={20} />} title="社团资料变更申请" />
             <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
               <Field label="简介">
                 <input
