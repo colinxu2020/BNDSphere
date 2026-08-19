@@ -74,8 +74,8 @@ not warn. Both classes look plausible and compile clean.
 | 3 Semantic sweep + dark scheme | done — 502 raw utilities → 0 |
 | 4 Shell rebuild | done, plus three further mobile defects (§5.2) |
 | 5 Identity + visual language | done — §4.6 |
-| 6 Workflow extraction → decomposition | partial — §6.1b |
-| 7 Gate 4 validation | **outstanding** — needs human review |
+| 6 Workflow extraction → decomposition | partial — §6.1b, §6.1c |
+| 7 Gate 4 validation | **partly automated** — see §7 Gate 4 |
 
 Nothing in Phases 1–6 has been visually reviewed on a real device in either scheme. The
 gates prove the tokens resolve and the types hold; they say nothing about whether it looks
@@ -263,6 +263,18 @@ workbench, and a notice board as the front door. All four currently render as gr
 in identical badges. The identity work is making those structures visible.
 
 ### 4.2 Star level — the signature element
+
+**Colour decision (2026-08-19, supersedes "brand hue" below).** Rank uses its own warm
+**gold** family, not brand teal. Category colour already carries club identity and teal
+carries product emphasis, so an institutional achievement must read as neither — in brand
+teal an honour looked like a call to action.
+
+The values were measured rather than taken off a ramp, because the obvious gold
+(`yellow-500` `#eab308`) is only **1.85:1** on a warm chip and would have failed non-text
+contrast for the glyphs. Against their own chip background: light — label 6.84:1, earned
+4.84:1, unearned 3.87:1; dark — 10.11:1 / 8.73:1 / 3.48:1. Unearned outlines clear 3:1
+too, so the *shape* of the rank is perceivable, not only its filled portion. Progression,
+seal treatment and the always-present textual level are unchanged.
 
 The canonical progression is a **single ranked scale**:
 
@@ -460,6 +472,39 @@ failing **WCAG 2.2.2 (Pause, Stop, Hide)** and ignoring `prefers-reduced-motion`
 holds still under reduced motion, pauses on hover or focus, and its indicators are real
 buttons, so the board is keyboard-operable.
 
+### 5.2b Destination coverage audit (2026-08-19)
+
+§5.2 argued no drawer was needed because the bottom bar plus the user menu covered every
+mobile destination. **Auditing that against the router found it was not true**:
+`/moderation` had no link anywhere in the shell, so 版主 could not reach their own queue on
+*any* viewport.
+
+Fixed by adding it to the user menu, gated on the role set the **backend actually
+enforces** — the moderations router is mounted behind
+`RoleChecker([moderator, admin, dev])` — rather than a guessed predicate, so the link never
+appears for someone who would be refused. Menu rows and the logout control were also ~36px
+and are now ≥44px on phones, since that menu is the only path to five role-gated
+destinations there.
+
+With moderation added, the conclusion in §5.2 holds: bottom bar (3 public) + user menu
+(5 role-gated + logout) + header (login/register) covers every route. A drawer would still
+only duplicate it.
+
+### 5.2c Carousel: WCAG 2.2.2 re-check (2026-08-19)
+
+The earlier claim that the board panel satisfied 2.2.2 was **wrong**. Hover and focus
+pausing is a courtesy, not a conforming mechanism: 2.2.2 asks for a control the user can
+operate, and a keyboard or touch user cannot "hover away". There is now an explicit
+pause/resume button with `aria-pressed`, and auto-advance additionally never starts under
+reduced motion.
+
+Related: Framer Motion does **not** honour `prefers-reduced-motion` by default, so every
+page fade and list stagger in the app was animating regardless — CSS-driven card lifts
+respected it while JS-driven motion did not. Fixed globally with
+`<MotionConfig reducedMotion="user">`, plus `usePrefersReducedMotion` for motion we drive
+ourselves, which *subscribes* to the query rather than reading it once so a mid-session
+change takes effect.
+
 ### 5.3 Pulled out as a standalone bugfix
 
 Defect 2 means a logged-in student on a phone cannot log out or reach club management.
@@ -526,6 +571,38 @@ happily through a mis-scoped state variable. It wants a reviewer, not an unatten
 and handler. Extracting a shared component means settling a common shape for six different
 endpoints, which is design work rather than mechanical extraction, and it is entangled with
 the two deferred splits above.
+
+### 6.1c Decomposition status (2026-08-19)
+
+**`Federation`: 1,313 → 594 lines**, four modules extracted:
+`federation/shared.tsx` (view helpers), `federation/starReview.ts` (pure review logic),
+`federation/StarApplicationsPanel.tsx` (369), `federation/ClubRecordsPanel.tsx` (251).
+
+The boundaries were established by mapping every state variable against the four concerns
+and confirming each group is referenced only inside its own; the loader writes only shared
+state and the preview effect reads only star state. Each extraction was verified past the
+type checker — dependency arrays compared byte-for-byte, no orphaned identifiers, props
+wired — because a mis-scoped hook typechecks perfectly.
+
+**Two concerns remain in `Federation`**: the general-activity editor and the club-activity
+request queues. An extraction attempt was **backed out to the last green commit**: it left
+an unmoved `deleteActivity` handler, prop renames unapplied inside moved JSX, and a state
+range that did not cover everything. Not a boundary problem — the boundaries are sound —
+but the mechanical assembly of six discontiguous regions is where scripted surgery stops
+being reliable, and a half-correct result is worse than none.
+
+**`ClubWorkspace`: 1,225 → 1,192 lines.** Only the safe first step is done (`EditorHeader`
+and `sameStringArray` moved to `clubWorkspace/helpers.tsx`). Its six concerns are not
+split. Its state surface was reduced earlier (55 → 43 `useState`), which is the
+prerequisite, but the split itself wants a reviewer for the same reason the Federation
+back-out happened.
+
+**§6.1's `AuditQueue` is deliberately not built.** The genuinely demonstrated shared
+mechanics — the status→tone table and the feedback hook — are extracted and adopted
+everywhere. What remains differs per flow: six endpoints with different payloads,
+different preview behaviour, and different approval fields. A component parameterised
+across all of that would be the over-configurable mega-component this spec should warn
+against, so the shared parts are shared and the domain flows stay separate.
 
 ### 6.2 Scope boundary
 
@@ -617,7 +694,28 @@ the URL unreachable.
 catching real `:hover` or `:focus`. Add specimen-only forced-state presentations for
 hover / focus / disabled / open so every state is reviewable on one page.
 
-Gate 4 covers:
+**Automated portion (2026-08-19).** `scripts/check-scheme-contrast.mjs` reads the built CSS
+and asserts the two parts of this matrix that do not need eyes, being the two most likely
+to be got wrong quietly:
+
+- **Scheme completeness** — every semantic token defined in *both* schemes. A token defined
+  only in `:root` keeps its light value on a dark surface, which looks deliberate.
+  Currently 88/88.
+- **Asserted contrast** — 30 foreground/background pairs the system relies on, at 4.5:1 for
+  text and 3:1 for non-text, in both schemes.
+
+It found a failure that predates this branch on first run: white on the brand teal is
+**2.49:1**, so the primary action of every form failed WCAG 1.4.3. Fixed by darkening the
+text rather than the fill (`#042f2e` on `#14b8a6` = 5.81:1), which keeps the vivid teal the
+direction is built on and matches what dark mode already did. Hover therefore brightens
+rather than darkens. `--brand-strong` was added for thin non-text accents and all focus
+rings, since the vivid teal is below the 3:1 that 1.4.11 asks of focus indicators.
+
+It runs in `npm run verify` and CI. It cannot tell you how the type sits, how PingFang
+renders a heading, whether the gold reads as an honour, or how the offsets look on an OLED
+phone.
+
+Gate 4's human portion covers:
 
 - CJK typography at every type scale step
 - mixed Chinese / Latin / numeric strings
