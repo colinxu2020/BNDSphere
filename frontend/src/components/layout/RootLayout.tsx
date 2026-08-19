@@ -1,6 +1,7 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import {
   Award,
+  Gavel,
   CalendarDays,
   Compass,
   LayoutDashboard,
@@ -115,6 +116,17 @@ export function RootLayout({ children }: { children: ReactNode }) {
     [user?.role],
   );
   const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
+  /**
+   * /moderation existed as a route with no link to it anywhere in the shell, so
+   * 版主 had no way to reach their own queue on any viewport. The role set here
+   * mirrors what the backend actually enforces — the moderations router is
+   * mounted behind RoleChecker([moderator, admin, dev]) — rather than being
+   * guessed, so the link never appears for someone who would be refused.
+   */
+  const canOpenModeration =
+    user?.role === "moderator" ||
+    user?.role === "admin" ||
+    user?.role === "dev";
 
   const handleLogout = () => {
     clearAuthToken();
@@ -228,6 +240,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
                         社联工作台
                       </MenuItem>
                     )}
+                    {canOpenModeration && (
+                      <MenuItem to="/moderation" icon={<Gavel size={16} />}>
+                        审核队列
+                      </MenuItem>
+                    )}
                     {canOpenAdmin && (
                       <MenuItem to="/admin" icon={<Shield size={16} />}>
                         管理员控制台
@@ -236,7 +253,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                     <button
                       type="button"
                       onClick={handleLogout}
-                      className="mt-1 flex w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg"
+                      className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg md:min-h-0"
                     >
                       <LogOut size={16} />
                       退出登录
@@ -294,7 +311,7 @@ function MenuItem({
     <Link
       to={to}
       role="menuitem"
-      className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken"
+      className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken md:min-h-0"
     >
       {icon}
       {children}

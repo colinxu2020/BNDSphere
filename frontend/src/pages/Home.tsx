@@ -5,6 +5,8 @@ import {
   Bell,
   CalendarDays,
   Image,
+  Pause,
+  Play,
   Megaphone,
   Users,
 } from "@/src/components/ui/Icons";
@@ -16,6 +18,7 @@ import type { components } from "../api/schema";
 import { formatDate } from "../lib/format";
 import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { usePrefersReducedMotion } from "../lib/usePrefersReducedMotion";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
@@ -362,9 +365,11 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
  * Three corrections to the previous version:
  *
  *  - It auto-advanced every five seconds with no way to stop it, which fails
- *    WCAG 2.2.2 (Pause, Stop, Hide) and ignored prefers-reduced-motion. It now
- *    holds still for anyone who asks for reduced motion, and pauses while the
- *    pointer or keyboard focus is on it.
+ *    WCAG 2.2.2 (Pause, Stop, Hide). Hover and focus pausing is a courtesy, not a
+ *    conforming mechanism — 2.2.2 wants a control the user can actually operate,
+ *    and a keyboard or touch user has no way to "hover away". There is now an
+ *    explicit pause/resume button, and the auto-advance additionally never starts
+ *    for anyone who has asked for reduced motion.
  *  - There was no way to tell how many posters existed or to reach a specific
  *    one. The indicators are real buttons, so the board is keyboard-operable.
  *  - The caption floated over the artwork behind a hardcoded rgba halo. It now
@@ -374,18 +379,21 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
  */
 function BoardPanel({ items }: { items: GeneralActivity[] }) {
   const [activeIndex, setActiveIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [userPaused, setUserPaused] = useState(false);
+  const [pointerPaused, setPointerPaused] = useState(false);
+  const prefersReducedMotion = usePrefersReducedMotion();
   const active = items[activeIndex] || items[0];
 
-  useEffect(() => {
-    if (items.length <= 1 || paused) return;
-    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const canRotate = items.length > 1 && !prefersReducedMotion;
+  const rotating = canRotate && !userPaused && !pointerPaused;
 
+  useEffect(() => {
+    if (!rotating) return;
     const timer = window.setInterval(() => {
       setActiveIndex((index) => (index + 1) % items.length);
     }, 5000);
     return () => window.clearInterval(timer);
-  }, [items.length, paused]);
+  }, [rotating, items.length]);
 
   // Guard against the list shrinking under us.
   useEffect(() => {
@@ -395,10 +403,10 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
   return (
     <div
       className="relative flex h-full flex-col overflow-hidden rounded-md border border-edge bg-surface-media shadow-md"
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-      onFocusCapture={() => setPaused(true)}
-      onBlurCapture={() => setPaused(false)}
+      onMouseEnter={() => setPointerPaused(true)}
+      onMouseLeave={() => setPointerPaused(false)}
+      onFocusCapture={() => setPointerPaused(true)}
+      onBlurCapture={() => setPointerPaused(false)}
     >
       <a
         href={active.article_url || `/activities/${active.id}`}
@@ -424,7 +432,19 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
           {active.name}
         </h2>
         {items.length > 1 && (
-          <div className="flex shrink-0 items-center gap-1.5">
+          <div className="flex shrink-0 items-center gap-2">
+            {canRotate && (
+              <button
+                type="button"
+                onClick={() => setUserPaused((wasPaused) => !wasPaused)}
+                aria-pressed={userPaused}
+                aria-label={userPaused ? "继续自动轮播" : "暂停自动轮播"}
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-content-on-inverted outline-none hover:bg-surface-inverted-hover focus-visible:ring-2 focus-visible:ring-brand/60"
+              >
+                {userPaused ? <Play size={15} /> : <Pause size={15} />}
+              </button>
+            )}
+            <div className="flex items-center gap-1.5">
             {items.map((item, index) => (
               <button
                 key={item.id}
@@ -440,6 +460,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
                 )}
               />
             ))}
+            </div>
           </div>
         )}
       </div>

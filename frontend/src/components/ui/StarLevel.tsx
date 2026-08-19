@@ -21,6 +21,11 @@ type StarLevelEnum = components["schemas"]["ClubStarLevelEnum"];
  * Accessibility rule, binding on every variant: the textual level is always
  * present. When it is not shown visually it is rendered sr-only, so the stars
  * and the seal are never the only carrier of meaning.
+ *
+ * Colour: rank uses its own warm gold family, not brand teal and not a category
+ * hue. Category colour already carries club identity and teal carries product
+ * emphasis, so an institutional achievement needs to read as neither. The token
+ * values were chosen for measured contrast — see the star-* block in index.css.
  */
 const RANK: Record<StarLevelEnum, number> = {
   none: 0,
@@ -75,22 +80,21 @@ export function StarLevel({
   return (
     <span
       className={cn(
-        "inline-flex items-center rounded-md border px-2 py-0.5 font-bold",
-        isHonorary
-          ? "bg-tone-brand-bg text-tone-brand-fg border-tone-brand-edge"
-          : "bg-brand-subtle text-tone-brand-fg border-tone-brand-edge",
+        "inline-flex items-center rounded-md border bg-star-bg px-2 py-0.5 font-bold text-star-text border-star-edge",
         text,
         gap,
         className,
       )}
     >
-      {isHonorary && <Seal size={icon} aria-hidden="true" />}
+      {isHonorary && (
+        <Seal size={icon} className="text-star-seal" aria-hidden="true" />
+      )}
       <span className={cn("inline-flex items-center", gap)} aria-hidden="true">
         {Array.from({ length: TOTAL_STARS }, (_, i) =>
           i < rank ? (
-            <StarFilled key={i} size={icon} className="text-brand" />
+            <StarFilled key={i} size={icon} className="text-star-earned" />
           ) : (
-            <Star key={i} size={icon} className="text-content-subtle" />
+            <Star key={i} size={icon} className="text-star-unearned" />
           ),
         )}
       </span>
@@ -124,14 +128,14 @@ export function StarLevelCompact({
   return (
     <span
       className={cn(
-        "text-tone-brand-fg inline-flex items-center gap-1 text-xs font-bold",
+        "inline-flex items-center gap-1 text-xs font-bold text-star-text",
         className,
       )}
     >
       {level === "honorary" ? (
-        <Seal size={12} aria-hidden="true" />
+        <Seal size={12} className="text-star-seal" aria-hidden="true" />
       ) : (
-        <StarFilled size={12} aria-hidden="true" />
+        <StarFilled size={12} className="text-star-earned" aria-hidden="true" />
       )}
       {label}
     </span>

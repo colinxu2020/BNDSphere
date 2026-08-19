@@ -204,6 +204,27 @@
   --color-tone-danger-fg: var(--tone-danger-fg);
   --color-tone-danger-edge: var(--tone-danger-edge);
 
+  /* Star level — institutional achievement, and deliberately its own colour
+     family. Category colour carries club identity and brand teal carries product
+     emphasis, so rank needs to be distinct from both: a warm gold reads as an
+     honour rather than as a category or a call to action.
+
+     Values were chosen for measured contrast, not picked off a ramp. The obvious
+     "gold" (yellow-500 #eab308) is only 1.85:1 on a warm chip and would have
+     failed 1.4.11 for the star glyphs. Measured against their own chip
+     background:
+       light  label 6.84:1  earned 4.84:1  unearned 3.87:1
+       dark   label 10.11:1 earned 8.73:1  unearned 3.48:1
+     Thresholds: 4.5:1 for the label text (AA), 3:1 for the glyphs (non-text
+     contrast). Unearned outlines clear 3:1 too, so the shape of the rank is
+     perceivable and not only its filled portion. */
+  --color-star-bg: var(--star-bg);
+  --color-star-text: var(--star-text);
+  --color-star-edge: var(--star-edge);
+  --color-star-earned: var(--star-earned);
+  --color-star-unearned: var(--star-unearned);
+  --color-star-seal: var(--star-seal);
+
   /* Activity level identity — 校级 / 大型 / 社联. A separate taxonomy from club
      categories, so it gets its own hues rather than borrowing category colours,
      which would make a 校级 activity chip look like a 科学 club chip. Kept away
@@ -352,6 +373,13 @@
   --cat-campus-fg: #4338ca;
   --cat-campus-edge: #e0e7ff;
 
+  --star-bg: #fffbeb;
+  --star-text: #92400e;
+  --star-edge: #fef3c7;
+  --star-earned: #b45309;
+  --star-unearned: #847e78;
+  --star-seal: #92400e;
+
   --lvl-school-bg: #eef2ff; /* indigo-leaning, the widest scope */
   --lvl-school-fg: #3730a3;
   --lvl-school-edge: #e0e7ff;
@@ -467,6 +495,13 @@
     --cat-campus-bg: #1e1b4b;
     --cat-campus-fg: #a5b4fc;
     --cat-campus-edge: #3730a3;
+
+    --star-bg: #422006;
+    --star-text: #fcd34d;
+    --star-edge: #854d0e;
+    --star-earned: #fbbf24;
+    --star-unearned: #8a7a5c;
+    --star-seal: #fde68a;
 
     --lvl-school-bg: #1e1b4b;
     --lvl-school-fg: #a5b4fc;

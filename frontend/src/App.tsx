@@ -1,4 +1,5 @@
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
+import { MotionConfig } from "motion/react";
 import { RootLayout } from "./components/layout/RootLayout";
 import { Home } from "./pages/Home";
 import { ExploreClubs } from "./pages/ExploreClubs";
@@ -119,5 +120,19 @@ const router = createBrowserRouter([
 ]);
 
 export default function App() {
-  return <RouterProvider router={router} />;
+  return (
+    /**
+     * Framer Motion does not honour prefers-reduced-motion on its own. Without
+     * this, every page fade and list stagger in the app animated regardless of
+     * the setting — the CSS-driven card lifts respected it via motion-reduce:*
+     * while the JS-driven ones did not, which is the worst of both.
+     *
+     * `reducedMotion="user"` makes it follow the media query globally, so
+     * transform and layout animations are skipped while opacity changes still
+     * run. Motion we drive ourselves uses usePrefersReducedMotion instead.
+     */
+    <MotionConfig reducedMotion="user">
+      <RouterProvider router={router} />
+    </MotionConfig>
+  );
 }
