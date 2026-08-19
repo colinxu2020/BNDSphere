@@ -14,6 +14,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { ClubProfileRequestSection } from "./clubWorkspace/ClubProfileRequestSection";
 import { EditorHeader, sameStringArray } from "./clubWorkspace/helpers";
 import { useActionFeedback } from "../lib/useActionFeedback";
 import { CategoryChip } from "../components/ui/CategoryChip";
@@ -76,12 +77,6 @@ export function ClubWorkspace() {
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrors, setLoadErrors] = useState<Record<string, unknown>>({});
 
-  const [clubSummary, setClubSummary] = useState("");
-  const [clubDescription, setClubDescription] = useState("");
-  const [clubLogo, setClubLogo] = useState("");
-  const clubFeedback = useActionFeedback();
-  const [isClubSubmitting, setIsClubSubmitting] = useState(false);
-
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
   const [activityStart, setActivityStart] = useState("");
@@ -143,11 +138,6 @@ export function ClubWorkspace() {
     } else {
       const nextClub = clubResponse.data || null;
       setClub(nextClub);
-      if (nextClub) {
-        setClubSummary(nextClub.summary || "");
-        setClubDescription(nextClub.description || "");
-        setClubLogo(nextClub.logo_uri || "");
-      }
     }
 
     const activitiesResponse = await client.GET(
@@ -280,34 +270,6 @@ export function ClubWorkspace() {
       setProofFileUrls([]);
     }
     recordFeedback.clear();
-  };
-
-  const submitClubUpdate = async (event: React.FormEvent) => {
-    event.preventDefault();
-    setIsClubSubmitting(true);
-    clubFeedback.clear();
-    try {
-      const { data, error } = await client.POST(
-        "/api/v1/clubs/{club_id}/update-requests",
-        {
-          params: { path: { club_id: clubId } },
-          body: {
-            summary: nullableText(clubSummary),
-            description: nullableText(clubDescription),
-            logo_uri: nullableText(clubLogo),
-          },
-        },
-      );
-      if (error) {
-        clubFeedback.fail(error);
-      } else {
-        clubFeedback.succeed(data);
-      }
-    } catch (error) {
-      clubFeedback.fail(error);
-    } finally {
-      setIsClubSubmitting(false);
-    }
   };
 
   const submitActivityCreate = async (event: React.FormEvent) => {
@@ -1153,37 +1115,12 @@ export function ClubWorkspace() {
             </div>
           </Surface>
 
-          <Surface density="compact">
-            <SectionTitle density="compact" icon={<Save size={20} />} title="社团资料变更申请" />
-            <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
-              <Field label="简介">
-                <input
-                  className={inputClassName}
-                  value={clubSummary}
-                  onChange={(event) => setClubSummary(event.target.value)}
-                />
-              </Field>
-              <Field label="详细介绍">
-                <textarea
-                  className={textareaClassName}
-                  value={clubDescription}
-                  onChange={(event) => setClubDescription(event.target.value)}
-                />
-              </Field>
-              <FileUploadField
-                label="Logo"
-                scene="club_logo"
-                value={clubLogo}
-                onChange={setClubLogo}
-                accept="image/*"
-                hint="上传后作为社团资料变更申请的 Logo。"
-              />
-              <StatusMessage value={clubFeedback.message} tone={clubFeedback.tone} />
-              <PrimaryButton type="submit" loading={isClubSubmitting}>
-                提交变更申请
-              </PrimaryButton>
-            </form>
-          </Surface>
+          <ClubProfileRequestSection
+            clubId={clubId}
+            initialSummary={club?.summary || ""}
+            initialDescription={club?.description || ""}
+            initialLogo={club?.logo_uri || ""}
+          />
         </>
       )}
     </motion.div>
