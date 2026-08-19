@@ -26,7 +26,7 @@ export default function LayoutC() {
       {/* Familiar topbar */}
       <header className="sticky top-0 z-40 border-b border-edge bg-surface">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
-          <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+          <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-8 w-auto" />
           <nav className="hidden items-center gap-1 md:flex">
             {[
               [Compass, "发现社团"],

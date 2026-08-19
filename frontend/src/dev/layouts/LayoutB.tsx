@@ -22,7 +22,7 @@ export default function LayoutB() {
       {/* Thin chrome */}
       <header className="sticky top-0 z-40 border-b border-edge bg-surface/95 backdrop-blur">
         <div className="mx-auto flex h-14 max-w-[1400px] items-center gap-4 px-5">
-          <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-7 w-auto" />
+          <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-7 w-auto" />
           <div className="relative ml-2 hidden min-w-0 flex-1 items-center md:flex">
             <Search size={15} className="absolute left-3 text-content-subtle" />
             <input

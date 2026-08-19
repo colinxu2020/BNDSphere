@@ -365,11 +365,11 @@ export default function Specimen() {
         >
           <div className="flex flex-wrap items-center gap-6">
             <div className="border-edge bg-surface rounded-md border p-4">
-              <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10" />
+              <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-10" />
               <code className="text-content-subtle mt-2 block text-xs">on bg-surface</code>
             </div>
             <div className="border-edge bg-surface-sunken rounded-md border p-4">
-              <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10" />
+              <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-10" />
               <code className="text-content-subtle mt-2 block text-xs">on bg-surface-sunken</code>
             </div>
             <div className="border-edge bg-surface-raised flex items-center gap-3 rounded-md border p-4">

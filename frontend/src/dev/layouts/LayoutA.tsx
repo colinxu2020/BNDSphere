@@ -58,7 +58,7 @@ export default function LayoutA() {
       {/* Rail */}
       <aside className="hidden w-60 shrink-0 flex-col border-r border-edge bg-surface lg:flex">
         <div className="flex h-16 items-center gap-2 border-b border-edge px-5">
-          <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+          <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-8 w-auto" />
         </div>
         <nav className="flex-1 overflow-y-auto p-3">
           {NAV.map((group) => (

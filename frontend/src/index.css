@@ -552,6 +552,15 @@ body {
   @apply bg-surface-sunken text-content antialiased font-sans;
 }
 
+/* The brand lockup is a bitmap of navy line art on transparency: legible on the
+   light surfaces it was drawn for, a smudge on the dark ones. Knocking it to
+   flat white keeps one asset instead of shipping a second dark-scheme PNG that
+   would then have to be kept in sync. Club logos are user uploads and must
+   never be filtered, which is why this is `.brand-logo` and not `header img`. */
+:root.dark .brand-logo {
+  filter: brightness(0) invert(1);
+}
+
 .border {
   border-width: 1.5px;
 }

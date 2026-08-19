@@ -162,7 +162,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
           to="/"
           className="flex h-16 shrink-0 items-center border-b border-edge px-5 outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40"
         >
-          <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+          <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-8 w-auto" />
         </Link>
         <NavList groups={groups} pathname={location.pathname} badges={badges} />
         <AccountFooter user={user} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
@@ -180,7 +180,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-edge bg-surface"
           >
             <div className="flex h-16 shrink-0 items-center justify-between border-b border-edge px-4">
-              <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+              <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-8 w-auto" />
               <button
                 type="button"
                 onClick={() => {
@@ -225,7 +225,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             <Menu size={18} />
           </button>
           <Link to="/" className="min-w-0 flex-1 outline-none lg:hidden">
-            <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-7 w-auto" />
+            <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-7 w-auto" />
           </Link>
           {!isLoggedIn && (
             <Link
