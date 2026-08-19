@@ -56,7 +56,7 @@ export function Register() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col items-center justify-center min-h-[70vh] px-4"
+      className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col items-center justify-center min-h-[70vh] px-4"
     >
       <div className="w-full max-w-md bg-surface p-8 rounded-md border border-edge-subtle shadow-sm relative overflow-hidden">
         <div className="flex flex-col gap-2 mb-8 text-center relative z-10">

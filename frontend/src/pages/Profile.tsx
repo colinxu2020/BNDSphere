@@ -98,7 +98,7 @@ export function Profile() {
 
   if (isLoading) {
     return (
-      <div className="flex justify-center py-20">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex justify-center py-20">
         <div className="w-8 h-8 rounded-full border-4 border-edge border-t-brand animate-spin"></div>
       </div>
     );

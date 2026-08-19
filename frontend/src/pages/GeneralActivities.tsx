@@ -74,7 +74,7 @@ export function GeneralActivities() {
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col gap-8"
+      className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-8"
     >
       <PageHeader eyebrow="Activities" title="综评活动" />
 

@@ -150,7 +150,7 @@ export function ClubDetail() {
 
   if (isLoading) {
     return (
-      <div className="animate-pulse space-y-8 flex flex-col">
+      <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 animate-pulse space-y-8 flex flex-col">
         <div className="h-64 bg-surface-skeleton rounded-md w-full mt-4"></div>
       </div>
     );

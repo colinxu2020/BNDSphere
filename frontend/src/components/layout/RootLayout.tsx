@@ -1,46 +1,44 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Award,
-  Gavel,
-  CalendarDays,
-  Compass,
-  LayoutDashboard,
-  LogOut,
-  Settings,
-  Shield,
-  User,
-} from "@/src/components/ui/Icons";
-import {
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-  type ReactNode,
-} from "react";
+import { LogIn, LogOut, Menu, User, X } from "@/src/components/ui/Icons";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AUTH_STATE_CHANGED_EVENT,
   clearAuthToken,
   client,
 } from "../../api/client";
 import type { components } from "../../api/schema";
+import { ROLE_MAP } from "../../lib/labels";
 import { cn } from "../../lib/utils";
+import { isNavItemActive, visibleNav, type NavGroup } from "./nav";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
-const navLinks = [
-  { name: "发现社团", path: "/explore", icon: Compass },
-  { name: "大型活动", path: "/activities", icon: CalendarDays },
-  { name: "星级评价", path: "/star-level", icon: Award },
-];
-
+/**
+ * The application shell: a persistent navigation rail on desktop, the same
+ * navigation in a drawer on mobile.
+ *
+ * Replaces a topbar that showed three links and hid five role-gated destinations
+ * inside an avatar dropdown. With nine destinations across six roles a rail is the
+ * shape that fits: every destination this viewer may use is visible, and the
+ * content area gets the full width that master–detail pages need.
+ *
+ * Mobile has one navigation mechanism, not two. The drawer renders the same NAV
+ * definition as the rail, so they cannot drift, and the previous bottom tab bar is
+ * gone — it could only ever hold three of the nine destinations, and keeping both
+ * would mean maintaining two partial navigations. The hamburger is back because it
+ * now has something real to open.
+ *
+ * Pages own their own padding from here on: a master–detail page needs to fill the
+ * content area edge to edge, which the old centred `max-w-7xl` main could not do.
+ */
 export function RootLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [userMenuOpen, setUserMenuOpen] = useState(false);
-  const userMenuRef = useRef<HTMLDivElement>(null);
-  const userMenuTriggerRef = useRef<HTMLButtonElement>(null);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const drawerRef = useRef<HTMLDivElement>(null);
+  const drawerTriggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("bnd_token");
@@ -80,23 +78,23 @@ export function RootLayout({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // Close the user menu on navigation, on Escape (returning focus to the
-  // trigger), and on any pointer press outside it.
+  // The drawer closes on navigation, on Escape with focus returned to its
+  // trigger, and on a pointer press outside it.
   useEffect(() => {
-    setUserMenuOpen(false);
+    setDrawerOpen(false);
   }, [location.pathname]);
 
   useEffect(() => {
-    if (!userMenuOpen) return;
+    if (!drawerOpen) return;
 
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
-      setUserMenuOpen(false);
-      userMenuTriggerRef.current?.focus();
+      setDrawerOpen(false);
+      drawerTriggerRef.current?.focus();
     };
     const onPointerDown = (event: PointerEvent) => {
-      if (!userMenuRef.current?.contains(event.target as Node)) {
-        setUserMenuOpen(false);
+      if (!drawerRef.current?.contains(event.target as Node)) {
+        setDrawerOpen(false);
       }
     };
 
@@ -106,215 +104,227 @@ export function RootLayout({ children }: { children: ReactNode }) {
       document.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [userMenuOpen]);
-
-  const canOpenFederation = useMemo(
-    () =>
-      user?.role === "federation_staff" ||
-      user?.role === "admin" ||
-      user?.role === "dev",
-    [user?.role],
-  );
-  const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
-  /**
-   * /moderation existed as a route with no link to it anywhere in the shell, so
-   * 版主 had no way to reach their own queue on any viewport. The role set here
-   * mirrors what the backend actually enforces — the moderations router is
-   * mounted behind RoleChecker([moderator, admin, dev]) — rather than being
-   * guessed, so the link never appears for someone who would be refused.
-   */
-  const canOpenModeration =
-    user?.role === "moderator" ||
-    user?.role === "admin" ||
-    user?.role === "dev";
+  }, [drawerOpen]);
 
   const handleLogout = () => {
     clearAuthToken();
     setIsLoggedIn(false);
     setUser(null);
+    setDrawerOpen(false);
     navigate("/login");
   };
 
+  const groups = visibleNav(user?.role, isLoggedIn);
+
   return (
-    <div className="min-h-screen bg-surface-sunken text-content">
-      <header className="sticky top-0 z-50 border-b border-edge bg-surface">
-        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
-          <Link to="/" className="flex items-center gap-3">
-            <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10 w-auto" />
-          </Link>
+    <div className="flex min-h-screen bg-surface-sunken">
+      {/* Rail — desktop */}
+      <aside className="sticky top-0 hidden h-screen w-60 shrink-0 flex-col border-r border-edge bg-surface lg:flex">
+        <Link
+          to="/"
+          className="flex h-16 shrink-0 items-center border-b border-edge px-5 outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+        >
+          <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+        </Link>
+        <NavList groups={groups} pathname={location.pathname} />
+        <AccountFooter
+          user={user}
+          isLoggedIn={isLoggedIn}
+          onLogout={handleLogout}
+        />
+      </aside>
 
-          <div className="hidden items-center gap-1 md:flex">
-            {navLinks.map((link) => {
-              const isActive =
-                location.pathname === link.path ||
-                (link.path !== "/" && location.pathname.startsWith(link.path));
-              return (
-                <Link
-                  key={link.name}
-                  to={link.path}
-                  aria-current={isActive ? "page" : undefined}
-                  className={cn(
-                    "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold transition-colors",
-                    isActive
-                      ? "bg-surface-hover text-content"
-                      : "text-content-muted hover:bg-surface-sunken hover:text-content",
-                  )}
-                >
-                  <link.icon size={16} />
-                  {link.name}
-                </Link>
-              );
-            })}
-          </div>
-
-          <div className="flex min-w-32 items-center justify-end gap-2">
-            {!isLoggedIn ? (
-              <>
-                <Link
-                  to="/login"
-                  className="inline-flex min-h-11 items-center rounded-md border border-edge px-3 text-sm font-semibold text-content hover:bg-surface-sunken md:min-h-0 md:py-2"
-                >
-                  登录
-                </Link>
-                <Link
-                  to="/register"
-                  className="inline-flex min-h-11 items-center rounded-md bg-brand px-3 text-sm font-semibold text-brand-on hover:bg-brand-hover md:min-h-0 md:py-2"
-                >
-                  注册
-                </Link>
-              </>
-            ) : (
-              <div className="relative" ref={userMenuRef}>
-                <button
-                  type="button"
-                  ref={userMenuTriggerRef}
-                  onClick={() => setUserMenuOpen((open) => !open)}
-                  className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-content-muted md:h-10 md:w-10"
-                  aria-label="用户菜单"
-                  aria-haspopup="menu"
-                  aria-expanded={userMenuOpen}
-                >
-                  {user?.avatar_uri ? (
-                    <img
-                      src={user.avatar_uri}
-                      alt={user.username}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : user?.username ? (
-                    <span className="text-sm font-bold">
-                      {user.username.slice(0, 1).toUpperCase()}
-                    </span>
-                  ) : (
-                    <User size={18} />
-                  )}
-                </button>
-
-                {userMenuOpen && (
-                <div
-                  role="menu"
-                  aria-label="用户菜单"
-                  onClick={() => setUserMenuOpen(false)}
-                  className="absolute right-0 top-full z-50 w-56 pt-2"
-                >
-                  <div className="rounded-md border border-edge bg-surface p-2 shadow-lg">
-                    <div className="px-3 py-2">
-                      <p className="truncate text-sm font-semibold text-content">
-                        {user?.username || "已登录用户"}
-                      </p>
-                      <p className="truncate text-xs text-content-muted">
-                        {user?.email || "未设置邮箱"}
-                      </p>
-                    </div>
-                    <div className="my-1 h-px bg-surface-hover" />
-                    <MenuItem to="/profile" icon={<User size={16} />}>
-                      个人主页
-                    </MenuItem>
-                    <MenuItem to="/workspace" icon={<Settings size={16} />}>
-                      我管理的社团
-                    </MenuItem>
-                    {canOpenFederation && (
-                      <MenuItem
-                        to="/federation"
-                        icon={<LayoutDashboard size={16} />}
-                      >
-                        社联工作台
-                      </MenuItem>
-                    )}
-                    {canOpenModeration && (
-                      <MenuItem to="/moderation" icon={<Gavel size={16} />}>
-                        审核队列
-                      </MenuItem>
-                    )}
-                    {canOpenAdmin && (
-                      <MenuItem to="/admin" icon={<Shield size={16} />}>
-                        管理员控制台
-                      </MenuItem>
-                    )}
-                    <button
-                      type="button"
-                      onClick={handleLogout}
-                      className="mt-1 flex min-h-11 w-full items-center gap-2 rounded-md px-3 py-2 text-left text-sm font-semibold text-tone-danger-fg hover:bg-tone-danger-bg md:min-h-0"
-                    >
-                      <LogOut size={16} />
-                      退出登录
-                    </button>
-                  </div>
-                </div>
-                )}
-              </div>
-            )}
-          </div>
-        </nav>
-      </header>
-
-      <main className="mx-auto flex w-full max-w-7xl flex-col px-4 pt-6 pb-[calc(6rem+env(safe-area-inset-bottom))] sm:px-6 md:pb-6 lg:px-8">
-        {children}
-      </main>
-
-      <div className="fixed inset-x-0 bottom-0 z-40 border-t border-edge bg-surface pb-[env(safe-area-inset-bottom)] md:hidden">
-        <div className="grid grid-cols-3 gap-1 px-2 py-2">
-          {navLinks.map((link) => {
-            const isActive =
-              location.pathname === link.path ||
-              (link.path !== "/" && location.pathname.startsWith(link.path));
-            return (
-              <Link
-                key={link.name}
-                to={link.path}
-                aria-current={isActive ? "page" : undefined}
-                className={cn(
-                  "flex min-h-11 flex-col items-center justify-center gap-1 rounded-md px-2 py-2 text-xs font-semibold",
-                  isActive ? "text-content" : "text-content-muted",
-                )}
+      {/* Drawer — mobile */}
+      {drawerOpen && (
+        <div className="fixed inset-0 z-50 lg:hidden">
+          <div className="absolute inset-0 bg-surface-inverted/40" />
+          <div
+            ref={drawerRef}
+            role="dialog"
+            aria-modal="true"
+            aria-label="导航"
+            className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col border-r border-edge bg-surface"
+          >
+            <div className="flex h-16 shrink-0 items-center justify-between border-b border-edge px-4">
+              <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
+              <button
+                type="button"
+                onClick={() => {
+                  setDrawerOpen(false);
+                  drawerTriggerRef.current?.focus();
+                }}
+                aria-label="关闭导航"
+                className="inline-flex h-11 w-11 items-center justify-center rounded-md text-content-muted outline-none hover:bg-surface-hover focus-visible:ring-4 focus-visible:ring-brand-strong/40"
               >
-                <link.icon size={18} />
-                {link.name}
-              </Link>
-            );
-          })}
+                <X size={18} />
+              </button>
+            </div>
+            <NavList
+              groups={groups}
+              pathname={location.pathname}
+              onNavigate={() => setDrawerOpen(false)}
+              touch
+            />
+            <AccountFooter
+              user={user}
+              isLoggedIn={isLoggedIn}
+              onLogout={handleLogout}
+              touch
+            />
+          </div>
         </div>
+      )}
+
+      {/* Content */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-edge bg-surface px-4 lg:hidden">
+          <button
+            type="button"
+            ref={drawerTriggerRef}
+            onClick={() => setDrawerOpen(true)}
+            aria-label="打开导航"
+            aria-expanded={drawerOpen}
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-edge text-content-muted outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+          >
+            <Menu size={18} />
+          </button>
+          <Link to="/" className="min-w-0 flex-1 outline-none">
+            <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-7 w-auto" />
+          </Link>
+          {!isLoggedIn && (
+            <Link
+              to="/login"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-3 text-sm font-semibold text-brand-on"
+            >
+              <LogIn size={15} /> 登录
+            </Link>
+          )}
+        </header>
+
+        <main className="flex min-w-0 flex-1 flex-col">{children}</main>
       </div>
     </div>
   );
 }
 
-function MenuItem({
-  to,
-  icon,
-  children,
+function NavList({
+  groups,
+  pathname,
+  onNavigate,
+  touch,
 }: {
-  to: string;
-  icon: ReactNode;
-  children: ReactNode;
+  groups: NavGroup[];
+  pathname: string;
+  onNavigate?: () => void;
+  touch?: boolean;
 }) {
   return (
-    <Link
-      to={to}
-      role="menuitem"
-      className="flex min-h-11 items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-content hover:bg-surface-sunken md:min-h-0"
-    >
-      {icon}
-      {children}
-    </Link>
+    <nav className="min-h-0 flex-1 overflow-y-auto p-3">
+      {groups.map((group) => (
+        <div key={group.section} className="mb-5 last:mb-0">
+          <p className="font-display mb-2 px-2 text-[11px] font-bold tracking-[0.18em] text-content-subtle uppercase">
+            {group.section}
+          </p>
+          <div className="flex flex-col gap-0.5">
+            {group.items.map((item) => {
+              const active = isNavItemActive(pathname, item.path);
+              return (
+                <Link
+                  key={item.path}
+                  to={item.path}
+                  onClick={onNavigate}
+                  aria-current={active ? "page" : undefined}
+                  className={cn(
+                    "flex items-center gap-2.5 rounded-md px-2.5 text-sm font-semibold transition-colors outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40",
+                    touch ? "min-h-11 py-2" : "py-2",
+                    active
+                      ? "bg-brand-subtle text-tone-brand-fg"
+                      : "text-content-muted hover:bg-surface-hover hover:text-content",
+                  )}
+                >
+                  <item.icon size={17} />
+                  <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </nav>
+  );
+}
+
+function AccountFooter({
+  user,
+  isLoggedIn,
+  onLogout,
+  touch,
+}: {
+  user: UserInfo | null;
+  isLoggedIn: boolean;
+  onLogout: () => void;
+  touch?: boolean;
+}) {
+  if (!isLoggedIn) {
+    return (
+      <div className="shrink-0 border-t border-edge p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="flex flex-col gap-2">
+          <Link
+            to="/login"
+            className="inline-flex min-h-11 items-center justify-center rounded-md bg-brand px-3 text-sm font-semibold text-brand-on outline-none hover:bg-brand-hover focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+          >
+            登录
+          </Link>
+          <Link
+            to="/register"
+            className="inline-flex min-h-11 items-center justify-center rounded-md border border-edge px-3 text-sm font-semibold text-content outline-none hover:bg-surface-hover focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+          >
+            注册
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="shrink-0 border-t border-edge p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <Link
+        to="/profile"
+        className="flex items-center gap-2.5 rounded-md px-2 py-2 outline-none hover:bg-surface-hover focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+      >
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-xs font-bold text-content-muted">
+          {user?.avatar_uri ? (
+            <img
+              src={user.avatar_uri}
+              alt={user.username}
+              className="h-full w-full object-cover"
+            />
+          ) : user?.username ? (
+            user.username.slice(0, 1).toUpperCase()
+          ) : (
+            <User size={16} />
+          )}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-semibold text-content">
+            {user?.username || "已登录用户"}
+          </span>
+          <span className="block truncate text-xs text-content-subtle">
+            {user?.role ? ROLE_MAP[user.role] : "普通成员"}
+          </span>
+        </span>
+      </Link>
+      <button
+        type="button"
+        onClick={onLogout}
+        className={cn(
+          "mt-1 flex w-full items-center gap-2.5 rounded-md px-2.5 text-sm font-semibold text-tone-danger-fg outline-none hover:bg-tone-danger-bg focus-visible:ring-4 focus-visible:ring-tone-danger-fg/40",
+          touch ? "min-h-11 py-2" : "py-2",
+        )}
+      >
+        <LogOut size={16} />
+        退出登录
+      </button>
+    </div>
   );
 }

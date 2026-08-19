@@ -89,7 +89,7 @@ function renderRequestDetails(item: ModerationItem) {
   }
 
   return (
-    <div className="grid gap-2">
+    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 grid gap-2">
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
           <span className="font-semibold text-content-muted">{label}</span>
