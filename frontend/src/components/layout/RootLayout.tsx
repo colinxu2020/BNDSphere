@@ -114,7 +114,16 @@ export function RootLayout({ children }: { children: ReactNode }) {
     navigate("/login");
   };
 
-  const groups = visibleNav(user?.role, isLoggedIn);
+  /**
+   * Authenticated destinations require a RESOLVED profile, not merely a token.
+   *
+   * A banned account still holds a valid token but /users/me answers 403
+   * USER_BANNED, so keying these off `isLoggedIn` alone showed 我管理的社团 and
+   * 个人主页 to someone who cannot use either — verified by walking every role
+   * against real /users/me responses. The account footer deliberately still keys
+   * off isLoggedIn, so 退出登录 stays reachable for exactly that account.
+   */
+  const groups = visibleNav(user?.role, Boolean(user));
 
   return (
     <div className="flex min-h-screen bg-surface-sunken">
