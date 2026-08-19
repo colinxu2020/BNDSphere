@@ -5,33 +5,24 @@ import {
   Award,
   CalendarDays,
   FileCheck2,
-  Hash,
   Plus,
   RefreshCw,
-  Save,
-  Sparkles,
-  X,
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
 import { ClubProfileRequestSection } from "./clubWorkspace/ClubProfileRequestSection";
+import { ClubHeaderSection, LoadErrorsSection, StarRatingSection } from "./clubWorkspace/displaySections";
 import { EditorHeader, sameStringArray } from "./clubWorkspace/helpers";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import { CategoryChip } from "../components/ui/CategoryChip";
-import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
+import { StarLevelCompact } from "../components/ui/StarLevel";
 import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
-import {
-  AUDIT_STATUS_MAP,
-  PARTICIPATION_MAP,
-  PARTICIPATION_OPTIONS,
-} from "../lib/labels";
+import { AUDIT_STATUS_MAP, PARTICIPATION_MAP, PARTICIPATION_OPTIONS } from "../lib/labels";
 import {
   formatDateTime,
   fromDateTimeLocalValue,
   nullableNumber,
   nullableText,
-  stringifyBackendValue,
   toDateTimeLocalValue,
   toNumberOrZero,
 } from "../lib/format";
@@ -39,7 +30,6 @@ import {
   Badge,
   EmptyState,
   Field,
-  InlineError,
   PageHeader,
   PrimaryButton,
   SecondaryButton,
@@ -512,88 +502,13 @@ export function ClubWorkspace() {
         <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
       ) : (
         <>
-          {Object.keys(loadErrors).length > 0 && (
-            <Surface density="compact">
-              <SectionTitle density="compact"
-                title="加载反馈"
-                description="以下内容直接来自后端响应。"
-              />
-              <div className="grid gap-3">
-                {Object.entries(loadErrors).map(([key, value]) => (
-                  <div key={key}>
-                    <InlineError
-                      value={`${key}: ${stringifyBackendValue(value)}`}
-                    />
-                  </div>
-                ))}
-              </div>
-            </Surface>
-          )}
-
-          {club && (
-            <Surface density="compact">
-              <div className="flex flex-col md:flex-row md:items-center gap-5">
-                <div className="w-20 h-20 rounded-md bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden border border-edge">
-                  {club.logo_uri ? (
-                    <img
-                      src={club.logo_uri}
-                      alt={club.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <Hash className="text-content-subtle" size={30} />
-                  )}
-                </div>
-                <div className="flex-1">
-                  <div className="flex flex-wrap gap-2 mb-2">
-                    <CategoryChip category={club.category} />
-                    <StarLevel level={club.star_level} />
-                  </div>
-                  <h2 className="text-2xl font-display font-bold text-content">
-                    {club.name}
-                  </h2>
-                  <p className="text-content-muted mt-1">{club.summary}</p>
-                </div>
-              </div>
-            </Surface>
-          )}
-
-          <Surface density="compact">
-            <SectionTitle density="compact" icon={<Sparkles size={20} />} title="星级评价" />
-            {starRating ? (
-              <div className="flex flex-col gap-5">
-                <div className="rounded-md border border-edge-subtle bg-surface-sunken p-5">
-                  <p className="text-sm font-medium text-content-muted">当前总分</p>
-                  <p className="mt-2 text-4xl font-display font-bold text-content">
-                    {starRating.total_score}
-                  </p>
-                  <p className="mt-2">
-                    <StarLevelCompact level={starRating.star_level} />
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <Badge tone="brand">
-                    会议出勤 {starRating.breakdown.meeting_attendance}
-                  </Badge>
-                  <Badge tone="brand">
-                    活动参与 {starRating.breakdown.activity_participation}
-                  </Badge>
-                  <Badge tone="brand">
-                    内部活动 {starRating.breakdown.internal_activities}
-                  </Badge>
-                  <Badge tone="brand">
-                    社团历史 {starRating.breakdown.club_history}
-                  </Badge>
-                </div>
-                <p className="text-sm text-content-muted">
-                  内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
-                  {starRating.club_age_years} 年。
-                </p>
-              </div>
-            ) : (
-              <EmptyState title="暂无星级评价" />
+            {Object.keys(loadErrors).length > 0 && (
+              <LoadErrorsSection errors={loadErrors} />
             )}
-          </Surface>
+
+            {club && <ClubHeaderSection club={club} />}
+
+            <StarRatingSection starRating={starRating} />
 
           <Surface density="compact">
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
