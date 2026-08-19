@@ -37,6 +37,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [pendingModeration, setPendingModeration] = useState<number | null>(null);
   const drawerRef = useRef<HTMLDivElement>(null);
   const drawerTriggerRef = useRef<HTMLButtonElement>(null);
 
@@ -77,6 +78,34 @@ export function RootLayout({ children }: { children: ReactNode }) {
       window.removeEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
     };
   }, []);
+
+  /**
+   * The moderation badge.
+   *
+   * One small request, and only for a viewer whose role the backend would accept —
+   * which is why GET /api/v1/moderations/summary exists: the four queue endpoints
+   * take no status filter, so counting client-side meant fetching all four full
+   * lists on every page load.
+   */
+  const canSeeModeration =
+    user?.role === "moderator" || user?.role === "admin" || user?.role === "dev";
+
+  useEffect(() => {
+    if (!canSeeModeration) {
+      setPendingModeration(null);
+      return;
+    }
+    let cancelled = false;
+    const load = async () => {
+      const { data, error } = await client.GET("/api/v1/moderations/summary");
+      if (cancelled) return;
+      setPendingModeration(error || !data ? null : data.total);
+    };
+    load();
+    return () => {
+      cancelled = true;
+    };
+  }, [canSeeModeration, location.pathname]);
 
   // The drawer closes on navigation, on Escape with focus returned to its
   // trigger, and on a pointer press outside it.
@@ -124,6 +153,10 @@ export function RootLayout({ children }: { children: ReactNode }) {
    * off isLoggedIn, so 退出登录 stays reachable for exactly that account.
    */
   const groups = visibleNav(user?.role, Boolean(user));
+  const badges: Record<string, number> =
+    pendingModeration && pendingModeration > 0
+      ? { "/moderation": pendingModeration }
+      : {};
 
   return (
     <div className="flex min-h-screen bg-surface-sunken">
@@ -135,7 +168,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
         >
           <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
         </Link>
-        <NavList groups={groups} pathname={location.pathname} />
+        <NavList
+          groups={groups}
+          pathname={location.pathname}
+          badges={badges}
+        />
         <AccountFooter
           user={user}
           isLoggedIn={isLoggedIn}
@@ -171,6 +208,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             <NavList
               groups={groups}
               pathname={location.pathname}
+              badges={badges}
               onNavigate={() => setDrawerOpen(false)}
               touch
             />
@@ -219,11 +257,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
 function NavList({
   groups,
   pathname,
+  badges,
   onNavigate,
   touch,
 }: {
   groups: NavGroup[];
   pathname: string;
+  /** Pending counts keyed by path; absent or zero renders nothing. */
+  badges?: Record<string, number>;
   onNavigate?: () => void;
   touch?: boolean;
 }) {
@@ -253,6 +294,14 @@ function NavList({
                 >
                   <item.icon size={17} />
                   <span className="min-w-0 flex-1 truncate">{item.label}</span>
+                  {Boolean(badges?.[item.path]) && (
+                    <span
+                      className="shrink-0 rounded-full bg-tone-warning-bg px-1.5 py-0.5 text-[10px] font-bold text-tone-warning-fg"
+                      aria-label={`${badges?.[item.path]} 条待处理`}
+                    >
+                      {badges?.[item.path]}
+                    </span>
+                  )}
                 </Link>
               );
             })}
