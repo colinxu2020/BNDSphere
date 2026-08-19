@@ -29,6 +29,27 @@ master's `#29` (VerificationMixin club-president approval) or `#32` (avatar/logo
 upload security fix). Reconciling that is outside this design's scope but must not be
 forgotten.
 
+### 1.1b Merge-order dependency (2026-08-19)
+
+This branch now carries **backend** commits as well as frontend ones (§8b), on a
+backend that still lacks `#29` and `#32`. That creates an ordering requirement, not a
+conflict:
+
+- The API additions are **purely additive** and touch only new files plus three
+  existing ones in ways `#29`/`#32` do not: a new route in `api/v1/clubs.py`, a new
+  sub-router mounted in `api/v1/moderations/__init__.py`, new methods appended to the
+  club/user/club-activity repositories and services, and a new schema in
+  `schemas/club.py` / `schemas/moderations/moderation_common.py`.
+- **Nothing here re-implements, reverts or works around `#29`/`#32`.** Neither was
+  touched, by instruction.
+- **Before release, master's backend must reach this branch** (or this branch must
+  merge into a line that already has it). Merging this branch alone would ship the
+  redesign on a backend missing a security fix.
+
+Recommended order: bring `#29`/`#32` into `release/26.08.21` first, then merge this
+branch on top. The additive shape means the reverse also works, but it leaves a
+window where the deployable tip lacks `#32`.
+
 ### 1.2 Goal
 
 A new visual direction — not a consolidation of the existing one. Energetic and
@@ -753,6 +774,49 @@ Each phase (with 2–3 taken together) gets its own plan, written when that phas
 so later plans can be informed by what earlier phases actually turned up — the semantic
 sweep in particular will surface surfaces nobody has reviewed yet. The standalone bugfix
 in §5.3 needs no plan; it is a small, self-contained fix.
+
+## 8b. API additions (2026-08-19)
+
+The A+B layout needed two things the API could not provide. Both are additive; the
+existing endpoints are unchanged.
+
+**`GET /api/v1/moderations/summary`** — pending counts per queue, plus a total.
+The four moderation list endpoints take only `page`/`size`, with **no status
+filter**, so a navigation badge otherwise meant fetching all four full lists on
+every page load; `Page.total` cannot help because it counts every request rather
+than the pending ones. Explicit `ModerationPendingSummary` response model. Counts
+come from `SELECT count()` per repository, not from loading rows. Authorization is
+inherited from the parent router's existing
+`RoleChecker([moderator, admin, dev])`, so nothing new is exposed — verified 401
+anonymous, 403 for a plain user, correct counts for an admin.
+
+Deliberately narrow: only the counts the UI renders. Not a statistics endpoint, and
+no change to how any queue is read or moderated.
+
+**`GET /api/v1/clubs/summary`** — the card/list representation. `ClubInfo` embeds
+`members`, `club_activities` and `general_activity_records`, so a browse grid
+downloaded every member of every club to render a count — and the 展板 wall shows
+more cards at once than the old list did. `ClubSummaryInfo` carries the card fields
+plus `member_count`.
+
+A separate path rather than a `?view=` switch, so each operation has one response
+model and the generated client gets exact types instead of a union. Declared before
+`/{club_id}`, which takes an `int` and would otherwise reject `"summary"` as an
+invalid id.
+
+`member_count` is a **correlated scalar subquery** applied through `apaginate`'s
+`transformer` hook. Verified against SQL ground truth (13/1/6/1/1/1) and by
+`EXPLAIN ANALYZE`: `SubPlan → Aggregate → Bitmap Heap Scan` with
+`Recheck Cond: (club_id = clubs.id)`. Postgres aggregates and returns one integer
+per row; no member rows reach Python. It is one indexed subplan per club row,
+bounded by page size.
+
+`member_count` counts **all** membership rows, matching what clients previously
+computed from `len(members)`. Narrowing it to active members would change a number
+already shown in the product, so that stays a separate decision.
+
+The OpenAPI client is regenerated from the live spec and a `generate:api` script
+records the invocation.
 
 ## 9. Accepted risks
 
