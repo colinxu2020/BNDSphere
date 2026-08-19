@@ -7,7 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from app.core.security import get_password_hash, verify_password
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
-from app.models.user import User
+from app.models.user import RoleEnum, User
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.schemas.moderations.moderation_common import (
     RequestModerate,
@@ -41,6 +41,13 @@ class UserService(
 
     async def get_by_username(self, username: str) -> User | None:
         return await self.repository.get_by_username(username)
+
+    async def get_multi(
+        self,
+        search: str | None = None,
+        role: RoleEnum | None = None,
+    ) -> Page[User]:
+        return await self.repository.get_multi(search, role)
 
     async def authenticate(self, username: str, password: str) -> User | None:
         result = await self.get_by_username(username)

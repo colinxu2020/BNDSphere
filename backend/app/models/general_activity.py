@@ -43,6 +43,18 @@ class GeneralActivity(Base, AcademicTermMixin):
     )
     description: Mapped[str] = mapped_column(Text)
     level: Mapped[GeneralActivityLevelEnum] = mapped_column()
+    starts_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+        index=True,
+    )
+    ends_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+        index=True,
+    )
+    poster_uri: Mapped[str | None] = mapped_column(Text, default=None)
+    article_url: Mapped[str | None] = mapped_column(Text, default=None)
 
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

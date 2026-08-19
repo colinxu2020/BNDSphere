@@ -1,15 +1,30 @@
 from fastapi import APIRouter
+from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import StarLevelServiceDep
 from app.models.user import AuditStatusEnum
-from app.schemas.star_level import StarLevelApplicationInfo, StarLevelApplicationUpdate
+from app.schemas.star_level import (
+    StarLevelApplicationInfo,
+    StarLevelApplicationPublicInfo,
+    StarLevelApplicationUpdate,
+)
 from app.services.errors import (
     StarLevelApplicationUpdateDeniedError,
     StarLevelNotFoundError,
 )
 
 router = APIRouter(tags=["Star Level"])
+
+
+@router.get("/")
+async def list_public_applications(
+    service: StarLevelServiceDep,
+) -> Page[StarLevelApplicationPublicInfo]:
+    """List all star level applications, newest first."""
+    return Page[StarLevelApplicationPublicInfo].model_validate(
+        await service.list_public(),
+    )
 
 
 @router.get("/{star_level_id}")

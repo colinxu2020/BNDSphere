@@ -1,11 +1,23 @@
 from fastapi import APIRouter
+from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import UserServiceDep
+from app.models.user import RoleEnum
 from app.schemas.user import AdminUserUpdate, UserInfo
 from app.services.errors import ResourceNotFoundError
 
 router = APIRouter(tags=["Admin: Users"])
+
+
+@router.get("/")
+async def list_users(
+    user_service: UserServiceDep,
+    search: str | None = None,
+    role: RoleEnum | None = None,
+) -> Page[UserInfo]:
+    """List users for admin."""
+    return Page[UserInfo].model_validate(await user_service.get_multi(search, role))
 
 
 @router.patch(

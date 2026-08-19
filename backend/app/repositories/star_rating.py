@@ -27,6 +27,9 @@ class StarRatingRepository:
         )
         return result.scalars().first()
 
+    async def get_term(self, term_id: int) -> AcademicTerm | None:
+        return await self.db.get(AcademicTerm, term_id)
+
     async def get_application(
         self,
         club_id: int,

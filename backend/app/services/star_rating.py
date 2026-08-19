@@ -1,14 +1,16 @@
 from datetime import UTC, datetime
 
+from app.models.academic_term import AcademicTerm
 from app.models.club import Club, ClubStarLevelEnum
 from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum
 from app.repositories.star_rating import StarRatingRepository
+from app.schemas.star_level import StarLevelApplicationReview
 from app.schemas.star_rating import StarRatingBreakdown, StarRatingResponse
 from app.services.errors import ClubNotFoundError
 
 _MEETING_ATTENDANCE_SCORE = 10
-_SECTION_2_1_CAP = 50
+_SECTION_2_1_CAP = 45
 _SPECIAL_BONUSES_CAP = 10
 _TOTAL_SCORE_CAP = 100
 _CLUB_HISTORY_MIN_YEARS = 2
@@ -17,7 +19,6 @@ _CROSS_GRADE_SCORE = 5
 _CLUB_HISTORY_SCORE = 5
 _ALL_GRADE_LEVELS = {7, 8, 9, 10, 11, 12}
 _CROSS_GRADE_MIN_MEMBERS = 25
-_COMPETITION_MAX = 13
 
 _INTERNAL_ACTIVITY_THRESHOLDS: list[tuple[int, int]] = [
     (15, 30),
@@ -47,20 +48,50 @@ class StarRatingService:
 
         current_term = await self.repository.get_current_term()
         application = await self.repository.get_application(club_id, current_term)
+        return await self._calculate_score(club, current_term, application)
 
+    async def calculate_application_score(
+        self,
+        application: StarLevelApplication,
+    ) -> StarRatingResponse:
+        club = await self.repository.get_club(application.club_id)
+        if club is None:
+            raise ClubNotFoundError(application.club_id)
+        term = await self.repository.get_term(application.academic_term_id)
+        return await self._calculate_score(club, term, application)
+
+    async def calculate_application_review_score(
+        self,
+        application: StarLevelApplication,
+        review: StarLevelApplicationReview,
+    ) -> StarRatingResponse:
+        club = await self.repository.get_club(application.club_id)
+        if club is None:
+            raise ClubNotFoundError(application.club_id)
+        term = await self.repository.get_term(application.academic_term_id)
+        return await self._calculate_score(club, term, application, review)
+
+    async def _calculate_score(
+        self,
+        club: Club,
+        term: AcademicTerm | None,
+        application: StarLevelApplication | None,
+        review: StarLevelApplicationReview | None = None,
+    ) -> StarRatingResponse:
+        club_id = club.id
         has_federation = await self.repository.has_federation_participation(
             club_id,
-            current_term,
+            term,
         )
         meeting_score = _MEETING_ATTENDANCE_SCORE if has_federation else 0
 
         raw_activity = await self.repository.sum_approved_activity_scores(
             club_id,
-            current_term,
+            term,
         )
 
-        raw_competition = self._get_competition_score(application)
-        competition_score = min(raw_competition, _COMPETITION_MAX)
+        raw_competition = self._get_competition_score(application, review)
+        competition_score = min(raw_competition, _SECTION_2_1_CAP)
 
         competition_breakdown = competition_score
         activity_participation = min(
@@ -71,14 +102,15 @@ class StarRatingService:
 
         internal_count = await self.repository.count_internal_activities(
             club_id,
-            current_term,
+            term,
         )
         internal_score = self._internal_activity_score(internal_count)
 
-        growth_story = self._get_growth_story_score(application)
+        growth_story = self._get_growth_story_score(application, review)
         cross_grade = await self._calc_cross_grade_influence(
             club_id,
             application,
+            review,
         )
         age_years = self._club_age_years(club)
         history_score = (
@@ -119,21 +151,32 @@ class StarRatingService:
     @staticmethod
     def _get_competition_score(
         application: StarLevelApplication | None,
+        review: StarLevelApplicationReview | None = None,
     ) -> int:
         """竞赛得分从已审核的 StarLevelApplication 中获取."""
-        if application is None or application.audit_status != AuditStatusEnum.approved:
+        if application is None:
             return 0
+        audit_status = review.audit_status if review else application.audit_status
+        if audit_status != AuditStatusEnum.approved:
+            return 0
+        if review is not None:
+            return review.final_contest_score or 0
         return application.final_contest_score or 0
 
     @staticmethod
     def _get_growth_story_score(
         application: StarLevelApplication | None,
+        review: StarLevelApplicationReview | None = None,
     ) -> int:
-        if (
-            application is None
-            or application.audit_status != AuditStatusEnum.approved
-            or not application.growth_story_approved
-        ):
+        if application is None:
+            return 0
+        audit_status = review.audit_status if review else application.audit_status
+        growth_story_approved = (
+            review.growth_story_approved
+            if review
+            else application.growth_story_approved
+        )
+        if audit_status != AuditStatusEnum.approved or not growth_story_approved:
             return 0
         return _GROWTH_STORY_SCORE
 
@@ -141,6 +184,7 @@ class StarRatingService:
         self,
         club_id: int,
         application: StarLevelApplication | None,
+        review: StarLevelApplicationReview | None = None,
     ) -> int:
         """计算跨年级影响力得分.
 
@@ -150,10 +194,13 @@ class StarRatingService:
         """
         grade_counts = await self.repository.count_members_by_grade_level(club_id)
 
-        if (
-            application is not None
-            and application.audit_status == AuditStatusEnum.approved
-        ):
+        audit_status = (
+            review.audit_status
+            if review
+            else (application.audit_status if application is not None else None)
+        )
+
+        if application is not None and audit_status == AuditStatusEnum.approved:
             target_grades = {
                 grade
                 for grade in (

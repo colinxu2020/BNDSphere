@@ -1,5 +1,6 @@
 from app.models import moderations, verifications
 from app.models.academic_term import AcademicTerm
+from app.models.announcement import Announcement
 from app.models.club import Club
 from app.models.club_activity import ClubActivity
 from app.models.club_activity_participant import (
@@ -14,6 +15,7 @@ from app.models.user import User
 
 __all__ = [
     "AcademicTerm",
+    "Announcement",
     "Club",
     "ClubActivity",
     "ClubMember",

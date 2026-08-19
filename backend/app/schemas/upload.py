@@ -7,26 +7,15 @@ from pydantic import AfterValidator, BaseModel, Field, HttpUrl
 
 from app.core.settings import oss_settings
 
-SAFE_FILENAME_FALLBACK: Final[str] = "file"
-SAFE_FILENAME_ALLOWED_CHARS: Final[frozenset[str]] = frozenset({".", "-", "_"})
-
 
 def _filename_base(filename: str) -> str:
     return filename.replace("\\", "/").rsplit("/", maxsplit=1)[-1].strip()
 
 
-def _sanitize_filename_part(value: str) -> str:
-    sanitized = "".join(
-        char if char.isalnum() or char in SAFE_FILENAME_ALLOWED_CHARS else "_"
-        for char in value
-    )
-    sanitized = "_".join(part for part in sanitized.split("_") if part)
-    return sanitized.strip("._-") or SAFE_FILENAME_FALLBACK
-
-
 class UploadScene(StrEnum):
     AVATAR = "avatar"
     CLUB_LOGO = "club_logo"
+    ACTIVITY_POSTER = "activity_poster"
     APPLICATION_FILE = "application_file"
 
 
@@ -38,6 +27,7 @@ SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
     {
         UploadScene.AVATAR: "avatar",
         UploadScene.CLUB_LOGO: "club_logo",
+        UploadScene.ACTIVITY_POSTER: "activity_poster",
         UploadScene.APPLICATION_FILE: "application_files",
     },
 )
@@ -98,8 +88,16 @@ def _validate_logo_uri(url: HttpUrl | None) -> HttpUrl | None:
     return ensure_uploaded_object_url(UploadScene.CLUB_LOGO, url)
 
 
+def _validate_activity_poster_uri(url: HttpUrl | None) -> HttpUrl | None:
+    return ensure_uploaded_object_url(UploadScene.ACTIVITY_POSTER, url)
+
+
 AvatarUri = Annotated[HttpUrl | None, AfterValidator(_validate_avatar_uri)]
 LogoUri = Annotated[HttpUrl | None, AfterValidator(_validate_logo_uri)]
+ActivityPosterUri = Annotated[
+    HttpUrl | None,
+    AfterValidator(_validate_activity_poster_uri),
+]
 
 
 class InitiateUploadRequest(BaseModel):
@@ -115,16 +113,10 @@ class InitiateUploadRequest(BaseModel):
             return ""
         return base.rsplit(".", maxsplit=1)[-1].lower()
 
-    @property
-    def sanitized_filename(self) -> str:
-        base = _filename_base(self.filename)
-        stem, separator, extension = base.rpartition(".")
-        if not separator:
-            return _sanitize_filename_part(base)
-
-        safe_stem = _sanitize_filename_part(stem)
-        safe_extension = _sanitize_filename_part(extension.lower())
-        return f"{safe_stem}.{safe_extension}"
+    def storage_filename(self, file_id: str) -> str:
+        if not self.extension:
+            return file_id
+        return f"{file_id}.{self.extension}"
 
 
 class InitiateUploadResponse(BaseModel):

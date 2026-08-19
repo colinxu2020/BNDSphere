@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from fastapi import APIRouter
 from fastapi_pagination import Page
 
@@ -25,13 +27,23 @@ async def get(
 
 @router.get("/")
 async def list_activities(
+    *,
     service: GeneralActivityServiceDep,
     search: str | None = None,
     level: GeneralActivityLevelEnum | None = None,
+    starts_before: datetime | None = None,
+    ends_after: datetime | None = None,
+    has_poster: bool | None = None,
 ) -> Page[GeneralActivityInfo]:
     """List general activities.
     Optionally filtered by search keyword and/or activity level.
     """
     return Page[GeneralActivityInfo].model_validate(
-        await service.get_multi(search, level),
+        await service.get_multi(
+            search,
+            level,
+            starts_before=starts_before,
+            ends_after=ends_after,
+            has_poster=has_poster,
+        ),
     )

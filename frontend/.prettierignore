@@ -1,4 +1,5 @@
-node_modules
-dist-ssr
-public
-*.html
+dist/
+node_modules/
+package-lock.json
+openapi.json
+src/api/schema.d.ts
