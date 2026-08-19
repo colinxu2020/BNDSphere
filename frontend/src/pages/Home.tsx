@@ -340,7 +340,7 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
               href={item.link_url || undefined}
               target={item.link_url ? "_blank" : undefined}
               rel="noreferrer"
-              className="block rounded-md border border-edge-subtle bg-surface-sunken p-3 hover:bg-surface"
+              className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand/40 motion-reduce:transition-none"
             >
               <p className="font-semibold text-content">{item.title}</p>
               <p className="mt-1 line-clamp-2 text-sm text-content-muted">
@@ -484,7 +484,7 @@ function MyClubActivityList({
         <Link
           key={`${item.club.id}-${item.activity.id}`}
           to={`/club/${item.club.id}`}
-          className="block rounded-md border border-edge-subtle bg-surface-sunken p-3 hover:bg-surface"
+          className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand/40 motion-reduce:transition-none"
         >
           <div className="flex items-center justify-between gap-3">
             <p className="font-semibold text-content">{item.activity.name}</p>

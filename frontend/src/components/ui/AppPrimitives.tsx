@@ -5,13 +5,13 @@ import { stringifyBackendValue } from "../../lib/format";
 import { TONE_CLASSES, type Tone } from "../../lib/tones";
 
 export const inputClassName =
-  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle";
 
 export const selectClassName =
-  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:border-brand outline-none transition-all font-medium text-content";
 
 export const textareaClassName =
-  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle min-h-[120px] resize-none";
+  "w-full min-w-0 px-4 py-3 bg-surface-sunken border border-edge rounded-md focus-visible:ring-2 focus-visible:ring-brand/30 focus-visible:border-brand outline-none transition-all font-medium text-content placeholder:text-content-subtle min-h-[120px] resize-none";
 
 export function PageHeader({
   eyebrow,
@@ -159,7 +159,7 @@ export function PrimaryButton({
       {...props}
       disabled={props.disabled || loading}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand hover:bg-brand-hover text-brand-on font-semibold rounded-md transition-all shadow-md shadow-brand/20 active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-5 py-3 bg-brand hover:bg-brand-hover text-brand-on font-semibold rounded-md transition-all shadow-md shadow-brand/20 active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:opacity-70 disabled:cursor-not-allowed outline-none focus-visible:ring-4 focus-visible:ring-brand/40",
         className,
       )}
     >
@@ -177,7 +177,7 @@ export function SecondaryButton({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-sunken hover:bg-surface-hover border border-edge text-content font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-surface-sunken hover:bg-surface-hover border border-edge text-content font-semibold rounded-md transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:opacity-60 disabled:cursor-not-allowed outline-none focus-visible:ring-4 focus-visible:ring-brand/40",
         className,
       )}
     >
@@ -195,7 +195,7 @@ export function DangerButton({
     <button
       {...props}
       className={cn(
-        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-tone-danger-bg hover:bg-tone-danger-bg-hover border border-tone-danger-edge text-tone-danger-fg font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed",
+        "inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-tone-danger-bg hover:bg-tone-danger-bg-hover border border-tone-danger-edge text-tone-danger-fg font-semibold rounded-md transition-all active:scale-[0.98] motion-reduce:transition-none motion-reduce:active:scale-100 disabled:opacity-60 disabled:cursor-not-allowed outline-none focus-visible:ring-4 focus-visible:ring-tone-danger-fg/40",
         className,
       )}
     >
