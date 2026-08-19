@@ -683,14 +683,14 @@
                 }
             }
         },
-        "/api/v1/clubs/{club_id}/members": {
+        "/api/v1/clubs/{club_id}/membership-requests": {
             "post": {
                 "tags": [
                     "Clubs"
                 ],
-                "summary": "Join Club",
-                "description": "Join a club.",
-                "operationId": "join_club_api_v1_clubs__club_id__members_post",
+                "summary": "Request Join Club",
+                "description": "Apply to join a club, pending the club president's verification.",
+                "operationId": "request_join_club_api_v1_clubs__club_id__membership_requests_post",
                 "security": [
                     {
                         "OAuth2PasswordBearer": []
@@ -707,13 +707,23 @@
                         }
                     }
                 ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ClubMembershipRequestCreatePublic"
+                            }
+                        }
+                    }
+                },
                 "responses": {
                     "201": {
                         "description": "Successful Response",
                         "content": {
                             "application/json": {
                                 "schema": {
-                                    "$ref": "#/components/schemas/ClubMemberInfo"
+                                    "$ref": "#/components/schemas/ClubMembershipRequestInfo"
                                 }
                             }
                         }
@@ -725,6 +735,138 @@
                                 "example": {
                                     "message_key": "error.auth.token_invalid",
                                     "error_code": "AUTH_TOKEN_INVALID"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict - A pending request already exists.",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.moderation.duplicate_pending_request",
+                                    "error_code": "DUPLICATE_PENDING_REQUEST"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            "get": {
+                "tags": [
+                    "Verification: Club Memberships"
+                ],
+                "summary": "Get Pending Membership Requests",
+                "description": "Get pending club membership requests for the club.",
+                "operationId": "get_pending_membership_requests_api_v1_clubs__club_id__membership_requests_get",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "club_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Club Id"
+                        }
+                    },
+                    {
+                        "name": "page",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "minimum": 1,
+                            "description": "Page number",
+                            "default": 1,
+                            "title": "Page"
+                        },
+                        "description": "Page number"
+                    },
+                    {
+                        "name": "size",
+                        "in": "query",
+                        "required": false,
+                        "schema": {
+                            "type": "integer",
+                            "maximum": 100,
+                            "minimum": 1,
+                            "description": "Page size",
+                            "default": 50,
+                            "title": "Size"
+                        },
+                        "description": "Page size"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/Page_ClubMembershipRequestInfo_"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission Denied",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.role.not_allowed",
+                                    "error_code": "ROLE_NOT_ALLOWED"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized or Token invalid",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.auth.token_invalid",
+                                    "error_code": "AUTH_TOKEN_INVALID"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource Not Found",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.resource.not_found",
+                                    "error_code": "RESOURCE_NOT_FOUND",
+                                    "detail": {
+                                        "resource": "requested_resource"
+                                    }
                                 },
                                 "schema": {
                                     "$ref": "#/components/schemas/ErrorResponseModel"
@@ -5095,6 +5237,118 @@
                 ]
             }
         },
+        "/api/v1/clubs/{club_id}/membership-requests/{request_id}": {
+            "patch": {
+                "tags": [
+                    "Verification: Club Memberships"
+                ],
+                "summary": "Verify Membership Request",
+                "description": "Verify (approve / reject) a club membership request.",
+                "operationId": "verify_membership_request_api_v1_clubs__club_id__membership_requests__request_id__patch",
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ],
+                "parameters": [
+                    {
+                        "name": "club_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Club Id"
+                        }
+                    },
+                    {
+                        "name": "request_id",
+                        "in": "path",
+                        "required": true,
+                        "schema": {
+                            "type": "integer",
+                            "title": "Request Id"
+                        }
+                    }
+                ],
+                "requestBody": {
+                    "required": true,
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/RequestVerifyPublic"
+                            }
+                        }
+                    }
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ClubMembershipRequestInfo"
+                                }
+                            }
+                        }
+                    },
+                    "403": {
+                        "description": "Permission Denied",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.role.not_allowed",
+                                    "error_code": "ROLE_NOT_ALLOWED"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized or Token invalid",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.auth.token_invalid",
+                                    "error_code": "AUTH_TOKEN_INVALID"
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "404": {
+                        "description": "Resource Not Found",
+                        "content": {
+                            "application/json": {
+                                "example": {
+                                    "message_key": "error.resource.not_found",
+                                    "error_code": "RESOURCE_NOT_FOUND",
+                                    "detail": {
+                                        "resource": "requested_resource"
+                                    }
+                                },
+                                "schema": {
+                                    "$ref": "#/components/schemas/ErrorResponseModel"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
         "/api/v1/uploads/initiate": {
             "post": {
                 "tags": [
@@ -5119,6 +5373,52 @@
                             "application/json": {
                                 "schema": {
                                     "$ref": "#/components/schemas/InitiateUploadResponse"
+                                }
+                            }
+                        }
+                    },
+                    "422": {
+                        "description": "Validation Error",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/HTTPValidationError"
+                                }
+                            }
+                        }
+                    }
+                },
+                "security": [
+                    {
+                        "OAuth2PasswordBearer": []
+                    }
+                ]
+            }
+        },
+        "/api/v1/uploads/confirm": {
+            "post": {
+                "tags": [
+                    "Uploads"
+                ],
+                "summary": "Confirm Upload",
+                "operationId": "confirm_upload_api_v1_uploads_confirm_post",
+                "requestBody": {
+                    "content": {
+                        "application/json": {
+                            "schema": {
+                                "$ref": "#/components/schemas/ConfirmUploadRequest"
+                            }
+                        }
+                    },
+                    "required": true
+                },
+                "responses": {
+                    "200": {
+                        "description": "Successful Response",
+                        "content": {
+                            "application/json": {
+                                "schema": {
+                                    "$ref": "#/components/schemas/ConfirmUploadResponse"
                                 }
                             }
                         }
@@ -6464,6 +6764,69 @@
                 ],
                 "title": "ClubMembershipEnum"
             },
+            "ClubMembershipRequestCreatePublic": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "message"
+                ],
+                "title": "ClubMembershipRequestCreatePublic"
+            },
+            "ClubMembershipRequestInfo": {
+                "properties": {
+                    "message": {
+                        "type": "string",
+                        "title": "Message"
+                    },
+                    "id": {
+                        "type": "integer",
+                        "title": "Id"
+                    },
+                    "verification_status": {
+                        "$ref": "#/components/schemas/VerificationStatusEnum"
+                    },
+                    "verify_at": {
+                        "anyOf": [
+                            {
+                                "type": "string",
+                                "format": "date-time"
+                            },
+                            {
+                                "type": "null"
+                            }
+                        ],
+                        "title": "Verify At"
+                    },
+                    "applicant_id": {
+                        "type": "integer",
+                        "title": "Applicant Id"
+                    },
+                    "apply_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "title": "Apply At"
+                    },
+                    "club_id": {
+                        "type": "integer",
+                        "title": "Club Id"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "message",
+                    "id",
+                    "verification_status",
+                    "applicant_id",
+                    "apply_at",
+                    "club_id"
+                ],
+                "title": "ClubMembershipRequestInfo"
+            },
             "ClubStarLevelEnum": {
                 "type": "string",
                 "enum": [
@@ -6679,6 +7042,41 @@
                 ],
                 "title": "ClubUpdateRequestInfo"
             },
+            "ConfirmUploadRequest": {
+                "properties": {
+                    "scene": {
+                        "$ref": "#/components/schemas/UploadScene"
+                    },
+                    "object_key": {
+                        "type": "string",
+                        "maxLength": 512,
+                        "minLength": 1,
+                        "title": "Object Key"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "scene",
+                    "object_key"
+                ],
+                "title": "ConfirmUploadRequest"
+            },
+            "ConfirmUploadResponse": {
+                "properties": {
+                    "url": {
+                        "type": "string",
+                        "maxLength": 2083,
+                        "minLength": 1,
+                        "format": "uri",
+                        "title": "Url"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "url"
+                ],
+                "title": "ConfirmUploadResponse"
+            },
             "ErrorResponseModel": {
                 "properties": {
                     "message_key": {
@@ -6770,7 +7168,9 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "maxLength": 2048
+                                "maxLength": 2048,
+                                "minLength": 1,
+                                "format": "uri"
                             },
                             {
                                 "type": "null"
@@ -6845,7 +7245,9 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "maxLength": 2048
+                                "maxLength": 2048,
+                                "minLength": 1,
+                                "format": "uri"
                             },
                             {
                                 "type": "null"
@@ -6965,7 +7367,9 @@
                         "anyOf": [
                             {
                                 "type": "string",
-                                "maxLength": 2048
+                                "maxLength": 2048,
+                                "minLength": 1,
+                                "format": "uri"
                             },
                             {
                                 "type": "null"
@@ -7034,10 +7438,6 @@
             },
             "InitiateUploadResponse": {
                 "properties": {
-                    "file_id": {
-                        "type": "string",
-                        "title": "File Id"
-                    },
                     "object_key": {
                         "type": "string",
                         "title": "Object Key"
@@ -7053,7 +7453,6 @@
                 },
                 "type": "object",
                 "required": [
-                    "file_id",
                     "object_key",
                     "upload_url",
                     "expires_seconds"
@@ -7389,6 +7788,46 @@
                 ],
                 "title": "Page[ClubInfo]"
             },
+            "Page_ClubMembershipRequestInfo_": {
+                "properties": {
+                    "items": {
+                        "items": {
+                            "$ref": "#/components/schemas/ClubMembershipRequestInfo"
+                        },
+                        "type": "array",
+                        "title": "Items"
+                    },
+                    "total": {
+                        "type": "integer",
+                        "minimum": 0.0,
+                        "title": "Total"
+                    },
+                    "page": {
+                        "type": "integer",
+                        "minimum": 1.0,
+                        "title": "Page"
+                    },
+                    "size": {
+                        "type": "integer",
+                        "minimum": 1.0,
+                        "title": "Size"
+                    },
+                    "pages": {
+                        "type": "integer",
+                        "minimum": 0.0,
+                        "title": "Pages"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "items",
+                    "total",
+                    "page",
+                    "size",
+                    "pages"
+                ],
+                "title": "Page[ClubMembershipRequestInfo]"
+            },
             "Page_ClubSummaryInfo_": {
                 "properties": {
                     "items": {
@@ -7711,6 +8150,18 @@
                     "moderation_status"
                 ],
                 "title": "RequestModeratePublic"
+            },
+            "RequestVerifyPublic": {
+                "properties": {
+                    "verification_status": {
+                        "$ref": "#/components/schemas/VerificationStatusEnum"
+                    }
+                },
+                "type": "object",
+                "required": [
+                    "verification_status"
+                ],
+                "title": "RequestVerifyPublic"
             },
             "RoleEnum": {
                 "type": "string",
@@ -8770,6 +9221,15 @@
                     "type"
                 ],
                 "title": "ValidationError"
+            },
+            "VerificationStatusEnum": {
+                "type": "string",
+                "enum": [
+                    "pending",
+                    "approved",
+                    "rejected"
+                ],
+                "title": "VerificationStatusEnum"
             }
         },
         "securitySchemes": {

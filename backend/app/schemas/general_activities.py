@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.core import constants
 from app.models.general_activity import (
@@ -11,6 +11,7 @@ from app.models.general_activity import (
 from app.models.user import AuditStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
+from app.schemas.upload import ActivityPosterUri
 from app.services.errors import BadRequestError
 
 
@@ -20,7 +21,7 @@ class GeneralActivityBase(BaseModel):
     level: GeneralActivityLevelEnum
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
-    poster_uri: str | None = Field(None, max_length=2048)
+    poster_uri: HttpUrl | None = Field(None, max_length=2048)
     article_url: str | None = Field(None, max_length=2048)
 
     @model_validator(mode="after")
@@ -38,7 +39,7 @@ class GeneralActivityBase(BaseModel):
 
 
 class GeneralActivityCreate(GeneralActivityBase):
-    pass
+    poster_uri: ActivityPosterUri = Field(None, max_length=2048)
 
 
 class GeneralActivityInfo(GeneralActivityBase, IdMixin):
@@ -60,7 +61,7 @@ class GeneralActivityUpdate(BaseModel):
     level: GeneralActivityLevelEnum | None = Field(None)
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
-    poster_uri: str | None = Field(None, max_length=2048)
+    poster_uri: ActivityPosterUri = Field(None, max_length=2048)
     article_url: str | None = Field(None, max_length=2048)
 
     @model_validator(mode="after")

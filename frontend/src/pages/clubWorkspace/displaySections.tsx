@@ -9,7 +9,6 @@ import {
 } from "../../components/ui/AppPrimitives";
 import { CategoryChip } from "../../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../../components/ui/StarLevel";
-import { STAR_LEVEL_MAP } from "../../lib/labels";
 import { stringifyBackendValue } from "../../lib/format";
 
 type ClubInfo = components["schemas"]["ClubInfo"];

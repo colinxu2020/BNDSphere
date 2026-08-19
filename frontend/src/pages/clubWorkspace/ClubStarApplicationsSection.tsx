@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Award, Plus, Save, X } from "@/src/components/ui/Icons";
+import { Award, Plus } from "@/src/components/ui/Icons";
 import { client } from "../../api/client";
 import type { components } from "../../api/schema";
 import {
@@ -17,15 +17,9 @@ import {
 import { FileUploadField } from "../../components/ui/FileUploadField";
 import { StarLevelCompact } from "../../components/ui/StarLevel";
 import { AUDIT_STATUS_MAP } from "../../lib/labels";
-import {
-  formatDateTime,
-  nullableNumber,
-  nullableText,
-  toNumberOrZero,
-} from "../../lib/format";
+import { nullableNumber, nullableText } from "../../lib/format";
 import { AUDIT_TONE } from "../../lib/tones";
 import { useActionFeedback } from "../../lib/useActionFeedback";
-import { cn } from "../../lib/utils";
 import { EditorHeader } from "./helpers";
 
 type StarApplication = components["schemas"]["StarLevelApplicationInfo"];

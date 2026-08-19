@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ClipboardList, FileCheck2 } from "@/src/components/ui/Icons";
+import { FileCheck2 } from "@/src/components/ui/Icons";
 import { client } from "../../api/client";
 import type { components } from "../../api/schema";
 import {
@@ -14,7 +14,6 @@ import {
   selectClassName,
 } from "../../components/ui/AppPrimitives";
 import { FileUploadField } from "../../components/ui/FileUploadField";
-import { ActivityLevelChip } from "../../components/ui/ActivityCard";
 import {
   AUDIT_STATUS_MAP,
   PARTICIPATION_MAP,
@@ -23,7 +22,6 @@ import {
 import { formatDateTime, toNumberOrZero } from "../../lib/format";
 import { AUDIT_TONE } from "../../lib/tones";
 import { useActionFeedback } from "../../lib/useActionFeedback";
-import { cn } from "../../lib/utils";
 import { EditorHeader } from "./helpers";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];

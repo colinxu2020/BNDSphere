@@ -12,14 +12,11 @@ import { ClubRecordsPanel } from "./federation/ClubRecordsPanel";
 import { StarApplicationsPanel } from "./federation/StarApplicationsPanel";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
-type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
 type ActivityCreateRequest =
   components["schemas"]["ClubActivityCreateRequestInfo"];
 type ActivityUpdateRequest =
   components["schemas"]["ClubActivityUpdateRequestInfo"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
-type StarReviewPreview =
-  components["schemas"]["StarLevelApplicationReviewPreview"];
 
 export function Federation() {
   const [activities, setActivities] = useState<GeneralActivity[]>([]);

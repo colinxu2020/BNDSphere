@@ -194,8 +194,10 @@ class StarRatingService:
         """
         grade_counts = await self.repository.count_members_by_grade_level(club_id)
 
-        audit_status = review.audit_status if review else (
-            application.audit_status if application is not None else None
+        audit_status = (
+            review.audit_status
+            if review
+            else (application.audit_status if application is not None else None)
         )
 
         if application is not None and audit_status == AuditStatusEnum.approved:

@@ -12,8 +12,8 @@ dependencies = [
     "passlib[argon2]>=1.7.4",
     "psycopg[binary]>=3.3.3",
     "pydantic>=2.12.5",
-    "pydantic-settings>=2.13.1",
-    "pyjwt>=2.12.1",
+    "pydantic-settings>=2.14.2",
+    "pyjwt>=2.13.0",
     "sqlalchemy>=2.0.48",
     "uvicorn[standard]>=0.42.0",
 ]
@@ -35,7 +35,7 @@ max-args = 8
 
 [tool.ruff.lint]
 select =["ALL"]
-extend-ignore = ['EM102', 'EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003', 'D205']
+extend-ignore = ['EM102', 'EM101', 'TRY003', 'D107', 'D102', 'D103', 'TC001', 'D101', 'D100', 'D104', 'TC002', 'TC003', 'D205', 'D203', 'D213', 'COM812']
 
 [tool.ruff]
 extend-exclude = ["**/migrations"]

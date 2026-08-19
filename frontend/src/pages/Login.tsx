@@ -18,7 +18,7 @@ export function Login() {
     setError(null);
 
     try {
-      const { data, error, response } = await client.POST(
+      const { data, error } = await client.POST(
         "/api/v1/auth/login",
         {
           body: {

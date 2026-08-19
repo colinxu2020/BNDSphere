@@ -1,5 +1,5 @@
 import type { components } from "../../api/schema";
-import { formatDateTime, stringifyBackendValue } from "../../lib/format";
+import { formatDateTime } from "../../lib/format";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
 type ActivityCreateRequest =

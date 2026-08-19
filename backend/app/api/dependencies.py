@@ -13,6 +13,7 @@ from app.repositories.academic_term import AcademicTermRepository
 from app.repositories.announcement import AnnouncementRepository
 from app.repositories.club import (
     ClubMemberRepository,
+    ClubMembershipRequestRepository,
     ClubRepository,
     ClubUpdateRequestRepository,
 )
@@ -30,7 +31,12 @@ from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.services.academic_term import AcademicTermService
 from app.services.announcement import AnnouncementService
-from app.services.club import ClubMemberService, ClubService, ClubUpdateRequestService
+from app.services.club import (
+    ClubMemberService,
+    ClubMembershipRequestService,
+    ClubService,
+    ClubUpdateRequestService,
+)
 from app.services.club_activity import (
     ClubActivityCreateRequestService,
     ClubActivityService,
@@ -97,6 +103,15 @@ type ClubMemberServiceDep = Annotated[
 type ClubUpdateRequestServiceDep = Annotated[
     ClubUpdateRequestService,
     Depends(ServiceFactory(ClubUpdateRequestService, ClubUpdateRequestRepository)),
+]
+type ClubMembershipRequestServiceDep = Annotated[
+    ClubMembershipRequestService,
+    Depends(
+        ServiceFactory(
+            ClubMembershipRequestService,
+            ClubMembershipRequestRepository,
+        ),
+    ),
 ]
 type UserServiceDep = Annotated[
     UserService,

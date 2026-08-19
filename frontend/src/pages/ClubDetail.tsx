@@ -29,6 +29,12 @@ export function ClubDetail() {
   const [error, setError] = useState<unknown>(null);
   const action = useActionFeedback();
   const [isActionLoading, setIsActionLoading] = useState(false);
+  /**
+   * Joining is now a request the club president approves (VerificationMixin, 4f670e7),
+   * not an immediate membership. The button has to stay disabled after submitting,
+   * because nothing about the viewer's membership changes until it is approved.
+   */
+  const [hasSubmittedJoinRequest, setHasSubmittedJoinRequest] = useState(false);
 
   useEffect(() => {
     const fetchClubInfo = async () => {
@@ -50,6 +56,8 @@ export function ClubDetail() {
           setClub(null);
         } else {
           setClub(data || null);
+          // A reload reflects any approval, so the pending-request flag is stale.
+          setHasSubmittedJoinRequest(false);
         }
       } catch (e) {
         setError(e);
@@ -69,7 +77,7 @@ export function ClubDetail() {
       )?.membership || null,
     [club?.members, user?.id],
   );
-  const canJoin = !currentMembership;
+  const canJoin = !currentMembership && !hasSubmittedJoinRequest;
   const canLeave =
     currentMembership === "member" || currentMembership === "pending";
   const canManage = currentMembership
@@ -84,30 +92,24 @@ export function ClubDetail() {
   );
 
   const joinClub = async () => {
+    const message = window.prompt("请输入入社申请留言（可以留空）", "");
+    if (message === null) return;
+
     setIsActionLoading(true);
     action.clear();
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/clubs/{club_id}/members",
+      const { error } = await client.POST(
+        "/api/v1/clubs/{club_id}/membership-requests",
         {
           params: { path: { club_id: Number(id) } },
+          body: { message },
         },
       );
       if (error) {
         action.fail(error);
       } else {
         action.succeed("加入申请已提交");
-        if (data && club) {
-          setClub({
-            ...club,
-            members: [
-              ...club.members.filter(
-                (member) => member.user_id !== data.user_id,
-              ),
-              data,
-            ],
-          });
-        }
+        setHasSubmittedJoinRequest(true);
       }
     } catch (requestError) {
       action.fail(requestError);

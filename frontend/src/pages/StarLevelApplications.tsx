@@ -26,7 +26,6 @@ import {
 } from "../components/ui/AppPrimitives";
 
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
-type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type UserGrade = components["schemas"]["UserGradeEnum"];
 
 const GRADE_MAP: Record<UserGrade, string> = {

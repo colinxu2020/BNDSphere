@@ -1,9 +1,8 @@
 import { useState } from "react";
-import { CalendarDays, Plus, Save, X } from "@/src/components/ui/Icons";
+import { CalendarDays, Plus } from "@/src/components/ui/Icons";
 import { client } from "../../api/client";
 import type { components } from "../../api/schema";
 import {
-  Badge,
   EmptyState,
   Field,
   PrimaryButton,
@@ -15,16 +14,13 @@ import {
   textareaClassName,
 } from "../../components/ui/AppPrimitives";
 import { FileUploadField } from "../../components/ui/FileUploadField";
-import { MODERATION_STATUS_MAP } from "../../lib/labels";
 import {
   formatDateTime,
   fromDateTimeLocalValue,
   nullableText,
   toDateTimeLocalValue,
 } from "../../lib/format";
-import { MODERATION_TONE } from "../../lib/tones";
 import { useActionFeedback } from "../../lib/useActionFeedback";
-import { cn } from "../../lib/utils";
 import { EditorHeader, sameStringArray } from "./helpers";
 
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
@@ -109,7 +105,7 @@ export function ClubActivitiesSection({
     setIsActivityCreating(true);
     activityCreateFeedback.clear();
     try {
-      const { data, error } = await client.POST(
+      const { error } = await client.POST(
         "/api/v1/clubs/{club_id}/activities/create-requests",
         {
           params: { path: { club_id: clubId } },
@@ -174,7 +170,7 @@ export function ClubActivitiesSection({
     }
 
     try {
-      const { data, error } = await client.POST(
+      const { error } = await client.POST(
         "/api/v1/clubs/{club_id}/activities/update-requests/{activity_id}",
         {
           params: {

@@ -1,41 +1,66 @@
+default_install_hook_types: [pre-commit, pre-push]
+
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.7
-    hooks:
-      - id: ruff
-        name: Lint code with Ruff
-        args: [ --fix ]
-        files: ^backend/
-      - id: ruff-format
-        name: Format code with Ruff
-        files: ^backend/
-
-  - repo: local
-    hooks:
-      - id: eslint
-        name: ESLint
-        entry: npm --prefix frontend exec -- eslint --fix
-        language: system
-        files: ^frontend/.*\.(ts|tsx|js|jsx|vue)$
-
-      - id: frontend-prettier
-        name: ✨ Prettier (Frontend)
-        entry: npm --prefix frontend exec -- prettier --write
-        language: system
-        files: ^frontend/.*\.(ts|tsx|js|jsx|css|scss|html|json|vue)$
-
-      - id: mypy
-        name: Type check with Mypy
-        entry: uv run mypy --config-file backend/pyproject.toml
-        language: system
-        types: [python]
-        files: ^backend/app/
-
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v6.0.0
     hooks:
-      - id: trailing-whitespace
-      - id: end-of-file-fixer
-      - id: check-yaml
       - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-case-conflict
+      - id: check-json
       - id: check-merge-conflict
+      - id: check-toml
+      - id: check-yaml
+      - id: detect-private-key
+      - id: end-of-file-fixer
+      - id: mixed-line-ending
+        args: [--fix=lf]
+      - id: trailing-whitespace
+
+  - repo: local
+    hooks:
+      - id: backend-ruff
+        name: Backend Ruff lint
+        entry: uv run --directory backend ruff check --fix --exit-non-zero-on-fix app
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+
+      - id: backend-ruff-format
+        name: Backend Ruff format
+        entry: uv run --directory backend ruff format app
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+
+      - id: frontend-eslint
+        name: Frontend ESLint
+        entry: npm --prefix frontend run lint:fix
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(js|jsx|ts|tsx)$
+        exclude: ^frontend/src/api/schema\.d\.ts$
+
+      - id: frontend-prettier
+        name: Frontend Prettier
+        entry: npm --prefix frontend run format
+        language: system
+        pass_filenames: false
+        files: ^frontend/.*\.(css|html|js|jsx|json|ts|tsx)$
+        exclude: ^frontend/(openapi\.json|package-lock\.json|src/api/schema\.d\.ts)$
+
+      - id: backend-mypy
+        name: Backend Mypy
+        entry: uv run --directory backend mypy app
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
+        stages: [pre-push]
+
+      - id: frontend-typecheck
+        name: Frontend TypeScript
+        entry: npm --prefix frontend run typecheck
+        language: system
+        pass_filenames: false
+        files: ^frontend/(package(-lock)?\.json|tsconfig\.json|.*\.(js|jsx|ts|tsx))$
+        stages: [pre-push]

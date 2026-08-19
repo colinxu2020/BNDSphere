@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import type React from "react";
 import {
   CalendarDays,
-  Check,
   Plus,
-  RefreshCw,
   Save,
   Trash2,
   X,

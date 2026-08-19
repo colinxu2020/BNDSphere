@@ -14,6 +14,7 @@ from app.api.v1.star_level import router as star_level_router
 from app.api.v1.star_rating import router as star_rating_router
 from app.api.v1.uploads import router as uploads_router
 from app.api.v1.users import router as users_router
+from app.api.v1.verifications import router as verification_router
 
 router = APIRouter()
 router.include_router(users_router, prefix="/users")
@@ -40,5 +41,6 @@ router.include_router(
 )
 router.include_router(club_federation_router, prefix="/club-federation")
 router.include_router(moderation_router, prefix="/moderations")
+router.include_router(verification_router, prefix="/clubs/{club_id}")
 router.include_router(uploads_router, prefix="/uploads")
 router.include_router(announcements_router, prefix="/announcements")

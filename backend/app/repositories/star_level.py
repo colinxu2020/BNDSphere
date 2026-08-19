@@ -10,6 +10,7 @@ from app.models.star_level import StarLevelApplication
 from app.repositories.base import RepositoryBase
 from app.schemas.star_level import (
     StarLevelApplicationCreate,
+    StarLevelApplicationReview,
     StarLevelApplicationUpdate,
 )
 
@@ -22,6 +23,18 @@ class StarLevelRepository(
     ],
 ):
     model = StarLevelApplication
+
+    async def update_review(
+        self,
+        application: StarLevelApplication,
+        review: StarLevelApplicationReview,
+    ) -> StarLevelApplication:
+        for field, value in review.model_dump(exclude_unset=True).items():
+            setattr(application, field, value)
+        self.db.add(application)
+        await self.db.flush()
+        await self.db.refresh(application)
+        return application
 
     async def list_public(self) -> Page[StarLevelApplication]:
         return cast(

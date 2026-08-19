@@ -11,6 +11,7 @@ from app.models.clubmember import ClubMembershipEnum
 from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
+from app.schemas.upload import LogoUri
 
 
 class ClubBase(BaseModel):
@@ -56,7 +57,9 @@ class ClubSummaryInfo(ClubBase, IdMixin):
 
 
 class ClubCreate(ClubBase):
-    pass
+    # Overrides ClubBase.logo_uri: club creation writes straight to the DB with
+    # no moderation gate, so it must not accept an arbitrary external URL.
+    logo_uri: LogoUri = Field(None, max_length=255)
 
 
 class ClubUpdate(BaseModel):
@@ -65,7 +68,7 @@ class ClubUpdate(BaseModel):
         None,
         max_length=constants.CLUB_MAX_DESCRIPTION_LENGTH,
     )
-    logo_uri: HttpUrl | None = Field(None, max_length=255)
+    logo_uri: LogoUri = Field(None, max_length=255)
 
     @model_validator(mode="after")
     def validate_non_nullable_fields(self) -> Self:

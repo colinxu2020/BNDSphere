@@ -5,7 +5,17 @@ from typing import Final
 
 from fastapi import HTTPException, status
 
-from app.schemas.upload import InitiateUploadRequest, UploadScene
+from app.schemas.upload import (
+    SCENE_OSS_DIRS,
+    InitiateUploadRequest,
+    UploadScene,
+    is_valid_object_key,
+)
+from app.services.errors import (
+    UploadObjectNotFoundError,
+    UploadObjectTooLargeError,
+    UploadSceneMismatchError,
+)
 
 IMAGE_MAX_SIZE: Final = 5 * 1024 * 1024
 IMAGE_ALLOWED_CONTENT_TYPES: Final[frozenset[str]] = frozenset(
@@ -51,22 +61,22 @@ UPLOAD_POLICIES: Mapping[UploadScene, UploadPolicy] = MappingProxyType(
     {
         UploadScene.AVATAR: image_upload_policy(
             scene=UploadScene.AVATAR,
-            oss_dir="avatar",
+            oss_dir=SCENE_OSS_DIRS[UploadScene.AVATAR],
         ),
         UploadScene.CLUB_LOGO: image_upload_policy(
             scene=UploadScene.CLUB_LOGO,
-            oss_dir="club_logo",
+            oss_dir=SCENE_OSS_DIRS[UploadScene.CLUB_LOGO],
         ),
         UploadScene.ACTIVITY_POSTER: image_upload_policy(
             scene=UploadScene.ACTIVITY_POSTER,
-            oss_dir="activity_poster",
+            oss_dir=SCENE_OSS_DIRS[UploadScene.ACTIVITY_POSTER],
         ),
         UploadScene.APPLICATION_FILE: UploadPolicy(
             scene=UploadScene.APPLICATION_FILE,
             max_size=APPLICATION_FILE_MAX_SIZE,
             allowed_content_types=APPLICATION_FILE_ALLOWED_CONTENT_TYPES,
             allowed_extensions=APPLICATION_FILE_ALLOWED_EXTENSIONS,
-            oss_dir="application_files",
+            oss_dir=SCENE_OSS_DIRS[UploadScene.APPLICATION_FILE],
         ),
     },
 )
@@ -90,3 +100,21 @@ def validate_file(policy: UploadPolicy, req: InitiateUploadRequest) -> None:
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Unsupported file extension",
         )
+
+
+def validate_confirmed_upload(
+    policy: UploadPolicy,
+    object_key: str,
+    actual_size: int | None,
+) -> None:
+    """校验一次已完成的上传: 对象确实存在, 且实际大小未超出策略上限.
+
+    ``actual_size`` 来自 OSS 的 HEAD 请求, 不是客户端上报的 size, 因此能堵住
+    ``initiate`` 阶段 size 校验被绕过 (预签名 URL 本身不限制实际上传大小) 的问题.
+    """
+    if not is_valid_object_key(object_key, policy.oss_dir):
+        raise UploadSceneMismatchError(policy.scene.value)
+    if actual_size is None:
+        raise UploadObjectNotFoundError(object_key)
+    if actual_size > policy.max_size:
+        raise UploadObjectTooLargeError(object_key, policy.max_size)

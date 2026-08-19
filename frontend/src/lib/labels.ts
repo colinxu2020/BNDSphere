@@ -14,10 +14,7 @@ export const CATEGORY_OPTIONS: {
   { label: "其他", value: "other" },
 ];
 
-export const CATEGORY_MAP: Record<
-  components["schemas"]["ClubCategoryEnum"] | "all",
-  string
-> = {
+export const CATEGORY_MAP: Record<components["schemas"]["ClubCategoryEnum"] | "all", string> = {
   science: "科学",
   humanity: "人文",
   arts: "艺术",
@@ -42,10 +39,7 @@ export const STAR_LEVEL_OPTIONS: {
   { label: "荣誉社团", value: "honorary" },
 ];
 
-export const STAR_LEVEL_MAP: Record<
-  components["schemas"]["ClubStarLevelEnum"],
-  string
-> = {
+export const STAR_LEVEL_MAP: Record<components["schemas"]["ClubStarLevelEnum"], string> = {
   none: "无星级",
   one_star: "一星社团",
   two_star: "二星社团",
@@ -64,10 +58,7 @@ export const CLUB_STATUS_OPTIONS: {
   { label: "已归档", value: "archived" },
 ];
 
-export const CLUB_STATUS_MAP: Record<
-  components["schemas"]["ClubStatusEnum"],
-  string
-> = {
+export const CLUB_STATUS_MAP: Record<components["schemas"]["ClubStatusEnum"], string> = {
   unreviewed: "未审核",
   normal: "正常运行",
   archived: "已归档",
@@ -94,10 +85,7 @@ export const ROLE_MAP: Record<components["schemas"]["RoleEnum"], string> = {
   dev: "开发者",
 };
 
-export const MEMBERSHIP_MAP: Record<
-  components["schemas"]["ClubMembershipEnum"],
-  string
-> = {
+export const MEMBERSHIP_MAP: Record<components["schemas"]["ClubMembershipEnum"], string> = {
   pending: "待确认",
   member: "成员",
   president: "社长",
@@ -114,14 +102,12 @@ export const ACTIVITY_LEVEL_OPTIONS: {
   { label: "社联活动", value: "club_federation" },
 ];
 
-export const ACTIVITY_LEVEL_MAP: Record<
-  components["schemas"]["GeneralActivityLevelEnum"],
-  string
-> = {
-  school: "校级活动",
-  large: "大型活动",
-  club_federation: "社联活动",
-};
+export const ACTIVITY_LEVEL_MAP: Record<components["schemas"]["GeneralActivityLevelEnum"], string> =
+  {
+    school: "校级活动",
+    large: "大型活动",
+    club_federation: "社联活动",
+  };
 
 export const PARTICIPATION_OPTIONS: {
   label: string;
@@ -131,10 +117,7 @@ export const PARTICIPATION_OPTIONS: {
   { label: "组织", value: "organize" },
 ];
 
-export const PARTICIPATION_MAP: Record<
-  components["schemas"]["ParticipationTypeEnum"],
-  string
-> = {
+export const PARTICIPATION_MAP: Record<components["schemas"]["ParticipationTypeEnum"], string> = {
   participate_only: "参与",
   organize: "组织",
 };
@@ -148,21 +131,16 @@ export const AUDIT_STATUS_OPTIONS: {
   { label: "已驳回", value: "rejected" },
 ];
 
-export const AUDIT_STATUS_MAP: Record<
-  components["schemas"]["AuditStatusEnum"],
-  string
-> = {
+export const AUDIT_STATUS_MAP: Record<components["schemas"]["AuditStatusEnum"], string> = {
   pending: "待审核",
   approved: "已通过",
   rejected: "已驳回",
 };
 
-export const MODERATION_STATUS_MAP: Record<
-  components["schemas"]["ModerationStatusEnum"],
-  string
-> = {
-  pending: "待审核",
-  approved: "已通过",
-  rejected: "已驳回",
-  superseded: "已被替代",
-};
+export const MODERATION_STATUS_MAP: Record<components["schemas"]["ModerationStatusEnum"], string> =
+  {
+    pending: "待审核",
+    approved: "已通过",
+    rejected: "已驳回",
+    superseded: "已被替代",
+  };

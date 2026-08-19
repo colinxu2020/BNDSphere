@@ -11,6 +11,8 @@ from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
+from app.models.verifications.club_membership import ClubMembershipRequest
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.club import (
     AdminClubUpdate,
@@ -20,6 +22,8 @@ from app.schemas.club import (
 )
 from app.schemas.moderations.club import ClubUpdateRequestCreate
 from app.schemas.moderations.moderation_common import RequestModerate
+from app.schemas.verifications.club_membership import ClubMembershipRequestCreate
+from app.schemas.verifications.verification_common import RequestVerify
 
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, AdminClubUpdate]):
@@ -204,3 +208,20 @@ class ClubUpdateRequestRepository(
         )
         await self.db.execute(stmt)
         await self.db.flush()
+
+
+class ClubMembershipRequestRepository(
+    RepositoryBase[
+        ClubMembershipRequest,
+        ClubMembershipRequestCreate,
+        RequestVerify,
+    ],
+):
+    model = ClubMembershipRequest
+
+    async def get_pending_requests(self, club_id: int) -> Page[ClubMembershipRequest]:
+        stmt = select(self.model).where(
+            self.model.verification_status == VerificationStatusEnum.pending,
+            self.model.club_id == club_id,
+        )
+        return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
