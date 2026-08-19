@@ -42,6 +42,24 @@ const devRoutes = import.meta.env.DEV
           Component: (await import("./dev/Specimen")).default,
         }),
       },
+      {
+        path: "_dev/layout/a",
+        lazy: async () => ({
+          Component: (await import("./dev/layouts/LayoutA")).default,
+        }),
+      },
+      {
+        path: "_dev/layout/b",
+        lazy: async () => ({
+          Component: (await import("./dev/layouts/LayoutB")).default,
+        }),
+      },
+      {
+        path: "_dev/layout/c",
+        lazy: async () => ({
+          Component: (await import("./dev/layouts/LayoutC")).default,
+        }),
+      },
     ]
   : [];
 
