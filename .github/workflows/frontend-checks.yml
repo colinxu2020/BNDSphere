@@ -39,7 +39,14 @@ jobs:
 
       # Gate 3 — type safety. Separate from the build on purpose: `vite build`
       # transpiles TypeScript but does not type-check it.
+      #
+      # This step ran `npm run lint` until 2026-08-19, so the gate the whole point of
+      # which was "the build does not type-check" was itself not type-checking. Caught
+      # in review on #37. ESLint is now its own step rather than being dropped.
       - name: Type check
+        run: npm run typecheck
+
+      - name: ESLint
         run: npm run lint
 
       - name: Build
