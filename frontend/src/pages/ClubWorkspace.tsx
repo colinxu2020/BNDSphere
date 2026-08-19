@@ -873,7 +873,7 @@ export function ClubWorkspace() {
                         }
                         className={`rounded-md p-4 text-left transition hover:bg-surface ${
                           isSelected
-                            ? "bg-brand-subtle ring-[1.5px] ring-brand/40"
+                            ? "bg-brand-subtle ring-[1.5px] ring-brand-strong/40"
                             : "bg-surface-sunken ring-[1.5px] ring-edge"
                         }`}
                       >

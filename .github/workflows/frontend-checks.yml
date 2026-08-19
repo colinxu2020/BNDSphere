@@ -54,3 +54,9 @@ jobs:
       # their count must never rise.
       - name: Check raw-palette ratchet
         run: npm run check:palette
+
+      # Gate 4, the automatable part — every semantic token defined in both
+      # schemes, and every contrast pair the design system asserts meeting its
+      # threshold. The platform matrix and type rendering still need a human.
+      - name: Check scheme completeness and contrast
+        run: npm run check:contrast

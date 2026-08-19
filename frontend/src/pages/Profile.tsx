@@ -233,7 +233,7 @@ export function Profile() {
                     type="text"
                     value={updateUsername}
                     onChange={(e) => setUpdateUsername(e.target.value)}
-                    className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
+                    className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand-strong/20 focus:border-brand outline-none transition-all font-medium text-content"
                   />
                 </div>
                 <FileUploadField
@@ -251,7 +251,7 @@ export function Profile() {
                   <textarea
                     value={updateDescription}
                     onChange={(e) => setUpdateDescription(e.target.value)}
-                    className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content min-h-[100px] resize-none"
+                    className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand-strong/20 focus:border-brand outline-none transition-all font-medium text-content min-h-[100px] resize-none"
                   />
                 </div>
 

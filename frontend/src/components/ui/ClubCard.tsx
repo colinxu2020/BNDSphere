@@ -38,7 +38,7 @@ export function ClubCard({
       className={cn(
         "group flex h-full items-start border border-l-4 border-edge bg-surface shadow-sm transition-all duration-200",
         "hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg",
-        "focus-visible:ring-brand/40 outline-none focus-visible:ring-4",
+        "focus-visible:ring-brand-strong/40 outline-none focus-visible:ring-4",
         "motion-reduce:transform-none motion-reduce:transition-none",
         isCompact ? "gap-3 rounded-md p-3" : "gap-4 rounded-md p-5",
         categorySpine(club.category),

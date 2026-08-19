@@ -290,7 +290,7 @@ export default function Specimen() {
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
-                  className="bg-brand text-brand-on hover:bg-brand-hover focus-visible:ring-brand/40 inline-flex items-center rounded-md px-5 py-3 font-semibold transition-all focus-visible:ring-4 active:scale-[0.98]"
+                  className="bg-brand text-brand-on hover:bg-brand-hover focus-visible:ring-brand-strong/40 inline-flex items-center rounded-md px-5 py-3 font-semibold transition-all focus-visible:ring-4 active:scale-[0.98]"
                 >
                   真实按钮 Live
                 </button>
@@ -300,7 +300,7 @@ export default function Specimen() {
                 <span className="bg-brand-hover text-brand-on inline-flex items-center rounded-md px-5 py-3 font-semibold">
                   hover(强制)
                 </span>
-                <span className="bg-brand text-brand-on ring-brand/40 inline-flex items-center rounded-md px-5 py-3 font-semibold ring-4">
+                <span className="bg-brand text-brand-on ring-brand-strong/40 inline-flex items-center rounded-md px-5 py-3 font-semibold ring-4">
                   focus(强制)
                 </span>
                 <button
@@ -339,11 +339,11 @@ export default function Specimen() {
               </p>
               <div className="grid gap-3 md:grid-cols-2">
                 <input
-                  className="bg-surface-sunken border-edge text-content placeholder:text-content-subtle focus:border-brand focus:ring-brand/20 w-full rounded-md border px-4 py-3 font-medium outline-none focus:ring-2"
+                  className="bg-surface-sunken border-edge text-content placeholder:text-content-subtle focus:border-brand focus:ring-brand-strong/20 w-full rounded-md border px-4 py-3 font-medium outline-none focus:ring-2"
                   placeholder="真实输入框 · 点击以查看 focus"
                 />
                 <input
-                  className="bg-surface-sunken border-brand text-content ring-brand/20 w-full rounded-md border px-4 py-3 font-medium ring-2 outline-none"
+                  className="bg-surface-sunken border-brand text-content ring-brand-strong/20 w-full rounded-md border px-4 py-3 font-medium ring-2 outline-none"
                   defaultValue="focus(强制)"
                 />
                 <input
@@ -421,14 +421,14 @@ export default function Specimen() {
               <button
                 key={label}
                 type="button"
-                className="border-edge bg-surface text-content focus-visible:ring-brand/40 focus-visible:border-brand rounded-md border px-4 py-2 font-semibold focus-visible:ring-4"
+                className="border-edge bg-surface text-content focus-visible:ring-brand-strong/40 focus-visible:border-brand rounded-md border px-4 py-2 font-semibold focus-visible:ring-4"
               >
                 {label}焦点目标
               </button>
             ))}
             <a
               href="#top"
-              className="text-brand focus-visible:ring-brand/40 rounded-md px-2 py-2 font-semibold underline focus-visible:ring-4"
+              className="text-brand focus-visible:ring-brand-strong/40 rounded-md px-2 py-2 font-semibold underline focus-visible:ring-4"
             >
               链接焦点
             </a>

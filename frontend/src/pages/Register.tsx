@@ -87,7 +87,7 @@ export function Register() {
               type="text"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
+              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand-strong/20 focus:border-brand outline-none transition-all font-medium text-content"
               placeholder="您的用户名"
               required
             />
@@ -100,7 +100,7 @@ export function Register() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
+              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand-strong/20 focus:border-brand outline-none transition-all font-medium text-content"
               placeholder="••••••••"
               required
             />
@@ -113,7 +113,7 @@ export function Register() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand/20 focus:border-brand outline-none transition-all font-medium text-content"
+              className="w-full px-4 py-3 bg-surface-sunken border border-edge rounded-md focus:ring-2 focus:ring-brand-strong/20 focus:border-brand outline-none transition-all font-medium text-content"
               placeholder="••••••••"
               required
             />

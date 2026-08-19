@@ -71,7 +71,7 @@ export function ActivityCard({
       className={cn(
         "group flex h-full flex-col border border-l-4 border-edge bg-surface p-6 shadow-sm transition-all duration-200",
         "rounded-md hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg",
-        "focus-visible:ring-brand/40 outline-none focus-visible:ring-4",
+        "focus-visible:ring-brand-strong/40 outline-none focus-visible:ring-4",
         "motion-reduce:transform-none motion-reduce:transition-none",
         LEVEL_SPINE[activity.level] ?? LEVEL_SPINE.school,
         className,

@@ -340,7 +340,7 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
               href={item.link_url || undefined}
               target={item.link_url ? "_blank" : undefined}
               rel="noreferrer"
-              className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand/40 motion-reduce:transition-none"
+              className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand-strong/40 motion-reduce:transition-none"
             >
               <p className="font-semibold text-content">{item.title}</p>
               <p className="mt-1 line-clamp-2 text-sm text-content-muted">
@@ -412,7 +412,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
         href={active.article_url || `/activities/${active.id}`}
         target={active.article_url ? "_blank" : undefined}
         rel="noreferrer"
-        className="group relative block flex-1 outline-none focus-visible:ring-4 focus-visible:ring-brand/40"
+        className="group relative block flex-1 outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40"
       >
         {active.poster_uri ? (
           <img
@@ -439,7 +439,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
                 onClick={() => setUserPaused((wasPaused) => !wasPaused)}
                 aria-pressed={userPaused}
                 aria-label={userPaused ? "继续自动轮播" : "暂停自动轮播"}
-                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-content-on-inverted outline-none hover:bg-surface-inverted-hover focus-visible:ring-2 focus-visible:ring-brand/60"
+                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-content-on-inverted outline-none hover:bg-surface-inverted-hover focus-visible:ring-2 focus-visible:ring-brand-strong/60"
               >
                 {userPaused ? <Play size={15} /> : <Pause size={15} />}
               </button>
@@ -453,7 +453,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
                 aria-label={`显示第 ${index + 1} 张展板:${item.name}`}
                 aria-current={index === activeIndex}
                 className={cn(
-                  "h-2.5 w-2.5 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand/60",
+                  "h-2.5 w-2.5 rounded-full outline-none transition-colors focus-visible:ring-2 focus-visible:ring-brand-strong/60",
                   index === activeIndex
                     ? "bg-content-on-inverted"
                     : "bg-content-on-inverted-muted hover:bg-content-on-inverted",
@@ -484,7 +484,7 @@ function MyClubActivityList({
         <Link
           key={`${item.club.id}-${item.activity.id}`}
           to={`/club/${item.club.id}`}
-          className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand/40 motion-reduce:transition-none"
+          className="block rounded-md border border-edge bg-surface-sunken p-3 outline-none transition-colors hover:bg-surface focus-visible:ring-4 focus-visible:ring-brand-strong/40 motion-reduce:transition-none"
         >
           <div className="flex items-center justify-between gap-3">
             <p className="font-semibold text-content">{item.activity.name}</p>

@@ -170,6 +170,10 @@
      They may diverge later; code that conflates them would have to be untangled. */
   --color-brand: var(--brand);
   --color-brand-hover: var(--brand-hover);
+  /* Thin accents and focus rings need 3:1 against their surroundings (WCAG
+     1.4.11), which the vivid brand teal does not reach on white — 2.49:1. This is
+     the same brand identity at a weight that carries. */
+  --color-brand-strong: var(--brand-strong);
   --color-brand-subtle: var(--brand-subtle);
   --color-brand-on: var(--brand-on);
 
@@ -313,10 +317,18 @@
   --edge-subtle: #f1f5f9;
   --edge-strong: #cbd5e1;
 
+  /* White on this teal is 2.49:1 — a WCAG 1.4.3 failure on the app's primary
+     action, inherited from the original design. Rather than darken the fill and
+     lose the vivid brand the direction is built on, the text goes dark: #042f2e
+     on #14b8a6 is 5.81:1. That also makes light mode consistent with dark, which
+     already used dark text on bright teal (7.77:1).
+     Hover therefore brightens rather than darkens: dark text on #0d9488 would be
+     3.86:1, while on #2dd4bf it is 7.77:1. */
   --brand: #14b8a6;
-  --brand-hover: #0d9488;
+  --brand-hover: #2dd4bf;
+  --brand-strong: #0f766e;
   --brand-subtle: #f0fdfa;
-  --brand-on: #ffffff;
+  --brand-on: #042f2e;
 
   --tone-neutral-bg: #f8fafc;
   --tone-neutral-fg: #475569;
@@ -440,6 +452,7 @@
 
     --brand: #2dd4bf;
     --brand-hover: #5eead4;
+    --brand-strong: #99f6e4;
     --brand-subtle: #042f2e;
     --brand-on: #042f2e;
 

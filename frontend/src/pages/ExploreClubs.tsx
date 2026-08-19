@@ -98,7 +98,7 @@ export function ExploreClubs() {
           </div>
           <input
             type="text"
-            className="block w-full pl-11 pr-4 py-3 bg-surface border border-edge rounded-md shadow-sm focus:ring-2 focus:ring-brand/20 focus:border-brand transition-all font-medium text-content placeholder:text-content-subtle focus:outline-none"
+            className="block w-full pl-11 pr-4 py-3 bg-surface border border-edge rounded-md shadow-sm focus:ring-2 focus:ring-brand-strong/20 focus:border-brand transition-all font-medium text-content placeholder:text-content-subtle focus:outline-none"
             placeholder="通过社团名称或关键字搜索..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
