@@ -1,38 +1,19 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
-  Award,
   CalendarDays,
-  Check,
-  Clock,
-  FilePenLine,
   Plus,
   RefreshCw,
   Save,
-  ShieldCheck,
   Trash2,
   X,
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
-import {
-  ACTIVITY_LEVEL_MAP,
-  ACTIVITY_LEVEL_OPTIONS,
-  AUDIT_STATUS_MAP,
-  AUDIT_STATUS_OPTIONS,
-  MODERATION_STATUS_MAP,
-  PARTICIPATION_MAP,
-  STAR_LEVEL_MAP,
-} from "../lib/labels";
-import {
-  formatDate,
-  formatDateTime,
-  nullableNumber,
-  nullableText,
-} from "../lib/format";
+import { ACTIVITY_LEVEL_MAP, ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
+import { formatDate, nullableText } from "../lib/format";
 import {
   Badge,
   DangerButton,
@@ -49,19 +30,9 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
-import {
-  ActivityRequestList,
-  ExternalLink,
-  LoadingRows,
-  ReadOnlyValue,
-} from "./federation/shared";
-import {
-  booleanToSelectValue,
-  buildStarReviewBody,
-  getStarPreviewLevelText,
-  getStarPreviewScoreText,
-  sortStarApplications,
-} from "./federation/starReview";
+import { LoadingRows } from "./federation/shared";
+import { sortStarApplications } from "./federation/starReview";
+import { ActivityRequestsPanel } from "./federation/ActivityRequestsPanel";
 import { ClubRecordsPanel } from "./federation/ClubRecordsPanel";
 import { StarApplicationsPanel } from "./federation/StarApplicationsPanel";
 
@@ -77,7 +48,6 @@ type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type StarReviewPreview =
   components["schemas"]["StarLevelApplicationReviewPreview"];
-type ActivityModerationKind = "create" | "update";
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
 
 export function Federation() {
@@ -112,10 +82,6 @@ export function Federation() {
   const [editActivityLevel, setEditActivityLevel] =
     useState<ActivityLevel>("club_federation");
   const [isEditing, setIsEditing] = useState(false);
-
-  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(
-    null,
-  );
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id === selectedActivityId),
@@ -292,47 +258,6 @@ export function Federation() {
     }
   };
 
-  const moderateClubActivityRequest = async (
-    kind: ActivityModerationKind,
-    requestId: number,
-    moderationStatus: ModerationStatus,
-  ) => {
-    const busyKey = `${kind}-${requestId}`;
-    setBusyActivityRequest(busyKey);
-    feedback.clear();
-    const body = { moderation_status: moderationStatus };
-    try {
-      const result =
-        kind === "create"
-          ? await client.PATCH(
-              "/api/v1/moderations/club-activities/create-requests/{request_id}",
-              {
-                params: { path: { request_id: requestId } },
-                body,
-              },
-            )
-          : await client.PATCH(
-              "/api/v1/moderations/club-activities/update-requests/{request_id}",
-              {
-                params: { path: { request_id: requestId } },
-                body,
-              },
-            );
-
-      feedback.report(
-        result.error,
-        moderationStatus === "approved"
-          ? "社团活动申请已通过"
-          : "社团活动申请已驳回",
-      );
-      if (!result.error) loadWorkspace();
-    } catch (error) {
-      feedback.report(error, "");
-    } finally {
-      setBusyActivityRequest(null);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -357,29 +282,12 @@ export function Federation() {
       {feedback.message && <StatusMessage value={feedback.message} tone={feedback.tone} />}
       {loadError && <StatusMessage value={loadError} />}
 
-      <Surface density="compact">
-        <SectionTitle density="compact"
-          icon={<FilePenLine size={20} />}
-          title="审核社团活动"
-          description="处理社团提交的活动创建和修改申请。"
-        />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ActivityRequestList
-            title="活动创建申请"
-            kind="create"
-            items={activityCreateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
-          />
-          <ActivityRequestList
-            title="活动修改申请"
-            kind="update"
-            items={activityUpdateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
-          />
-        </div>
-      </Surface>
+      <ActivityRequestsPanel
+        createRequests={activityCreateRequests}
+        updateRequests={activityUpdateRequests}
+        feedback={feedback}
+        onModerated={loadWorkspace}
+      />
 
       <ClubRecordsPanel
         activities={activities}
