@@ -1,107 +1,46 @@
 import { useEffect, useState } from "react";
-import { motion } from "motion/react";
-import {
-  Check,
-  Clock,
-  FilePenLine,
-  RefreshCw,
-  X,
-} from "@/src/components/ui/Icons";
+import { useSearchParams } from "react-router-dom";
+import { Check, Clock, FilePenLine, Inbox, RefreshCw, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
-import { useActionFeedback } from "../lib/useActionFeedback";
-import { AUDIT_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
-import { MODERATION_STATUS_MAP } from "../lib/labels";
-import { formatDateTime, stringifyBackendValue } from "../lib/format";
 import {
   Badge,
   EmptyState,
   InlineError,
-  PageHeader,
   PrimaryButton,
   SecondaryButton,
   StatusMessage,
-  Surface,
 } from "../components/ui/AppPrimitives";
+import { formatDateTime } from "../lib/format";
+import { MODERATION_STATUS_MAP } from "../lib/labels";
+import { AUDIT_TONE } from "../lib/tones";
+import { useActionFeedback } from "../lib/useActionFeedback";
 import { cn } from "../lib/utils";
+import {
+  getTargetLabel,
+  QUEUES,
+  renderRequestDetails,
+  type ModerationItem,
+  type QueueKey,
+} from "./moderation/requestView";
 
-type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
-type ClubUpdateRequest = components["schemas"]["ClubUpdateRequestInfo"];
-type ModerationItem =
-  | UserRequest
-  | ActivityCreateRequest
-  | ActivityUpdateRequest
-  | ClubUpdateRequest;
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
-type QueueKey = "users" | "activityCreate" | "activityUpdate" | "clubUpdate";
 
-const QUEUES: { key: QueueKey; label: string; description: string }[] = [
-  { key: "users", label: "用户资料", description: "用户资料修改请求" },
-  { key: "activityCreate", label: "活动创建", description: "社团活动创建请求" },
-  { key: "activityUpdate", label: "活动修改", description: "社团活动修改请求" },
-  { key: "clubUpdate", label: "社团资料", description: "社团资料修改请求" },
-];
-
-function getTargetLabel(item: ModerationItem): string {
-  if ("user_id" in item) return `用户 #${item.user_id}`;
-  if ("club_id" in item) return `社团 #${item.club_id}`;
-  if ("club_activity_id" in item) return `活动 #${item.club_activity_id}`;
-  return `请求 #${(item as { id: number }).id}`;
-}
-
-function renderRequestDetails(item: ModerationItem) {
-  const rows: [string, unknown][] = [];
-
-  if ("username" in item) {
-    rows.push(["用户名", item.username]);
-    rows.push(["头像", item.avatar_uri]);
-    rows.push(["简介", item.description]);
-  }
-
-  if ("name" in item) rows.push(["名称", item.name]);
-  if ("summary" in item) rows.push(["简介", item.summary]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("start_time" in item)
-    rows.push([
-      "开始时间",
-      item.start_time ? formatDateTime(item.start_time) : null,
-    ]);
-  if ("end_time" in item)
-    rows.push([
-      "结束时间",
-      item.end_time ? formatDateTime(item.end_time) : null,
-    ]);
-  if ("location" in item) rows.push(["地点", item.location]);
-  if ("logo_uri" in item) rows.push(["Logo", item.logo_uri]);
-  if ("picture_urls" in item)
-    rows.push(["图片", item.picture_urls?.join("\n")]);
-
-  const visibleRows = rows.filter(([, value]) => value != null && value !== "");
-
-  if (!visibleRows.length) {
-    return (
-      <p className="text-sm text-content-muted">此请求没有可展示的变更字段。</p>
-    );
-  }
-
-  return (
-    <div className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 grid gap-2">
-      {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
-          <span className="font-semibold text-content-muted">{label}</span>
-          <span className="text-content whitespace-pre-wrap break-words">
-            {String(value)}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
+/**
+ * 审核台 — master–detail.
+ *
+ * The queues were a vertical stack of fully expanded request cards: every item showed
+ * all of its changed fields and its action buttons at once, so a queue of twenty meant
+ * scrolling past twenty detail blocks to find the one you cared about.
+ *
+ * Now the queue is a scannable list and one request is open beside it. Acting on an item
+ * leaves the list in place, which is the whole point of the shape for someone working
+ * through a backlog.
+ *
+ * Selection lives in the query string, so a specific request is linkable — useful when
+ * one gets escalated to a colleague. Below xl there is no room for two panes, so the
+ * selected request appears below the list instead.
+ */
 export function Moderation() {
   const [activeQueue, setActiveQueue] = useState<QueueKey>("users");
   const [items, setItems] = useState<ModerationItem[]>([]);
@@ -109,11 +48,15 @@ export function Moderation() {
   const [error, setError] = useState<unknown>(null);
   const action = useActionFeedback();
   const [busyId, setBusyId] = useState<number | null>(null);
+  const [params, setParams] = useSearchParams();
+  const selectedId = Number(params.get("request")) || null;
 
   const fetchQueue = async () => {
     setIsLoading(true);
     setError(null);
-    action.clear();
+    // Deliberately does NOT clear the action feedback: moderate() calls this on
+    // success, so clearing here wiped the confirmation the moment it was earned.
+    // Switching queues clears it instead, which is when it actually goes stale.
 
     try {
       if (activeQueue === "users") {
@@ -236,134 +179,184 @@ export function Moderation() {
   };
 
   const activeMeta = QUEUES.find((queue) => queue.key === activeQueue);
+  const selected = items.find((item) => item.id === selectedId) ?? null;
+
+  const selectRequest = (id: number) => {
+    const next = new URLSearchParams(params);
+    next.set("request", String(id));
+    setParams(next, { replace: true });
+  };
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 10 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -10 }}
-      className="flex flex-col gap-8"
-    >
-      <PageHeader density="compact"
-        eyebrow="Moderation"
-        title="审核台"
-        description="处理用户资料、社团资料和社团活动请求。错误与返回值会直接显示后端响应。"
-        action={
-          <SecondaryButton onClick={fetchQueue} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
-        }
-      />
+    <div className="flex min-h-0 flex-1 flex-col xl:flex-row">
+      {/* Queue */}
+      <div className="flex min-w-0 flex-col border-edge xl:w-[24rem] xl:shrink-0 xl:border-r">
+        <div className="border-b border-edge bg-surface px-4 py-4">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <p className="font-display text-[11px] font-bold tracking-[0.18em] text-tone-brand-fg uppercase">
+                Moderation
+              </p>
+              <h1 className="font-display text-2xl font-bold text-content">
+                审核台
+              </h1>
+            </div>
+            <SecondaryButton onClick={fetchQueue} disabled={isLoading}>
+              <RefreshCw size={15} /> 刷新
+            </SecondaryButton>
+          </div>
 
-      <div className="w-full overflow-x-auto hide-scrollbar">
-        <div className="flex gap-2 min-w-max pb-2">
-          {QUEUES.map((queue) => (
-            <button
-              key={queue.key}
-              onClick={() => setActiveQueue(queue.key)}
-              className={cn(
-                "px-4 py-2 rounded-md text-sm font-semibold transition-all shadow-sm whitespace-nowrap",
-                activeQueue === queue.key
-                  ? "bg-surface-inverted text-content-on-inverted shadow-black/10"
-                  : "bg-surface text-content-muted border border-edge hover:bg-surface-sunken",
-              )}
-            >
-              {queue.label}
-            </button>
-          ))}
+          <div className="mt-3 flex flex-wrap gap-1.5">
+            {QUEUES.map((queue) => (
+              <button
+                key={queue.key}
+                type="button"
+                onClick={() => {
+                  action.clear();
+                  setActiveQueue(queue.key);
+                }}
+                aria-pressed={activeQueue === queue.key}
+                className={cn(
+                  "rounded-md border px-2.5 py-1 text-xs font-bold outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40",
+                  activeQueue === queue.key
+                    ? "border-content bg-surface-inverted text-content-on-inverted"
+                    : "border-edge bg-surface text-content-muted hover:bg-surface-hover hover:text-content",
+                )}
+              >
+                {queue.label}
+              </button>
+            ))}
+          </div>
+          <p className="mt-2 text-xs text-content-muted">
+            {activeMeta?.description}
+          </p>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto p-3">
+          {/* Action feedback belongs to the queue, not the request. Approving an item
+              removes it from the list, which unmounts the detail pane — so a message
+              rendered there vanished the instant it became relevant. */}
+          {action.message != null && (
+            <div className="mb-3">
+              <StatusMessage value={action.message} tone={action.tone} />
+            </div>
+          )}
+
+          {error != null && (
+            <div className="mb-3">
+              <InlineError value={error} />
+            </div>
+          )}
+
+          {isLoading ? (
+            <ul className="flex flex-col gap-2">
+              {[0, 1, 2, 3, 4].map((index) => (
+                <li
+                  key={index}
+                  className="h-20 animate-pulse rounded-md border border-edge bg-surface-skeleton motion-reduce:animate-none"
+                />
+              ))}
+            </ul>
+          ) : items.length ? (
+            <ul className="flex flex-col gap-2">
+              {items.map((item) => {
+                const isSelected = item.id === selectedId;
+                return (
+                  <li key={item.id}>
+                    <button
+                      type="button"
+                      onClick={() => selectRequest(item.id)}
+                      aria-current={isSelected ? "true" : undefined}
+                      className={cn(
+                        "w-full rounded-md border p-3 text-left outline-none transition-colors focus-visible:ring-4 focus-visible:ring-brand-strong/40",
+                        isSelected
+                          ? "border-edge bg-brand-subtle"
+                          : "border-edge bg-surface hover:bg-surface-hover",
+                      )}
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <Badge tone={AUDIT_TONE[item.moderation_status ?? "pending"]}>
+                          {MODERATION_STATUS_MAP[item.moderation_status]}
+                        </Badge>
+                        <span className="text-xs font-semibold text-content">
+                          {getTargetLabel(item)}
+                        </span>
+                      </div>
+                      <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-content-subtle">
+                        <Clock size={12} /> {formatDateTime(item.request_at)} · #
+                        {item.id}
+                      </p>
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          ) : (
+            <EmptyState title="没有待处理请求" />
+          )}
         </div>
       </div>
 
-      <Surface density="compact">
-        <div className="flex items-start gap-3 mb-6">
-          <div className="w-10 h-10 rounded-md bg-brand-subtle text-tone-brand-fg flex items-center justify-center">
-            <FilePenLine size={20} />
-          </div>
-          <div>
-            <h2 className="text-xl font-display font-bold text-content">
-              {activeMeta?.label}
-            </h2>
-            <p className="text-sm text-content-muted mt-1">
-              {activeMeta?.description}
+      {/* Request */}
+      <div className="min-w-0 flex-1 overflow-y-auto">
+        {selected ? (
+          <article className="p-5">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={AUDIT_TONE[selected.moderation_status ?? "pending"]}>
+                    {MODERATION_STATUS_MAP[selected.moderation_status]}
+                  </Badge>
+                  <span className="text-xs font-semibold text-content-subtle">
+                    #{selected.id}
+                  </span>
+                </div>
+                <h2 className="font-display mt-2 text-2xl font-bold text-content">
+                  {getTargetLabel(selected)}
+                </h2>
+                <p className="mt-1 inline-flex items-center gap-1.5 text-xs font-medium text-content-subtle">
+                  <Clock size={13} /> {formatDateTime(selected.request_at)}
+                </p>
+              </div>
+              <div className="flex shrink-0 gap-2">
+                <PrimaryButton
+                  type="button"
+                  loading={busyId === selected.id}
+                  onClick={() => moderate(selected.id, "approved")}
+                >
+                  <Check size={16} /> 通过
+                </PrimaryButton>
+                <SecondaryButton
+                  type="button"
+                  onClick={() => moderate(selected.id, "rejected")}
+                  disabled={busyId === selected.id}
+                  className="border-tone-danger-edge bg-tone-danger-bg text-tone-danger-fg hover:bg-tone-danger-bg-hover"
+                >
+                  <X size={16} /> 驳回
+                </SecondaryButton>
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-md border border-edge bg-surface p-4 shadow-sm">
+              <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-bold text-content">
+                <FilePenLine size={15} className="text-content-subtle" />
+                申请内容
+              </h3>
+              {renderRequestDetails(selected)}
+            </div>
+          </article>
+        ) : (
+          <div className="flex h-full min-h-64 flex-col items-center justify-center p-10 text-center">
+            <Inbox size={28} className="mb-3 text-content-subtle" />
+            <p className="font-display text-lg font-bold text-content">
+              从左侧选择一条请求
+            </p>
+            <p className="mt-1 max-w-sm text-sm text-content-muted">
+              申请内容与审核操作会显示在这里，处理后列表不会跳走。
             </p>
           </div>
-        </div>
-
-        {action.message && (
-          <div className="mb-5">
-            <StatusMessage value={action.message} tone={action.tone} />
-          </div>
         )}
-        {error && (
-          <div className="mb-5">
-            <InlineError value={error} />
-          </div>
-        )}
-
-        {isLoading ? (
-          <div className="grid gap-4">
-            {[...Array(3)].map((_, index) => (
-              <div
-                key={index}
-                className="animate-pulse bg-surface-sunken h-40 rounded-md border border-edge-subtle"
-              />
-            ))}
-          </div>
-        ) : items.length ? (
-          <div className="grid gap-4">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className="rounded-md border border-edge-subtle bg-surface-sunken p-5"
-              >
-                <div className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
-                  <div className="min-w-0">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Badge
-                        tone={AUDIT_TONE[item.moderation_status ?? "pending"]}
-                      >
-                        {MODERATION_STATUS_MAP[item.moderation_status]}
-                      </Badge>
-                      <span className="text-xs font-medium text-content-subtle">
-                        #{item.id} · {getTargetLabel(item)}
-                      </span>
-                    </div>
-                    <p className="mt-2 text-xs font-medium text-content-subtle flex items-center gap-1">
-                      <Clock size={14} /> {formatDateTime(item.request_at)}
-                    </p>
-                  </div>
-                  <div className="flex gap-2 shrink-0">
-                    <PrimaryButton
-                      type="button"
-                      className="px-4 py-2.5"
-                      loading={busyId === item.id}
-                      onClick={() => moderate(item.id, "approved")}
-                    >
-                      <Check size={16} /> 通过
-                    </PrimaryButton>
-                    <SecondaryButton
-                      type="button"
-                      onClick={() => moderate(item.id, "rejected")}
-                      disabled={busyId === item.id}
-                      className="text-tone-danger-fg bg-tone-danger-bg hover:bg-tone-danger-bg-hover border-tone-danger-edge"
-                    >
-                      <X size={16} /> 驳回
-                    </SecondaryButton>
-                  </div>
-                </div>
-                <div className="mt-5 rounded-md bg-surface border border-edge-subtle p-4">
-                  {renderRequestDetails(item)}
-                </div>
-              </div>
-            ))}
-          </div>
-        ) : (
-          <EmptyState
-            title="没有待处理请求"
-            description={error ? stringifyBackendValue(error) : undefined}
-          />
-        )}
-      </Surface>
-    </motion.div>
+      </div>
+    </div>
   );
 }
