@@ -5,7 +5,7 @@ import { cn } from "../../lib/utils";
 import { CategoryChip, categorySpine } from "./CategoryChip";
 import { StarLevel } from "./StarLevel";
 
-type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummaryInfo = components["schemas"]["ClubSummaryInfo"];
 
 /**
  * The one club card.
@@ -18,19 +18,23 @@ type ClubInfo = components["schemas"]["ClubInfo"];
  * down the left edge, and a lift toward the top-left on hover as if picked off a
  * board. The spine is an edge rather than a fill, so category colour stays an
  * accent.
+ *
+ * Takes the generated ClubSummaryInfo — the shape GET /clubs/summary returns —
+ * rather than the full ClubInfo, because a grid of cards has no use for every
+ * club's members, activities and records. A caller holding a full ClubInfo passes
+ * `{ ...club, member_count: club.members.length }`.
  */
 export function ClubCard({
   club,
   density = "comfortable",
   className,
 }: {
-  club: ClubInfo;
+  club: ClubSummaryInfo;
   /** `compact` is for side panels; `comfortable` for the directory. */
   density?: "comfortable" | "compact";
   className?: string;
 }) {
   const isCompact = density === "compact";
-  const memberCount = club.members?.length ?? 0;
 
   return (
     <Link
@@ -89,7 +93,7 @@ export function ClubCard({
         {!isCompact && (
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-content-subtle">
             <Users size={14} />
-            {memberCount} 名成员
+            {club.member_count} 名成员
           </p>
         )}
       </div>
