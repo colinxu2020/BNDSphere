@@ -8,6 +8,35 @@
       content="width=device-width, initial-scale=1.0, viewport-fit=cover"
     />
     <title>BNDSphere</title>
+    <!--
+      Apply the colour scheme before first paint.
+
+      React cannot do this: the bundle is fetched, parsed and mounted well after
+      the browser has already painted, so a dark-scheme visitor would get a white
+      flash on every load. This mirrors src/lib/useTheme.ts — the storage key and
+      the `dark` class name are the contract between them.
+
+      localStorage throws outright in some privacy modes, so only that read is
+      guarded — matchMedia stays outside it, or a storage failure would strand a
+      dark-system visitor in light mode.
+    -->
+    <script>
+      (function () {
+        var stored = null;
+        try {
+          stored = localStorage.getItem("bndsphere-theme");
+        } catch (error) {
+          /* privacy mode blocks storage; fall through to the system preference */
+        }
+        if (
+          stored === "dark" ||
+          (stored !== "light" &&
+            matchMedia("(prefers-color-scheme: dark)").matches)
+        ) {
+          document.documentElement.classList.add("dark");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

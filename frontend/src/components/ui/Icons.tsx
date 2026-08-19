@@ -22,6 +22,7 @@ export {
   IconFilter as Filter,
   IconHash as Hash,
   IconGavel as Gavel,
+  IconMoon as Moon,
   IconPhoto as Image,
   IconInbox as Inbox,
   IconLayoutDashboard as LayoutDashboard,
@@ -36,6 +37,7 @@ export {
   IconPlus as Plus,
   IconRefresh as RefreshCw,
   IconRosetteFilled as Seal,
+  IconDeviceDesktop as Monitor,
   IconDeviceFloppy as Save,
   IconSearch as Search,
   IconSettings as Settings,
@@ -50,4 +52,5 @@ export {
   IconUsers as Users,
   IconX as X,
   type IconProps,
+  IconSun as Sun,
 } from "@tabler/icons-react";

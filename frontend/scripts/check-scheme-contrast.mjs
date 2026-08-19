@@ -49,9 +49,25 @@ function blockAfter(marker) {
   return "";
 }
 
-// `:root{...}` outside the media query, then the dark override block
-const darkBlock = blockAfter("prefers-color-scheme:dark");
-const lightBlock = css.slice(0, css.indexOf("@media(prefers-color-scheme:dark)"));
+/**
+ * Everything before the dark override, then the dark override itself.
+ *
+ * The dark block used to be a `prefers-color-scheme` media query and is now
+ * `:root.dark`, since a media query cannot be overridden by an explicit user
+ * choice. Assert the marker rather than letting a miss fall through: `blockAfter`
+ * answers "" for an absent marker, and a slice on indexOf's -1 would silently
+ * fold the dark values into the light set and check one scheme twice.
+ */
+const DARK_SELECTOR = ":root.dark";
+if (!css.includes(DARK_SELECTOR)) {
+  console.error(
+    `gate4a: no \`${DARK_SELECTOR}\` block in the built CSS. If the dark-scheme ` +
+      "selector was renamed, update DARK_SELECTOR here in the same commit.",
+  );
+  process.exit(1);
+}
+const darkBlock = blockAfter(DARK_SELECTOR);
+const lightBlock = css.slice(0, css.indexOf(DARK_SELECTOR));
 
 const light = vars(lightBlock);
 const dark = vars(darkBlock);

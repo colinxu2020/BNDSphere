@@ -1,5 +1,15 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import { LogIn, LogOut, Menu, User, X } from "@/src/components/ui/Icons";
+import {
+  Check,
+  LogIn,
+  LogOut,
+  Menu,
+  Monitor,
+  Moon,
+  Sun,
+  User,
+  X,
+} from "@/src/components/ui/Icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   AUTH_STATE_CHANGED_EVENT,
@@ -8,6 +18,12 @@ import {
 } from "../../api/client";
 import type { components } from "../../api/schema";
 import { ROLE_MAP } from "../../lib/labels";
+import {
+  THEME_CHOICES,
+  THEME_LABELS,
+  useTheme,
+  type ThemeChoice,
+} from "../../lib/useTheme";
 import { cn } from "../../lib/utils";
 import { isNavItemActive, visibleNav, type NavGroup } from "./nav";
 
@@ -153,6 +169,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
    * off isLoggedIn, so 退出登录 stays reachable for exactly that account.
    */
   const groups = visibleNav(user?.role, Boolean(user));
+  const { choice, chooseTheme } = useTheme();
   const badges: Record<string, number> =
     pendingModeration && pendingModeration > 0
       ? { "/moderation": pendingModeration }
@@ -224,28 +241,37 @@ export function RootLayout({ children }: { children: ReactNode }) {
 
       {/* Content */}
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-edge bg-surface px-4 lg:hidden">
+        {/*
+          Was mobile-only. It now spans every breakpoint because the scheme control
+          lives at the top right, and the rail — being on the left — has no top-right
+          corner to put it in. Everything that was already here stays phone-only, so
+          on a desktop this is a slim strip holding just that control.
+        */}
+        <header className="sticky top-0 z-40 flex h-16 shrink-0 items-center gap-3 border-b border-edge bg-surface px-4 lg:h-12">
           <button
             type="button"
             ref={drawerTriggerRef}
             onClick={() => setDrawerOpen(true)}
             aria-label="打开导航"
             aria-expanded={drawerOpen}
-            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-edge text-content-muted outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40"
+            className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-edge text-content-muted outline-none focus-visible:ring-4 focus-visible:ring-brand-strong/40 lg:hidden"
           >
             <Menu size={18} />
           </button>
-          <Link to="/" className="min-w-0 flex-1 outline-none">
+          <Link to="/" className="min-w-0 flex-1 outline-none lg:hidden">
             <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-7 w-auto" />
           </Link>
           {!isLoggedIn && (
             <Link
               to="/login"
-              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-3 text-sm font-semibold text-brand-on"
+              className="inline-flex min-h-11 items-center gap-1.5 rounded-md bg-brand px-3 text-sm font-semibold text-brand-on lg:hidden"
             >
               <LogIn size={15} /> 登录
             </Link>
           )}
+          <div className="ml-auto">
+            <ThemeMenu choice={choice} onChoose={chooseTheme} />
+          </div>
         </header>
 
         <main className="flex min-w-0 flex-1 flex-col">{children}</main>
@@ -309,6 +335,121 @@ function NavList({
         </div>
       ))}
     </nav>
+  );
+}
+
+const THEME_ICONS: Record<ThemeChoice, typeof Sun> = {
+  light: Sun,
+  dark: Moon,
+  system: Monitor,
+};
+
+/**
+ * Colour-scheme menu — the icon in the top bar.
+ *
+ * A disclosure, not a `role="menu"`: menu semantics oblige arrow-key navigation and
+ * a roving tabindex, and a half-built menu is worse for a screen reader than an
+ * honest expandable group. Here the three options are ordinary buttons after the
+ * trigger in DOM order, so Tab walks them with no bookkeeping at all.
+ *
+ * Three options rather than one toggle, because `跟随系统` has to stay reachable —
+ * a two-state switch would permanently opt the visitor out of following the OS.
+ *
+ * The trigger shows the icon of the current *choice*, not the resolved scheme: on
+ * `跟随系统` the honest answer is "the system decides", which is what the monitor
+ * glyph says and what a sun or moon there would hide.
+ */
+function ThemeMenu({
+  choice,
+  onChoose,
+}: {
+  choice: ThemeChoice;
+  onChoose: (choice: ThemeChoice) => void;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const TriggerIcon = THEME_ICONS[choice];
+
+  // Same contract as the drawer above: Escape closes and returns focus to the
+  // trigger, a press outside closes without stealing focus.
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      setIsOpen(false);
+      triggerRef.current?.focus();
+    };
+    const onPointerDown = (event: PointerEvent) => {
+      const target = event.target as Node;
+      if (
+        !panelRef.current?.contains(target) &&
+        !triggerRef.current?.contains(target)
+      ) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    document.addEventListener("pointerdown", onPointerDown);
+    return () => {
+      document.removeEventListener("keydown", onKeyDown);
+      document.removeEventListener("pointerdown", onPointerDown);
+    };
+  }, [isOpen]);
+
+  return (
+    <div className="relative">
+      <button
+        type="button"
+        ref={triggerRef}
+        onClick={() => setIsOpen((open) => !open)}
+        aria-expanded={isOpen}
+        aria-label={`配色方案：${THEME_LABELS[choice]}`}
+        className="inline-flex h-11 w-11 items-center justify-center rounded-md border border-edge text-content-muted outline-none transition-colors hover:bg-surface-hover hover:text-content focus-visible:ring-4 focus-visible:ring-brand-strong/40 lg:h-9 lg:w-9"
+      >
+        <TriggerIcon size={18} />
+      </button>
+
+      {isOpen && (
+        <div
+          ref={panelRef}
+          role="group"
+          aria-label="配色方案"
+          className="absolute right-0 z-50 mt-2 w-40 rounded-md border border-edge bg-surface p-1 shadow-md"
+        >
+          {THEME_CHOICES.map((option) => {
+            const Icon = THEME_ICONS[option];
+            const isSelected = choice === option;
+            return (
+              <button
+                key={option}
+                type="button"
+                onClick={() => {
+                  onChoose(option);
+                  setIsOpen(false);
+                  triggerRef.current?.focus();
+                }}
+                aria-pressed={isSelected}
+                className={cn(
+                  "flex min-h-11 w-full items-center gap-2.5 rounded-md px-2.5 text-sm font-semibold outline-none transition-colors focus-visible:ring-4 focus-visible:ring-brand-strong/40",
+                  isSelected
+                    ? "bg-brand-subtle text-tone-brand-fg"
+                    : "text-content-muted hover:bg-surface-hover hover:text-content",
+                )}
+              >
+                <Icon size={16} />
+                <span className="min-w-0 flex-1 text-left">
+                  {THEME_LABELS[option]}
+                </span>
+                {isSelected && <Check size={15} />}
+              </button>
+            );
+          })}
+        </div>
+      )}
+    </div>
   );
 }
 

@@ -286,6 +286,12 @@
 
 /* --- Light scheme values --------------------------------------------------- */
 :root {
+  /* Native widgets — scrollbars, <select> popups, number spinners, date pickers
+     — are painted by the browser, not by our tokens. Without this they stay
+     light in the dark scheme. Declared per class, not as `light dark`, so an
+     explicit user choice overrides the system for them too. */
+  color-scheme: light;
+
   --surface: #ffffff;
   --surface-raised: #ffffff;
   --surface-sunken: #f8fafc;
@@ -410,128 +416,134 @@
 }
 
 /* --- Dark scheme values ---------------------------------------------------
-   Follows the operating system preference; there is no manual toggle. Only the
-   variables change — no `dark:` variant appears in application code.
+   Selected by a `dark` class on <html>, not by the media query directly.
+   src/lib/useTheme.ts resolves the choice — explicit light, explicit dark, or
+   follow the system — and sets that class; index.html applies it before first
+   paint so the page never flashes the wrong scheme.
+
+   A media query alone cannot express "the user overrode the system", which is
+   why the class is the single source of truth rather than both mechanisms
+   competing.
 
    Note that the light formula (a -50 tint behind -700 text) does not invert
    cleanly: dark surfaces need a deep tint behind a light -300-ish foreground,
    so the tone and category values here are chosen independently rather than
    derived from their light counterparts. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --surface: #0f172a;
-    --surface-raised: #1e293b;
-    --surface-sunken: #020618;
-    --surface-hover: #283548;
+:root.dark {
+  color-scheme: dark;
 
-    --content: #f1f5f9;
-    --content-muted: #94a3b8;
-    --content-subtle: #64748b;
-    --content-inverted: #0f172a;
+  --surface: #0f172a;
+  --surface-raised: #1e293b;
+  --surface-sunken: #020618;
+  --surface-hover: #283548;
 
-    --surface-inverted: #f1f5f9;
-    --surface-inverted-hover: #e2e8f0;
-    --content-on-inverted: #0f172a;
-    --content-on-inverted-muted: #475569;
-    --surface-media: #020618;
-    --surface-skeleton: #334154;
+  --content: #f1f5f9;
+  --content-muted: #94a3b8;
+  --content-subtle: #64748b;
+  --content-inverted: #0f172a;
 
-    --shadow-ink: #0206189e;
-    --shadow-ink-strong: #020618c7;
+  --surface-inverted: #f1f5f9;
+  --surface-inverted-hover: #e2e8f0;
+  --content-on-inverted: #0f172a;
+  --content-on-inverted-muted: #475569;
+  --surface-media: #020618;
+  --surface-skeleton: #334154;
 
-    --accent-1: #38bdf8;
-    --accent-2: #34d399;
-    --accent-3: #fbbf24;
-    --accent-4: #fb7185;
-    --accent-5: #a78bfa;
-    --accent-6: #22d3ee;
+  --shadow-ink: #0206189e;
+  --shadow-ink-strong: #020618c7;
 
-    --edge: #334154;
-    --edge-subtle: #1e293b;
-    --edge-strong: #475569;
+  --accent-1: #38bdf8;
+  --accent-2: #34d399;
+  --accent-3: #fbbf24;
+  --accent-4: #fb7185;
+  --accent-5: #a78bfa;
+  --accent-6: #22d3ee;
 
-    --brand: #2dd4bf;
-    --brand-hover: #5eead4;
-    --brand-strong: #99f6e4;
-    --brand-subtle: #042f2e;
-    --brand-on: #042f2e;
+  --edge: #334154;
+  --edge-subtle: #1e293b;
+  --edge-strong: #475569;
 
-    --tone-neutral-bg: #1e293b;
-    --tone-neutral-fg: #cbd5e1;
-    --tone-neutral-edge: #334154;
+  --brand: #2dd4bf;
+  --brand-hover: #5eead4;
+  --brand-strong: #99f6e4;
+  --brand-subtle: #042f2e;
+  --brand-on: #042f2e;
 
-    --tone-brand-bg: #042f2e;
-    --tone-brand-fg: #5eead4;
-    --tone-brand-edge: #115e59;
+  --tone-neutral-bg: #1e293b;
+  --tone-neutral-fg: #cbd5e1;
+  --tone-neutral-edge: #334154;
 
-    --tone-info-bg: #172554;
-    --tone-info-fg: #93c5fd;
-    --tone-info-edge: #1e40af;
+  --tone-brand-bg: #042f2e;
+  --tone-brand-fg: #5eead4;
+  --tone-brand-edge: #115e59;
 
-    --tone-success-bg: #022c22;
-    --tone-success-fg: #6ee7b7;
-    --tone-success-edge: #065f46;
+  --tone-info-bg: #172554;
+  --tone-info-fg: #93c5fd;
+  --tone-info-edge: #1e40af;
 
-    --tone-warning-bg: #422006;
-    --tone-warning-fg: #fcd34d;
-    --tone-warning-edge: #92400e;
+  --tone-success-bg: #022c22;
+  --tone-success-fg: #6ee7b7;
+  --tone-success-edge: #065f46;
 
-    --tone-danger-bg: #450a0a;
-    --tone-danger-bg-hover: #7f1d1d;
-    --tone-danger-fg: #fca5a5;
-    --tone-danger-edge: #991b1b;
+  --tone-warning-bg: #422006;
+  --tone-warning-fg: #fcd34d;
+  --tone-warning-edge: #92400e;
 
-    --category-science-bg: #083344;
-    --category-science-fg: #67e8f9;
-    --category-science-edge: #155e75;
+  --tone-danger-bg: #450a0a;
+  --tone-danger-bg-hover: #7f1d1d;
+  --tone-danger-fg: #fca5a5;
+  --tone-danger-edge: #991b1b;
 
-    --category-humanity-bg: #2e1065;
-    --category-humanity-fg: #c4b5fd;
-    --category-humanity-edge: #5b21b6;
+  --category-science-bg: #083344;
+  --category-science-fg: #67e8f9;
+  --category-science-edge: #155e75;
 
-    --category-arts-bg: #500724;
-    --category-arts-fg: #f9a8d4;
-    --category-arts-edge: #9d174d;
+  --category-humanity-bg: #2e1065;
+  --category-humanity-fg: #c4b5fd;
+  --category-humanity-edge: #5b21b6;
 
-    --category-sports-bg: #431407;
-    --category-sports-fg: #fdba74;
-    --category-sports-edge: #9a3412;
+  --category-arts-bg: #500724;
+  --category-arts-fg: #f9a8d4;
+  --category-arts-edge: #9d174d;
 
-    --category-business-bg: #422006;
-    --category-business-fg: #fde047;
-    --category-business-edge: #854d0e;
+  --category-sports-bg: #431407;
+  --category-sports-fg: #fdba74;
+  --category-sports-edge: #9a3412;
 
-    --category-charity-bg: #052e16;
-    --category-charity-fg: #86efac;
-    --category-charity-edge: #166534;
+  --category-business-bg: #422006;
+  --category-business-fg: #fde047;
+  --category-business-edge: #854d0e;
 
-    --category-campus-bg: #1e1b4b;
-    --category-campus-fg: #a5b4fc;
-    --category-campus-edge: #3730a3;
+  --category-charity-bg: #052e16;
+  --category-charity-fg: #86efac;
+  --category-charity-edge: #166534;
 
-    --star-bg: #422006;
-    --star-text: #fcd34d;
-    --star-edge: #854d0e;
-    --star-earned: #fbbf24;
-    --star-unearned: #8a7a5c;
-    --star-seal: #fde68a;
+  --category-campus-bg: #1e1b4b;
+  --category-campus-fg: #a5b4fc;
+  --category-campus-edge: #3730a3;
 
-    --level-school-bg: #1e1b4b;
-    --level-school-fg: #a5b4fc;
-    --level-school-edge: #3730a3;
+  --star-bg: #422006;
+  --star-text: #fcd34d;
+  --star-edge: #854d0e;
+  --star-earned: #fbbf24;
+  --star-unearned: #8a7a5c;
+  --star-seal: #fde68a;
 
-    --level-large-bg: #4a044e;
-    --level-large-fg: #f0abfc;
-    --level-large-edge: #86198f;
+  --level-school-bg: #1e1b4b;
+  --level-school-fg: #a5b4fc;
+  --level-school-edge: #3730a3;
 
-    --level-federation-bg: #042f2e;
-    --level-federation-fg: #5eead4;
-    --level-federation-edge: #115e59;
+  --level-large-bg: #4a044e;
+  --level-large-fg: #f0abfc;
+  --level-large-edge: #86198f;
 
-    --category-other-bg: #1e293b;
-    --category-other-fg: #cbd5e1;
-    --category-other-edge: #334154;
-  }
+  --level-federation-bg: #042f2e;
+  --level-federation-fg: #5eead4;
+  --level-federation-edge: #115e59;
+
+  --category-other-bg: #1e293b;
+  --category-other-fg: #cbd5e1;
+  --category-other-edge: #334154;
 }
 
 /* The light values of these tokens are byte-identical to the slate steps they

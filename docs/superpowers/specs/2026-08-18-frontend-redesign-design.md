@@ -189,9 +189,8 @@ failures; they are not the public API. App-authored components migrate toward se
 tokens rather than reaching for ramp steps.
 
 **Tier 2 — semantic tokens.** Register the utility vocabulary with `@theme inline`,
-backed by ordinary semantic CSS variables redefined under
-`@media (prefers-color-scheme: dark)`. This keeps Tailwind's utility namespace separate
-from the actual light/dark values:
+backed by ordinary semantic CSS variables redefined under a dark-scheme selector. This
+keeps Tailwind's utility namespace separate from the actual light/dark values:
 
 ```css
 @theme inline {
@@ -204,17 +203,23 @@ from the actual light/dark values:
 
 :root { --surface: #fff; /* … */ }
 
-@media (prefers-color-scheme: dark) {
-  :root { --surface: #0b1220; /* … */ }
-}
+:root.dark { --surface: #0b1220; /* … */ }
 ```
+
+> **Correction (as built).** This section originally specified
+> `@media (prefers-color-scheme: dark)` and stated there would be no manual toggle,
+> following the original requirement of "dark+light which can follow the system default."
+> A later request added a user-facing control, which a media query cannot express: an
+> explicit choice has to be able to *beat* the system preference, and a media query has
+> no way to know a choice was made. The dark block is therefore selected by
+> `:root.dark`, set from JavaScript. See §5.4.
 
 This is the pattern master's `src/assets/main.css` already used (`@theme inline` over
 `:root`/`.dark`), so it carries forward the half of this repository that got tokens
 right.
 
 Because utilities compile to `var(--*)` references, the scheme switch is centralized in
-one media query and requires no `dark:` variant in app code. **This makes the
+one selector and requires no `dark:` variant in app code. **This makes the
 implementation low-cost, not free** — see §3.3.
 
 **Tier 3 — one tone vocabulary.** Two vocabularies currently disagree: `Badge` takes
@@ -546,6 +551,71 @@ Defect 2 means a logged-in student on a phone cannot log out or reach club manag
 That is a live functional bug affecting real users, independent of any redesign, and
 **ships as a standalone functional fix before Phase 0** rather than waiting for Phase 4.
 
+### 5.4 Colour-scheme control (2026-08-19)
+
+Added after the redesign was reviewed. The original requirement was "dark+light which can
+follow the system default", so the scheme was driven entirely by
+`@media (prefers-color-scheme: dark)` and there was no control anywhere in the UI. The
+first question asked on review was where the switch is — which is the answer: a
+preference nobody can find is one most people will not know exists.
+
+**Placement: an icon at the top right, expanding to the three choices.** The first
+attempt put a segmented control in the rail footer and was rejected on review — a rail
+footer is not where anyone looks for this. The rail is on the left and therefore has no
+top-right corner, so the previously mobile-only header (`lg:hidden`) now spans every
+breakpoint at `lg:h-12`; everything already in it stays phone-only, leaving a slim strip
+on desktop holding just this control. That strip is also the obvious home for any future
+page-level action.
+
+**Three states, not two.** `浅色` / `深色` / `跟随系统`, defaulting to `跟随系统`. A plain
+two-state toggle would silently delete the original behaviour: once you picked a scheme
+there would be no way back to following the OS.
+
+**A disclosure, not a `role="menu"`.** Menu semantics oblige arrow-key navigation and a
+roving tabindex; a half-built menu is worse for a screen reader than an honest expandable
+group. The three options are ordinary `aria-pressed` buttons sitting after the trigger in
+DOM order, so Tab walks them with no bookkeeping. Escape closes and returns focus to the
+trigger, a pointer press outside closes it, and the outside-press handler excludes the
+trigger itself — without that, pressing the trigger to close would close and immediately
+reopen. Same contract the drawer already uses.
+
+**The trigger shows the icon of the current choice, not the resolved scheme.** On
+`跟随系统` the truthful answer is "the system decides", which is what the monitor glyph
+says; a sun or moon there would claim a preference the user has not expressed. The
+accessible name carries both purpose and state: `配色方案：跟随系统`.
+
+**Why the selector had to change.** A media query cannot express "the user overrode the
+system" — it only reports what the OS wants. So the dark block moved from
+`@media (prefers-color-scheme: dark)` to `:root.dark`, and JavaScript resolves choice +
+system preference into that one class. `prefers-color-scheme` still decides the `跟随系统`
+case, now read via `matchMedia` instead of in CSS. No `dark:` variant was introduced; the
+88-token swap is untouched.
+
+**Pre-paint application.** `index.html` carries a small inline script that sets the class
+before the bundle loads. React cannot do this — it mounts long after first paint, so a
+dark-scheme visitor would get a white flash on every single load. The storage key and the
+class name are the contract between that script and `src/lib/useTheme.ts`; the comment in
+each names the other.
+
+**`color-scheme` is now declared** (`light` on `:root`, `dark` on `:root.dark`).
+Scrollbars, `<select>` popups, number spinners and date pickers are painted by the browser
+and ignore our tokens entirely; without this they stayed light on dark surfaces. This was
+already wrong before the toggle — the media query never fixed it either — so it is a
+pre-existing gap closed here rather than a consequence of the change.
+
+**One hook instance.** `useTheme()` is called once in `RootLayout`. This mattered more in
+the rejected rail-footer version, where the rail and the mobile drawer were mounted
+simultaneously and two instances left one showing a stale selection — caught by switching
+in the drawer and asserting the rail copy updated. The single header control makes the
+hazard moot, but the hook keeps the note: anything that renders it twice will desync.
+
+**Gate 4a follows the selector.** The check used to locate the dark block by its media
+query. `blockAfter` returns `""` for an absent marker and `indexOf` returns `-1`, so a
+renamed selector would have folded the dark values into the light set and checked one
+scheme twice — passing while validating nothing. It now asserts the marker exists and
+exits 1 if not. Proved by deleting the block from a built stylesheet (exit 1), planting an
+unreadable dark `--content` (exit 1), and restoring (exit 0).
+
 ## 6. Decomposition
 
 Driven by responsibility and shared workflow, not file length. Sorted that way, the three
@@ -800,6 +870,9 @@ Gate 4's human portion covers:
 - reduced-motion behaviour
 - interaction states: hover, active, disabled, focus
 - overlays and shadows/elevation
+- the §5.4 scheme control: that no flash of the wrong scheme occurs on load with a stored
+  choice, and that native `<select>` popups, date pickers and scrollbars follow the scheme.
+  Both are OS- and browser-painted, so neither is observable from the automated gate.
 
 ## 8. Sequencing
 
@@ -919,6 +992,11 @@ Decisions taken for this release, recorded so they are not relitigated:
       head merge.
 - [x] **Critical paths re-verified after integration.** Application submit and moderation
       approve, both through the UI against the live API — see §8d.
+- [ ] **Scheme control on real devices.** §5.4. Two things the automated gate cannot see:
+      no flash of the wrong scheme on load with a stored choice, and native `<select>`
+      popups / date pickers / scrollbars following the scheme (`color-scheme`, now declared).
+      Worth a look on iOS Safari in particular, where the native controls are the most
+      visually distinct.
 - [x] **`member_count` semantics unchanged.** It still counts all membership rows, matching
       what clients previously computed from `len(members)`. Switching to active-members-only
       is a product/data-semantics change and is explicitly **out of scope for this
