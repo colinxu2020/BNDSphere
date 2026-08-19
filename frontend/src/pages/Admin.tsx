@@ -1,19 +1,9 @@
 import React, { useState } from "react";
 import { motion } from "motion/react";
-import {
-  Bell,
-  CalendarDays,
-  RefreshCw,
-  Shield,
-  Users,
-} from "@/src/components/ui/Icons";
+import { Bell, CalendarDays, RefreshCw, Shield, Users } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { useActionFeedback } from "../lib/useActionFeedback";
-import {
-  PageHeader,
-  SecondaryButton,
-  StatusMessage,
-} from "../components/ui/AppPrimitives";
+import { PageHeader, SecondaryButton, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 import { RefreshContext } from "./admin/context";
 import { UsersAdmin } from "./admin/UsersAdmin";
@@ -60,7 +50,8 @@ export function Admin() {
       animate={{ opacity: 1, y: 0 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 grid min-w-0 gap-6"
     >
-      <PageHeader density="compact"
+      <PageHeader
+        density="compact"
         eyebrow="Admin"
         title="管理员控制台"
         action={

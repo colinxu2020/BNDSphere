@@ -7,10 +7,8 @@ import type { useActionFeedback } from "../../lib/useActionFeedback";
 import { ActivityRequestList } from "./shared";
 
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ActivityModerationKind = "create" | "update";
 
 /**
@@ -31,9 +29,7 @@ export function ActivityRequestsPanel({
   feedback: ReturnType<typeof useActionFeedback>;
   onModerated: () => void;
 }) {
-  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(
-    null,
-  );
+  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(null);
 
   const moderateClubActivityRequest = async (
     kind: ActivityModerationKind,
@@ -46,20 +42,18 @@ export function ActivityRequestsPanel({
     try {
       const result =
         kind === "create"
-          ? await client.PATCH(
-              "/api/v1/moderations/club-activities/create-requests/{request_id}",
-              { params: { path: { request_id: requestId } }, body },
-            )
-          : await client.PATCH(
-              "/api/v1/moderations/club-activities/update-requests/{request_id}",
-              { params: { path: { request_id: requestId } }, body },
-            );
+          ? await client.PATCH("/api/v1/moderations/club-activities/create-requests/{request_id}", {
+              params: { path: { request_id: requestId } },
+              body,
+            })
+          : await client.PATCH("/api/v1/moderations/club-activities/update-requests/{request_id}", {
+              params: { path: { request_id: requestId } },
+              body,
+            });
 
       feedback.report(
         result.error,
-        moderationStatus === "approved"
-          ? "社团活动申请已通过"
-          : "社团活动申请已驳回",
+        moderationStatus === "approved" ? "社团活动申请已通过" : "社团活动申请已驳回",
       );
       if (!result.error) onModerated();
     } catch (error) {

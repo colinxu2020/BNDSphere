@@ -19,8 +19,7 @@ type Role = components["schemas"]["RoleEnum"];
 type AdminUserUpdate = components["schemas"]["AdminUserUpdate"];
 
 export function UsersAdmin() {
-  const { isRefreshing, refreshStart, refreshEnd, setResult } =
-    useAdminContext();
+  const { isRefreshing, refreshStart, refreshEnd, setResult } = useAdminContext();
   const [users, setUsers] = useState<UserInfo[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<UserInfo | null>(null);
@@ -42,8 +41,7 @@ export function UsersAdmin() {
       if (error) setResult(error, null);
       setUsers(data?.items || []);
       if (selected) {
-        const nextSelected =
-          data?.items.find((item) => item.id === selected.id) || null;
+        const nextSelected = data?.items.find((item) => item.id === selected.id) || null;
         if (nextSelected) selectUser(nextSelected);
       }
     } catch (error) {
@@ -80,13 +78,10 @@ export function UsersAdmin() {
       role: form.role || null,
     };
     try {
-      const { data, error } = await client.PATCH(
-        "/api/v1/admin/users/{user_id}",
-        {
-          params: { path: { user_id: selected.id } },
-          body,
-        },
-      );
+      const { data, error } = await client.PATCH("/api/v1/admin/users/{user_id}", {
+        params: { path: { user_id: selected.id } },
+        body,
+      });
       setResult(error, error ? null : "用户已保存");
       if (data) selectUser(data);
       if (!error) loadUsers();
@@ -127,27 +122,20 @@ export function UsersAdmin() {
     >
       {selected ? (
         <form onSubmit={saveUser} className="grid gap-4">
-          <FormHeader
-            title={selected.username}
-            subtitle={`用户 #${selected.id}`}
-          />
+          <FormHeader title={selected.username} subtitle={`用户 #${selected.id}`} />
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="用户名">
               <input
                 className={inputClassName}
                 value={form.username}
-                onChange={(event) =>
-                  setForm({ ...form, username: event.target.value })
-                }
+                onChange={(event) => setForm({ ...form, username: event.target.value })}
               />
             </Field>
             <Field label="邮箱">
               <input
                 className={inputClassName}
                 value={form.email}
-                onChange={(event) =>
-                  setForm({ ...form, email: event.target.value })
-                }
+                onChange={(event) => setForm({ ...form, email: event.target.value })}
               />
             </Field>
           </div>
@@ -155,18 +143,14 @@ export function UsersAdmin() {
             <input
               className={inputClassName}
               value={form.avatar_uri}
-              onChange={(event) =>
-                setForm({ ...form, avatar_uri: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, avatar_uri: event.target.value })}
             />
           </Field>
           <Field label="角色">
             <select
               className={selectClassName}
               value={form.role}
-              onChange={(event) =>
-                setForm({ ...form, role: event.target.value as Role })
-              }
+              onChange={(event) => setForm({ ...form, role: event.target.value as Role })}
             >
               {ROLE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -179,9 +163,7 @@ export function UsersAdmin() {
             <textarea
               className={textareaClassName}
               value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
           </Field>
           <PrimaryButton type="submit" loading={isSaving}>

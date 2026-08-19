@@ -25,20 +25,29 @@ import { cn } from "../../lib/utils";
 import { SAMPLE_CLUBS, SAMPLE_QUEUE } from "../sampleData";
 
 const NAV = [
-  { section: "浏览", items: [
-    { icon: Compass, label: "发现社团", active: true },
-    { icon: CalendarDays, label: "大型活动" },
-    { icon: Award, label: "星级评价" },
-  ]},
-  { section: "我的", items: [
-    { icon: Users, label: "我的社团" },
-    { icon: Settings, label: "个人设置" },
-  ]},
-  { section: "工作台", items: [
-    { icon: Gavel, label: "审核队列", badge: 3 },
-    { icon: LayoutDashboard, label: "社联工作台" },
-    { icon: Shield, label: "管理员控制台" },
-  ]},
+  {
+    section: "浏览",
+    items: [
+      { icon: Compass, label: "发现社团", active: true },
+      { icon: CalendarDays, label: "大型活动" },
+      { icon: Award, label: "星级评价" },
+    ],
+  },
+  {
+    section: "我的",
+    items: [
+      { icon: Users, label: "我的社团" },
+      { icon: Settings, label: "个人设置" },
+    ],
+  },
+  {
+    section: "工作台",
+    items: [
+      { icon: Gavel, label: "审核队列", badge: 3 },
+      { icon: LayoutDashboard, label: "社联工作台" },
+      { icon: Shield, label: "管理员控制台" },
+    ],
+  },
 ];
 
 export default function LayoutA() {
@@ -103,10 +112,16 @@ export default function LayoutA() {
             <h1 className="font-display text-xl font-bold text-content">发现社团</h1>
           </div>
           <div className="flex items-center gap-2">
-            <button type="button" className="inline-flex h-9 items-center gap-1.5 rounded-md border border-edge px-3 text-sm font-semibold text-content hover:bg-surface-sunken">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-edge px-3 text-sm font-semibold text-content hover:bg-surface-sunken"
+            >
               <Bell size={15} /> 通知
             </button>
-            <button type="button" className="inline-flex h-9 items-center rounded-md bg-brand px-3.5 text-sm font-semibold text-brand-on hover:bg-brand-hover">
+            <button
+              type="button"
+              className="inline-flex h-9 items-center rounded-md bg-brand px-3.5 text-sm font-semibold text-brand-on hover:bg-brand-hover"
+            >
               创建社团
             </button>
           </div>
@@ -135,9 +150,7 @@ export default function LayoutA() {
                 >
                   <div className="flex items-center gap-2">
                     <CategoryChip category={club.category} size="sm" />
-                    {club.star_level !== "none" && (
-                      <StarLevelCompact level={club.star_level} />
-                    )}
+                    {club.star_level !== "none" && <StarLevelCompact level={club.star_level} />}
                   </div>
                   <p className="font-semibold text-content">{club.name}</p>
                   <p className="line-clamp-1 text-xs text-content-muted">{club.summary}</p>
@@ -160,13 +173,20 @@ export default function LayoutA() {
                 <h2 className="font-display text-3xl font-bold text-content">{selected.name}</h2>
                 <p className="mt-1 text-content-muted">{selected.summary}</p>
               </div>
-              <button type="button" className="shrink-0 rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-on hover:bg-brand-hover">
+              <button
+                type="button"
+                className="shrink-0 rounded-md bg-brand px-5 py-2.5 text-sm font-semibold text-brand-on hover:bg-brand-hover"
+              >
                 加入社团
               </button>
             </div>
 
             <div className="mt-6 grid gap-4 md:grid-cols-3">
-              {[["成员", "48"], ["本学期活动", "12"], ["星级总分", "92"]].map(([k, v]) => (
+              {[
+                ["成员", "48"],
+                ["本学期活动", "12"],
+                ["星级总分", "92"],
+              ].map(([k, v]) => (
                 <div key={k} className="rounded-md border border-edge bg-surface p-4 shadow-sm">
                   <p className="text-xs font-semibold text-content-subtle">{k}</p>
                   <p className="font-display mt-1 text-2xl font-bold text-content">{v}</p>
@@ -186,11 +206,25 @@ export default function LayoutA() {
                       <td className="px-4 py-2.5 font-semibold text-content">{row.club}</td>
                       <td className="px-4 py-2.5 text-content-muted">{row.kind}</td>
                       <td className="px-4 py-2.5">
-                        <Badge tone={row.status === "pending" ? "warning" : row.status === "approved" ? "success" : "danger"}>
-                          {row.status === "pending" ? "待审核" : row.status === "approved" ? "已通过" : "已驳回"}
+                        <Badge
+                          tone={
+                            row.status === "pending"
+                              ? "warning"
+                              : row.status === "approved"
+                                ? "success"
+                                : "danger"
+                          }
+                        >
+                          {row.status === "pending"
+                            ? "待审核"
+                            : row.status === "approved"
+                              ? "已通过"
+                              : "已驳回"}
                         </Badge>
                       </td>
-                      <td className="px-4 py-2.5 text-right text-xs text-content-subtle">{row.at}</td>
+                      <td className="px-4 py-2.5 text-right text-xs text-content-subtle">
+                        {row.at}
+                      </td>
                     </tr>
                   ))}
                 </tbody>

@@ -39,9 +39,7 @@ export function getJoinedClubIds(clubs: ClubInfo[], userId?: number | null) {
         club.members.some(
           (member) =>
             member.user_id === userId &&
-            ["member", "president", "vice_president"].includes(
-              member.membership,
-            ),
+            ["member", "president", "vice_president"].includes(member.membership),
         ),
       )
       .map((club) => club.id),
@@ -69,15 +67,9 @@ export function getMyClubActivities(clubs: ClubInfo[], userId?: number | null) {
           if (endedAgoMs > endedWindowMs) return null;
 
           const status: MyClubActivityStatus =
-            start <= now && end >= now
-              ? "ongoing"
-              : end < now
-                ? "ended"
-                : "upcoming";
+            start <= now && end >= now ? "ongoing" : end < now ? "ended" : "upcoming";
           const distanceMs =
-            status === "ended"
-              ? endedAgoMs
-              : Math.abs(start.getTime() - now.getTime());
+            status === "ended" ? endedAgoMs : Math.abs(start.getTime() - now.getTime());
           return { activity, club, status, distanceMs };
         })
         .filter((item): item is MyClubActivity => Boolean(item)),

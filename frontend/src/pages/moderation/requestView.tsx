@@ -2,16 +2,11 @@ import type { components } from "../../api/schema";
 import { formatDateTime } from "../../lib/format";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ClubUpdateRequest = components["schemas"]["ClubUpdateRequestInfo"];
 export type ModerationItem =
-  | UserRequest
-  | ActivityCreateRequest
-  | ActivityUpdateRequest
-  | ClubUpdateRequest;
+  UserRequest | ActivityCreateRequest | ActivityUpdateRequest | ClubUpdateRequest;
 
 export type QueueKey = "users" | "activityCreate" | "activityUpdate" | "clubUpdate";
 
@@ -49,26 +44,17 @@ export function renderRequestDetails(item: ModerationItem) {
   if ("summary" in item) rows.push(["简介", item.summary]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item)
-    rows.push([
-      "开始时间",
-      item.start_time ? formatDateTime(item.start_time) : null,
-    ]);
+    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
   if ("end_time" in item)
-    rows.push([
-      "结束时间",
-      item.end_time ? formatDateTime(item.end_time) : null,
-    ]);
+    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
   if ("location" in item) rows.push(["地点", item.location]);
   if ("logo_uri" in item) rows.push(["Logo", item.logo_uri]);
-  if ("picture_urls" in item)
-    rows.push(["图片", item.picture_urls?.join("\n")]);
+  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
 
   if (!visibleRows.length) {
-    return (
-      <p className="text-sm text-content-muted">此请求没有可展示的变更字段。</p>
-    );
+    return <p className="text-sm text-content-muted">此请求没有可展示的变更字段。</p>;
   }
 
   return (
@@ -76,9 +62,7 @@ export function renderRequestDetails(item: ModerationItem) {
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
           <span className="font-semibold text-content-muted">{label}</span>
-          <span className="text-content whitespace-pre-wrap break-words">
-            {String(value)}
-          </span>
+          <span className="text-content whitespace-pre-wrap break-words">{String(value)}</span>
         </div>
       ))}
     </div>

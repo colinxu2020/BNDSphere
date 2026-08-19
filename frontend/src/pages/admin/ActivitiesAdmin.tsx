@@ -25,8 +25,7 @@ type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type GeneralActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
 
 export function ActivitiesAdmin() {
-  const { isRefreshing, refreshStart, refreshEnd, setResult } =
-    useAdminContext();
+  const { isRefreshing, refreshStart, refreshEnd, setResult } = useAdminContext();
   const [items, setItems] = useState<GeneralActivity[]>([]);
   const [selected, setSelected] = useState<GeneralActivity | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -43,12 +42,9 @@ export function ActivitiesAdmin() {
   const loadItems = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET(
-        "/api/v1/admin/general-activities/",
-        {
-          params: { query: { size: 100 } },
-        },
-      );
+      const { data, error } = await client.GET("/api/v1/admin/general-activities/", {
+        params: { query: { size: 100 } },
+      });
       if (error) setResult(error, null);
       setItems(data?.items || []);
     } catch (error) {
@@ -110,12 +106,9 @@ export function ActivitiesAdmin() {
         setResult(error, error ? null : "大型活动已保存");
         if (data) selectItem(data);
       } else {
-        const { data, error } = await client.POST(
-          "/api/v1/admin/general-activities/",
-          {
-            body: buildBody(),
-          },
-        );
+        const { data, error } = await client.POST("/api/v1/admin/general-activities/", {
+          body: buildBody(),
+        });
         setResult(error, error ? null : "大型活动已创建");
         if (data) selectItem(data);
       }
@@ -129,10 +122,9 @@ export function ActivitiesAdmin() {
 
   const deleteItem = async (item: GeneralActivity) => {
     if (!window.confirm(`确认删除 ${item.name}？`)) return;
-    const { error } = await client.DELETE(
-      "/api/v1/admin/general-activities/{activity_id}",
-      { params: { path: { activity_id: item.id } } },
-    );
+    const { error } = await client.DELETE("/api/v1/admin/general-activities/{activity_id}", {
+      params: { path: { activity_id: item.id } },
+    });
     setResult(error, error ? null : "大型活动已删除");
     if (!error) resetCreate();
     loadItems();
@@ -145,11 +137,7 @@ export function ActivitiesAdmin() {
       refreshing={isRefreshing}
       list={
         <>
-          <SecondaryButton
-            type="button"
-            onClick={resetCreate}
-            className="w-full whitespace-nowrap"
-          >
+          <SecondaryButton type="button" onClick={resetCreate} className="w-full whitespace-nowrap">
             新建大型活动
           </SecondaryButton>
           <ItemList>
@@ -169,9 +157,7 @@ export function ActivitiesAdmin() {
       <form onSubmit={saveItem} className="grid min-w-0 gap-4">
         <FormHeader
           title={selected ? selected.name : "新建大型活动"}
-          subtitle={
-            selected ? `活动 #${selected.id}` : "用于首页展板和活动日历"
-          }
+          subtitle={selected ? `活动 #${selected.id}` : "用于首页展板和活动日历"}
         />
         <Field label="活动名称">
           <input
@@ -205,9 +191,7 @@ export function ActivitiesAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.starts_at}
-              onChange={(event) =>
-                setForm({ ...form, starts_at: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, starts_at: event.target.value })}
             />
           </Field>
           <Field label="结束时间">
@@ -215,9 +199,7 @@ export function ActivitiesAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.ends_at}
-              onChange={(event) =>
-                setForm({ ...form, ends_at: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, ends_at: event.target.value })}
             />
           </Field>
         </div>
@@ -237,18 +219,14 @@ export function ActivitiesAdmin() {
           <input
             className={inputClassName}
             value={form.article_url}
-            onChange={(event) =>
-              setForm({ ...form, article_url: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, article_url: event.target.value })}
           />
         </Field>
         <Field label="活动描述">
           <textarea
             className={textareaClassName}
             value={form.description}
-            onChange={(event) =>
-              setForm({ ...form, description: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, description: event.target.value })}
             required
           />
         </Field>

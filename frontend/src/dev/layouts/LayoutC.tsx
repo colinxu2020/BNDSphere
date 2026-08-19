@@ -28,7 +28,11 @@ export default function LayoutC() {
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-6">
           <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
           <nav className="hidden items-center gap-1 md:flex">
-            {[[Compass, "发现社团"], [CalendarDays, "大型活动"], [Award, "星级评价"]].map(([Icon, label], i) => {
+            {[
+              [Compass, "发现社团"],
+              [CalendarDays, "大型活动"],
+              [Award, "星级评价"],
+            ].map(([Icon, label], i) => {
               const I = Icon as typeof Compass;
               return (
                 <button
@@ -36,7 +40,9 @@ export default function LayoutC() {
                   type="button"
                   className={cn(
                     "inline-flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold",
-                    i === 0 ? "bg-surface-hover text-content" : "text-content-muted hover:text-content",
+                    i === 0
+                      ? "bg-surface-hover text-content"
+                      : "text-content-muted hover:text-content",
                   )}
                 >
                   <I size={16} /> {label as string}
@@ -66,7 +72,11 @@ export default function LayoutC() {
               <p className="mt-1 max-w-2xl text-content-muted">{club.summary}</p>
             </div>
             <div className="flex gap-6 pt-1">
-              {[["成员", "48"], ["活动", "12"], ["星级总分", "92"]].map(([k, v]) => (
+              {[
+                ["成员", "48"],
+                ["活动", "12"],
+                ["星级总分", "92"],
+              ].map(([k, v]) => (
                 <div key={k}>
                   <p className="font-display text-2xl font-bold text-content">{v}</p>
                   <p className="text-xs font-semibold text-content-subtle">{k}</p>
@@ -105,7 +115,10 @@ export default function LayoutC() {
             <select className="rounded-md border border-edge bg-surface px-2.5 py-1.5 text-sm font-semibold text-content">
               <option>全部状态</option>
             </select>
-            <button type="button" className="rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-brand-on hover:bg-brand-hover">
+            <button
+              type="button"
+              className="rounded-md bg-brand px-3.5 py-1.5 text-sm font-semibold text-brand-on hover:bg-brand-hover"
+            >
               新建记录
             </button>
           </div>
@@ -116,7 +129,10 @@ export default function LayoutC() {
             <thead className="border-b border-edge bg-surface-sunken">
               <tr className="text-left">
                 {["社团", "类型", "星级", "状态", "提交时间", ""].map((h) => (
-                  <th key={h} className="px-4 py-2.5 text-xs font-bold tracking-wider text-content-subtle uppercase">
+                  <th
+                    key={h}
+                    className="px-4 py-2.5 text-xs font-bold tracking-wider text-content-subtle uppercase"
+                  >
                     {h}
                   </th>
                 ))}
@@ -124,20 +140,38 @@ export default function LayoutC() {
             </thead>
             <tbody>
               {SAMPLE_QUEUE.map((row, i) => (
-                <tr key={row.id} className="border-b border-edge-subtle last:border-0 hover:bg-surface-hover">
+                <tr
+                  key={row.id}
+                  className="border-b border-edge-subtle last:border-0 hover:bg-surface-hover"
+                >
                   <td className="px-4 py-2.5 font-semibold text-content">{row.club}</td>
                   <td className="px-4 py-2.5 text-content-muted">{row.kind}</td>
                   <td className="px-4 py-2.5">
                     <StarLevelCompact level={SAMPLE_CLUBS[i].star_level} />
                   </td>
                   <td className="px-4 py-2.5">
-                    <Badge tone={row.status === "pending" ? "warning" : row.status === "approved" ? "success" : "danger"}>
-                      {row.status === "pending" ? "待审核" : row.status === "approved" ? "已通过" : "已驳回"}
+                    <Badge
+                      tone={
+                        row.status === "pending"
+                          ? "warning"
+                          : row.status === "approved"
+                            ? "success"
+                            : "danger"
+                      }
+                    >
+                      {row.status === "pending"
+                        ? "待审核"
+                        : row.status === "approved"
+                          ? "已通过"
+                          : "已驳回"}
                     </Badge>
                   </td>
                   <td className="px-4 py-2.5 text-content-subtle">{row.at}</td>
                   <td className="px-4 py-2.5 text-right">
-                    <button type="button" className="rounded-md border border-edge px-2.5 py-1 text-xs font-semibold text-content hover:bg-surface-sunken">
+                    <button
+                      type="button"
+                      className="rounded-md border border-edge px-2.5 py-1 text-xs font-semibold text-content hover:bg-surface-sunken"
+                    >
                       审核
                     </button>
                   </td>

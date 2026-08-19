@@ -64,10 +64,7 @@ const PALETTE = [
 const PROPERTIES =
   "bg|text|border|border-t|border-r|border-b|border-l|border-x|border-y|ring|outline|divide|shadow|fill|stroke|decoration|accent|caret|placeholder|from|via|to";
 
-const pattern = new RegExp(
-  String.raw`\b(?:${PROPERTIES})-(?:${PALETTE.join("|")})-\d{2,3}\b`,
-  "g",
-);
+const pattern = new RegExp(String.raw`\b(?:${PROPERTIES})-(?:${PALETTE.join("|")})-\d{2,3}\b`, "g");
 
 /**
  * Literal colours inside arbitrary values, e.g.
@@ -114,8 +111,7 @@ function walk(dir) {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) out.push(...walk(p));
-    else if ([".ts", ".tsx", ".css", ".js", ".jsx"].includes(extname(p)))
-      out.push(p);
+    else if ([".ts", ".tsx", ".css", ".js", ".jsx"].includes(extname(p))) out.push(p);
   }
   return out;
 }

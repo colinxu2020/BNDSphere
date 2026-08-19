@@ -54,11 +54,10 @@
      Latin face first: numerals and Latin words still get Inter's treatment
      while Chinese characters resolve to a named CJK family. */
   --font-sans:
-    "Inter", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif,
-    system-ui, sans-serif;
+    "Inter", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui, sans-serif;
   --font-display:
-    "Space Grotesk", "PingFang SC", "Microsoft YaHei", "Noto Sans SC",
-    ui-sans-serif, system-ui, sans-serif;
+    "Space Grotesk", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", ui-sans-serif, system-ui,
+    sans-serif;
 
   /* Line heights tuned for CJK rather than inherited from the Latin-oriented
      defaults. Chinese glyphs are full-width and visually denser, so body text

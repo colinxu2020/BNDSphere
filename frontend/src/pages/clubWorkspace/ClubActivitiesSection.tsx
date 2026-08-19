@@ -51,20 +51,15 @@ export function ClubActivitiesSection({
   const [activityLocation, setActivityLocation] = useState("");
   const activityCreateFeedback = useActionFeedback();
   const [isActivityCreating, setIsActivityCreating] = useState(false);
-  const [activityEditorMode, setActivityEditorMode] = useState<
-    "create" | "update" | null
-  >(null);
+  const [activityEditorMode, setActivityEditorMode] = useState<"create" | "update" | null>(null);
 
   const [updateActivityId, setUpdateActivityId] = useState("");
   const [updateActivityName, setUpdateActivityName] = useState("");
-  const [updateActivityDescription, setUpdateActivityDescription] =
-    useState("");
+  const [updateActivityDescription, setUpdateActivityDescription] = useState("");
   const [updateActivityStart, setUpdateActivityStart] = useState("");
   const [updateActivityEnd, setUpdateActivityEnd] = useState("");
   const [updateActivityLocation, setUpdateActivityLocation] = useState("");
-  const [updateActivityPictureUrls, setUpdateActivityPictureUrls] = useState<
-    string[]
-  >([]);
+  const [updateActivityPictureUrls, setUpdateActivityPictureUrls] = useState<string[]>([]);
   const activityUpdateFeedback = useActionFeedback();
   const [isActivityUpdating, setIsActivityUpdating] = useState(false);
 
@@ -105,19 +100,16 @@ export function ClubActivitiesSection({
     setIsActivityCreating(true);
     activityCreateFeedback.clear();
     try {
-      const { error } = await client.POST(
-        "/api/v1/clubs/{club_id}/activities/create-requests",
-        {
-          params: { path: { club_id: clubId } },
-          body: {
-            name: activityName,
-            description: activityDescription,
-            start_time: fromDateTimeLocalValue(activityStart),
-            end_time: fromDateTimeLocalValue(activityEnd),
-            location: activityLocation,
-          },
+      const { error } = await client.POST("/api/v1/clubs/{club_id}/activities/create-requests", {
+        params: { path: { club_id: clubId } },
+        body: {
+          name: activityName,
+          description: activityDescription,
+          start_time: fromDateTimeLocalValue(activityStart),
+          end_time: fromDateTimeLocalValue(activityEnd),
+          location: activityLocation,
         },
-      );
+      });
       if (error) {
         activityCreateFeedback.fail(error);
       } else {
@@ -140,20 +132,15 @@ export function ClubActivitiesSection({
 
     setIsActivityUpdating(true);
     activityUpdateFeedback.clear();
-    const originalStart = toDateTimeLocalValue(
-      selectedUpdateActivity.start_time,
-    );
+    const originalStart = toDateTimeLocalValue(selectedUpdateActivity.start_time);
     const originalEnd = toDateTimeLocalValue(selectedUpdateActivity.end_time);
     const originalPictures = selectedUpdateActivity.picture_urls || [];
-    const body: components["schemas"]["ClubActivityUpdateRequestCreatePublic"] =
-      {};
+    const body: components["schemas"]["ClubActivityUpdateRequestCreatePublic"] = {};
 
     if (updateActivityName.trim() !== selectedUpdateActivity.name) {
       body.name = nullableText(updateActivityName);
     }
-    if (
-      updateActivityDescription.trim() !== selectedUpdateActivity.description
-    ) {
+    if (updateActivityDescription.trim() !== selectedUpdateActivity.description) {
       body.description = nullableText(updateActivityDescription);
     }
     if (updateActivityStart && updateActivityStart !== originalStart) {
@@ -194,7 +181,8 @@ export function ClubActivitiesSection({
   return (
     <Surface density="compact">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SectionTitle density="compact"
+        <SectionTitle
+          density="compact"
           className="mb-0"
           icon={<CalendarDays size={20} />}
           title="社团活动申请"
@@ -209,9 +197,7 @@ export function ClubActivitiesSection({
       </div>
       <div
         className={`grid gap-6 ${
-          activityEditorMode
-            ? "lg:grid-cols-[0.95fr_1.05fr]"
-            : "grid-cols-1"
+          activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
         }`}
       >
         <div className="grid gap-3">
@@ -227,15 +213,12 @@ export function ClubActivitiesSection({
                     : "border-edge-subtle bg-surface-sunken"
                 }`}
               >
-                <h3 className="font-semibold text-content">
-                  {activityItem.name}
-                </h3>
+                <h3 className="font-semibold text-content">{activityItem.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                   {activityItem.description}
                 </p>
                 <p className="mt-2 text-xs font-medium text-content-subtle">
-                  #{activityItem.id} ·{" "}
-                  {formatDateTime(activityItem.start_time)} ·{" "}
+                  #{activityItem.id} · {formatDateTime(activityItem.start_time)} ·{" "}
                   {activityItem.location}
                 </p>
               </button>
@@ -248,10 +231,7 @@ export function ClubActivitiesSection({
         {activityEditorMode && (
           <div className="rounded-md border border-edge-subtle bg-surface p-5">
             {activityEditorMode === "create" ? (
-              <form
-                onSubmit={submitActivityCreate}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={submitActivityCreate} className="flex flex-col gap-4">
                 <EditorHeader
                   eyebrow="新建申请"
                   title="创建社团活动"
@@ -261,9 +241,7 @@ export function ClubActivitiesSection({
                   <input
                     className={inputClassName}
                     value={activityName}
-                    onChange={(event) =>
-                      setActivityName(event.target.value)
-                    }
+                    onChange={(event) => setActivityName(event.target.value)}
                     required
                   />
                 </Field>
@@ -271,9 +249,7 @@ export function ClubActivitiesSection({
                   <textarea
                     className={textareaClassName}
                     value={activityDescription}
-                    onChange={(event) =>
-                      setActivityDescription(event.target.value)
-                    }
+                    onChange={(event) => setActivityDescription(event.target.value)}
                     required
                   />
                 </Field>
@@ -283,9 +259,7 @@ export function ClubActivitiesSection({
                       className={inputClassName}
                       type="datetime-local"
                       value={activityStart}
-                      onChange={(event) =>
-                        setActivityStart(event.target.value)
-                      }
+                      onChange={(event) => setActivityStart(event.target.value)}
                       required
                     />
                   </Field>
@@ -294,9 +268,7 @@ export function ClubActivitiesSection({
                       className={inputClassName}
                       type="datetime-local"
                       value={activityEnd}
-                      onChange={(event) =>
-                        setActivityEnd(event.target.value)
-                      }
+                      onChange={(event) => setActivityEnd(event.target.value)}
                       required
                     />
                   </Field>
@@ -305,9 +277,7 @@ export function ClubActivitiesSection({
                   <input
                     className={inputClassName}
                     value={activityLocation}
-                    onChange={(event) =>
-                      setActivityLocation(event.target.value)
-                    }
+                    onChange={(event) => setActivityLocation(event.target.value)}
                     required
                   />
                 </Field>
@@ -320,10 +290,7 @@ export function ClubActivitiesSection({
                 </PrimaryButton>
               </form>
             ) : selectedUpdateActivity ? (
-              <form
-                onSubmit={submitActivityUpdate}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={submitActivityUpdate} className="flex flex-col gap-4">
                 <EditorHeader
                   eyebrow="当前编辑"
                   title={selectedUpdateActivity.name}
@@ -333,18 +300,14 @@ export function ClubActivitiesSection({
                   <input
                     className={inputClassName}
                     value={updateActivityName}
-                    onChange={(event) =>
-                      setUpdateActivityName(event.target.value)
-                    }
+                    onChange={(event) => setUpdateActivityName(event.target.value)}
                   />
                 </Field>
                 <Field label="新描述">
                   <textarea
                     className={textareaClassName}
                     value={updateActivityDescription}
-                    onChange={(event) =>
-                      setUpdateActivityDescription(event.target.value)
-                    }
+                    onChange={(event) => setUpdateActivityDescription(event.target.value)}
                   />
                 </Field>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -353,9 +316,7 @@ export function ClubActivitiesSection({
                       className={inputClassName}
                       type="datetime-local"
                       value={updateActivityStart}
-                      onChange={(event) =>
-                        setUpdateActivityStart(event.target.value)
-                      }
+                      onChange={(event) => setUpdateActivityStart(event.target.value)}
                     />
                   </Field>
                   <Field label="新结束时间">
@@ -363,9 +324,7 @@ export function ClubActivitiesSection({
                       className={inputClassName}
                       type="datetime-local"
                       value={updateActivityEnd}
-                      onChange={(event) =>
-                        setUpdateActivityEnd(event.target.value)
-                      }
+                      onChange={(event) => setUpdateActivityEnd(event.target.value)}
                     />
                   </Field>
                 </div>
@@ -373,9 +332,7 @@ export function ClubActivitiesSection({
                   <input
                     className={inputClassName}
                     value={updateActivityLocation}
-                    onChange={(event) =>
-                      setUpdateActivityLocation(event.target.value)
-                    }
+                    onChange={(event) => setUpdateActivityLocation(event.target.value)}
                   />
                 </Field>
                 <FileUploadField

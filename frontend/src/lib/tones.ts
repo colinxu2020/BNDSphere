@@ -15,13 +15,7 @@ import type { components } from "../api/schema";
  * this call to action), `info` is a system or informational state. They may
  * diverge later, and code that conflated them would have to be untangled then.
  */
-export type Tone =
-  | "neutral"
-  | "brand"
-  | "info"
-  | "success"
-  | "warning"
-  | "danger";
+export type Tone = "neutral" | "brand" | "info" | "success" | "warning" | "danger";
 
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];

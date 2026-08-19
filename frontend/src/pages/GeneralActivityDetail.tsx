@@ -96,9 +96,7 @@ export function GeneralActivityDetail() {
                     <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
-                          <Badge
-                            tone={AUDIT_TONE[record.audit_status ?? "pending"]}
-                          >
+                          <Badge tone={AUDIT_TONE[record.audit_status ?? "pending"]}>
                             {AUDIT_STATUS_MAP[record.audit_status]}
                           </Badge>
                           <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>

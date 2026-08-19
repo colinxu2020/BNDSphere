@@ -14,11 +14,7 @@ import { ActivityLevelChip } from "../../components/ui/ActivityCard";
 import { CategoryChip, categorySpine } from "../../components/ui/CategoryChip";
 import { StarLevel } from "../../components/ui/StarLevel";
 import { cn } from "../../lib/utils";
-import {
-  SAMPLE_ACTIVITIES,
-  SAMPLE_ANNOUNCEMENTS,
-  SAMPLE_CLUBS,
-} from "../sampleData";
+import { SAMPLE_ACTIVITIES, SAMPLE_ANNOUNCEMENTS, SAMPLE_CLUBS } from "../sampleData";
 
 export default function LayoutB() {
   return (
@@ -35,10 +31,18 @@ export default function LayoutB() {
             />
           </div>
           <nav className="flex items-center gap-1">
-            {[[Compass, "社团"], [CalendarDays, "活动"], [Award, "星级"]].map(([Icon, label]) => {
+            {[
+              [Compass, "社团"],
+              [CalendarDays, "活动"],
+              [Award, "星级"],
+            ].map(([Icon, label]) => {
               const I = Icon as typeof Compass;
               return (
-                <button key={label as string} type="button" className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-content-muted hover:bg-surface-hover hover:text-content">
+                <button
+                  key={label as string}
+                  type="button"
+                  className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-semibold text-content-muted hover:bg-surface-hover hover:text-content"
+                >
                   <I size={15} /> {label as string}
                 </button>
               );
@@ -57,7 +61,9 @@ export default function LayoutB() {
           <article className="break-inside-avoid overflow-hidden rounded-md border border-edge bg-surface-media shadow-md">
             <div className="flex aspect-[4/5] items-center justify-center bg-surface-media">
               <span className="font-display px-6 text-center text-2xl font-bold text-content-on-inverted">
-                秋季社团招新<br />嘉年华
+                秋季社团招新
+                <br />
+                嘉年华
               </span>
             </div>
             <div className="flex items-center justify-between gap-2 bg-surface-inverted px-3 py-2.5">
@@ -76,7 +82,9 @@ export default function LayoutB() {
             >
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <CategoryChip category={club.category} size="sm" />
-                {club.star_level !== "none" && <StarLevel level={club.star_level} size="sm" showLabel={false} />}
+                {club.star_level !== "none" && (
+                  <StarLevel level={club.star_level} size="sm" showLabel={false} />
+                )}
               </div>
               <h3 className="font-display text-lg font-bold text-content">{club.name}</h3>
               <p className="mt-1 text-sm text-content-muted">{club.summary}</p>
@@ -102,7 +110,10 @@ export default function LayoutB() {
           </article>
 
           {SAMPLE_ACTIVITIES.slice(1).map((act) => (
-            <article key={act.id} className="break-inside-avoid rounded-md border border-edge bg-surface p-4 shadow-sm">
+            <article
+              key={act.id}
+              className="break-inside-avoid rounded-md border border-edge bg-surface p-4 shadow-sm"
+            >
               <ActivityLevelChip level={act.level} />
               <h3 className="font-display mt-2 text-lg font-bold text-content">{act.name}</h3>
               <p className="mt-1 line-clamp-3 text-sm text-content-muted">{act.description}</p>
@@ -119,7 +130,9 @@ export default function LayoutB() {
             >
               <div className="mb-2 flex flex-wrap items-center gap-2">
                 <CategoryChip category={club.category} size="sm" />
-                {club.star_level !== "none" && <StarLevel level={club.star_level} size="sm" showLabel={false} />}
+                {club.star_level !== "none" && (
+                  <StarLevel level={club.star_level} size="sm" showLabel={false} />
+                )}
               </div>
               <h3 className="font-display text-lg font-bold text-content">{club.name}</h3>
               <p className="mt-1 text-sm text-content-muted">{club.summary}</p>

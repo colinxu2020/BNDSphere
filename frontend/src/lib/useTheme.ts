@@ -22,7 +22,6 @@ export const THEME_LABELS: Record<ThemeChoice, string> = {
   system: "跟随系统",
 };
 
-
 function readChoice(): ThemeChoice {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
@@ -40,8 +39,7 @@ function readChoice(): ThemeChoice {
  * `dark` class name are the shared contract.
  */
 export function applyTheme(choice: ThemeChoice) {
-  const isDark =
-    choice === "dark" || (choice === "system" && darkQuery().matches);
+  const isDark = choice === "dark" || (choice === "system" && darkQuery().matches);
   document.documentElement.classList.toggle("dark", isDark);
 }
 

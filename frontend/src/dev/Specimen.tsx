@@ -123,12 +123,8 @@ export default function Specimen() {
     <div className="bg-surface-sunken min-h-screen p-6">
       <div className="mx-auto flex max-w-6xl flex-col gap-6">
         <header>
-          <p className="text-brand text-xs font-bold tracking-wider uppercase">
-            Gate 4 · specimen
-          </p>
-          <h1 className="text-content font-display text-3xl font-bold">
-            设计系统样张
-          </h1>
+          <p className="text-brand text-xs font-bold tracking-wider uppercase">Gate 4 · specimen</p>
+          <h1 className="text-content font-display text-3xl font-bold">设计系统样张</h1>
           <p className="text-content-muted mt-1">
             开发环境专用页面。切换系统的浅色 / 深色外观以校验两套配色。
           </p>
@@ -151,9 +147,7 @@ export default function Specimen() {
           <div className="mt-5 flex flex-col gap-1">
             <p className="text-content">text-content · 主要文本</p>
             <p className="text-content-muted">text-content-muted · 次要文本</p>
-            <p className="text-content-subtle">
-              text-content-subtle · 辅助文本
-            </p>
+            <p className="text-content-subtle">text-content-subtle · 辅助文本</p>
             <p className="bg-brand text-brand-on inline-block rounded-md px-2 py-1">
               text-brand-on · 品牌底色上的文本
             </p>
@@ -219,12 +213,7 @@ export default function Specimen() {
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {STAR_LEVELS.filter((l) => l !== "none").map((level) => (
-                <StarLevel
-                  key={level}
-                  level={level}
-                  size="md"
-                  showLabel={false}
-                />
+                <StarLevel key={level} level={level} size="md" showLabel={false} />
               ))}
               <span className="text-content-muted text-sm">
                 ← showLabel=false,文字等级仍以 sr-only 保留
@@ -234,9 +223,7 @@ export default function Specimen() {
               {STAR_LEVELS.map((level) => (
                 <StarLevelCompact key={level} level={level} />
               ))}
-              <span className="text-content-muted text-sm">
-                ← 密集表格用的紧凑变体
-              </span>
+              <span className="text-content-muted text-sm">← 密集表格用的紧凑变体</span>
             </div>
           </div>
         </Section>
@@ -260,17 +247,13 @@ export default function Specimen() {
             {TYPE_SCALE.map(([cls, label]) => (
               <div key={cls} className="border-edge-subtle border-b pb-2">
                 <code className="text-content-subtle text-xs">{cls}</code>
-                <p className={`text-content ${TYPE_CLASSES[cls]}`}>
-                  {label} · 社团活动与星级评价
-                </p>
+                <p className={`text-content ${TYPE_CLASSES[cls]}`}>{label} · 社团活动与星级评价</p>
               </div>
             ))}
           </div>
           <div className="mt-5 flex flex-col gap-2">
             <p className="text-content text-base">{MIXED_SAMPLE}</p>
-            <p className="text-content font-display text-2xl font-bold">
-              {MIXED_SAMPLE}
-            </p>
+            <p className="text-content font-display text-2xl font-bold">{MIXED_SAMPLE}</p>
             <p className="text-content-muted text-sm">
               上面一行为 font-sans，下面一行为 font-display。Space Grotesk
               不含中文字形，因此中文部分回退到 CJK 字体族 —— 这是预期行为。
@@ -314,9 +297,7 @@ export default function Specimen() {
             </div>
 
             <div>
-              <p className="text-content-muted mb-2 text-sm font-semibold">
-                次按钮 / 表面悬停
-              </p>
+              <p className="text-content-muted mb-2 text-sm font-semibold">次按钮 / 表面悬停</p>
               <div className="flex flex-wrap items-center gap-3">
                 <button
                   type="button"
@@ -364,20 +345,14 @@ export default function Specimen() {
               </p>
               <div className="flex flex-wrap items-start gap-4">
                 <div className="border-edge bg-surface-raised w-56 rounded-md border p-3 shadow-lg">
-                  <p className="text-content text-sm font-semibold">
-                    菜单浮层(强制展开)
-                  </p>
+                  <p className="text-content text-sm font-semibold">菜单浮层(强制展开)</p>
                   <div className="bg-edge-subtle my-2 h-px" />
                   <p className="text-content-muted text-sm">个人主页</p>
                   <p className="text-content-muted text-sm">我管理的社团</p>
-                  <p className="text-tone-danger-fg text-sm font-semibold">
-                    退出登录
-                  </p>
+                  <p className="text-tone-danger-fg text-sm font-semibold">退出登录</p>
                 </div>
                 <div className="border-edge bg-surface-raised w-56 rounded-md border p-4">
-                  <p className="text-content text-sm">
-                    无阴影,仅边框 —— 深色下的层级表达
-                  </p>
+                  <p className="text-content text-sm">无阴影,仅边框 —— 深色下的层级表达</p>
                 </div>
               </div>
             </div>
@@ -391,23 +366,17 @@ export default function Specimen() {
           <div className="flex flex-wrap items-center gap-6">
             <div className="border-edge bg-surface rounded-md border p-4">
               <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10" />
-              <code className="text-content-subtle mt-2 block text-xs">
-                on bg-surface
-              </code>
+              <code className="text-content-subtle mt-2 block text-xs">on bg-surface</code>
             </div>
             <div className="border-edge bg-surface-sunken rounded-md border p-4">
               <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10" />
-              <code className="text-content-subtle mt-2 block text-xs">
-                on bg-surface-sunken
-              </code>
+              <code className="text-content-subtle mt-2 block text-xs">on bg-surface-sunken</code>
             </div>
             <div className="border-edge bg-surface-raised flex items-center gap-3 rounded-md border p-4">
               <div className="border-edge bg-surface-sunken text-content-muted flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-sm font-bold">
                 十
               </div>
-              <code className="text-content-subtle text-xs">
-                avatar fallback
-              </code>
+              <code className="text-content-subtle text-xs">avatar fallback</code>
             </div>
           </div>
         </Section>
@@ -449,9 +418,7 @@ export default function Specimen() {
                 title="公共界面"
                 description="comfortable · p-6 md:p-8"
               />
-              <p className="text-content-muted text-sm">
-                用于社团主页、活动页等表达性界面。
-              </p>
+              <p className="text-content-muted text-sm">用于社团主页、活动页等表达性界面。</p>
             </Surface>
             <Surface density="compact">
               <SectionTitle
@@ -460,9 +427,7 @@ export default function Specimen() {
                 title="工作台"
                 description="compact · p-4 md:p-5"
               />
-              <p className="text-content-muted text-sm">
-                用于审核队列、管理控制台等操作性界面。
-              </p>
+              <p className="text-content-muted text-sm">用于审核队列、管理控制台等操作性界面。</p>
             </Surface>
           </div>
         </Section>
@@ -476,19 +441,11 @@ export default function Specimen() {
               <div
                 key={step}
                 className={`border-edge bg-surface rounded-md border p-4 ${
-                  step === "sm"
-                    ? "shadow-sm"
-                    : step === "md"
-                      ? "shadow-md"
-                      : "shadow-lg"
+                  step === "sm" ? "shadow-sm" : step === "md" ? "shadow-md" : "shadow-lg"
                 }`}
               >
-                <code className="text-content-subtle text-xs">
-                  shadow-{step}
-                </code>
-                <p className="text-content mt-1 text-sm font-semibold">
-                  硬投影层级
-                </p>
+                <code className="text-content-subtle text-xs">shadow-{step}</code>
+                <p className="text-content mt-1 text-sm font-semibold">硬投影层级</p>
               </div>
             ))}
           </div>
@@ -499,9 +456,7 @@ export default function Specimen() {
                 className={`border-edge bg-surface rounded-md border border-l-4 p-4 shadow-sm transition-all hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg motion-reduce:transform-none ${categorySpine(cat)}`}
               >
                 <CategoryChip category={cat} size="sm" />
-                <p className="text-content mt-2 font-semibold">
-                  类别脊边 · 悬停以查看位移
-                </p>
+                <p className="text-content mt-2 font-semibold">类别脊边 · 悬停以查看位移</p>
                 <p className="text-content-muted text-sm">
                   边而非填充,因此仍遵守“类别色仅用于小元素”的约束。
                 </p>
@@ -545,11 +500,7 @@ export default function Specimen() {
               "bg-secondary-900",
               "bg-secondary-950",
             ].map((c) => (
-              <Swatch
-                key={c}
-                label={c.replace("bg-secondary-", "")}
-                className={c}
-              />
+              <Swatch key={c} label={c.replace("bg-secondary-", "")} className={c} />
             ))}
           </div>
         </Section>

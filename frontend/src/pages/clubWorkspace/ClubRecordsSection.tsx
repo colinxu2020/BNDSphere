@@ -14,11 +14,7 @@ import {
   selectClassName,
 } from "../../components/ui/AppPrimitives";
 import { FileUploadField } from "../../components/ui/FileUploadField";
-import {
-  AUDIT_STATUS_MAP,
-  PARTICIPATION_MAP,
-  PARTICIPATION_OPTIONS,
-} from "../../lib/labels";
+import { AUDIT_STATUS_MAP, PARTICIPATION_MAP, PARTICIPATION_OPTIONS } from "../../lib/labels";
 import { formatDateTime, toNumberOrZero } from "../../lib/format";
 import { AUDIT_TONE } from "../../lib/tones";
 import { useActionFeedback } from "../../lib/useActionFeedback";
@@ -53,8 +49,7 @@ export function ClubRecordsSection({
   onSubmitted: () => void;
 }) {
   const [generalActivityId, setGeneralActivityId] = useState("");
-  const [participationType, setParticipationType] =
-    useState<ParticipationType>("participate_only");
+  const [participationType, setParticipationType] = useState<ParticipationType>("participate_only");
   const [requestedScore, setRequestedScore] = useState("");
   const [proofFileUrls, setProofFileUrls] = useState<string[]>([]);
   const recordFeedback = useActionFeedback();
@@ -64,14 +59,10 @@ export function ClubRecordsSection({
     (activityItem) => String(activityItem.id) === generalActivityId,
   );
   const selectedGeneralRecord =
-    records.find(
-      (record) => String(record.activity_id) === generalActivityId,
-    ) || null;
+    records.find((record) => String(record.activity_id) === generalActivityId) || null;
 
   const selectGeneralActivityForRecord = (activityItem: GeneralActivity) => {
-    const existingRecord = records.find(
-      (record) => record.activity_id === activityItem.id,
-    );
+    const existingRecord = records.find((record) => record.activity_id === activityItem.id);
     setGeneralActivityId(String(activityItem.id));
     if (existingRecord) {
       setParticipationType(existingRecord.participation_type);
@@ -123,33 +114,27 @@ export function ClubRecordsSection({
 
   return (
     <Surface density="compact">
-      <SectionTitle density="compact"
+      <SectionTitle
+        density="compact"
         icon={<FileCheck2 size={20} />}
         title="综评活动记录"
         description="点击“未提交”的大型活动可新建记录；点击已提交的活动可查看或修改记录。"
       />
       <div
         className={`grid gap-6 ${
-          selectedGeneralActivity
-            ? "lg:grid-cols-[0.95fr_1.05fr]"
-            : "grid-cols-1"
+          selectedGeneralActivity ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
         }`}
       >
         <div className="grid gap-3">
           {generalActivities.length ? (
             generalActivities.map((activityItem) => {
-              const record = records.find(
-                (item) => item.activity_id === activityItem.id,
-              );
-              const isSelected =
-                generalActivityId === String(activityItem.id);
+              const record = records.find((item) => item.activity_id === activityItem.id);
+              const isSelected = generalActivityId === String(activityItem.id);
               return (
                 <button
                   key={activityItem.id}
                   type="button"
-                  onClick={() =>
-                    selectGeneralActivityForRecord(activityItem)
-                  }
+                  onClick={() => selectGeneralActivityForRecord(activityItem)}
                   className={`rounded-md p-4 text-left transition hover:bg-surface ${
                     isSelected
                       ? "bg-brand-subtle ring-[1.5px] ring-brand-strong/40"
@@ -162,25 +147,19 @@ export function ClubRecordsSection({
                         <Badge tone={AUDIT_TONE[record.audit_status]}>
                           {AUDIT_STATUS_MAP[record.audit_status]}
                         </Badge>
-                        <Badge>
-                          {PARTICIPATION_MAP[record.participation_type]}
-                        </Badge>
+                        <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
                       </>
                     ) : (
                       <Badge tone="neutral">未提交</Badge>
                     )}
                   </div>
-                  <h3 className="mt-3 font-semibold text-content">
-                    {activityItem.name}
-                  </h3>
+                  <h3 className="mt-3 font-semibold text-content">{activityItem.name}</h3>
                   <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                     {activityItem.description}
                   </p>
                   <p className="mt-2 text-xs font-medium text-content-subtle">
                     #{activityItem.id} ·{" "}
-                    {formatDateTime(
-                      activityItem.starts_at || activityItem.created_at,
-                    )}
+                    {formatDateTime(activityItem.starts_at || activityItem.created_at)}
                     {record ? ` · 申请 ${record.requested_score} 分` : ""}
                   </p>
                 </button>
@@ -202,9 +181,7 @@ export function ClubRecordsSection({
             >
               <div>
                 <EditorHeader
-                  eyebrow={
-                    selectedGeneralRecord ? "当前记录" : "新建记录"
-                  }
+                  eyebrow={selectedGeneralRecord ? "当前记录" : "新建记录"}
                   title={selectedGeneralActivity.name}
                   onClose={() => setGeneralActivityId("")}
                 />
@@ -221,9 +198,7 @@ export function ClubRecordsSection({
                     className={selectClassName}
                     value={participationType}
                     onChange={(event) =>
-                      setParticipationType(
-                        event.target.value as ParticipationType,
-                      )
+                      setParticipationType(event.target.value as ParticipationType)
                     }
                   >
                     {PARTICIPATION_OPTIONS.map((option) => (
@@ -238,9 +213,7 @@ export function ClubRecordsSection({
                     className={inputClassName}
                     type="number"
                     value={requestedScore}
-                    onChange={(event) =>
-                      setRequestedScore(event.target.value)
-                    }
+                    onChange={(event) => setRequestedScore(event.target.value)}
                     required
                   />
                 </Field>
@@ -252,13 +225,9 @@ export function ClubRecordsSection({
                 onValuesChange={setProofFileUrls}
                 multiple
               />
-              {selectedGeneralRecord?.audit_status !== "pending" &&
-                selectedGeneralRecord && (
-                  <StatusMessage
-                    value="已审核的综评记录不能在这里更新。"
-                    tone="info"
-                  />
-                )}
+              {selectedGeneralRecord?.audit_status !== "pending" && selectedGeneralRecord && (
+                <StatusMessage value="已审核的综评记录不能在这里更新。" tone="info" />
+              )}
               <StatusMessage value={recordFeedback.message} tone={recordFeedback.tone} />
               <PrimaryButton
                 type="submit"

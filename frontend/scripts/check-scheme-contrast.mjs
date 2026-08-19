@@ -141,16 +141,9 @@ const PAIRS = [
     4.5,
     `${t} tone text`,
   ]),
-  ...[
-    "science",
-    "humanity",
-    "arts",
-    "sports",
-    "business",
-    "charity",
-    "campus",
-    "other",
-  ].map((c) => [`category-${c}-fg`, `category-${c}-bg`, 4.5, `${c} category chip`]),
+  ...["science", "humanity", "arts", "sports", "business", "charity", "campus", "other"].map(
+    (c) => [`category-${c}-fg`, `category-${c}-bg`, 4.5, `${c} category chip`],
+  ),
   ...["school", "large", "federation"].map((l) => [
     `level-${l}-fg`,
     `level-${l}-bg`,

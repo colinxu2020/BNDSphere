@@ -1,9 +1,6 @@
 import { useEffect, useState } from "react";
 import { motion } from "motion/react";
-import {
-  Filter,
-  Search,
-} from "@/src/components/ui/Icons";
+import { Filter, Search } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { ActivityCard } from "../components/ui/ActivityCard";
 import type { components } from "../api/schema";
@@ -37,18 +34,15 @@ export function GeneralActivities() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error } = await client.GET(
-          "/api/v1/general-activities/",
-          {
-            params: {
-              query: {
-                size: 50,
-                search: search || undefined,
-                level: level !== "all" ? level : undefined,
-              },
+        const { data, error } = await client.GET("/api/v1/general-activities/", {
+          params: {
+            query: {
+              size: 50,
+              search: search || undefined,
+              level: level !== "all" ? level : undefined,
             },
           },
-        );
+        });
         if (error) {
           setError(error);
           setItems([]);
@@ -139,9 +133,7 @@ export function GeneralActivities() {
         <EmptyState
           icon={<Filter size={24} />}
           title="暂无活动"
-          description={
-            total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"
-          }
+          description={total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"}
         />
       )}
     </motion.div>

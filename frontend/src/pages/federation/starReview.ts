@@ -11,8 +11,7 @@ import { nullableNumber } from "../../lib/format";
 
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
-type StarReviewPreview =
-  components["schemas"]["StarLevelApplicationReviewPreview"];
+type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
 
 export function buildStarReviewBody(
   auditStatus: AuditStatus,
@@ -44,9 +43,7 @@ export function sortStarApplications(left: StarApplication, right: StarApplicati
     if (!left.audit_status || left.audit_status === "pending") return -1;
     if (!right.audit_status || right.audit_status === "pending") return 1;
   }
-  return (
-    new Date(right.created_at).getTime() - new Date(left.created_at).getTime()
-  );
+  return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
 }
 
 export function getStarPreviewScoreText(
@@ -56,9 +53,7 @@ export function getStarPreviewScoreText(
 ) {
   if (auditStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
-  return preview?.approved_score == null
-    ? "待计算"
-    : `${preview.approved_score} 分`;
+  return preview?.approved_score == null ? "待计算" : `${preview.approved_score} 分`;
 }
 
 export function getStarPreviewLevelText(
@@ -68,8 +63,5 @@ export function getStarPreviewLevelText(
 ) {
   if (auditStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
-  return preview?.approved_level == null
-    ? "待计算"
-    : STAR_LEVEL_MAP[preview.approved_level];
+  return preview?.approved_level == null ? "待计算" : STAR_LEVEL_MAP[preview.approved_level];
 }
-

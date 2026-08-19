@@ -12,23 +12,15 @@ import { ClubRecordsPanel } from "./federation/ClubRecordsPanel";
 import { StarApplicationsPanel } from "./federation/StarApplicationsPanel";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 
 export function Federation() {
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
-  const [activityCreateRequests, setActivityCreateRequests] = useState<
-    ActivityCreateRequest[]
-  >([]);
-  const [activityUpdateRequests, setActivityUpdateRequests] = useState<
-    ActivityUpdateRequest[]
-  >([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>(
-    [],
-  );
+  const [activityCreateRequests, setActivityCreateRequests] = useState<ActivityCreateRequest[]>([]);
+  const [activityUpdateRequests, setActivityUpdateRequests] = useState<ActivityUpdateRequest[]>([]);
+  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
   const feedback = useActionFeedback();
@@ -37,39 +29,31 @@ export function Federation() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [activityResponse, createResponse, updateResponse, starResponse] =
-        await Promise.all([
-          client.GET("/api/v1/general-activities/", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/moderations/club-activities/create-requests", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/moderations/club-activities/update-requests", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/star-level/", {
-            params: { query: { size: 50 } },
-          }),
-        ]);
+      const [activityResponse, createResponse, updateResponse, starResponse] = await Promise.all([
+        client.GET("/api/v1/general-activities/", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/moderations/club-activities/create-requests", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/moderations/club-activities/update-requests", {
+          params: { query: { size: 50 } },
+        }),
+        client.GET("/api/v1/star-level/", {
+          params: { query: { size: 50 } },
+        }),
+      ]);
 
-      setActivities(
-        activityResponse.error ? [] : activityResponse.data?.items || [],
-      );
-      setActivityCreateRequests(
-        createResponse.error ? [] : createResponse.data?.items || [],
-      );
-      setActivityUpdateRequests(
-        updateResponse.error ? [] : updateResponse.data?.items || [],
-      );
+      setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
+      setActivityCreateRequests(createResponse.error ? [] : createResponse.data?.items || []);
+      setActivityUpdateRequests(updateResponse.error ? [] : updateResponse.data?.items || []);
       setStarApplications(
         starResponse.error
           ? []
           : (starResponse.data?.items || [])
               .filter(
                 (application) =>
-                  application.academic_term.is_current &&
-                  application.audit_status !== "approved",
+                  application.academic_term.is_current && application.audit_status !== "approved",
               )
               .sort(sortStarApplications),
       );
@@ -102,15 +86,12 @@ export function Federation() {
       exit={{ opacity: 0, y: -10 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-8"
     >
-      <PageHeader density="compact"
+      <PageHeader
+        density="compact"
         eyebrow="Federation"
         title="社联工作台"
         action={
-          <SecondaryButton
-            type="button"
-            onClick={loadWorkspace}
-            disabled={isLoading}
-          >
+          <SecondaryButton type="button" onClick={loadWorkspace} disabled={isLoading}>
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
         }

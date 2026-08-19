@@ -7,7 +7,11 @@ import { ClubActivitiesSection } from "./clubWorkspace/ClubActivitiesSection";
 import { ClubProfileRequestSection } from "./clubWorkspace/ClubProfileRequestSection";
 import { ClubRecordsSection } from "./clubWorkspace/ClubRecordsSection";
 import { ClubStarApplicationsSection } from "./clubWorkspace/ClubStarApplicationsSection";
-import { ClubHeaderSection, LoadErrorsSection, StarRatingSection } from "./clubWorkspace/displaySections";
+import {
+  ClubHeaderSection,
+  LoadErrorsSection,
+  StarRatingSection,
+} from "./clubWorkspace/displaySections";
 import type { components } from "../api/schema";
 import { PageHeader, SecondaryButton } from "../components/ui/AppPrimitives";
 
@@ -24,13 +28,9 @@ export function ClubWorkspace() {
 
   const [club, setClub] = useState<Club | null>(null);
   const [activities, setActivities] = useState<ClubActivity[]>([]);
-  const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>(
-    [],
-  );
+  const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>([]);
   const [records, setRecords] = useState<ClubGeneralActivity[]>([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>(
-    [],
-  );
+  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [starRating, setStarRating] = useState<StarRating | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrors, setLoadErrors] = useState<Record<string, unknown>>({});
@@ -50,12 +50,9 @@ export function ClubWorkspace() {
       setClub(nextClub);
     }
 
-    const activitiesResponse = await client.GET(
-      "/api/v1/clubs/{club_id}/activities/",
-      {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      },
-    );
+    const activitiesResponse = await client.GET("/api/v1/clubs/{club_id}/activities/", {
+      params: { path: { club_id: clubId }, query: { size: 50 } },
+    });
     if (activitiesResponse.error) {
       errors.activities = activitiesResponse.error;
       setActivities([]);
@@ -63,12 +60,9 @@ export function ClubWorkspace() {
       setActivities(activitiesResponse.data?.items || []);
     }
 
-    const generalActivitiesResponse = await client.GET(
-      "/api/v1/general-activities/",
-      {
-        params: { query: { size: 100 } },
-      },
-    );
+    const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
+      params: { query: { size: 100 } },
+    });
     if (generalActivitiesResponse.error) {
       errors.generalActivities = generalActivitiesResponse.error;
       setGeneralActivities([]);
@@ -76,12 +70,9 @@ export function ClubWorkspace() {
       setGeneralActivities(generalActivitiesResponse.data?.items || []);
     }
 
-    const recordsResponse = await client.GET(
-      "/api/v1/clubs/{club_id}/general-activities/",
-      {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      },
-    );
+    const recordsResponse = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
+      params: { path: { club_id: clubId }, query: { size: 50 } },
+    });
     if (recordsResponse.error) {
       errors.records = recordsResponse.error;
       setRecords([]);
@@ -89,12 +80,9 @@ export function ClubWorkspace() {
       setRecords(recordsResponse.data?.items || []);
     }
 
-    const applicationsResponse = await client.GET(
-      "/api/v1/clubs/{club_id}/star-level/",
-      {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      },
-    );
+    const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
+      params: { path: { club_id: clubId }, query: { size: 50 } },
+    });
     if (applicationsResponse.error) {
       errors.starApplications = applicationsResponse.error;
       setStarApplications([]);
@@ -102,12 +90,9 @@ export function ClubWorkspace() {
       setStarApplications(applicationsResponse.data?.items || []);
     }
 
-    const ratingResponse = await client.GET(
-      "/api/v1/clubs/{club_id}/star-rating/",
-      {
-        params: { path: { club_id: clubId } },
-      },
-    );
+    const ratingResponse = await client.GET("/api/v1/clubs/{club_id}/star-rating/", {
+      params: { path: { club_id: clubId } },
+    });
     if (ratingResponse.error) {
       errors.starRating = ratingResponse.error;
       setStarRating(null);
@@ -140,7 +125,8 @@ export function ClubWorkspace() {
         <ArrowLeft size={18} /> 返回社团
       </Link>
 
-      <PageHeader density="compact"
+      <PageHeader
+        density="compact"
         eyebrow="Workspace"
         title={club?.name || `社团 #${clubId} 工作台`}
         action={
@@ -154,19 +140,13 @@ export function ClubWorkspace() {
         <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
       ) : (
         <>
-            {Object.keys(loadErrors).length > 0 && (
-              <LoadErrorsSection errors={loadErrors} />
-            )}
+          {Object.keys(loadErrors).length > 0 && <LoadErrorsSection errors={loadErrors} />}
 
-            {club && <ClubHeaderSection club={club} />}
+          {club && <ClubHeaderSection club={club} />}
 
-            <StarRatingSection starRating={starRating} />
+          <StarRatingSection starRating={starRating} />
 
-          <ClubActivitiesSection
-            clubId={clubId}
-            activities={activities}
-            onChanged={refresh}
-          />
+          <ClubActivitiesSection clubId={clubId} activities={activities} onChanged={refresh} />
 
           <ClubRecordsSection
             clubId={clubId}

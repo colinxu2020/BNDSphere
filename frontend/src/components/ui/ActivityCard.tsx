@@ -21,8 +21,7 @@ type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
 const LEVEL_CHIP: Record<ActivityLevel, string> = {
   school: "bg-level-school-bg text-level-school-fg border-level-school-edge",
   large: "bg-level-large-bg text-level-large-fg border-level-large-edge",
-  club_federation:
-    "bg-level-federation-bg text-level-federation-fg border-level-federation-edge",
+  club_federation: "bg-level-federation-bg text-level-federation-fg border-level-federation-edge",
 };
 
 const LEVEL_SPINE: Record<ActivityLevel, string> = {
@@ -85,13 +84,9 @@ export function ActivityCard({
         />
       </div>
 
-      <h3 className="mt-3 font-display text-lg font-semibold text-content">
-        {activity.name}
-      </h3>
+      <h3 className="mt-3 font-display text-lg font-semibold text-content">{activity.name}</h3>
 
-      <p className="mt-2 line-clamp-2 text-sm text-content-muted">
-        {activity.description}
-      </p>
+      <p className="mt-2 line-clamp-2 text-sm text-content-muted">{activity.description}</p>
 
       <div className="mt-auto flex flex-wrap items-center gap-3 pt-5 text-xs font-semibold text-content-subtle">
         <span className="inline-flex items-center gap-1.5">

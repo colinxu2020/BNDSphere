@@ -118,11 +118,7 @@ export function SectionTitle({
 }) {
   return (
     <div
-      className={cn(
-        "flex items-start gap-3",
-        density === "compact" ? "mb-4" : "mb-6",
-        className,
-      )}
+      className={cn("flex items-start gap-3", density === "compact" ? "mb-4" : "mb-6", className)}
     >
       {icon && (
         <div
@@ -144,9 +140,7 @@ export function SectionTitle({
         >
           {title}
         </h2>
-        {description && (
-          <p className="text-sm text-content-muted mt-1">{description}</p>
-        )}
+        {description && <p className="text-sm text-content-muted mt-1">{description}</p>}
       </div>
     </div>
   );
@@ -163,13 +157,9 @@ export function Field({
 }) {
   return (
     <label className="block min-w-0">
-      <span className="block text-sm font-medium text-content mb-1.5 ml-1">
-        {label}
-      </span>
+      <span className="block text-sm font-medium text-content mb-1.5 ml-1">{label}</span>
       {children}
-      {hint && (
-        <span className="block text-xs text-content-subtle mt-1.5 ml-1">{hint}</span>
-      )}
+      {hint && <span className="block text-xs text-content-subtle mt-1.5 ml-1">{hint}</span>}
     </label>
   );
 }
@@ -230,28 +220,14 @@ export function DangerButton({
   );
 }
 
-export function StatusMessage({
-  value,
-  tone = "danger",
-}: {
-  value?: unknown;
-  tone?: Tone;
-}) {
-  const text =
-    tone === "success"
-      ? stringifySuccessValue(value)
-      : stringifyBackendValue(value);
+export function StatusMessage({ value, tone = "danger" }: { value?: unknown; tone?: Tone }) {
+  const text = tone === "success" ? stringifySuccessValue(value) : stringifyBackendValue(value);
   if (!text) return null;
 
   const toneClass = TONE_CLASSES[tone];
 
   return (
-    <div
-      className={cn(
-        "rounded-md border p-4 text-sm font-medium whitespace-pre-wrap",
-        toneClass,
-      )}
-    >
+    <div className={cn("rounded-md border p-4 text-sm font-medium whitespace-pre-wrap", toneClass)}>
       {text}
     </div>
   );
@@ -284,12 +260,8 @@ export function EmptyState({
       <div className="bg-surface-sunken w-14 h-14 rounded-md flex items-center justify-center mb-4 text-content-subtle">
         {icon || <Inbox size={24} />}
       </div>
-      <h3 className="text-lg font-display font-semibold text-content">
-        {title}
-      </h3>
-      {description && (
-        <p className="text-sm text-content-muted max-w-sm mt-2">{description}</p>
-      )}
+      <h3 className="text-lg font-display font-semibold text-content">{title}</h3>
+      {description && <p className="text-sm text-content-muted max-w-sm mt-2">{description}</p>}
     </div>
   );
 }
@@ -305,13 +277,7 @@ export function InlineError({ value }: { value?: unknown }) {
   );
 }
 
-export function Badge({
-  children,
-  tone = "neutral",
-}: {
-  children: ReactNode;
-  tone?: Tone;
-}) {
+export function Badge({ children, tone = "neutral" }: { children: ReactNode; tone?: Tone }) {
   const toneClass = TONE_CLASSES[tone];
 
   return (

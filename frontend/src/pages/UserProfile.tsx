@@ -61,10 +61,7 @@ export function UserProfile() {
         <ArrowLeft size={18} /> 返回探索
       </Link>
 
-      <PageHeader
-        title="用户档案"
-        description="公开用户资料来自后端用户接口。"
-      />
+      <PageHeader title="用户档案" description="公开用户资料来自后端用户接口。" />
 
       {isLoading ? (
         <div className="animate-pulse bg-surface rounded-md h-72 border border-edge-subtle" />
@@ -89,12 +86,8 @@ export function UserProfile() {
             </div>
 
             <div className="flex flex-col gap-2">
-              <h2 className="text-2xl font-bold text-content">
-                {user.username}
-              </h2>
-              {user.email && (
-                <p className="text-content-muted font-medium">{user.email}</p>
-              )}
+              <h2 className="text-2xl font-bold text-content">{user.username}</h2>
+              {user.email && <p className="text-content-muted font-medium">{user.email}</p>}
               <div className="flex items-center gap-2 mt-2">
                 <Badge tone="brand">{ROLE_MAP[user.role]}</Badge>
                 <span className="text-xs text-content-subtle font-medium">
@@ -104,9 +97,7 @@ export function UserProfile() {
             </div>
 
             <div className="mt-8 p-5 bg-surface-sunken rounded-md border border-edge-subtle">
-              <h3 className="text-sm font-bold text-content mb-2 font-display">
-                个人简介
-              </h3>
+              <h3 className="text-sm font-bold text-content mb-2 font-display">个人简介</h3>
               <p className="text-content-muted leading-relaxed">
                 {user.description || "暂无个人简介。"}
               </p>

@@ -86,9 +86,7 @@ export function StarLevel({
         className,
       )}
     >
-      {isHonorary && (
-        <Seal size={icon} className="text-star-seal" aria-hidden="true" />
-      )}
+      {isHonorary && <Seal size={icon} className="text-star-seal" aria-hidden="true" />}
       <span className={cn("inline-flex items-center", gap)} aria-hidden="true">
         {Array.from({ length: TOTAL_STARS }, (_, i) =>
           i < rank ? (
@@ -118,19 +116,12 @@ export function StarLevelCompact({
   const label = STAR_LEVEL_MAP[level] ?? level;
 
   if (level === "none") {
-    return (
-      <span className={cn("text-content-subtle text-xs", className)}>
-        {label}
-      </span>
-    );
+    return <span className={cn("text-content-subtle text-xs", className)}>{label}</span>;
   }
 
   return (
     <span
-      className={cn(
-        "inline-flex items-center gap-1 text-xs font-bold text-star-text",
-        className,
-      )}
+      className={cn("inline-flex items-center gap-1 text-xs font-bold text-star-text", className)}
     >
       {level === "honorary" ? (
         <Seal size={12} className="text-star-seal" aria-hidden="true" />

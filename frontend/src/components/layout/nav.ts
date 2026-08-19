@@ -82,10 +82,7 @@ export const NAV: NavGroup[] = [
 ];
 
 /** Groups with nothing visible to this viewer are dropped entirely. */
-export function visibleNav(
-  role: Role | undefined,
-  isLoggedIn: boolean,
-): NavGroup[] {
+export function visibleNav(role: Role | undefined, isLoggedIn: boolean): NavGroup[] {
   return NAV.map((group) => ({
     section: group.section,
     items: group.items.filter((item) => {

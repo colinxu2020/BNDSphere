@@ -1,22 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
-import {
-  Building2,
-  ChevronRight,
-  Plus,
-  RefreshCw,
-  Users,
-} from "@/src/components/ui/Icons";
+import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { CategoryChip } from "../components/ui/CategoryChip";
 import { StarLevelCompact } from "../components/ui/StarLevel";
 import { CLUB_STATUS_TONE } from "../lib/tones";
 import type { components } from "../api/schema";
-import {
-  CLUB_STATUS_MAP,
-  MEMBERSHIP_MAP,
-} from "../lib/labels";
+import { CLUB_STATUS_MAP, MEMBERSHIP_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
 import {
   Badge,
@@ -45,14 +36,11 @@ export function Workspace() {
       .map((club) => ({
         club,
         membership: club.members.find(
-          (member) =>
-            member.user_id === user.id && MANAGER_ROLES.has(member.membership),
+          (member) => member.user_id === user.id && MANAGER_ROLES.has(member.membership),
         ),
       }))
       .filter((item) => item.membership)
-      .sort((left, right) =>
-        left.club.name.localeCompare(right.club.name, "zh-Hans-CN"),
-      );
+      .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN"));
   }, [clubs, user]);
 
   const fetchManagedClubs = async () => {
@@ -100,16 +88,13 @@ export function Workspace() {
       exit={{ opacity: 0, y: -10 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6"
     >
-      <PageHeader density="compact"
+      <PageHeader
+        density="compact"
         eyebrow="My Clubs"
         title="我管理的社团"
         action={
           <div className="flex flex-wrap gap-2">
-            <SecondaryButton
-              type="button"
-              onClick={fetchManagedClubs}
-              disabled={isLoading}
-            >
+            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
             <Link
@@ -125,18 +110,20 @@ export function Workspace() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface density="compact" className="flex items-center justify-center py-16 text-content-muted">
+        <Surface
+          density="compact"
+          className="flex items-center justify-center py-16 text-content-muted"
+        >
           正在加载你管理的社团...
         </Surface>
       ) : managedClubs.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {managedClubs.map(({ club, membership }) => (
-            <Link
-              key={club.id}
-              to={`/club/${club.id}/manage`}
-              className="group block"
-            >
-              <Surface density="compact" className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-lg">
+            <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
+              <Surface
+                density="compact"
+                className="h-full p-5 transition group-hover:border-tone-brand-edge group-hover:shadow-lg"
+              >
                 <div className="flex items-start gap-4">
                   <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-edge-subtle bg-surface-sunken text-content-subtle">
                     {club.logo_uri ? (
@@ -167,28 +154,20 @@ export function Workspace() {
 
                     <div className="mt-4 flex flex-wrap gap-2">
                       <Badge tone="brand">
-                        {membership
-                          ? MEMBERSHIP_MAP[membership.membership]
-                          : ""}
+                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
                       </Badge>
                       <CategoryChip category={club.category} size="sm" />
                       <Badge tone={CLUB_STATUS_TONE[club.status]}>
                         {CLUB_STATUS_MAP[club.status]}
                       </Badge>
-                      {club.star_level !== "none" && (
-                        <StarLevelCompact level={club.star_level} />
-                      )}
+                      {club.star_level !== "none" && <StarLevelCompact level={club.star_level} />}
                     </div>
 
                     <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-content-subtle">
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />
-                        {
-                          club.members.filter(
-                            (member) => member.membership !== "left",
-                          ).length
-                        }{" "}
+                        {club.members.filter((member) => member.membership !== "left").length}{" "}
                         名成员
                       </span>
                     </div>

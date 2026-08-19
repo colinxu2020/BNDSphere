@@ -42,9 +42,7 @@ export function AdminGrid({
 
 export function ItemList({ children }: { children: React.ReactNode }) {
   return (
-    <div className="max-h-[620px] space-y-2 overflow-y-auto overflow-x-hidden pr-1">
-      {children}
-    </div>
+    <div className="max-h-[620px] space-y-2 overflow-y-auto overflow-x-hidden pr-1">{children}</div>
   );
 }
 
@@ -68,15 +66,11 @@ export function ListButton({
       onClick={onClick}
       className={cn(
         "w-full min-w-0 rounded-md border p-3 text-left transition",
-        active
-          ? "border-content bg-surface"
-          : "border-edge bg-surface hover:border-edge-strong",
+        active ? "border-content bg-surface" : "border-edge bg-surface hover:border-edge-strong",
       )}
     >
       <div className="flex min-w-0 items-center justify-between gap-2">
-        <p className="min-w-0 truncate text-sm font-semibold text-content">
-          {title}
-        </p>
+        <p className="min-w-0 truncate text-sm font-semibold text-content">{title}</p>
         {badge && <Badge tone="brand">{badge}</Badge>}
       </div>
       {meta && <p className="mt-1 truncate text-xs text-content-muted">{meta}</p>}
@@ -87,9 +81,7 @@ export function ListButton({
 export function FormHeader({ title, subtitle }: { title: string; subtitle: string }) {
   return (
     <div className="min-w-0 border-b border-edge pb-3">
-      <h3 className="break-words font-display text-xl font-bold text-content">
-        {title}
-      </h3>
+      <h3 className="break-words font-display text-xl font-bold text-content">{title}</h3>
       <p className="break-words text-sm text-content-muted">{subtitle}</p>
     </div>
   );

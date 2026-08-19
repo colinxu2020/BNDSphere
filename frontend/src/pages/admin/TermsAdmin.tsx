@@ -16,8 +16,7 @@ type AcademicTerm = components["schemas"]["AcademicTermInfo"];
 type AcademicTermUpdate = components["schemas"]["AcademicTermUpdate"];
 
 export function TermsAdmin() {
-  const { isRefreshing, refreshStart, refreshEnd, setResult } =
-    useAdminContext();
+  const { isRefreshing, refreshStart, refreshEnd, setResult } = useAdminContext();
   const [terms, setTerms] = useState<AcademicTerm[]>([]);
   const [selected, setSelected] = useState<AcademicTerm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -31,12 +30,9 @@ export function TermsAdmin() {
   const loadTerms = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET(
-        "/api/v1/admin/academic-terms/",
-        {
-          params: { query: { size: 100 } },
-        },
-      );
+      const { data, error } = await client.GET("/api/v1/admin/academic-terms/", {
+        params: { query: { size: 100 } },
+      });
       if (error) setResult(error, null);
       setTerms(data?.items || []);
     } catch (error) {
@@ -75,24 +71,21 @@ export function TermsAdmin() {
           start_date: form.start_date || null,
           end_date: form.end_date || null,
         };
-        const { data, error } = await client.PATCH(
-          "/api/v1/admin/academic-terms/{term_id}",
-          { params: { path: { term_id: selected.id } }, body },
-        );
+        const { data, error } = await client.PATCH("/api/v1/admin/academic-terms/{term_id}", {
+          params: { path: { term_id: selected.id } },
+          body,
+        });
         setResult(error, error ? null : "学期已保存");
         if (data) selectTerm(data);
       } else {
-        const { data, error } = await client.POST(
-          "/api/v1/admin/academic-terms/",
-          {
-            body: {
-              term_name: nullableText(form.term_name),
-              start_date: form.start_date,
-              end_date: form.end_date,
-              is_current: form.is_current,
-            },
+        const { data, error } = await client.POST("/api/v1/admin/academic-terms/", {
+          body: {
+            term_name: nullableText(form.term_name),
+            start_date: form.start_date,
+            end_date: form.end_date,
+            is_current: form.is_current,
           },
-        );
+        });
         setResult(error, error ? null : "学期已创建");
         if (data) selectTerm(data);
       }
@@ -116,12 +109,9 @@ export function TermsAdmin() {
 
   const deleteTerm = async (term: AcademicTerm) => {
     if (!window.confirm(`确认删除 ${term.term_name}？`)) return;
-    const { error } = await client.DELETE(
-      "/api/v1/admin/academic-terms/{term_id}",
-      {
-        params: { path: { term_id: term.id } },
-      },
-    );
+    const { error } = await client.DELETE("/api/v1/admin/academic-terms/{term_id}", {
+      params: { path: { term_id: term.id } },
+    });
     setResult(error, error ? null : "学期已删除");
     if (!error) resetCreate();
     loadTerms();
@@ -161,9 +151,7 @@ export function TermsAdmin() {
           <input
             className={inputClassName}
             value={form.term_name}
-            onChange={(event) =>
-              setForm({ ...form, term_name: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, term_name: event.target.value })}
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
@@ -172,9 +160,7 @@ export function TermsAdmin() {
               className={inputClassName}
               type="date"
               value={form.start_date}
-              onChange={(event) =>
-                setForm({ ...form, start_date: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, start_date: event.target.value })}
               required
             />
           </Field>
@@ -183,9 +169,7 @@ export function TermsAdmin() {
               className={inputClassName}
               type="date"
               value={form.end_date}
-              onChange={(event) =>
-                setForm({ ...form, end_date: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, end_date: event.target.value })}
               required
             />
           </Field>
@@ -195,9 +179,7 @@ export function TermsAdmin() {
             <input
               type="checkbox"
               checked={form.is_current}
-              onChange={(event) =>
-                setForm({ ...form, is_current: event.target.checked })
-              }
+              onChange={(event) => setForm({ ...form, is_current: event.target.checked })}
             />
             创建后设为当前学期
           </label>
@@ -208,10 +190,7 @@ export function TermsAdmin() {
           </PrimaryButton>
           {selected && (
             <>
-              <SecondaryButton
-                type="button"
-                onClick={() => setCurrent(selected)}
-              >
+              <SecondaryButton type="button" onClick={() => setCurrent(selected)}>
                 设为当前
               </SecondaryButton>
               <button

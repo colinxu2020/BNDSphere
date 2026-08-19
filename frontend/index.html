@@ -3,10 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/png" href="/LOGO_SQUARE.png" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
-    />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <title>BNDSphere</title>
     <!--
       Apply the colour scheme before first paint.
@@ -30,8 +27,7 @@
         }
         if (
           stored === "dark" ||
-          (stored !== "light" &&
-            matchMedia("(prefers-color-scheme: dark)").matches)
+          (stored !== "light" && matchMedia("(prefers-color-scheme: dark)").matches)
         ) {
           document.documentElement.classList.add("dark");
         }

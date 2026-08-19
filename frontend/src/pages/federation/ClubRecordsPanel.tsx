@@ -13,11 +13,7 @@ import {
   inputClassName,
   selectClassName,
 } from "../../components/ui/AppPrimitives";
-import {
-  AUDIT_STATUS_MAP,
-  AUDIT_STATUS_OPTIONS,
-  PARTICIPATION_MAP,
-} from "../../lib/labels";
+import { AUDIT_STATUS_MAP, AUDIT_STATUS_OPTIONS, PARTICIPATION_MAP } from "../../lib/labels";
 import { AUDIT_TONE } from "../../lib/tones";
 import { formatDateTime, nullableNumber } from "../../lib/format";
 import { cn } from "../../lib/utils";
@@ -68,10 +64,7 @@ export function ClubRecordsPanel({
             if (left.audit_status === "pending") return -1;
             if (right.audit_status === "pending") return 1;
           }
-          return (
-            new Date(right.created_at).getTime() -
-            new Date(left.created_at).getTime()
-          );
+          return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
         }),
     [activities],
   );
@@ -117,135 +110,113 @@ export function ClubRecordsPanel({
   };
 
   return (
-      <Surface density="compact">
-        <SectionTitle density="compact"
-          icon={<ShieldCheck size={20} />}
-          title="审核社团综评记录"
-        />
-        <div
-          className={cn(
-            "grid gap-6",
-            selectedRecord && "lg:grid-cols-[1fr_360px]",
-          )}
-        >
-          <div className="grid gap-3">
-            {isLoading ? (
-              <LoadingRows />
-            ) : reviewRecords.length ? (
-              reviewRecords.map((record) => (
-                <button
-                  key={record.id}
-                  type="button"
-                  onClick={() => loadRecordForReview(record)}
-                  className={cn(
-                    "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
-                    selectedRecordId === record.id &&
-                      "border-tone-brand-edge bg-brand-subtle",
-                  )}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={AUDIT_TONE[record.audit_status]}>
-                      {AUDIT_STATUS_MAP[record.audit_status]}
-                    </Badge>
-                    <Badge>
-                      {PARTICIPATION_MAP[record.participation_type]}
-                    </Badge>
-                    <span className="text-xs font-medium text-content-subtle">
-                      记录 #{record.id}
-                    </span>
-                  </div>
-                  <h3 className="mt-3 font-semibold text-content">
-                    {record.activity.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-content-muted">
-                    社团 #{record.club_id} · 申请 {record.requested_score} 分
-                  </p>
-                  <p className="mt-2 text-xs font-medium text-content-subtle">
-                    <Clock size={14} className="mr-1 inline" />
-                    {formatDateTime(record.created_at)}
-                  </p>
-                </button>
-              ))
-            ) : (
-              <EmptyState title="暂无社团综评记录" />
-            )}
-          </div>
-
-          {selectedRecord && (
-            <form
-              onSubmit={updateRecord}
-              className="h-fit rounded-md border border-edge-subtle bg-surface p-5"
-            >
-              <div className="grid gap-4">
-                <div className="flex items-start justify-between gap-4">
-                  <div className="min-w-0">
-                    <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
-                      当前审核
-                    </p>
-                    <h3 className="mt-1 truncate font-bold text-content">
-                      {selectedRecord.activity.name}
-                    </h3>
-                    <p className="mt-1 text-sm text-content-muted">
-                      社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
-                    </p>
-                  </div>
-                  <SecondaryButton
-                    type="button"
-                    onClick={() => setSelectedRecordId(null)}
-                  >
-                    <X size={16} /> 收起
-                  </SecondaryButton>
-                </div>
-                <Field label="审核状态">
-                  <select
-                    className={selectClassName}
-                    value={recordStatus}
-                    onChange={(event) =>
-                      setRecordStatus(event.target.value as AuditStatus)
-                    }
-                  >
-                    {AUDIT_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="最终分值">
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    value={recordScore}
-                    onChange={(event) => setRecordScore(event.target.value)}
-                  />
-                </Field>
-                {selectedRecord.proof_files.length > 0 && (
-                  <div className="rounded-md bg-surface-sunken p-3">
-                    <p className="mb-2 text-sm font-semibold text-content">
-                      证明材料
-                    </p>
-                    <div className="grid gap-1">
-                      {selectedRecord.proof_files.map((file, index) => (
-                        <a
-                          key={file}
-                          href={file}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="truncate text-sm font-medium text-tone-brand-fg hover:text-tone-brand-fg"
-                        >
-                          材料 {index + 1}
-                        </a>
-                      ))}
-                    </div>
-                  </div>
+    <Surface density="compact">
+      <SectionTitle density="compact" icon={<ShieldCheck size={20} />} title="审核社团综评记录" />
+      <div className={cn("grid gap-6", selectedRecord && "lg:grid-cols-[1fr_360px]")}>
+        <div className="grid gap-3">
+          {isLoading ? (
+            <LoadingRows />
+          ) : reviewRecords.length ? (
+            reviewRecords.map((record) => (
+              <button
+                key={record.id}
+                type="button"
+                onClick={() => loadRecordForReview(record)}
+                className={cn(
+                  "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
+                  selectedRecordId === record.id && "border-tone-brand-edge bg-brand-subtle",
                 )}
-                <PrimaryButton type="submit" loading={isRecordUpdating}>
-                  <Save size={18} /> 更新记录
-                </PrimaryButton>
-              </div>
-            </form>
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone={AUDIT_TONE[record.audit_status]}>
+                    {AUDIT_STATUS_MAP[record.audit_status]}
+                  </Badge>
+                  <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
+                  <span className="text-xs font-medium text-content-subtle">记录 #{record.id}</span>
+                </div>
+                <h3 className="mt-3 font-semibold text-content">{record.activity.name}</h3>
+                <p className="mt-1 text-sm text-content-muted">
+                  社团 #{record.club_id} · 申请 {record.requested_score} 分
+                </p>
+                <p className="mt-2 text-xs font-medium text-content-subtle">
+                  <Clock size={14} className="mr-1 inline" />
+                  {formatDateTime(record.created_at)}
+                </p>
+              </button>
+            ))
+          ) : (
+            <EmptyState title="暂无社团综评记录" />
           )}
         </div>
-      </Surface>
+
+        {selectedRecord && (
+          <form
+            onSubmit={updateRecord}
+            className="h-fit rounded-md border border-edge-subtle bg-surface p-5"
+          >
+            <div className="grid gap-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
+                    当前审核
+                  </p>
+                  <h3 className="mt-1 truncate font-bold text-content">
+                    {selectedRecord.activity.name}
+                  </h3>
+                  <p className="mt-1 text-sm text-content-muted">
+                    社团 #{selectedRecord.club_id} · 记录 #{selectedRecord.id}
+                  </p>
+                </div>
+                <SecondaryButton type="button" onClick={() => setSelectedRecordId(null)}>
+                  <X size={16} /> 收起
+                </SecondaryButton>
+              </div>
+              <Field label="审核状态">
+                <select
+                  className={selectClassName}
+                  value={recordStatus}
+                  onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
+                >
+                  {AUDIT_STATUS_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="最终分值">
+                <input
+                  className={inputClassName}
+                  type="number"
+                  value={recordScore}
+                  onChange={(event) => setRecordScore(event.target.value)}
+                />
+              </Field>
+              {selectedRecord.proof_files.length > 0 && (
+                <div className="rounded-md bg-surface-sunken p-3">
+                  <p className="mb-2 text-sm font-semibold text-content">证明材料</p>
+                  <div className="grid gap-1">
+                    {selectedRecord.proof_files.map((file, index) => (
+                      <a
+                        key={file}
+                        href={file}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="truncate text-sm font-medium text-tone-brand-fg hover:text-tone-brand-fg"
+                      >
+                        材料 {index + 1}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
+              <PrimaryButton type="submit" loading={isRecordUpdating}>
+                <Save size={18} /> 更新记录
+              </PrimaryButton>
+            </div>
+          </form>
+        )}
+      </div>
+    </Surface>
   );
 }

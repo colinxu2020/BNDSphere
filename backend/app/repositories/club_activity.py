@@ -66,8 +66,12 @@ class ClubActivityCreateRequestRepository(
         make the navigation badge cheap, so materialising every pending request in
         Python would defeat the point.
         """
-        stmt = select(func.count()).select_from(self.model).where(
-            self.model.moderation_status == ModerationStatusEnum.pending,
+        stmt = (
+            select(func.count())
+            .select_from(self.model)
+            .where(
+                self.model.moderation_status == ModerationStatusEnum.pending,
+            )
         )
         return (await self.db.execute(stmt)).scalar_one()
 
@@ -94,8 +98,12 @@ class ClubActivityUpdateRequestRepository(
         make the navigation badge cheap, so materialising every pending request in
         Python would defeat the point.
         """
-        stmt = select(func.count()).select_from(self.model).where(
-            self.model.moderation_status == ModerationStatusEnum.pending,
+        stmt = (
+            select(func.count())
+            .select_from(self.model)
+            .where(
+                self.model.moderation_status == ModerationStatusEnum.pending,
+            )
         )
         return (await self.db.execute(stmt)).scalar_one()
 

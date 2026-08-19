@@ -1,29 +1,10 @@
 import { Link, useLocation, useNavigate } from "react-router-dom";
-import {
-  Check,
-  LogIn,
-  LogOut,
-  Menu,
-  Monitor,
-  Moon,
-  Sun,
-  User,
-  X,
-} from "@/src/components/ui/Icons";
+import { Check, LogIn, LogOut, Menu, Monitor, Moon, Sun, User, X } from "@/src/components/ui/Icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  AUTH_STATE_CHANGED_EVENT,
-  clearAuthToken,
-  client,
-} from "../../api/client";
+import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
 import { ROLE_MAP } from "../../lib/labels";
-import {
-  THEME_CHOICES,
-  THEME_LABELS,
-  useTheme,
-  type ThemeChoice,
-} from "../../lib/useTheme";
+import { THEME_CHOICES, THEME_LABELS, useTheme, type ThemeChoice } from "../../lib/useTheme";
 import { cn } from "../../lib/utils";
 import { isNavItemActive, visibleNav, type NavGroup } from "./nav";
 
@@ -171,9 +152,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const groups = visibleNav(user?.role, Boolean(user));
   const { choice, chooseTheme } = useTheme();
   const badges: Record<string, number> =
-    pendingModeration && pendingModeration > 0
-      ? { "/moderation": pendingModeration }
-      : {};
+    pendingModeration && pendingModeration > 0 ? { "/moderation": pendingModeration } : {};
 
   return (
     <div className="flex min-h-screen bg-surface-sunken">
@@ -185,16 +164,8 @@ export function RootLayout({ children }: { children: ReactNode }) {
         >
           <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-8 w-auto" />
         </Link>
-        <NavList
-          groups={groups}
-          pathname={location.pathname}
-          badges={badges}
-        />
-        <AccountFooter
-          user={user}
-          isLoggedIn={isLoggedIn}
-          onLogout={handleLogout}
-        />
+        <NavList groups={groups} pathname={location.pathname} badges={badges} />
+        <AccountFooter user={user} isLoggedIn={isLoggedIn} onLogout={handleLogout} />
       </aside>
 
       {/* Drawer — mobile */}
@@ -229,12 +200,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
               onNavigate={() => setDrawerOpen(false)}
               touch
             />
-            <AccountFooter
-              user={user}
-              isLoggedIn={isLoggedIn}
-              onLogout={handleLogout}
-              touch
-            />
+            <AccountFooter user={user} isLoggedIn={isLoggedIn} onLogout={handleLogout} touch />
           </div>
         </div>
       )}
@@ -383,10 +349,7 @@ function ThemeMenu({
     };
     const onPointerDown = (event: PointerEvent) => {
       const target = event.target as Node;
-      if (
-        !panelRef.current?.contains(target) &&
-        !triggerRef.current?.contains(target)
-      ) {
+      if (!panelRef.current?.contains(target) && !triggerRef.current?.contains(target)) {
         setIsOpen(false);
       }
     };
@@ -440,9 +403,7 @@ function ThemeMenu({
                 )}
               >
                 <Icon size={16} />
-                <span className="min-w-0 flex-1 text-left">
-                  {THEME_LABELS[option]}
-                </span>
+                <span className="min-w-0 flex-1 text-left">{THEME_LABELS[option]}</span>
                 {isSelected && <Check size={15} />}
               </button>
             );
@@ -493,11 +454,7 @@ function AccountFooter({
       >
         <span className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-full border border-edge bg-surface-sunken text-xs font-bold text-content-muted">
           {user?.avatar_uri ? (
-            <img
-              src={user.avatar_uri}
-              alt={user.username}
-              className="h-full w-full object-cover"
-            />
+            <img src={user.avatar_uri} alt={user.username} className="h-full w-full object-cover" />
           ) : user?.username ? (
             user.username.slice(0, 1).toUpperCase()
           ) : (

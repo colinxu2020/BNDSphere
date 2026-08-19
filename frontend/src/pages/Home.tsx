@@ -1,13 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { motion } from "motion/react";
-import {
-  CalendarDays,
-  Image,
-  Inbox,
-  Megaphone,
-  Users,
-} from "@/src/components/ui/Icons";
+import { CalendarDays, Image, Inbox, Megaphone, Users } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
@@ -64,27 +58,23 @@ export function Home() {
       setIsLoading(true);
       setError(null);
       try {
-        const [clubsResult, activitiesResult, announcementsResult, meResult] =
-          await Promise.all([
-            isLoggedIn
-              ? client.GET("/api/v1/clubs/", { params: { query: { size: 24 } } })
-              : client.GET("/api/v1/clubs/summary", {
-                  params: { query: { size: 24 } },
-                }),
-            client.GET("/api/v1/general-activities/", {
-              params: { query: { size: 12 } },
-            }),
-            client.GET("/api/v1/announcements/", {
-              params: { query: { size: 6 } },
-            }),
-            isLoggedIn ? client.GET("/api/v1/users/me") : null,
-          ]);
+        const [clubsResult, activitiesResult, announcementsResult, meResult] = await Promise.all([
+          isLoggedIn
+            ? client.GET("/api/v1/clubs/", { params: { query: { size: 24 } } })
+            : client.GET("/api/v1/clubs/summary", {
+                params: { query: { size: 24 } },
+              }),
+          client.GET("/api/v1/general-activities/", {
+            params: { query: { size: 12 } },
+          }),
+          client.GET("/api/v1/announcements/", {
+            params: { query: { size: 6 } },
+          }),
+          isLoggedIn ? client.GET("/api/v1/users/me") : null,
+        ]);
         if (cancelled) return;
 
-        const failure =
-          clubsResult.error ||
-          activitiesResult.error ||
-          announcementsResult.error;
+        const failure = clubsResult.error || activitiesResult.error || announcementsResult.error;
         if (failure) setError(failure);
 
         if (isLoggedIn) {
@@ -123,10 +113,7 @@ export function Home() {
   const calendar = buildMonthCalendar(activities);
 
   const isEmpty =
-    !isLoading &&
-    clubCards.length === 0 &&
-    activities.length === 0 &&
-    announcements.length === 0;
+    !isLoading && clubCards.length === 0 && activities.length === 0 && announcements.length === 0;
 
   return (
     <motion.div
@@ -153,9 +140,7 @@ export function Home() {
 
           {myActivities.length > 0 && <MyActivitiesTile items={myActivities} />}
 
-          {announcements.length > 0 && (
-            <AnnouncementsTile items={announcements} />
-          )}
+          {announcements.length > 0 && <AnnouncementsTile items={announcements} />}
 
           {clubCards.slice(0, 5).map((club) => (
             <div key={club.id} className="break-inside-avoid">
@@ -180,13 +165,7 @@ export function Home() {
   );
 }
 
-function Tile({
-  children,
-  className,
-}: {
-  children: React.ReactNode;
-  className?: string;
-}) {
+function Tile({ children, className }: { children: React.ReactNode; className?: string }) {
   return (
     <section
       className={cn(
@@ -268,12 +247,8 @@ function ActivityTile({ activity }: { activity: GeneralActivity }) {
       className="group block break-inside-avoid rounded-md border border-edge bg-surface p-4 shadow-sm outline-none transition-all duration-200 hover:-translate-x-0.5 hover:-translate-y-0.5 hover:shadow-lg focus-visible:ring-4 focus-visible:ring-brand-strong/40 motion-reduce:transform-none motion-reduce:transition-none"
     >
       <ActivityLevelChip level={activity.level} />
-      <h3 className="font-display mt-2 text-base font-bold text-content">
-        {activity.name}
-      </h3>
-      <p className="mt-1 line-clamp-3 text-sm text-content-muted">
-        {activity.description}
-      </p>
+      <h3 className="font-display mt-2 text-base font-bold text-content">{activity.name}</h3>
+      <p className="mt-1 line-clamp-3 text-sm text-content-muted">{activity.description}</p>
       <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-content-subtle">
         <CalendarDays size={13} />
         {formatDate(activity.starts_at || activity.created_at)}
@@ -293,9 +268,7 @@ function AnnouncementsTile({ items }: { items: Announcement[] }) {
         {items.map((item) => (
           <li key={item.id}>
             <p className="text-sm font-semibold text-content">{item.title}</p>
-            <p className="mt-0.5 text-xs text-content-muted">
-              {formatDate(item.created_at)}
-            </p>
+            <p className="mt-0.5 text-xs text-content-muted">{formatDate(item.created_at)}</p>
           </li>
         ))}
       </ul>
@@ -315,9 +288,7 @@ function MyActivitiesTile({ items }: { items: MyClubActivity[] }) {
               className="block rounded-md border border-edge bg-surface-sunken p-2.5 outline-none transition-colors hover:bg-surface-hover focus-visible:ring-4 focus-visible:ring-brand-strong/40"
             >
               <div className="flex items-start justify-between gap-2">
-                <p className="min-w-0 text-sm font-semibold text-content">
-                  {item.activity.name}
-                </p>
+                <p className="min-w-0 text-sm font-semibold text-content">{item.activity.name}</p>
                 <Badge tone={getMyClubActivityTone(item.status)}>
                   {MY_CLUB_ACTIVITY_STATUS_TEXT[item.status]}
                 </Badge>
@@ -333,29 +304,20 @@ function MyActivitiesTile({ items }: { items: MyClubActivity[] }) {
   );
 }
 
-function CalendarTile({
-  calendar,
-}: {
-  calendar: ReturnType<typeof buildMonthCalendar>;
-}) {
+function CalendarTile({ calendar }: { calendar: ReturnType<typeof buildMonthCalendar> }) {
   return (
     <Tile>
       <TileHeading
         icon={<CalendarDays size={15} />}
         action={
-          <span className="text-xs font-semibold text-content-subtle">
-            {calendar.monthLabel}
-          </span>
+          <span className="text-xs font-semibold text-content-subtle">{calendar.monthLabel}</span>
         }
       >
         活动日历
       </TileHeading>
       <div className="grid grid-cols-7 gap-1 text-center">
         {["一", "二", "三", "四", "五", "六", "日"].map((label) => (
-          <span
-            key={label}
-            className="py-1 text-[11px] font-bold text-content-subtle"
-          >
+          <span key={label} className="py-1 text-[11px] font-bold text-content-subtle">
             {label}
           </span>
         ))}
@@ -379,16 +341,7 @@ function CalendarTile({
 }
 
 function BoardSkeleton() {
-  const heights = [
-    "h-72",
-    "h-40",
-    "h-52",
-    "h-36",
-    "h-60",
-    "h-44",
-    "h-48",
-    "h-40",
-  ];
+  const heights = ["h-72", "h-40", "h-52", "h-36", "h-60", "h-44", "h-48", "h-40"];
   return (
     <div className="columns-1 gap-4 sm:columns-2 lg:columns-3 xl:columns-4 [&>*]:mb-4">
       {heights.map((height, index) => (

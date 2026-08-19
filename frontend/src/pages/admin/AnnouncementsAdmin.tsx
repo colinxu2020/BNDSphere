@@ -21,8 +21,7 @@ import { useAdminContext } from "./context";
 type Announcement = components["schemas"]["AnnouncementInfo"];
 
 export function AnnouncementsAdmin() {
-  const { isRefreshing, refreshStart, refreshEnd, setResult } =
-    useAdminContext();
+  const { isRefreshing, refreshStart, refreshEnd, setResult } = useAdminContext();
   const [items, setItems] = useState<Announcement[]>([]);
   const [selected, setSelected] = useState<Announcement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
@@ -102,12 +101,9 @@ export function AnnouncementsAdmin() {
         setResult(error, error ? null : "公告已保存");
         if (data) selectItem(data);
       } else {
-        const { data, error } = await client.POST(
-          "/api/v1/admin/announcements/",
-          {
-            body: buildBody(),
-          },
-        );
+        const { data, error } = await client.POST("/api/v1/admin/announcements/", {
+          body: buildBody(),
+        });
         setResult(error, error ? null : "公告已创建");
         if (data) selectItem(data);
       }
@@ -121,12 +117,9 @@ export function AnnouncementsAdmin() {
 
   const deleteItem = async (item: Announcement) => {
     if (!window.confirm(`确认删除 ${item.title}？`)) return;
-    const { error } = await client.DELETE(
-      "/api/v1/admin/announcements/{announcement_id}",
-      {
-        params: { path: { announcement_id: item.id } },
-      },
-    );
+    const { error } = await client.DELETE("/api/v1/admin/announcements/{announcement_id}", {
+      params: { path: { announcement_id: item.id } },
+    });
     setResult(error, error ? null : "公告已删除");
     if (!error) resetCreate();
     loadItems();
@@ -166,9 +159,7 @@ export function AnnouncementsAdmin() {
           <input
             className={inputClassName}
             value={form.title}
-            onChange={(event) =>
-              setForm({ ...form, title: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, title: event.target.value })}
             required
           />
         </Field>
@@ -184,9 +175,7 @@ export function AnnouncementsAdmin() {
           <input
             className={inputClassName}
             value={form.link_url}
-            onChange={(event) =>
-              setForm({ ...form, link_url: event.target.value })
-            }
+            onChange={(event) => setForm({ ...form, link_url: event.target.value })}
           />
         </Field>
         <div className="grid gap-4 md:grid-cols-2">
@@ -195,9 +184,7 @@ export function AnnouncementsAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.starts_at}
-              onChange={(event) =>
-                setForm({ ...form, starts_at: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, starts_at: event.target.value })}
             />
           </Field>
           <Field label="结束展示">
@@ -205,9 +192,7 @@ export function AnnouncementsAdmin() {
               className={inputClassName}
               type="datetime-local"
               value={form.ends_at}
-              onChange={(event) =>
-                setForm({ ...form, ends_at: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, ends_at: event.target.value })}
             />
           </Field>
         </div>
@@ -215,9 +200,7 @@ export function AnnouncementsAdmin() {
           <input
             type="checkbox"
             checked={form.is_active}
-            onChange={(event) =>
-              setForm({ ...form, is_active: event.target.checked })
-            }
+            onChange={(event) => setForm({ ...form, is_active: event.target.checked })}
           />
           启用公告
         </label>

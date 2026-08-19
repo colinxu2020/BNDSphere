@@ -20,8 +20,7 @@ type ClubStatus = components["schemas"]["ClubStatusEnum"];
 type AdminClubUpdate = components["schemas"]["AdminClubUpdate"];
 
 export function ClubsAdmin() {
-  const { isRefreshing, refreshStart, refreshEnd, setResult } =
-    useAdminContext();
+  const { isRefreshing, refreshStart, refreshEnd, setResult } = useAdminContext();
   const [clubs, setClubs] = useState<ClubInfo[]>([]);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<ClubInfo | null>(null);
@@ -76,13 +75,10 @@ export function ClubsAdmin() {
       status: form.status || null,
     };
     try {
-      const { data, error } = await client.PATCH(
-        "/api/v1/admin/clubs/{club_id}",
-        {
-          params: { path: { club_id: selected.id } },
-          body,
-        },
-      );
+      const { data, error } = await client.PATCH("/api/v1/admin/clubs/{club_id}", {
+        params: { path: { club_id: selected.id } },
+        body,
+      });
       setResult(error, error ? null : "社团已保存");
       if (data) selectClub(data);
       if (!error) loadClubs();
@@ -128,27 +124,21 @@ export function ClubsAdmin() {
             <input
               className={inputClassName}
               value={form.summary}
-              onChange={(event) =>
-                setForm({ ...form, summary: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, summary: event.target.value })}
             />
           </Field>
           <Field label="详细介绍">
             <textarea
               className={textareaClassName}
               value={form.description}
-              onChange={(event) =>
-                setForm({ ...form, description: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, description: event.target.value })}
             />
           </Field>
           <Field label="Logo URL">
             <input
               className={inputClassName}
               value={form.logo_uri}
-              onChange={(event) =>
-                setForm({ ...form, logo_uri: event.target.value })
-              }
+              onChange={(event) => setForm({ ...form, logo_uri: event.target.value })}
             />
           </Field>
           <div className="grid gap-4 md:grid-cols-2">
@@ -174,9 +164,7 @@ export function ClubsAdmin() {
               <select
                 className={selectClassName}
                 value={form.status}
-                onChange={(event) =>
-                  setForm({ ...form, status: event.target.value as ClubStatus })
-                }
+                onChange={(event) => setForm({ ...form, status: event.target.value as ClubStatus })}
               >
                 {CLUB_STATUS_OPTIONS.map((option) => (
                   <option key={option.value} value={option.value}>

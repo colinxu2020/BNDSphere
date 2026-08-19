@@ -62,18 +62,15 @@ export function ExploreClubs() {
       setIsLoading(true);
       setError(null);
       try {
-        const { data, error: requestError } = await client.GET(
-          "/api/v1/clubs/summary",
-          {
-            params: {
-              query: {
-                size: 50,
-                search: search || undefined,
-                category: activeCategory !== "all" ? activeCategory : undefined,
-              },
+        const { data, error: requestError } = await client.GET("/api/v1/clubs/summary", {
+          params: {
+            query: {
+              size: 50,
+              search: search || undefined,
+              category: activeCategory !== "all" ? activeCategory : undefined,
             },
           },
-        );
+        });
         if (cancelled) return;
         if (requestError) {
           setError(requestError);
@@ -111,9 +108,7 @@ export function ExploreClubs() {
               <p className="font-display text-[11px] font-bold tracking-[0.18em] text-tone-brand-fg uppercase">
                 Explore
               </p>
-              <h1 className="font-display text-2xl font-bold text-content">
-                发现社团
-              </h1>
+              <h1 className="font-display text-2xl font-bold text-content">发现社团</h1>
             </div>
             <Link
               to="/clubs/new"
@@ -194,9 +189,7 @@ export function ExploreClubs() {
         ) : (
           <div className="flex h-full min-h-64 flex-col items-center justify-center p-10 text-center">
             <Hash size={28} className="mb-3 text-content-subtle" />
-            <p className="font-display text-lg font-bold text-content">
-              从左侧选择一个社团
-            </p>
+            <p className="font-display text-lg font-bold text-content">从左侧选择一个社团</p>
             <p className="mt-1 max-w-sm text-sm text-content-muted">
               社团详情会显示在这里，浏览时不会离开列表。
             </p>
@@ -224,14 +217,10 @@ function ClubRow({
     <>
       <div className="flex flex-wrap items-center gap-2">
         <CategoryChip category={club.category} size="sm" />
-        {club.star_level !== "none" && (
-          <StarLevelCompact level={club.star_level} />
-        )}
+        {club.star_level !== "none" && <StarLevelCompact level={club.star_level} />}
       </div>
       <p className="mt-1.5 font-semibold text-content">{club.name}</p>
-      <p className="mt-0.5 line-clamp-2 text-xs text-content-muted">
-        {club.summary}
-      </p>
+      <p className="mt-0.5 line-clamp-2 text-xs text-content-muted">{club.summary}</p>
       <p className="mt-2 inline-flex items-center gap-1.5 text-[11px] font-semibold text-content-subtle">
         <Users size={12} />
         {club.member_count} 名成员
@@ -241,9 +230,7 @@ function ClubRow({
 
   const shell = cn(
     "block w-full rounded-md border border-l-4 p-3 text-left outline-none transition-colors focus-visible:ring-4 focus-visible:ring-brand-strong/40",
-    selected
-      ? "border-edge bg-brand-subtle"
-      : "border-edge bg-surface hover:bg-surface-hover",
+    selected ? "border-edge bg-brand-subtle" : "border-edge bg-surface hover:bg-surface-hover",
     categorySpine(club.category),
   );
 
@@ -277,10 +264,9 @@ function ClubDetailPane({ clubId }: { clubId: number }) {
       setError(null);
       setClub(null);
       try {
-        const { data, error: requestError } = await client.GET(
-          "/api/v1/clubs/{club_id}",
-          { params: { path: { club_id: clubId } } },
-        );
+        const { data, error: requestError } = await client.GET("/api/v1/clubs/{club_id}", {
+          params: { path: { club_id: clubId } },
+        });
         if (cancelled) return;
         if (requestError) setError(requestError);
         else setClub(data ?? null);
@@ -323,9 +309,7 @@ function ClubDetailPane({ clubId }: { clubId: number }) {
   if (!club) return null;
 
   const memberCount = club.members.length;
-  const presidents = club.members.filter(
-    (member) => member.membership === "president",
-  );
+  const presidents = club.members.filter((member) => member.membership === "president");
 
   return (
     <article className="p-6">
@@ -337,11 +321,7 @@ function ClubDetailPane({ clubId }: { clubId: number }) {
           )}
         >
           {club.logo_uri ? (
-            <img
-              src={club.logo_uri}
-              alt={club.name}
-              className="h-full w-full object-cover"
-            />
+            <img src={club.logo_uri} alt={club.name} className="h-full w-full object-cover" />
           ) : (
             <Hash size={26} className="text-content-subtle" />
           )}
@@ -351,9 +331,7 @@ function ClubDetailPane({ clubId }: { clubId: number }) {
             <CategoryChip category={club.category} />
             <StarLevel level={club.star_level} />
           </div>
-          <h2 className="font-display text-3xl font-bold text-content">
-            {club.name}
-          </h2>
+          <h2 className="font-display text-3xl font-bold text-content">{club.name}</h2>
           <p className="mt-1 text-content-muted">{club.summary}</p>
         </div>
         <Link
@@ -370,22 +348,15 @@ function ClubDetailPane({ clubId }: { clubId: number }) {
           ["社团活动", String(club.club_activities?.length ?? 0)],
           ["大型活动记录", String(club.general_activity_records?.length ?? 0)],
         ].map(([label, value]) => (
-          <div
-            key={label}
-            className="rounded-md border border-edge bg-surface p-4 shadow-sm"
-          >
+          <div key={label} className="rounded-md border border-edge bg-surface p-4 shadow-sm">
             <p className="text-xs font-semibold text-content-subtle">{label}</p>
-            <p className="font-display mt-1 text-2xl font-bold text-content">
-              {value}
-            </p>
+            <p className="font-display mt-1 text-2xl font-bold text-content">{value}</p>
           </div>
         ))}
       </div>
 
       <section className="mt-6 rounded-md border border-edge bg-surface p-5 shadow-sm">
-        <h3 className="font-display mb-2 text-lg font-bold text-content">
-          关于社团
-        </h3>
+        <h3 className="font-display mb-2 text-lg font-bold text-content">关于社团</h3>
         <p className="text-[15px] leading-relaxed text-content-muted">
           {club.description || "暂无详细介绍。"}
         </p>
@@ -421,9 +392,7 @@ function EmptyList({ hasFilters }: { hasFilters: boolean }) {
         {hasFilters ? "没有符合条件的社团" : "暂无公开社团"}
       </p>
       <p className="mt-1 max-w-xs text-sm text-content-muted">
-        {hasFilters
-          ? "试试更换关键词或类别。"
-          : "社团通过审核后会展示在这里。"}
+        {hasFilters ? "试试更换关键词或类别。" : "社团通过审核后会展示在这里。"}
       </p>
     </div>
   );

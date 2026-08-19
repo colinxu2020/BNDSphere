@@ -18,28 +18,23 @@ export function Login() {
     setError(null);
 
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/auth/login",
-        {
-          body: {
-            username: username,
-            password: password,
-            grant_type: "password",
-          } as any,
-          bodySerializer(body) {
-            const params = new URLSearchParams();
-            for (const [key, value] of Object.entries(
-              body as Record<string, string>,
-            )) {
-              params.append(key, value);
-            }
-            return params.toString();
-          },
-          headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-          },
+      const { data, error } = await client.POST("/api/v1/auth/login", {
+        body: {
+          username: username,
+          password: password,
+          grant_type: "password",
+        } as any,
+        bodySerializer(body) {
+          const params = new URLSearchParams();
+          for (const [key, value] of Object.entries(body as Record<string, string>)) {
+            params.append(key, value);
+          }
+          return params.toString();
         },
-      );
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+        },
+      });
 
       if (error) {
         setError(error);
@@ -71,9 +66,7 @@ export function Login() {
           <div className="mx-auto bg-brand-subtle p-3 rounded-md text-tone-brand-fg mb-2">
             <LogIn size={28} />
           </div>
-          <h1 className="text-2xl font-display font-bold text-content">
-            登录 BNDSphere
-          </h1>
+          <h1 className="text-2xl font-display font-bold text-content">登录 BNDSphere</h1>
           <p className="text-content-muted text-sm">请输入您的账号密码</p>
         </div>
 
@@ -83,14 +76,9 @@ export function Login() {
           </div>
         )}
 
-        <form
-          onSubmit={handleLogin}
-          className="flex flex-col gap-5 relative z-10"
-        >
+        <form onSubmit={handleLogin} className="flex flex-col gap-5 relative z-10">
           <div>
-            <label className="block text-sm font-medium text-content mb-1.5 ml-1">
-              用户名
-            </label>
+            <label className="block text-sm font-medium text-content mb-1.5 ml-1">用户名</label>
             <input
               type="text"
               value={username}
@@ -101,9 +89,7 @@ export function Login() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-content mb-1.5 ml-1">
-              密码
-            </label>
+            <label className="block text-sm font-medium text-content mb-1.5 ml-1">密码</label>
             <input
               type="password"
               value={password}

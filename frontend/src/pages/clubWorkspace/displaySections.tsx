@@ -25,59 +25,44 @@ type StarRating = components["schemas"]["StarRatingResponse"];
  */
 export function LoadErrorsSection({ errors }: { errors: Record<string, unknown> }) {
   return (
-            <Surface density="compact">
-    <SectionTitle density="compact"
-      title="加载反馈"
-      description="以下内容直接来自后端响应。"
-    />
-    <div className="grid gap-3">
-      {Object.entries(errors).map(([key, value]) => (
-        <div key={key}>
-          <InlineError
-            value={`${key}: ${stringifyBackendValue(value)}`}
-          />
-        </div>
-      ))}
-    </div>
-            </Surface>
+    <Surface density="compact">
+      <SectionTitle density="compact" title="加载反馈" description="以下内容直接来自后端响应。" />
+      <div className="grid gap-3">
+        {Object.entries(errors).map(([key, value]) => (
+          <div key={key}>
+            <InlineError value={`${key}: ${stringifyBackendValue(value)}`} />
+          </div>
+        ))}
+      </div>
+    </Surface>
   );
 }
 
 export function ClubHeaderSection({ club }: { club: ClubInfo }) {
   return (
-            <Surface density="compact">
-    <div className="flex flex-col md:flex-row md:items-center gap-5">
-      <div className="w-20 h-20 rounded-md bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden border border-edge">
-        {club.logo_uri ? (
-          <img
-            src={club.logo_uri}
-            alt={club.name}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <Hash className="text-content-subtle" size={30} />
-        )}
-      </div>
-      <div className="flex-1">
-        <div className="flex flex-wrap gap-2 mb-2">
-          <CategoryChip category={club.category} />
-          <StarLevel level={club.star_level} />
+    <Surface density="compact">
+      <div className="flex flex-col md:flex-row md:items-center gap-5">
+        <div className="w-20 h-20 rounded-md bg-surface-hover flex items-center justify-center shrink-0 overflow-hidden border border-edge">
+          {club.logo_uri ? (
+            <img src={club.logo_uri} alt={club.name} className="w-full h-full object-cover" />
+          ) : (
+            <Hash className="text-content-subtle" size={30} />
+          )}
         </div>
-        <h2 className="text-2xl font-display font-bold text-content">
-          {club.name}
-        </h2>
-        <p className="text-content-muted mt-1">{club.summary}</p>
+        <div className="flex-1">
+          <div className="flex flex-wrap gap-2 mb-2">
+            <CategoryChip category={club.category} />
+            <StarLevel level={club.star_level} />
+          </div>
+          <h2 className="text-2xl font-display font-bold text-content">{club.name}</h2>
+          <p className="text-content-muted mt-1">{club.summary}</p>
+        </div>
       </div>
-    </div>
-            </Surface>
+    </Surface>
   );
 }
 
-export function StarRatingSection({
-  starRating,
-}: {
-  starRating: StarRating | null;
-}) {
+export function StarRatingSection({ starRating }: { starRating: StarRating | null }) {
   return (
     <Surface density="compact">
       <SectionTitle density="compact" icon={<Sparkles size={20} />} title="星级评价" />
@@ -93,22 +78,14 @@ export function StarRatingSection({
             </p>
           </div>
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-            <Badge tone="brand">
-              会议出勤 {starRating.breakdown.meeting_attendance}
-            </Badge>
-            <Badge tone="brand">
-              活动参与 {starRating.breakdown.activity_participation}
-            </Badge>
-            <Badge tone="brand">
-              内部活动 {starRating.breakdown.internal_activities}
-            </Badge>
-            <Badge tone="brand">
-              社团历史 {starRating.breakdown.club_history}
-            </Badge>
+            <Badge tone="brand">会议出勤 {starRating.breakdown.meeting_attendance}</Badge>
+            <Badge tone="brand">活动参与 {starRating.breakdown.activity_participation}</Badge>
+            <Badge tone="brand">内部活动 {starRating.breakdown.internal_activities}</Badge>
+            <Badge tone="brand">社团历史 {starRating.breakdown.club_history}</Badge>
           </div>
           <p className="text-sm text-content-muted">
-            内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
-            {starRating.club_age_years} 年。
+            内部活动 {starRating.internal_activity_count} 次，社团年限 {starRating.club_age_years}{" "}
+            年。
           </p>
         </div>
       ) : (

@@ -1,12 +1,6 @@
 import { useMemo, useState } from "react";
 import type React from "react";
-import {
-  CalendarDays,
-  Plus,
-  Save,
-  Trash2,
-  X,
-} from "@/src/components/ui/Icons";
+import { CalendarDays, Plus, Save, Trash2, X } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../../api/client";
 import type { components } from "../../api/schema";
@@ -53,20 +47,14 @@ export function ActivityEditorPanel({
 }) {
   const [activityName, setActivityName] = useState("");
   const [activityDescription, setActivityDescription] = useState("");
-  const [activityLevel, setActivityLevel] =
-    useState<ActivityLevel>("club_federation");
+  const [activityLevel, setActivityLevel] = useState<ActivityLevel>("club_federation");
   const [isCreating, setIsCreating] = useState(false);
-  const [activityEditorMode, setActivityEditorMode] = useState<
-    "create" | "update" | null
-  >(null);
+  const [activityEditorMode, setActivityEditorMode] = useState<"create" | "update" | null>(null);
 
-  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(
-    null,
-  );
+  const [selectedActivityId, setSelectedActivityId] = useState<number | null>(null);
   const [editActivityName, setEditActivityName] = useState("");
   const [editActivityDescription, setEditActivityDescription] = useState("");
-  const [editActivityLevel, setEditActivityLevel] =
-    useState<ActivityLevel>("club_federation");
+  const [editActivityLevel, setEditActivityLevel] = useState<ActivityLevel>("club_federation");
   const [isEditing, setIsEditing] = useState(false);
 
   const selectedActivity = useMemo(
@@ -79,16 +67,13 @@ export function ActivityEditorPanel({
     setIsCreating(true);
     feedback.clear();
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/club-federation/general-activity/",
-        {
-          body: {
-            name: activityName,
-            description: activityDescription,
-            level: activityLevel,
-          },
+      const { data, error } = await client.POST("/api/v1/club-federation/general-activity/", {
+        body: {
+          name: activityName,
+          description: activityDescription,
+          level: activityLevel,
         },
-      );
+      });
       feedback.report(error, "大型活动已创建");
       if (!error) {
         setActivityName("");
@@ -185,7 +170,8 @@ export function ActivityEditorPanel({
   return (
     <Surface density="compact">
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <SectionTitle density="compact"
+        <SectionTitle
+          density="compact"
           className="mb-0"
           icon={<CalendarDays size={20} />}
           title="管理大型活动"
@@ -198,12 +184,7 @@ export function ActivityEditorPanel({
           <Plus size={16} /> 新建大型活动
         </SecondaryButton>
       </div>
-      <div
-        className={cn(
-          "grid gap-6",
-          activityEditorMode && "lg:grid-cols-[0.95fr_1.05fr]",
-        )}
-      >
+      <div className={cn("grid gap-6", activityEditorMode && "lg:grid-cols-[0.95fr_1.05fr]")}>
         <div className="grid gap-3">
           {isLoading ? (
             <LoadingRows />
@@ -215,25 +196,19 @@ export function ActivityEditorPanel({
                 onClick={() => loadActivityForEdit(activity)}
                 className={cn(
                   "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
-                  selectedActivityId === activity.id &&
-                    "border-tone-brand-edge bg-brand-subtle",
+                  selectedActivityId === activity.id && "border-tone-brand-edge bg-brand-subtle",
                 )}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge tone="brand">
-                    {ACTIVITY_LEVEL_MAP[activity.level]}
-                  </Badge>
+                  <Badge tone="brand">{ACTIVITY_LEVEL_MAP[activity.level]}</Badge>
                   <Badge>{activity.club_records?.length || 0} 条记录</Badge>
                 </div>
-                <h3 className="mt-3 font-semibold text-content">
-                  {activity.name}
-                </h3>
+                <h3 className="mt-3 font-semibold text-content">{activity.name}</h3>
                 <p className="mt-1 line-clamp-2 text-sm text-content-muted">
                   {activity.description}
                 </p>
                 <p className="mt-2 text-xs font-medium text-content-subtle">
-                  #{activity.id} ·{" "}
-                  {formatDate(activity.starts_at || activity.created_at)}
+                  #{activity.id} · {formatDate(activity.starts_at || activity.created_at)}
                 </p>
               </button>
             ))
@@ -251,14 +226,9 @@ export function ActivityEditorPanel({
                     <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
                       新建活动
                     </p>
-                    <h3 className="mt-1 font-bold text-content">
-                      创建大型活动
-                    </h3>
+                    <h3 className="mt-1 font-bold text-content">创建大型活动</h3>
                   </div>
-                  <SecondaryButton
-                    type="button"
-                    onClick={closeActivityEditor}
-                  >
+                  <SecondaryButton type="button" onClick={closeActivityEditor}>
                     <X size={16} /> 收起
                   </SecondaryButton>
                 </div>
@@ -274,9 +244,7 @@ export function ActivityEditorPanel({
                   <select
                     className={selectClassName}
                     value={activityLevel}
-                    onChange={(event) =>
-                      setActivityLevel(event.target.value as ActivityLevel)
-                    }
+                    onChange={(event) => setActivityLevel(event.target.value as ActivityLevel)}
                   >
                     {ACTIVITY_LEVEL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -289,9 +257,7 @@ export function ActivityEditorPanel({
                   <textarea
                     className={textareaClassName}
                     value={activityDescription}
-                    onChange={(event) =>
-                      setActivityDescription(event.target.value)
-                    }
+                    onChange={(event) => setActivityDescription(event.target.value)}
                     required
                   />
                 </Field>
@@ -311,10 +277,7 @@ export function ActivityEditorPanel({
                     </h3>
                   </div>
                   <div className="flex flex-wrap gap-2">
-                    <SecondaryButton
-                      type="button"
-                      onClick={closeActivityEditor}
-                    >
+                    <SecondaryButton type="button" onClick={closeActivityEditor}>
                       <X size={16} /> 收起
                     </SecondaryButton>
                     <Link
@@ -323,10 +286,7 @@ export function ActivityEditorPanel({
                     >
                       详情
                     </Link>
-                    <DangerButton
-                      type="button"
-                      onClick={() => deleteActivity(selectedActivity)}
-                    >
+                    <DangerButton type="button" onClick={() => deleteActivity(selectedActivity)}>
                       <Trash2 size={16} /> 删除
                     </DangerButton>
                   </div>
@@ -335,9 +295,7 @@ export function ActivityEditorPanel({
                   <input
                     className={inputClassName}
                     value={editActivityName}
-                    onChange={(event) =>
-                      setEditActivityName(event.target.value)
-                    }
+                    onChange={(event) => setEditActivityName(event.target.value)}
                     required
                   />
                 </Field>
@@ -345,11 +303,7 @@ export function ActivityEditorPanel({
                   <select
                     className={selectClassName}
                     value={editActivityLevel}
-                    onChange={(event) =>
-                      setEditActivityLevel(
-                        event.target.value as ActivityLevel,
-                      )
-                    }
+                    onChange={(event) => setEditActivityLevel(event.target.value as ActivityLevel)}
                   >
                     {ACTIVITY_LEVEL_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
@@ -362,9 +316,7 @@ export function ActivityEditorPanel({
                   <textarea
                     className={textareaClassName}
                     value={editActivityDescription}
-                    onChange={(event) =>
-                      setEditActivityDescription(event.target.value)
-                    }
+                    onChange={(event) => setEditActivityDescription(event.target.value)}
                   />
                 </Field>
                 <PrimaryButton type="submit" loading={isEditing}>

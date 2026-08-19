@@ -2,7 +2,7 @@
  * Presentational helpers for the federation workbench — pure view components
  * with no state, moved out so the page file holds workflow, not markup.
  */
-import React, {  } from "react";
+import React from "react";
 import { Check, Clock, X } from "@/src/components/ui/Icons";
 import type { components } from "../../api/schema";
 import { MODERATION_STATUS_MAP } from "../../lib/labels";
@@ -14,10 +14,8 @@ import {
   SecondaryButton,
 } from "../../components/ui/AppPrimitives";
 
-type ActivityCreateRequest =
-  components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest =
-  components["schemas"]["ClubActivityUpdateRequestInfo"];
+type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
+type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
 type ActivityModerationKind = "create" | "update";
 
@@ -27,20 +25,6 @@ type ActivityModerationKind = "create" | "update";
  * Pure view components with no state of their own, moved out of Federation.tsx
  * so the page file holds workflow rather than markup fragments.
  */
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 export function LoadingRows() {
   return (
@@ -84,9 +68,7 @@ export function ActivityRequestList({
     <div className="grid gap-3">
       <div className="flex items-center justify-between">
         <h3 className="font-bold text-content">{title}</h3>
-        <Badge tone={items.length ? "warning" : "neutral"}>
-          {items.length} 条待处理
-        </Badge>
+        <Badge tone={items.length ? "warning" : "neutral"}>{items.length} 条待处理</Badge>
       </div>
       {items.length ? (
         items.map((item) => {
@@ -99,9 +81,7 @@ export function ActivityRequestList({
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                 <div>
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="warning">
-                      {MODERATION_STATUS_MAP[item.moderation_status]}
-                    </Badge>
+                    <Badge tone="warning">{MODERATION_STATUS_MAP[item.moderation_status]}</Badge>
                     <span className="text-xs font-medium text-content-subtle">
                       申请 #{item.id} · {getActivityRequestTarget(item)}
                     </span>
@@ -146,9 +126,7 @@ export function ActivityRequestList({
   );
 }
 
-export function renderActivityRequestDetails(
-  item: ActivityCreateRequest | ActivityUpdateRequest,
-) {
+export function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpdateRequest) {
   const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
 
   if ("club_id" in item) {
@@ -160,20 +138,13 @@ export function renderActivityRequestDetails(
   if ("name" in item) rows.push(["名称", item.name]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item) {
-    rows.push([
-      "开始时间",
-      item.start_time ? formatDateTime(item.start_time) : null,
-    ]);
+    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
   }
   if ("end_time" in item) {
-    rows.push([
-      "结束时间",
-      item.end_time ? formatDateTime(item.end_time) : null,
-    ]);
+    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
   }
   if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item)
-    rows.push(["图片", item.picture_urls?.join("\n")]);
+  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
   return (
@@ -181,18 +152,14 @@ export function renderActivityRequestDetails(
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[72px_1fr] gap-3 text-sm">
           <span className="font-semibold text-content-muted">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-content">
-            {String(value)}
-          </span>
+          <span className="whitespace-pre-wrap break-words text-content">{String(value)}</span>
         </div>
       ))}
     </div>
   );
 }
 
-export function getActivityRequestTarget(
-  item: ActivityCreateRequest | ActivityUpdateRequest,
-) {
+export function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
   if ("club_id" in item) return `社团 #${item.club_id}`;
   return `原活动 #${item.club_activity_id}`;
 }

@@ -34,15 +34,7 @@ const DIST_ASSETS = "dist/assets";
  * mapping" in a comment would otherwise be read as the utility `to-tone`.
  */
 const NAMESPACES_STANDALONE = ["surface", "content", "edge", "brand"];
-const NAMESPACES_SUFFIXED = [
-  "primary",
-  "secondary",
-  "tone",
-  "category",
-  "level",
-  "star",
-  "accent",
-];
+const NAMESPACES_SUFFIXED = ["primary", "secondary", "tone", "category", "level", "star", "accent"];
 
 // NOTE: these two lists are the gate's entire scope. When a token family is added
 // or renamed, add it here in the same commit — renaming `cat` to `category` once
@@ -92,8 +84,7 @@ function walk(dir) {
   for (const entry of readdirSync(dir)) {
     const p = join(dir, entry);
     if (statSync(p).isDirectory()) out.push(...walk(p));
-    else if ([".ts", ".tsx", ".css", ".js", ".jsx"].includes(extname(p)))
-      out.push(p);
+    else if ([".ts", ".tsx", ".css", ".js", ".jsx"].includes(extname(p))) out.push(p);
   }
   return out;
 }
@@ -105,14 +96,10 @@ function toSelector(cls) {
 
 const cssFiles = readdirSync(DIST_ASSETS).filter((f) => f.endsWith(".css"));
 if (cssFiles.length === 0) {
-  console.error(
-    "gate1: no CSS found in dist/assets — run `vite build` before this check",
-  );
+  console.error("gate1: no CSS found in dist/assets — run `vite build` before this check");
   process.exit(2);
 }
-const css = cssFiles
-  .map((f) => readFileSync(join(DIST_ASSETS, f), "utf8"))
-  .join("\n");
+const css = cssFiles.map((f) => readFileSync(join(DIST_ASSETS, f), "utf8")).join("\n");
 
 const found = new Map(); // class -> Set of "file:line"
 for (const file of walk(SRC)) {
@@ -136,12 +123,8 @@ console.log(
 );
 
 if (missing.length > 0) {
-  console.error(
-    `\ngate1 FAILED — ${missing.length} utility/utilities produce no CSS rule:\n`,
-  );
-  for (const { cls, sites } of missing.sort((a, b) =>
-    a.cls.localeCompare(b.cls),
-  )) {
+  console.error(`\ngate1 FAILED — ${missing.length} utility/utilities produce no CSS rule:\n`);
+  for (const { cls, sites } of missing.sort((a, b) => a.cls.localeCompare(b.cls))) {
     console.error(`  ${cls}`);
     for (const s of sites) console.error(`      ${s}`);
   }

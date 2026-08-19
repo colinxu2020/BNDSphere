@@ -78,15 +78,12 @@ export function StarLevelApplications() {
       exit={{ opacity: 0, y: -10 }}
       className="mx-auto w-full max-w-7xl px-4 py-6 sm:px-6 lg:px-8 flex flex-col gap-6"
     >
-      <PageHeader density="compact"
+      <PageHeader
+        density="compact"
         eyebrow="Star Level"
         title="星级评价"
         action={
-          <SecondaryButton
-            type="button"
-            onClick={fetchApplications}
-            disabled={isLoading}
-          >
+          <SecondaryButton type="button" onClick={fetchApplications} disabled={isLoading}>
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
         }
@@ -95,16 +92,16 @@ export function StarLevelApplications() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface density="compact" className="flex items-center justify-center py-16 text-content-muted">
+        <Surface
+          density="compact"
+          className="flex items-center justify-center py-16 text-content-muted"
+        >
           正在加载星级评价表...
         </Surface>
       ) : applications.length ? (
         <div className="flex flex-col gap-4">
           {applications.map((application) => (
-            <StarApplicationCard
-              key={application.id}
-              application={application}
-            />
+            <StarApplicationCard key={application.id} application={application} />
           ))}
         </div>
       ) : (
@@ -114,12 +111,7 @@ export function StarLevelApplications() {
   );
 }
 
-function StarApplicationCard({
-  application,
-}: {
-  key?: Key;
-  application: StarApplication;
-}) {
+function StarApplicationCard({ application }: { key?: Key; application: StarApplication }) {
   const auditStatus = application.audit_status;
   const targetGrades = [
     application.target_grade_1 ? GRADE_MAP[application.target_grade_1] : null,
@@ -151,9 +143,7 @@ function StarApplicationCard({
               </Link>
               <CategoryChip category={application.club.category} size="sm" />
               {auditStatus && (
-                <Badge tone={AUDIT_TONE[auditStatus]}>
-                  {AUDIT_STATUS_MAP[auditStatus]}
-                </Badge>
+                <Badge tone={AUDIT_TONE[auditStatus]}>{AUDIT_STATUS_MAP[auditStatus]}</Badge>
               )}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-content-muted">
@@ -171,18 +161,13 @@ function StarApplicationCard({
         </div>
 
         <div className="grid grid-cols-2 gap-3 text-sm sm:grid-cols-4 lg:min-w-[360px]">
-          <Metric
-            label="申请竞赛分"
-            value={application.requested_contest_score}
-          />
+          <Metric label="申请竞赛分" value={application.requested_contest_score} />
           <Metric label="最终竞赛分" value={application.final_contest_score} />
           <Metric label="审核总分" value={application.approved_score} />
           <Metric
             label="评定星级"
             value={
-              application.approved_level
-                ? STAR_LEVEL_MAP[application.approved_level]
-                : "未评定"
+              application.approved_level ? STAR_LEVEL_MAP[application.approved_level] : "未评定"
             }
           />
         </div>
@@ -203,21 +188,11 @@ function StarApplicationCard({
             label="目标级部"
             value={targetGrades.length ? targetGrades.join("、") : "未填写"}
           />
-          <InfoRow
-            label="特色认可"
-            value={approvalText(application.uniqueness_approved)}
-          />
-          <InfoRow
-            label="成长故事"
-            value={approvalText(application.growth_story_approved)}
-          />
+          <InfoRow label="特色认可" value={approvalText(application.uniqueness_approved)} />
+          <InfoRow label="成长故事" value={approvalText(application.growth_story_approved)} />
           <div className="mt-1 flex flex-wrap gap-2">
-            <ExternalLinkButton href={application.contest_attachment}>
-              竞赛附件
-            </ExternalLinkButton>
-            <ExternalLinkButton href={application.growth_story_url}>
-              成长故事
-            </ExternalLinkButton>
+            <ExternalLinkButton href={application.contest_attachment}>竞赛附件</ExternalLinkButton>
+            <ExternalLinkButton href={application.growth_story_url}>成长故事</ExternalLinkButton>
           </div>
         </div>
       </div>
@@ -225,13 +200,7 @@ function StarApplicationCard({
   );
 }
 
-function Metric({
-  label,
-  value,
-}: {
-  label: string;
-  value?: number | string | null;
-}) {
+function Metric({ label, value }: { label: string; value?: number | string | null }) {
   return (
     <div className="rounded-md border border-edge-subtle bg-surface-sunken px-3 py-2">
       <div className="text-xs font-semibold text-content-subtle">{label}</div>
@@ -249,13 +218,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
   );
 }
 
-function ExternalLinkButton({
-  href,
-  children,
-}: {
-  href?: string | null;
-  children: string;
-}) {
+function ExternalLinkButton({ href, children }: { href?: string | null; children: string }) {
   if (!href) return null;
   return (
     <a

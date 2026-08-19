@@ -60,12 +60,9 @@ export function Moderation() {
 
     try {
       if (activeQueue === "users") {
-        const { data, error } = await client.GET(
-          "/api/v1/moderations/users/update-requests",
-          {
-            params: { query: { size: 50 } },
-          },
-        );
+        const { data, error } = await client.GET("/api/v1/moderations/users/update-requests", {
+          params: { query: { size: 50 } },
+        });
         if (error) setError(error);
         setItems(data?.items || []);
       }
@@ -93,12 +90,9 @@ export function Moderation() {
       }
 
       if (activeQueue === "clubUpdate") {
-        const { data, error } = await client.GET(
-          "/api/v1/moderations/clubs/update-requests",
-          {
-            params: { query: { size: 50 } },
-          },
-        );
+        const { data, error } = await client.GET("/api/v1/moderations/clubs/update-requests", {
+          params: { query: { size: 50 } },
+        });
         if (error) setError(error);
         setItems(data?.items || []);
       }
@@ -114,10 +108,7 @@ export function Moderation() {
     fetchQueue();
   }, [activeQueue]);
 
-  const moderate = async (
-    requestId: number,
-    moderationStatus: ModerationStatus,
-  ) => {
+  const moderate = async (requestId: number, moderationStatus: ModerationStatus) => {
     setBusyId(requestId);
     action.clear();
     const body = { moderation_status: moderationStatus };
@@ -126,13 +117,10 @@ export function Moderation() {
       let result: { data?: unknown; error?: unknown } = {};
 
       if (activeQueue === "users") {
-        result = await client.PATCH(
-          "/api/v1/moderations/users/update-requests/{request_id}",
-          {
-            params: { path: { request_id: requestId } },
-            body,
-          },
-        );
+        result = await client.PATCH("/api/v1/moderations/users/update-requests/{request_id}", {
+          params: { path: { request_id: requestId } },
+          body,
+        });
       }
 
       if (activeQueue === "activityCreate") {
@@ -156,13 +144,10 @@ export function Moderation() {
       }
 
       if (activeQueue === "clubUpdate") {
-        result = await client.PATCH(
-          "/api/v1/moderations/clubs/update-requests/{request_id}",
-          {
-            params: { path: { request_id: requestId } },
-            body,
-          },
-        );
+        result = await client.PATCH("/api/v1/moderations/clubs/update-requests/{request_id}", {
+          params: { path: { request_id: requestId } },
+          body,
+        });
       }
 
       if (result.error) {
@@ -197,9 +182,7 @@ export function Moderation() {
               <p className="font-display text-[11px] font-bold tracking-[0.18em] text-tone-brand-fg uppercase">
                 Moderation
               </p>
-              <h1 className="font-display text-2xl font-bold text-content">
-                审核台
-              </h1>
+              <h1 className="font-display text-2xl font-bold text-content">审核台</h1>
             </div>
             <SecondaryButton onClick={fetchQueue} disabled={isLoading}>
               <RefreshCw size={15} /> 刷新
@@ -227,9 +210,7 @@ export function Moderation() {
               </button>
             ))}
           </div>
-          <p className="mt-2 text-xs text-content-muted">
-            {activeMeta?.description}
-          </p>
+          <p className="mt-2 text-xs text-content-muted">{activeMeta?.description}</p>
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto p-3">
@@ -283,8 +264,7 @@ export function Moderation() {
                         </span>
                       </div>
                       <p className="mt-1.5 inline-flex items-center gap-1.5 text-[11px] font-medium text-content-subtle">
-                        <Clock size={12} /> {formatDateTime(item.request_at)} · #
-                        {item.id}
+                        <Clock size={12} /> {formatDateTime(item.request_at)} · #{item.id}
                       </p>
                     </button>
                   </li>
@@ -307,9 +287,7 @@ export function Moderation() {
                   <Badge tone={AUDIT_TONE[selected.moderation_status ?? "pending"]}>
                     {MODERATION_STATUS_MAP[selected.moderation_status]}
                   </Badge>
-                  <span className="text-xs font-semibold text-content-subtle">
-                    #{selected.id}
-                  </span>
+                  <span className="text-xs font-semibold text-content-subtle">#{selected.id}</span>
                 </div>
                 <h2 className="font-display mt-2 text-2xl font-bold text-content">
                   {getTargetLabel(selected)}
@@ -348,9 +326,7 @@ export function Moderation() {
         ) : (
           <div className="flex h-full min-h-64 flex-col items-center justify-center p-10 text-center">
             <Inbox size={28} className="mb-3 text-content-subtle" />
-            <p className="font-display text-lg font-bold text-content">
-              从左侧选择一条请求
-            </p>
+            <p className="font-display text-lg font-bold text-content">从左侧选择一条请求</p>
             <p className="mt-1 max-w-sm text-sm text-content-muted">
               申请内容与审核操作会显示在这里，处理后列表不会跳走。
             </p>

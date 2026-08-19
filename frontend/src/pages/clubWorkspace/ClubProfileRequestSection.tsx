@@ -55,17 +55,14 @@ export function ClubProfileRequestSection({
     setIsClubSubmitting(true);
     clubFeedback.clear();
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/clubs/{club_id}/update-requests",
-        {
-          params: { path: { club_id: clubId } },
-          body: {
-            summary: nullableText(clubSummary),
-            description: nullableText(clubDescription),
-            logo_uri: nullableText(clubLogo),
-          },
+      const { data, error } = await client.POST("/api/v1/clubs/{club_id}/update-requests", {
+        params: { path: { club_id: clubId } },
+        body: {
+          summary: nullableText(clubSummary),
+          description: nullableText(clubDescription),
+          logo_uri: nullableText(clubLogo),
         },
-      );
+      });
       if (error) {
         clubFeedback.fail(error);
       } else {

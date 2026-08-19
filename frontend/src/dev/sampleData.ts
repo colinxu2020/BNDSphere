@@ -45,21 +45,71 @@ function makeClub(
 }
 
 export const SAMPLE_CLUBS: ClubInfo[] = [
-  makeClub(1, "天文社", "science", "five_star", "观测、天体摄影与每月公开夜话。社员共同维护校园天文台与两台反射式望远镜。", 48),
-  makeClub(2, "辩论社", "humanity", "honorary", "议会制与政策辩论，承办市级邀请赛，历年稳定进入四强。", 36),
-  makeClub(3, "民乐团", "arts", "four_star", "四十人编制，古筝、二胡、笛箫与打击乐，每学期举办专场音乐会。", 41),
+  makeClub(
+    1,
+    "天文社",
+    "science",
+    "five_star",
+    "观测、天体摄影与每月公开夜话。社员共同维护校园天文台与两台反射式望远镜。",
+    48,
+  ),
+  makeClub(
+    2,
+    "辩论社",
+    "humanity",
+    "honorary",
+    "议会制与政策辩论，承办市级邀请赛，历年稳定进入四强。",
+    36,
+  ),
+  makeClub(
+    3,
+    "民乐团",
+    "arts",
+    "four_star",
+    "四十人编制，古筝、二胡、笛箫与打击乐，每学期举办专场音乐会。",
+    41,
+  ),
   makeClub(4, "篮球社", "sports", "three_star", "校队选拔与院际联赛组织，每周三次训练。", 62),
-  makeClub(5, "金融投资社", "business", "two_star", "模拟投资组合、财报研读与商赛培训，与校友基金合作开展导师制。", 27),
-  makeClub(6, "支教志愿社", "charity", "five_star", "对接京郊两所小学的长期课业辅导，累计志愿时长超过三千小时。", 55),
-  makeClub(7, "校园媒体中心", "campus", "one_star", "校刊、公众号与活动摄影，负责各类大型活动的影像记录。", 33),
-  makeClub(8, "桌游社", "other", "none", "策略与合作类桌游，每周五晚固定开放，欢迎零基础同学。", 19),
+  makeClub(
+    5,
+    "金融投资社",
+    "business",
+    "two_star",
+    "模拟投资组合、财报研读与商赛培训，与校友基金合作开展导师制。",
+    27,
+  ),
+  makeClub(
+    6,
+    "支教志愿社",
+    "charity",
+    "five_star",
+    "对接京郊两所小学的长期课业辅导，累计志愿时长超过三千小时。",
+    55,
+  ),
+  makeClub(
+    7,
+    "校园媒体中心",
+    "campus",
+    "one_star",
+    "校刊、公众号与活动摄影，负责各类大型活动的影像记录。",
+    33,
+  ),
+  makeClub(
+    8,
+    "桌游社",
+    "other",
+    "none",
+    "策略与合作类桌游，每周五晚固定开放，欢迎零基础同学。",
+    19,
+  ),
 ];
 
 export const SAMPLE_ACTIVITIES: GeneralActivity[] = [
   {
     id: 11,
     name: "2026 秋季社团招新嘉年华",
-    description: "全校六十余个社团集中展示与招新，主会场设在体育馆及东侧广场，包含舞台展演与摊位体验两个环节。",
+    description:
+      "全校六十余个社团集中展示与招新，主会场设在体育馆及东侧广场，包含舞台展演与摊位体验两个环节。",
     level: "school",
     starts_at: "2026-09-05T01:00:00Z",
     ends_at: "2026-09-05T09:00:00Z",

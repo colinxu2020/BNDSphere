@@ -56,16 +56,9 @@ export function ClubCard({
         )}
       >
         {club.logo_uri ? (
-          <img
-            src={club.logo_uri}
-            alt={club.name}
-            className="h-full w-full object-cover"
-          />
+          <img src={club.logo_uri} alt={club.name} className="h-full w-full object-cover" />
         ) : (
-          <Hash
-            className="text-content-subtle stroke-[1.5]"
-            size={isCompact ? 22 : 28}
-          />
+          <Hash className="text-content-subtle stroke-[1.5]" size={isCompact ? 22 : 28} />
         )}
       </div>
 
@@ -86,9 +79,7 @@ export function ClubCard({
           {club.name}
         </h3>
 
-        <p className="mt-1 line-clamp-2 text-sm text-content-muted">
-          {club.summary}
-        </p>
+        <p className="mt-1 line-clamp-2 text-sm text-content-muted">{club.summary}</p>
 
         {!isCompact && (
           <p className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-content-subtle">

@@ -66,19 +66,13 @@ export function Profile() {
     update.clear();
 
     try {
-      const { data, error } = await client.POST(
-        "/api/v1/users/update-requests",
-        {
-          body: {
-            username: updateUsername !== user?.username ? updateUsername : null,
-            description:
-              updateDescription !== user?.description
-                ? updateDescription
-                : null,
-            avatar_uri: updateAvatar !== user?.avatar_uri ? updateAvatar : null,
-          },
+      const { data, error } = await client.POST("/api/v1/users/update-requests", {
+        body: {
+          username: updateUsername !== user?.username ? updateUsername : null,
+          description: updateDescription !== user?.description ? updateDescription : null,
+          avatar_uri: updateAvatar !== user?.avatar_uri ? updateAvatar : null,
         },
-      );
+      });
 
       if (error) {
         update.fail(error);
@@ -116,9 +110,7 @@ export function Profile() {
       className="flex flex-col gap-8 max-w-3xl mx-auto w-full mt-4"
     >
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-display font-bold text-content">
-          我的主页
-        </h1>
+        <h1 className="text-3xl font-display font-bold text-content">我的主页</h1>
         <button
           onClick={handleLogout}
           className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-tone-danger-fg bg-tone-danger-bg rounded-md hover:bg-tone-danger-bg-hover transition-colors"
@@ -155,12 +147,8 @@ export function Profile() {
           </div>
 
           <div className="flex flex-col gap-1">
-            <h2 className="text-2xl font-bold text-content">
-              {user.username}
-            </h2>
-            {user.email && (
-              <p className="text-content-muted font-medium">{user.email}</p>
-            )}
+            <h2 className="text-2xl font-bold text-content">{user.username}</h2>
+            {user.email && <p className="text-content-muted font-medium">{user.email}</p>}
 
             <div className="flex items-center gap-2 mt-3">
               <span className="px-2.5 py-1 bg-brand-subtle text-tone-brand-fg text-xs font-bold uppercase tracking-wider rounded-lg border border-tone-brand-edge">
@@ -174,12 +162,8 @@ export function Profile() {
 
           {user.description && (
             <div className="mt-8 p-5 bg-surface-sunken rounded-md border border-edge-subtle">
-              <h3 className="text-sm font-bold text-content mb-2 font-display">
-                个人简介
-              </h3>
-              <p className="text-content-muted leading-relaxed">
-                {user.description}
-              </p>
+              <h3 className="text-sm font-bold text-content mb-2 font-display">个人简介</h3>
+              <p className="text-content-muted leading-relaxed">{user.description}</p>
             </div>
           )}
         </div>
@@ -208,9 +192,7 @@ export function Profile() {
                 <X size={20} />
               </button>
 
-              <h2 className="text-2xl font-display font-bold text-content mb-2">
-                修改资料
-              </h2>
+              <h2 className="text-2xl font-display font-bold text-content mb-2">修改资料</h2>
               <p className="text-sm text-content-muted mb-6">
                 修改资料将被提交至管理员审核，审核通过后生效。
               </p>
@@ -221,10 +203,7 @@ export function Profile() {
                 </div>
               )}
 
-              <form
-                onSubmit={submitUpdateRequest}
-                className="flex flex-col gap-4"
-              >
+              <form onSubmit={submitUpdateRequest} className="flex flex-col gap-4">
                 <div>
                   <label className="block text-sm font-medium text-content mb-1.5 ml-1">
                     用户名

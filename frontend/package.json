@@ -17,7 +17,7 @@
     "check:palette": "node scripts/check-raw-palette.mjs",
     "check:contrast": "node scripts/check-scheme-contrast.mjs",
     "generate:api": "node ./node_modules/openapi-typescript/bin/cli.js openapi.json -o src/api/schema.d.ts",
-    "verify": "npm run typecheck && npm run lint && npm run build && npm run check:tokens && npm run check:palette && npm run check:contrast"
+    "verify": "npm run format:check && npm run typecheck && npm run lint && npm run build && npm run check:tokens && npm run check:palette && npm run check:contrast"
   },
   "dependencies": {
     "@fontsource/inter": "^5.3.0",

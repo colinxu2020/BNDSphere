@@ -1,6 +1,5 @@
 from collections.abc import Sequence
 from datetime import UTC, datetime
-from typing import cast
 
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
