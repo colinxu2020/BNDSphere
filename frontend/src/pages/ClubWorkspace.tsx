@@ -663,7 +663,7 @@ export function ClubWorkspace() {
                       onClick={() => selectActivityForUpdate(activityItem)}
                       className={`rounded-md border p-4 text-left transition hover:bg-surface ${
                         updateActivityId === String(activityItem.id)
-                          ? "border-primary-200 bg-brand-subtle"
+                          ? "border-tone-brand-edge bg-brand-subtle"
                           : "border-edge-subtle bg-surface-sunken"
                       }`}
                     >
@@ -1025,7 +1025,7 @@ export function ClubWorkspace() {
                       onClick={() => selectStarApplication(application)}
                       className={`rounded-md border p-5 text-left transition hover:bg-surface ${
                         starUpdateId === String(application.id)
-                          ? "border-primary-200 bg-brand-subtle"
+                          ? "border-tone-brand-edge bg-brand-subtle"
                           : "border-edge-subtle bg-surface-sunken"
                       }`}
                     >

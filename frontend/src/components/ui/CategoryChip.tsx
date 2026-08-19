@@ -28,14 +28,14 @@ type ClubCategory = components["schemas"]["ClubCategoryEnum"];
  * Tailwind scans source as text and never sees a constructed class name.
  */
 const CHIP: Record<ClubCategory, string> = {
-  science: "bg-cat-science-bg text-cat-science-fg border-cat-science-edge",
-  humanity: "bg-cat-humanity-bg text-cat-humanity-fg border-cat-humanity-edge",
-  arts: "bg-cat-arts-bg text-cat-arts-fg border-cat-arts-edge",
-  sports: "bg-cat-sports-bg text-cat-sports-fg border-cat-sports-edge",
-  business: "bg-cat-business-bg text-cat-business-fg border-cat-business-edge",
-  charity: "bg-cat-charity-bg text-cat-charity-fg border-cat-charity-edge",
-  campus: "bg-cat-campus-bg text-cat-campus-fg border-cat-campus-edge",
-  other: "bg-cat-other-bg text-cat-other-fg border-cat-other-edge",
+  science: "bg-category-science-bg text-category-science-fg border-category-science-edge",
+  humanity: "bg-category-humanity-bg text-category-humanity-fg border-category-humanity-edge",
+  arts: "bg-category-arts-bg text-category-arts-fg border-category-arts-edge",
+  sports: "bg-category-sports-bg text-category-sports-fg border-category-sports-edge",
+  business: "bg-category-business-bg text-category-business-fg border-category-business-edge",
+  charity: "bg-category-charity-bg text-category-charity-fg border-category-charity-edge",
+  campus: "bg-category-campus-bg text-category-campus-fg border-category-campus-edge",
+  other: "bg-category-other-bg text-category-other-fg border-category-other-edge",
 };
 
 /**
@@ -47,14 +47,14 @@ const CHIP: Record<ClubCategory, string> = {
  * rule because it is an edge, not a fill.
  */
 const SPINE: Record<ClubCategory, string> = {
-  science: "border-l-cat-science-fg",
-  humanity: "border-l-cat-humanity-fg",
-  arts: "border-l-cat-arts-fg",
-  sports: "border-l-cat-sports-fg",
-  business: "border-l-cat-business-fg",
-  charity: "border-l-cat-charity-fg",
-  campus: "border-l-cat-campus-fg",
-  other: "border-l-cat-other-fg",
+  science: "border-l-category-science-fg",
+  humanity: "border-l-category-humanity-fg",
+  arts: "border-l-category-arts-fg",
+  sports: "border-l-category-sports-fg",
+  business: "border-l-category-business-fg",
+  charity: "border-l-category-charity-fg",
+  campus: "border-l-category-campus-fg",
+  other: "border-l-category-other-fg",
 };
 
 /** Pair with `border-l-4` on the element. */

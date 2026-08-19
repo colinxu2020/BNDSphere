@@ -230,54 +230,54 @@
      which would make a 校级 activity chip look like a 科学 club chip. Kept away
      from the status tones too: a level is what an activity IS, not how it is
      doing. Same small-element rule as categories. */
-  --color-lvl-school-bg: var(--lvl-school-bg);
-  --color-lvl-school-fg: var(--lvl-school-fg);
-  --color-lvl-school-edge: var(--lvl-school-edge);
+  --color-level-school-bg: var(--level-school-bg);
+  --color-level-school-fg: var(--level-school-fg);
+  --color-level-school-edge: var(--level-school-edge);
 
-  --color-lvl-large-bg: var(--lvl-large-bg);
-  --color-lvl-large-fg: var(--lvl-large-fg);
-  --color-lvl-large-edge: var(--lvl-large-edge);
+  --color-level-large-bg: var(--level-large-bg);
+  --color-level-large-fg: var(--level-large-fg);
+  --color-level-large-edge: var(--level-large-edge);
 
-  --color-lvl-federation-bg: var(--lvl-federation-bg);
-  --color-lvl-federation-fg: var(--lvl-federation-fg);
-  --color-lvl-federation-edge: var(--lvl-federation-edge);
+  --color-level-federation-bg: var(--level-federation-bg);
+  --color-level-federation-fg: var(--level-federation-fg);
+  --color-level-federation-edge: var(--level-federation-edge);
 
   /* Club category identity. Eight fixed treatments so a category reads the same
      colour everywhere. Hues vary in lightness as well as hue, so they stay
      distinguishable without relying on hue perception and survive inversion.
      Category colour is for small elements only — chip, left border, icon field —
      never a large surface. 其他 (other) is deliberately neutral. */
-  --color-cat-science-bg: var(--cat-science-bg);
-  --color-cat-science-fg: var(--cat-science-fg);
-  --color-cat-science-edge: var(--cat-science-edge);
+  --color-category-science-bg: var(--category-science-bg);
+  --color-category-science-fg: var(--category-science-fg);
+  --color-category-science-edge: var(--category-science-edge);
 
-  --color-cat-humanity-bg: var(--cat-humanity-bg);
-  --color-cat-humanity-fg: var(--cat-humanity-fg);
-  --color-cat-humanity-edge: var(--cat-humanity-edge);
+  --color-category-humanity-bg: var(--category-humanity-bg);
+  --color-category-humanity-fg: var(--category-humanity-fg);
+  --color-category-humanity-edge: var(--category-humanity-edge);
 
-  --color-cat-arts-bg: var(--cat-arts-bg);
-  --color-cat-arts-fg: var(--cat-arts-fg);
-  --color-cat-arts-edge: var(--cat-arts-edge);
+  --color-category-arts-bg: var(--category-arts-bg);
+  --color-category-arts-fg: var(--category-arts-fg);
+  --color-category-arts-edge: var(--category-arts-edge);
 
-  --color-cat-sports-bg: var(--cat-sports-bg);
-  --color-cat-sports-fg: var(--cat-sports-fg);
-  --color-cat-sports-edge: var(--cat-sports-edge);
+  --color-category-sports-bg: var(--category-sports-bg);
+  --color-category-sports-fg: var(--category-sports-fg);
+  --color-category-sports-edge: var(--category-sports-edge);
 
-  --color-cat-business-bg: var(--cat-business-bg);
-  --color-cat-business-fg: var(--cat-business-fg);
-  --color-cat-business-edge: var(--cat-business-edge);
+  --color-category-business-bg: var(--category-business-bg);
+  --color-category-business-fg: var(--category-business-fg);
+  --color-category-business-edge: var(--category-business-edge);
 
-  --color-cat-charity-bg: var(--cat-charity-bg);
-  --color-cat-charity-fg: var(--cat-charity-fg);
-  --color-cat-charity-edge: var(--cat-charity-edge);
+  --color-category-charity-bg: var(--category-charity-bg);
+  --color-category-charity-fg: var(--category-charity-fg);
+  --color-category-charity-edge: var(--category-charity-edge);
 
-  --color-cat-campus-bg: var(--cat-campus-bg);
-  --color-cat-campus-fg: var(--cat-campus-fg);
-  --color-cat-campus-edge: var(--cat-campus-edge);
+  --color-category-campus-bg: var(--category-campus-bg);
+  --color-category-campus-fg: var(--category-campus-fg);
+  --color-category-campus-edge: var(--category-campus-edge);
 
-  --color-cat-other-bg: var(--cat-other-bg);
-  --color-cat-other-fg: var(--cat-other-fg);
-  --color-cat-other-edge: var(--cat-other-edge);
+  --color-category-other-bg: var(--category-other-bg);
+  --color-category-other-fg: var(--category-other-fg);
+  --color-category-other-edge: var(--category-other-edge);
 }
 
 /* --- Light scheme values --------------------------------------------------- */
@@ -345,33 +345,33 @@
 
   /* Category hues, chosen as a set. Foregrounds are dark steps for AA contrast
      on their own tinted background. */
-  --cat-science-bg: #ecfeff; /* cyan */
-  --cat-science-fg: #0e7490;
-  --cat-science-edge: #cffafe;
+  --category-science-bg: #ecfeff; /* cyan */
+  --category-science-fg: #0e7490;
+  --category-science-edge: #cffafe;
 
-  --cat-humanity-bg: #f5f3ff; /* violet */
-  --cat-humanity-fg: #6d28d9;
-  --cat-humanity-edge: #ede9fe;
+  --category-humanity-bg: #f5f3ff; /* violet */
+  --category-humanity-fg: #6d28d9;
+  --category-humanity-edge: #ede9fe;
 
-  --cat-arts-bg: #fdf2f8; /* pink */
-  --cat-arts-fg: #be185d;
-  --cat-arts-edge: #fce7f3;
+  --category-arts-bg: #fdf2f8; /* pink */
+  --category-arts-fg: #be185d;
+  --category-arts-edge: #fce7f3;
 
-  --cat-sports-bg: #fff7ed; /* orange */
-  --cat-sports-fg: #c2410c;
-  --cat-sports-edge: #ffedd5;
+  --category-sports-bg: #fff7ed; /* orange */
+  --category-sports-fg: #c2410c;
+  --category-sports-edge: #ffedd5;
 
-  --cat-business-bg: #fefce8; /* yellow, darker fg than sports */
-  --cat-business-fg: #a16207;
-  --cat-business-edge: #fef9c3;
+  --category-business-bg: #fefce8; /* yellow, darker fg than sports */
+  --category-business-fg: #a16207;
+  --category-business-edge: #fef9c3;
 
-  --cat-charity-bg: #f0fdf4; /* green */
-  --cat-charity-fg: #15803d;
-  --cat-charity-edge: #dcfce7;
+  --category-charity-bg: #f0fdf4; /* green */
+  --category-charity-fg: #15803d;
+  --category-charity-edge: #dcfce7;
 
-  --cat-campus-bg: #eef2ff; /* indigo */
-  --cat-campus-fg: #4338ca;
-  --cat-campus-edge: #e0e7ff;
+  --category-campus-bg: #eef2ff; /* indigo */
+  --category-campus-fg: #4338ca;
+  --category-campus-edge: #e0e7ff;
 
   --star-bg: #fffbeb;
   --star-text: #92400e;
@@ -380,21 +380,21 @@
   --star-unearned: #847e78;
   --star-seal: #92400e;
 
-  --lvl-school-bg: #eef2ff; /* indigo-leaning, the widest scope */
-  --lvl-school-fg: #3730a3;
-  --lvl-school-edge: #e0e7ff;
+  --level-school-bg: #eef2ff; /* indigo-leaning, the widest scope */
+  --level-school-fg: #3730a3;
+  --level-school-edge: #e0e7ff;
 
-  --lvl-large-bg: #fdf4ff; /* fuchsia, the most prominent */
-  --lvl-large-fg: #a21caf;
-  --lvl-large-edge: #fae8ff;
+  --level-large-bg: #fdf4ff; /* fuchsia, the most prominent */
+  --level-large-fg: #a21caf;
+  --level-large-edge: #fae8ff;
 
-  --lvl-federation-bg: #f0fdfa; /* the federation's own teal */
-  --lvl-federation-fg: #0f766e;
-  --lvl-federation-edge: #ccfbf1;
+  --level-federation-bg: #f0fdfa; /* the federation's own teal */
+  --level-federation-fg: #0f766e;
+  --level-federation-edge: #ccfbf1;
 
-  --cat-other-bg: #f8fafc; /* neutral by design */
-  --cat-other-fg: #475569;
-  --cat-other-edge: #e2e8f0;
+  --category-other-bg: #f8fafc; /* neutral by design */
+  --category-other-fg: #475569;
+  --category-other-edge: #e2e8f0;
 }
 
 /* --- Dark scheme values ---------------------------------------------------
@@ -468,33 +468,33 @@
     --tone-danger-fg: #fca5a5;
     --tone-danger-edge: #991b1b;
 
-    --cat-science-bg: #083344;
-    --cat-science-fg: #67e8f9;
-    --cat-science-edge: #155e75;
+    --category-science-bg: #083344;
+    --category-science-fg: #67e8f9;
+    --category-science-edge: #155e75;
 
-    --cat-humanity-bg: #2e1065;
-    --cat-humanity-fg: #c4b5fd;
-    --cat-humanity-edge: #5b21b6;
+    --category-humanity-bg: #2e1065;
+    --category-humanity-fg: #c4b5fd;
+    --category-humanity-edge: #5b21b6;
 
-    --cat-arts-bg: #500724;
-    --cat-arts-fg: #f9a8d4;
-    --cat-arts-edge: #9d174d;
+    --category-arts-bg: #500724;
+    --category-arts-fg: #f9a8d4;
+    --category-arts-edge: #9d174d;
 
-    --cat-sports-bg: #431407;
-    --cat-sports-fg: #fdba74;
-    --cat-sports-edge: #9a3412;
+    --category-sports-bg: #431407;
+    --category-sports-fg: #fdba74;
+    --category-sports-edge: #9a3412;
 
-    --cat-business-bg: #422006;
-    --cat-business-fg: #fde047;
-    --cat-business-edge: #854d0e;
+    --category-business-bg: #422006;
+    --category-business-fg: #fde047;
+    --category-business-edge: #854d0e;
 
-    --cat-charity-bg: #052e16;
-    --cat-charity-fg: #86efac;
-    --cat-charity-edge: #166534;
+    --category-charity-bg: #052e16;
+    --category-charity-fg: #86efac;
+    --category-charity-edge: #166534;
 
-    --cat-campus-bg: #1e1b4b;
-    --cat-campus-fg: #a5b4fc;
-    --cat-campus-edge: #3730a3;
+    --category-campus-bg: #1e1b4b;
+    --category-campus-fg: #a5b4fc;
+    --category-campus-edge: #3730a3;
 
     --star-bg: #422006;
     --star-text: #fcd34d;
@@ -503,21 +503,21 @@
     --star-unearned: #8a7a5c;
     --star-seal: #fde68a;
 
-    --lvl-school-bg: #1e1b4b;
-    --lvl-school-fg: #a5b4fc;
-    --lvl-school-edge: #3730a3;
+    --level-school-bg: #1e1b4b;
+    --level-school-fg: #a5b4fc;
+    --level-school-edge: #3730a3;
 
-    --lvl-large-bg: #4a044e;
-    --lvl-large-fg: #f0abfc;
-    --lvl-large-edge: #86198f;
+    --level-large-bg: #4a044e;
+    --level-large-fg: #f0abfc;
+    --level-large-edge: #86198f;
 
-    --lvl-federation-bg: #042f2e;
-    --lvl-federation-fg: #5eead4;
-    --lvl-federation-edge: #115e59;
+    --level-federation-bg: #042f2e;
+    --level-federation-fg: #5eead4;
+    --level-federation-edge: #115e59;
 
-    --cat-other-bg: #1e293b;
-    --cat-other-fg: #cbd5e1;
-    --cat-other-edge: #334154;
+    --category-other-bg: #1e293b;
+    --category-other-fg: #cbd5e1;
+    --category-other-edge: #334154;
   }
 }
 

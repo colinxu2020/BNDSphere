@@ -585,7 +585,7 @@ export function Federation() {
                   className={cn(
                     "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedRecordId === record.id &&
-                      "border-primary-200 bg-brand-subtle",
+                      "border-tone-brand-edge bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -713,7 +713,7 @@ export function Federation() {
                   className={cn(
                     "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedStarId === application.id &&
-                      "border-primary-200 bg-brand-subtle",
+                      "border-tone-brand-edge bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
@@ -911,7 +911,7 @@ export function Federation() {
                   className={cn(
                     "rounded-md border border-edge-subtle bg-surface-sunken p-4 text-left transition hover:bg-surface",
                     selectedActivityId === activity.id &&
-                      "border-primary-200 bg-brand-subtle",
+                      "border-tone-brand-edge bg-brand-subtle",
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">

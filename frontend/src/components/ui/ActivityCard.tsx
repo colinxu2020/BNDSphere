@@ -19,16 +19,16 @@ type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
  * constructed class name.
  */
 const LEVEL_CHIP: Record<ActivityLevel, string> = {
-  school: "bg-lvl-school-bg text-lvl-school-fg border-lvl-school-edge",
-  large: "bg-lvl-large-bg text-lvl-large-fg border-lvl-large-edge",
+  school: "bg-level-school-bg text-level-school-fg border-level-school-edge",
+  large: "bg-level-large-bg text-level-large-fg border-level-large-edge",
   club_federation:
-    "bg-lvl-federation-bg text-lvl-federation-fg border-lvl-federation-edge",
+    "bg-level-federation-bg text-level-federation-fg border-level-federation-edge",
 };
 
 const LEVEL_SPINE: Record<ActivityLevel, string> = {
-  school: "border-l-lvl-school-fg",
-  large: "border-l-lvl-large-fg",
-  club_federation: "border-l-lvl-federation-fg",
+  school: "border-l-level-school-fg",
+  large: "border-l-level-large-fg",
+  club_federation: "border-l-level-federation-fg",
 };
 
 export function ActivityLevelChip({

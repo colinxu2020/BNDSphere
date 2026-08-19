@@ -34,7 +34,19 @@ const DIST_ASSETS = "dist/assets";
  * mapping" in a comment would otherwise be read as the utility `to-tone`.
  */
 const NAMESPACES_STANDALONE = ["surface", "content", "edge", "brand"];
-const NAMESPACES_SUFFIXED = ["primary", "secondary", "tone", "cat"];
+const NAMESPACES_SUFFIXED = [
+  "primary",
+  "secondary",
+  "tone",
+  "category",
+  "level",
+  "star",
+  "accent",
+];
+
+// NOTE: these two lists are the gate's entire scope. When a token family is added
+// or renamed, add it here in the same commit — renaming `cat` to `category` once
+// silently dropped 32 utilities from the check while every gate still reported OK.
 
 /** Utility prefixes that resolve against a colour token. */
 const PROPERTIES = [
