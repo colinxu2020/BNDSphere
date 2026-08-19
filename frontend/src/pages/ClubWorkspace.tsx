@@ -14,6 +14,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
+import { EditorHeader, sameStringArray } from "./clubWorkspace/helpers";
 import { useActionFeedback } from "../lib/useActionFeedback";
 import { CategoryChip } from "../components/ui/CategoryChip";
 import { StarLevel, StarLevelCompact } from "../components/ui/StarLevel";
@@ -1188,38 +1189,3 @@ export function ClubWorkspace() {
     </motion.div>
   );
 }
-
-function EditorHeader({
-  eyebrow,
-  title,
-  onClose,
-}: {
-  eyebrow: string;
-  title: string;
-  onClose: () => void;
-}) {
-  return (
-    <div className="flex items-start justify-between gap-4">
-      <div className="min-w-0">
-        <p className="text-xs font-semibold uppercase tracking-wider text-content-subtle">
-          {eyebrow}
-        </p>
-        <h3 className="mt-1 truncate font-bold text-content">{title}</h3>
-      </div>
-      <button
-        type="button"
-        onClick={onClose}
-        className="inline-flex shrink-0 items-center gap-1 rounded-md px-2 py-1 text-sm font-semibold text-content-muted transition hover:bg-surface-hover hover:text-content"
-        aria-label="收起编辑区域"
-      >
-        <X size={16} /> 收起
-      </button>
-    </div>
-  );
-}
-
-function sameStringArray(left: string[], right: string[]) {
-  if (left.length !== right.length) return false;
-  return left.every((item, index) => item === right[index]);
-}
-
