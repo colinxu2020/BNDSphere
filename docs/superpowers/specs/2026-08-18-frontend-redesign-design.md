@@ -97,6 +97,7 @@ not warn. Both classes look plausible and compile clean.
 | 5 Identity + visual language | done — §4.6 |
 | 6 Workflow extraction → decomposition | partial — §6.1b, §6.1c |
 | 7 Gate 4 validation | **partly automated** — see §7 Gate 4 |
+| 8 Layout restructure (A+B) | done — §10b |
 
 Nothing in Phases 1–6 has been visually reviewed on a real device in either scheme. The
 gates prove the tokens resolve and the types hold; they say nothing about whether it looks
@@ -855,6 +856,41 @@ already shown in the product, so that stays a separate decision.
 
 The OpenAPI client is regenerated from the live spec and a `generate:api` script
 records the invocation.
+
+## 10b. Layout restructure — A+B (2026-08-19)
+
+Phases 0–7 changed the design system and deliberately preserved the layout. This phase
+changed the layout, after three working prototypes were built as dev-only routes and the
+hybrid was chosen from screens rather than descriptions.
+
+**Shell — rail + drawer.** A persistent 240px navigation rail replaces the topbar. Nine
+destinations across six roles were previously three links plus five hidden in an avatar
+dropdown, with `/moderation` in neither. One `nav.ts` definition renders as the rail on
+desktop and inside the drawer on mobile, so the two cannot drift; role predicates mirror
+what the backend enforces. The mobile bottom bar is gone — it could hold three of nine —
+and the hamburger returns with something real to open. `main` is a bare flex container so
+master–detail pages can fill it; the standard pages carry their own container.
+
+Verified by walking **every role** against real `/users/me` responses, which found that a
+banned account saw the same rail as a normal user: it holds a valid token but `/users/me`
+answers 403, so authenticated items keyed off the token alone. Those items now require a
+resolved profile, while the footer still keys off the token so 退出登录 stays reachable.
+
+**Home — the 展板 wall.** One scannable masonry surface of posted things: poster tile at
+poster proportions, notices slip, club cards with category spine and gold rank, activity
+tiles, month grid. CSS columns rather than a grid, so tiles of different heights pack.
+
+**Explore and 审核台 — master–detail.** List and item side by side, selection in the query
+string so it is linkable and survives reload; single pane below `xl`. For the moderation
+queues this replaced a stack of fully expanded request cards, and it is where the shape
+pays off most.
+
+Clicking through 审核台 for real found two feedback bugs, one of them pre-existing and
+significant: `fetchQueue()` began with `action.clear()` and `moderate()` calls it on
+success, so **moderators had never received confirmation that an approval landed.**
+
+**Pages verified after the restructure:** all 14 routes render with the rail and no
+crashes, in light and dark, at 1512px and 390px/2×.
 
 ## 9. Accepted risks
 
