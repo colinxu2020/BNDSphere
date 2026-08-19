@@ -86,6 +86,16 @@ Measured in a worktree at `413c48d`; the branch builds clean (1.68s, 36.82 kB CS
 | `lint` script | `tsc --noEmit`, not run in CI |
 | CI gate on `frontend/**` | Docker image build only (`docker.yml`) |
 
+> **Correction (2026-08-19).** The last two rows were accurate when this spec was
+> committed (2026-08-18 21:18) and stopped being accurate 37 minutes later.
+> `a169ddb` "chore: refresh quality checks and frontend tooling" installed ESLint,
+> split `lint` (now `eslint .`) from `typecheck` (now `tsc --noEmit`), and rewrote
+> `conventional-checks.yml` so its frontend job runs `format:check`, `lint`,
+> `typecheck`, `build` and `npm audit` on every pull request. So `frontend/**` was
+> never gated by the Docker build alone, and `tsc --noEmit` was already running in
+> CI throughout this redesign. Every claim to the contrary elsewhere in this
+> document, and in PR #37's description, was stale rather than observed. See Gate 3.
+
 Two utilities referenced by `AppPrimitives` produce **no rule at all** in the compiled
 CSS, confirmed by grepping `dist/assets/*.css` (0 occurrences of either token):
 
@@ -806,9 +816,21 @@ legible.
 
 ### Gate 3 — `tsc --noEmit` as a separate CI step
 
-Required. `vite build` transpiles TypeScript but does **not** type-check it, so the
-Docker build is not a type-safety gate. The script already exists and never runs
-automatically.
+**Already satisfied upstream; nothing to add.** The reasoning below is still correct —
+`vite build` transpiles TypeScript but does **not** type-check it, so the Docker build
+is not a type-safety gate — but the conclusion drawn from it was wrong. `npm run
+typecheck` has run in `conventional-checks.yml`'s frontend job, on every pull request,
+since `a169ddb` (2026-08-18 21:55). This gate needed no work.
+
+*Process failure worth recording.* Acting on the stale baseline above, this redesign
+added a second workflow, `frontend-checks.yml`, whose stated purpose was to close a gap
+that was already closed — and which duplicated `typecheck`, `lint` and `build` while
+drifting to Node 24 against the existing job's 22 and `actions/*@v4` against its `@v6`.
+Caught in review on #37 by Copilot, which read `.github/workflows/` rather than this
+spec. The workflow is deleted; its three genuinely new gates now live as three steps in
+the existing frontend job, which already had `concurrency`, `timeout-minutes` and a
+least-privilege `permissions` block. Node there is now 24, matching
+`infra/Dockerfile.Caddy`'s `node:24-alpine` builder.
 
 *Phase 2 finding — the gate was weaker than this section assumed.* `@types/react` and
 `@types/react-dom` were **not installed at all**, and with `allowJs: true` TypeScript was
@@ -854,7 +876,7 @@ direction is built on and matches what dark mode already did. Hover therefore br
 rather than darkens. `--brand-strong` was added for thin non-text accents and all focus
 rings, since the vivid teal is below the 3:1 that 1.4.11 asks of focus indicators.
 
-It runs in `npm run verify` and CI. It cannot tell you how the type sits, how PingFang
+It runs in `npm run verify` and in `conventional-checks.yml`. It cannot tell you how the type sits, how PingFang
 renders a heading, whether the gold reads as an honour, or how the offsets look on an OLED
 phone.
 

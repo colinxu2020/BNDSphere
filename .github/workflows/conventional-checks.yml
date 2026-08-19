@@ -64,7 +64,9 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v6
         with:
-          node-version: 22
+          # Matches infra/Dockerfile.Caddy's `node:24-alpine` builder, so CI and the
+          # image that ships are on the same major.
+          node-version: 24
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
@@ -82,6 +84,25 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      # The three design-system gates from the redesign design spec, section 7.
+      # They need the build above: all three read the compiled CSS in dist/.
+      #
+      # Gate 1 — every utility depending on our design-token namespaces must
+      # resolve to a real rule in the compiled CSS, not silently produce nothing.
+      - name: Validate design-token utilities
+        run: npm run check:tokens
+
+      # Gate 2 — raw Tailwind palette steps cannot follow the dark scheme, so
+      # their count must never rise.
+      - name: Check raw-palette ratchet
+        run: npm run check:palette
+
+      # Gate 4, the automatable part — every semantic token defined in both
+      # schemes, and every contrast pair the design system asserts meeting its
+      # threshold. The platform matrix and type rendering still need a human.
+      - name: Check scheme completeness and contrast
+        run: npm run check:contrast
 
       - name: Audit dependencies
         run: npm audit --audit-level=high
