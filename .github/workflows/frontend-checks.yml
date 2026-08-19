@@ -20,6 +20,12 @@ on:
       - ".github/workflows/frontend-checks.yml"
   workflow_dispatch:
 
+# Least privilege, matching conventional-checks.yml and togitee.yaml. These jobs only
+# ever read the checkout — nothing here writes to the repo, comments on the PR, or
+# uploads results. Flagged by CodeQL on #37 (rule: workflow does not contain permissions).
+permissions:
+  contents: read
+
 jobs:
   checks:
     runs-on: ubuntu-latest
