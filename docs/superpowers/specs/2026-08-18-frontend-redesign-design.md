@@ -29,28 +29,41 @@ master's `#29` (VerificationMixin club-president approval) or `#32` (avatar/logo
 upload security fix). Reconciling that is outside this design's scope but must not be
 forgotten.
 
-### 1.1b Merge-order dependency (2026-08-19)
+### 1.1b Upstream integration — done, and a correction (2026-08-19)
 
-This branch now carries **backend** commits as well as frontend ones (§8b), on a
-backend that still lacks `#29` and `#32`. That creates an ordering requirement, not a
-conflict:
+**An earlier version of this section was wrong.** It stated that `release/26.08.21`
+lacked master's `4f670e7` (社长审核新社员入社, VerificationMixin) and `733f948`
+(头像/徽标 URL 上传验证漏洞), and recorded a merge-order dependency on that basis. That
+inference came from `master` being ahead of the merge base, which is not the same as the
+release branch lacking those commits — it was never verified with `--is-ancestor`.
 
-- The API additions are **purely additive** and touch only new files plus three
-  existing ones in ways `#29`/`#32` do not: a new route in `api/v1/clubs.py`, a new
-  sub-router mounted in `api/v1/moderations/__init__.py`, new methods appended to the
-  club/user/club-activity repositories and services, and a new schema in
-  `schemas/club.py` / `schemas/moderations/moderation_common.py`.
-- **Nothing here re-implements, reverts or works around `#29`/`#32`.** Neither was
-  touched, by instruction.
-- **Before release, master's backend must reach this branch** (or this branch must
-  merge into a line that already has it). Merging this branch alone would ship the
-  redesign on a backend missing a security fix.
+In fact **upstream had already integrated them.** `origin/release/26.08.21` moved on from
+`413c48d`, where this branch forked, via `8e2e85a` (merge master) and `f1ce657` (repair
+release merge integration). Both fixes are ancestors of its current tip. No master
+integration was ever required.
 
-Recommended order: bring `#29`/`#32` into `release/26.08.21` first, then merge this
-branch on top. The additive shape means the reverse also works, but it leaves a
-window where the deployable tip lacks `#32`.
+Also: the `#29`/`#32` numbers come from squash-merge commit *subjects*. Since this repo
+mirrors from `gitee.com/bjbnds/BNDSphere` they are most likely **Gitee** PR numbers and do
+not resolve on GitHub. Refer to upstream work by SHA and subject.
 
-### 1.2 Goal
+**This branch has now merged its parent** (`2df8da5`), so it carries both fixes. 23
+conflicts, resolved by category — see the merge commit for the full account. Two worth
+noting here:
+
+- `ClubDetail` needed a real **port**, not a side-take: upstream's join flow POSTs
+  `/clubs/{club_id}/membership-requests` with a message, because joining is now a request
+  a president approves. Taking our side blindly would have left the join button calling a
+  superseded endpoint.
+- `package.json` must take **upstream's build toolchain**. Merging ours over theirs kept
+  `vite ^6.2.3` against their `@vitejs/plugin-react ^6.0.5` and broke the build with
+  `ERR_PACKAGE_PATH_NOT_EXPORTED`. It is now vite 8.2.1 / plugin-react 6.0.5.
+
+Upstream's **ESLint and Prettier** stack now applies here. All 49 errors it reported are
+fixed; 14 warnings remain (react-refresh on helper modules, and one `exhaustive-deps` on a
+dependency array preserved verbatim from before the refactor). `verify` runs `typecheck`
+and `lint` before the build and the design gates.
+
+### 1.2 Goal### 1.2 Goal
 
 A new visual direction — not a consolidation of the existing one. Energetic and
 youthful, appropriate to a school club platform, supporting desktop and mobile with
@@ -891,6 +904,36 @@ success, so **moderators had never received confirmation that an approval landed
 
 **Pages verified after the restructure:** all 14 routes render with the rail and no
 crashes, in light and dark, at 1512px and 390px/2×.
+
+## 8c. Release checklist (2026-08-19)
+
+Decisions taken for this release, recorded so they are not relitigated:
+
+- [ ] **Gate 4 real-device pass.** Typography, CJK rendering, gold/contrast, hard-offset
+      elevation and responsive behaviour on real macOS / Windows / iOS / Android in both
+      schemes. `/_dev/specimen` puts the whole system on one page. **No further
+      speculative visual tweaks are to be made in a dev environment** — this is a
+      device-verification task, not a design task.
+- [x] **Upstream security fix integrated.** §1.1b. Both fixes present via the parent
+      merge; migrations applied including `c3d9f1a2b7e4` and upstream's `e1a4b6c8d0f2`
+      head merge.
+- [x] **Critical paths re-verified after integration.** Application submit and moderation
+      approve, both through the UI against the live API — see §8d.
+- [x] **`member_count` semantics unchanged.** It still counts all membership rows, matching
+      what clients previously computed from `len(members)`. Switching to active-members-only
+      is a product/data-semantics change and is explicitly **out of scope for this
+      release**; handle it separately.
+
+## 8d. Critical-path verification after integration (2026-08-19)
+
+**Application submit** — a non-member on `/club/4` presses 加入社团: the prompt collects a
+message, the request POSTs to `/clubs/{club_id}/membership-requests`, 「加入申请已提交」
+renders, the button stops offering to join, and the backend shows the request pending with
+its message against the right applicant. Verified at both API and UI level.
+
+**Moderation approve** — on `/moderation`, selecting a pending 社团资料 request and pressing
+通过 took `club_update_requests` 1 → 0 and the total 1 → 0, the item left the queue, the
+detail pane fell back to its empty state, and **「操作已完成」 stayed visible**.
 
 ## 9. Accepted risks
 
