@@ -52,10 +52,10 @@ body {
 /* Class-based dark mode: Tailwind v4 utilities all resolve to var(--color-*),
    so re-pointing the palette flips the whole app — variants, opacity modifiers
    and all — without touching 700 call sites.
-   ponytail: neutrals are inverted wholesale (bg-slate-900 + text-white buttons
-   invert correctly by construction); tints only remap the shades actually used
-   as chip surfaces (50/100) and chip text (600/700), so bg-*-500 dots and the
-   yellow star icons stay bright in both themes. */
+   Neutrals are inverted wholesale, so bg-slate-900 + text-white buttons come out
+   dark-on-light by construction. Tints only remap the shades actually used as chip
+   surfaces (50/100) and chip text (600/700), which leaves bg-*-500 dots and the
+   yellow star icons bright in both themes. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* The brand lockup is navy line art on transparency: legible on the light
