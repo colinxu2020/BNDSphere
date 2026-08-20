@@ -364,7 +364,7 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
       href={active.article_url || `/activities/${active.id}`}
       target={active.article_url ? "_blank" : undefined}
       rel="noreferrer"
-      className="group relative block bg-slate-950 lg:h-full"
+      className="group relative block bg-[#020617] lg:h-full"
     >
       {active.poster_uri ? (
         <img
@@ -373,11 +373,11 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
           className="block h-auto w-full lg:h-full lg:object-fill"
         />
       ) : (
-        <div className="flex aspect-[16/7] items-center justify-center bg-slate-800 text-slate-500">
+        <div className="flex aspect-[16/7] items-center justify-center bg-[#1e293b] text-slate-500">
           <Image size={42} />
         </div>
       )}
-      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold tracking-tight text-white drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
+      <h1 className="absolute bottom-4 left-4 right-4 text-xl font-bold tracking-tight text-[white] drop-shadow-[0_2px_8px_rgba(15,23,42,0.9)]">
         {active.name}
       </h1>
     </a>

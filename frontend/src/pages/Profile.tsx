@@ -179,7 +179,7 @@ export function Profile() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="absolute inset-0 bg-slate-900/40 "
+              className="absolute inset-0 bg-black/40 "
               onClick={() => setIsUpdateModalOpen(false)}
             />
             <motion.div
