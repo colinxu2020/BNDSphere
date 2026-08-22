@@ -60,7 +60,7 @@ ALTER SCHEMA db_meta OWNER TO app_owner;
 ALTER SCHEMA app OWNER TO app_owner;
 ALTER SCHEMA extensions OWNER TO app_owner;
 
-REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM app_user;
 REVOKE ALL ON SCHEMA public FROM migration_user;
 
