@@ -9,13 +9,13 @@ COMPOSE_DEV   := docker-compose.dev.yml
 COMPOSE_BUILD := docker-compose.build.yml
 COMPOSE_TEST  := docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_DEV)
 
-.PHONY: secrets build-dev test
+.PHONY: secrets build test
 
 secrets: ## Generate local secrets under secrets/ (idempotent)
 	./scripts/gen-secrets.sh
 
-build-dev: ## Build the bndsphere-backend:dev image used by the test service
-	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_BUILD) build backend-dev
+build: ## Build the postgres and bndsphere-backend:dev images used by the test service
+	docker compose -f $(COMPOSE_BASE) -f $(COMPOSE_BUILD) build postgres backend-dev
 
-test: secrets build-dev ## Generate secrets, build dev image, run the pytest suite
+test: secrets build ## Generate secrets, build images, run the pytest suite
 	$(COMPOSE_TEST) --profile test run test
