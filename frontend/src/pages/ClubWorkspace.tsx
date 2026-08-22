@@ -517,9 +517,17 @@ export function ClubWorkspace() {
         eyebrow="Workspace"
         title={club?.name || `社团 #${clubId} 工作台`}
         action={
-          <SecondaryButton onClick={() => refresh()} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to={`/club/${clubId}/joint-activities/manage`}
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
+            >
+              <CalendarDays size={16} /> 联合活动
+            </Link>
+            <SecondaryButton onClick={() => refresh()} disabled={isLoading}>
+              <RefreshCw size={16} /> 刷新
+            </SecondaryButton>
+          </div>
         }
       />
 

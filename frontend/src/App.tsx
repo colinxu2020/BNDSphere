@@ -16,6 +16,10 @@ import { Moderation } from "./pages/Moderation";
 import { Admin } from "./pages/Admin";
 import { Federation } from "./pages/Federation";
 import { StarLevelApplications } from "./pages/StarLevelApplications";
+import { JointActivities } from "./pages/JointActivities";
+import { JointActivityDetail } from "./pages/JointActivityDetail";
+import { JointActivityWorkspace } from "./pages/JointActivityWorkspace";
+import { FederationJointActivities } from "./pages/FederationJointActivities";
 
 function LayoutWrapper() {
   return (
@@ -47,6 +51,10 @@ const router = createBrowserRouter([
         element: <ClubWorkspace />,
       },
       {
+        path: "club/:id/joint-activities/manage",
+        element: <JointActivityWorkspace />,
+      },
+      {
         path: "clubs/new",
         element: <CreateClub />,
       },
@@ -57,6 +65,14 @@ const router = createBrowserRouter([
       {
         path: "activities/:id",
         element: <GeneralActivityDetail />,
+      },
+      {
+        path: "joint-activities",
+        element: <JointActivities />,
+      },
+      {
+        path: "joint-activities/:id",
+        element: <JointActivityDetail />,
       },
       {
         path: "users/:id",
@@ -81,6 +97,10 @@ const router = createBrowserRouter([
       {
         path: "federation",
         element: <Federation />,
+      },
+      {
+        path: "federation/joint-activities",
+        element: <FederationJointActivities />,
       },
       {
         path: "profile",

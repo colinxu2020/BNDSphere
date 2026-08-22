@@ -17,6 +17,7 @@ class UploadScene(StrEnum):
     CLUB_LOGO = "club_logo"
     ACTIVITY_POSTER = "activity_poster"
     APPLICATION_FILE = "application_file"
+    JOINT_ACTIVITY_ARCHIVE = "joint_activity_archive"
 
 
 # Single source of truth for scene -> object-key prefix, shared by the upload
@@ -29,6 +30,7 @@ SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
         UploadScene.CLUB_LOGO: "club_logo",
         UploadScene.ACTIVITY_POSTER: "activity_poster",
         UploadScene.APPLICATION_FILE: "application_files",
+        UploadScene.JOINT_ACTIVITY_ARCHIVE: "joint_activity_archives",
     },
 )
 
@@ -92,11 +94,23 @@ def _validate_activity_poster_uri(url: HttpUrl | None) -> HttpUrl | None:
     return ensure_uploaded_object_url(UploadScene.ACTIVITY_POSTER, url)
 
 
+def _validate_joint_activity_archive_uri(url: str) -> str:
+    validated = ensure_uploaded_object_url(
+        UploadScene.JOINT_ACTIVITY_ARCHIVE,
+        HttpUrl(url),
+    )
+    return str(validated)
+
+
 AvatarUri = Annotated[HttpUrl | None, AfterValidator(_validate_avatar_uri)]
 LogoUri = Annotated[HttpUrl | None, AfterValidator(_validate_logo_uri)]
 ActivityPosterUri = Annotated[
     HttpUrl | None,
     AfterValidator(_validate_activity_poster_uri),
+]
+JointActivityArchiveUri = Annotated[
+    str,
+    AfterValidator(_validate_joint_activity_archive_uri),
 ]
 
 

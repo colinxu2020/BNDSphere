@@ -26,6 +26,7 @@ from app.repositories.general_activities import (
     ClubGeneralActivityRepository,
     GeneralActivityRepository,
 )
+from app.repositories.joint_activities import JointActivityRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
@@ -50,6 +51,7 @@ from app.services.general_activities import (
     ClubGeneralActivityService,
     GeneralActivityService,
 )
+from app.services.joint_activities import JointActivityService
 from app.services.oss import ObjectStorageService
 from app.services.policies import AccessPolicy
 from app.services.star_level import StarLevelService
@@ -163,6 +165,10 @@ type ClubGeneralActivityServiceDep = Annotated[
             ClubGeneralActivityRepository,
         ),
     ),
+]
+type JointActivityServiceDep = Annotated[
+    JointActivityService,
+    Depends(ServiceFactory(JointActivityService, JointActivityRepository)),
 ]
 type StarLevelServiceDep = Annotated[
     StarLevelService,

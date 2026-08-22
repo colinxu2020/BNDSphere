@@ -10,6 +10,7 @@ from app.models.general_activity import (
     GeneralActivity,
     GeneralActivityLevelEnum,
 )
+from app.models.joint_activity import JointActivity, JointActivityParticipation
 from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum, User, UserGradeEnum
 
@@ -123,8 +124,24 @@ class StarRatingRepository:
         if term is not None:
             stmt = stmt.where(GeneralActivity.academic_term_id == term.id)
         result = await self.db.execute(stmt)
-        total: int = result.scalar_one()
-        return total
+        general_total: int = result.scalar_one()
+
+        joint_stmt = (
+            select(func.coalesce(func.sum(JointActivity.final_score), 0))
+            .join(
+                JointActivityParticipation,
+                JointActivityParticipation.activity_id == JointActivity.id,
+            )
+            .where(
+                JointActivityParticipation.club_id == club_id,
+                JointActivity.final_status == AuditStatusEnum.approved,
+            )
+        )
+        if term is not None:
+            joint_stmt = joint_stmt.where(JointActivity.academic_term_id == term.id)
+        joint_result = await self.db.execute(joint_stmt)
+        joint_total: int = joint_result.scalar_one()
+        return general_total + joint_total
 
     async def count_internal_activities(
         self,

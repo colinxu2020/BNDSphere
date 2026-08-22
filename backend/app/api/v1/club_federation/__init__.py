@@ -8,6 +8,7 @@ from app.api.v1.club_federation.club_general_activities import (
 from app.api.v1.club_federation.general_activities import (
     router as general_activity_router,
 )
+from app.api.v1.club_federation.joint_activities import router as joint_activity_router
 from app.api.v1.club_federation.star_level import router as star_level_router
 from app.models.user import RoleEnum
 
@@ -23,3 +24,4 @@ router.include_router(
     prefix="/general-activity/club-records",
 )
 router.include_router(star_level_router, prefix="/star-level")
+router.include_router(joint_activity_router, prefix="/joint-activities")
