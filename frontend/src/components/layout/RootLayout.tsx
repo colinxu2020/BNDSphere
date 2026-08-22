@@ -11,6 +11,7 @@ import {
   User,
 } from "@/src/components/ui/Icons";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { ThemeToggle } from "../ui/ThemeToggle";
 import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
@@ -85,7 +86,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
-            <img src="/LOGO_FULL.png" alt="BNDSphere" className="h-10 w-auto" />
+            <img src="/LOGO_FULL.png" alt="BNDSphere" className="brand-logo h-10 w-auto" />
           </Link>
 
           <div className="hidden items-center gap-1 md:flex">
@@ -112,6 +113,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
           </div>
 
           <div className="flex min-w-32 items-center justify-end gap-2">
+            <ThemeToggle />
             {!isLoggedIn ? (
               <>
                 <Link

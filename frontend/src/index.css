@@ -48,3 +48,63 @@ body {
 .border-l {
   border-left-width: 1.5px;
 }
+
+/* Class-based dark mode: Tailwind v4 utilities all resolve to var(--color-*),
+   so re-pointing the palette flips the whole app — variants, opacity modifiers
+   and all — without touching 700 call sites.
+   Neutrals are inverted wholesale, so bg-slate-900 + text-white buttons come out
+   dark-on-light by construction. Tints only remap the shades actually used as chip
+   surfaces (50/100) and chip text (600/700), which leaves bg-*-500 dots and the
+   yellow star icons bright in both themes. */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* The brand lockup is navy line art on transparency: legible on the light
+   surfaces it was drawn for, a smudge on the dark ones. Knocking it to flat
+   white keeps one asset instead of a second dark-scheme PNG to keep in sync.
+   Club logos are user uploads and must never be filtered, which is why this is
+   `.brand-logo` and not `header img`. */
+:root.dark .brand-logo {
+  filter: brightness(0) invert(1);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --color-white: oklch(19% 0.014 260); /* card surface */
+
+  --color-slate-50: oklch(15% 0.014 260); /* page background, inputs */
+  --color-slate-100: oklch(26% 0.016 260); /* hairlines, active pills */
+  --color-slate-200: oklch(31% 0.018 260); /* borders */
+  --color-slate-300: oklch(38% 0.02 260);
+  --color-slate-400: oklch(62% 0.02 260); /* hint text */
+  --color-slate-500: oklch(71% 0.02 260); /* secondary text */
+  --color-slate-600: oklch(79% 0.018 260);
+  --color-slate-700: oklch(86% 0.015 260);
+  --color-slate-800: oklch(91% 0.012 260);
+  --color-slate-900: oklch(96% 0.008 260); /* headings */
+  --color-slate-950: oklch(99% 0.004 260);
+
+  --color-primary-50: oklch(27% 0.055 180);
+  --color-primary-100: oklch(34% 0.07 180);
+  --color-primary-600: oklch(80% 0.13 180);
+
+  --color-secondary-50: oklch(27% 0.055 260);
+  --color-secondary-600: oklch(80% 0.13 260);
+
+  --color-red-50: oklch(26% 0.06 25);
+  --color-red-100: oklch(33% 0.08 25);
+  --color-red-600: oklch(78% 0.13 25);
+  --color-red-700: oklch(84% 0.1 25);
+
+  --color-yellow-50: oklch(27% 0.05 85);
+  --color-yellow-100: oklch(34% 0.06 85);
+  --color-yellow-600: oklch(85% 0.12 85);
+  --color-yellow-700: oklch(89% 0.1 85);
+
+  --color-emerald-50: oklch(26% 0.05 165);
+  --color-emerald-100: oklch(33% 0.06 165);
+  --color-emerald-700: oklch(85% 0.12 165);
+
+  --color-sky-50: oklch(26% 0.05 235);
+  --color-sky-700: oklch(85% 0.11 235);
+}
