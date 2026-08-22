@@ -31,7 +31,10 @@ class ClubMember(Base):
         server_default=func.now(),
         onupdate=func.now(),
     )
-    user: Mapped[User] = relationship(back_populates="club_memberships")
+    user: Mapped[User] = relationship(
+        back_populates="club_memberships",
+        lazy="selectin",
+    )
     club: Mapped[Club] = relationship(back_populates="members")
 
     __table_args__ = (

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
+from enum import StrEnum
 from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
@@ -8,6 +9,7 @@ from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
+from app.models.user import UserGradeEnum
 from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
@@ -73,11 +75,20 @@ class AdminClubUpdate(FederationClubUpdate):
         return self
 
 
+class ClubMemberUserInfo(IdMixin, BaseModel):
+    username: str
+    avatar_uri: HttpUrl | None
+    grade: UserGradeEnum | None
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class ClubMemberInfo(IdMixin, BaseModel):
     user_id: int
     club_id: int
     membership: ClubMembershipEnum
     updated_at: datetime
+    user: ClubMemberUserInfo
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -86,3 +97,13 @@ class ClubMemberUpdate(BaseModel):
     user_id: int
     club_id: int
     membership: ClubMembershipEnum
+
+
+class ClubMemberAssignableRoleEnum(StrEnum):
+    member = "member"
+    vice_president = "vice_president"
+    president = "president"
+
+
+class ClubMemberRoleUpdate(BaseModel):
+    membership: ClubMemberAssignableRoleEnum
