@@ -75,11 +75,7 @@ export function JointActivityDetail() {
           </Surface>
 
           <Surface>
-            <SectionTitle
-              icon={<Users size={20} />}
-              title="参与社团"
-              description="校外合作社团无需登记，以活动介绍中的说明为准。"
-            />
+            <SectionTitle icon={<Users size={20} />} title="参与社团" />
             <div className="flex flex-wrap gap-3">
               {activity.participations.map((participation) => (
                 <Link

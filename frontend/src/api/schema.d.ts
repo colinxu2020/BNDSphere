@@ -211,6 +211,30 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/{club_id}/members/{user_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Remove Club Member
+     * @description Remove a member from the club.
+     */
+    delete: operations["remove_club_member_api_v1_clubs__club_id__members__user_id__delete"];
+    options?: never;
+    head?: never;
+    /**
+     * Update Club Member Role
+     * @description Appoint a vice president, demote one, or transfer the presidency.
+     */
+    patch: operations["update_club_member_role_api_v1_clubs__club_id__members__user_id__patch"];
+    trace?: never;
+  };
   "/api/v1/clubs/{club_id}/activities/": {
     parameters: {
       query?: never;
@@ -1567,6 +1591,11 @@ export interface components {
       /** General Activity Records */
       general_activity_records: components["schemas"]["ClubGeneralActivityInfo"][];
     };
+    /**
+     * ClubMemberAssignableRoleEnum
+     * @enum {string}
+     */
+    ClubMemberAssignableRoleEnum: "member" | "vice_president" | "president";
     /** ClubMemberInfo */
     ClubMemberInfo: {
       /** Id */
@@ -1581,6 +1610,21 @@ export interface components {
        * Format: date-time
        */
       updated_at: string;
+      user: components["schemas"]["ClubMemberUserInfo"];
+    };
+    /** ClubMemberRoleUpdate */
+    ClubMemberRoleUpdate: {
+      membership: components["schemas"]["ClubMemberAssignableRoleEnum"];
+    };
+    /** ClubMemberUserInfo */
+    ClubMemberUserInfo: {
+      /** Id */
+      id: number;
+      /** Username */
+      username: string;
+      /** Avatar Uri */
+      avatar_uri: string | null;
+      grade: components["schemas"]["UserGradeEnum"] | null;
     };
     /**
      * ClubMembershipEnum
@@ -3143,6 +3187,168 @@ export interface operations {
            * @example {
            *       "message_key": "error.auth.token_invalid",
            *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  remove_club_member_api_v1_clubs__club_id__members__user_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        user_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_club_member_role_api_v1_clubs__club_id__members__user_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        user_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClubMemberRoleUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubMemberInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];

@@ -4,12 +4,16 @@ import {
   ArrowLeft,
   Award,
   CalendarDays,
+  Check,
   FileCheck2,
   Hash,
   Plus,
   RefreshCw,
   Save,
+  ShieldCheck,
   Sparkles,
+  Trash2,
+  Users,
   X,
 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
@@ -18,6 +22,7 @@ import type { components } from "../api/schema";
 import {
   AUDIT_STATUS_MAP,
   CATEGORY_MAP,
+  MEMBERSHIP_MAP,
   PARTICIPATION_MAP,
   PARTICIPATION_OPTIONS,
   STAR_LEVEL_MAP,
@@ -33,6 +38,7 @@ import {
 } from "../lib/format";
 import {
   Badge,
+  DangerButton,
   EmptyState,
   Field,
   InlineError,
@@ -49,18 +55,25 @@ import {
 import { FileUploadField } from "../components/ui/FileUploadField";
 
 type Club = components["schemas"]["ClubInfo"];
+type ClubMember = components["schemas"]["ClubMemberInfo"];
+type ClubMemberAssignableRole = components["schemas"]["ClubMemberAssignableRoleEnum"];
+type ClubMembershipRequest = components["schemas"]["ClubMembershipRequestInfo"];
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type StarApplication = components["schemas"]["StarLevelApplicationInfo"];
 type StarRating = components["schemas"]["StarRatingResponse"];
 type ParticipationType = components["schemas"]["ParticipationTypeEnum"];
+type UserInfo = components["schemas"]["UserInfo"];
 
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
   const clubId = Number(id);
 
   const [club, setClub] = useState<Club | null>(null);
+  const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
+  const [membershipRequests, setMembershipRequests] = useState<ClubMembershipRequest[]>([]);
+  const [membershipApplicants, setMembershipApplicants] = useState<Record<number, UserInfo>>({});
   const [activities, setActivities] = useState<ClubActivity[]>([]);
   const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>([]);
   const [records, setRecords] = useState<ClubGeneralActivity[]>([]);
@@ -68,6 +81,17 @@ export function ClubWorkspace() {
   const [starRating, setStarRating] = useState<StarRating | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [loadErrors, setLoadErrors] = useState<Record<string, unknown>>({});
+
+  const [memberMessage, setMemberMessage] = useState<unknown>(null);
+  const [memberTone, setMemberTone] = useState<"error" | "success">("error");
+  const [memberSubmittingId, setMemberSubmittingId] = useState<number | null>(null);
+  const [pendingTransfer, setPendingTransfer] = useState<ClubMember | null>(null);
+  const [transferCountdown, setTransferCountdown] = useState(5);
+  const [membershipRequestMessage, setMembershipRequestMessage] = useState<unknown>(null);
+  const [membershipRequestTone, setMembershipRequestTone] = useState<"error" | "success">("error");
+  const [membershipRequestSubmittingId, setMembershipRequestSubmittingId] = useState<number | null>(
+    null,
+  );
 
   const [clubSummary, setClubSummary] = useState("");
   const [clubDescription, setClubDescription] = useState("");
@@ -141,6 +165,38 @@ export function ClubWorkspace() {
       }
     }
 
+    const userResponse = await client.GET("/api/v1/users/me");
+    if (userResponse.error) {
+      errors.user = userResponse.error;
+      setCurrentUser(null);
+    } else {
+      setCurrentUser(userResponse.data || null);
+    }
+
+    const membershipRequestsResponse = await client.GET(
+      "/api/v1/clubs/{club_id}/membership-requests",
+      { params: { path: { club_id: clubId }, query: { size: 100 } } },
+    );
+    if (membershipRequestsResponse.error) {
+      errors.membershipRequests = membershipRequestsResponse.error;
+      setMembershipRequests([]);
+      setMembershipApplicants({});
+    } else {
+      const nextRequests = membershipRequestsResponse.data?.items || [];
+      setMembershipRequests(nextRequests);
+      const applicantResults = await Promise.all(
+        nextRequests.map(async (request) => {
+          const response = await client.GET("/api/v1/users/{user_id}", {
+            params: { path: { user_id: request.applicant_id } },
+          });
+          return response.data ? ([request.applicant_id, response.data] as const) : null;
+        }),
+      );
+      setMembershipApplicants(
+        Object.fromEntries(applicantResults.filter((result) => result !== null)),
+      );
+    }
+
     const activitiesResponse = await client.GET("/api/v1/clubs/{club_id}/activities/", {
       params: { path: { club_id: clubId }, query: { size: 50 } },
     });
@@ -204,6 +260,20 @@ export function ClubWorkspace() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
 
+  useEffect(() => {
+    if (!pendingTransfer) return;
+
+    const startedAt = Date.now();
+    setTransferCountdown(5);
+    const timer = window.setInterval(() => {
+      const remaining = Math.max(0, Math.ceil((5000 - (Date.now() - startedAt)) / 1000));
+      setTransferCountdown(remaining);
+      if (remaining === 0) window.clearInterval(timer);
+    }, 200);
+
+    return () => window.clearInterval(timer);
+  }, [pendingTransfer]);
+
   const selectedUpdateActivity = activities.find(
     (activityItem) => String(activityItem.id) === updateActivityId,
   );
@@ -212,6 +282,15 @@ export function ClubWorkspace() {
   );
   const selectedGeneralRecord =
     records.find((record) => String(record.activity_id) === generalActivityId) || null;
+  const currentMembership = club?.members.find(
+    (member) => member.user_id === currentUser?.id,
+  )?.membership;
+  const isPresident = currentMembership === "president";
+  const canVerifyMemberships =
+    currentMembership === "president" || currentMembership === "vice_president";
+  const activeMembers = (club?.members || [])
+    .filter((member) => ["member", "president", "vice_president"].includes(member.membership))
+    .sort((left, right) => membershipOrder(left.membership) - membershipOrder(right.membership));
 
   const selectActivityForUpdate = (activityItem: ClubActivity) => {
     setActivityEditorMode("update");
@@ -499,6 +578,107 @@ export function ClubWorkspace() {
     }
   };
 
+  const verifyMembershipRequest = async (
+    request: ClubMembershipRequest,
+    verificationStatus: "approved" | "rejected",
+  ) => {
+    setMembershipRequestSubmittingId(request.id);
+    setMembershipRequestMessage(null);
+    try {
+      const { error } = await client.PATCH(
+        "/api/v1/clubs/{club_id}/membership-requests/{request_id}",
+        {
+          params: { path: { club_id: clubId, request_id: request.id } },
+          body: { verification_status: verificationStatus },
+        },
+      );
+      if (error) {
+        setMembershipRequestTone("error");
+        setMembershipRequestMessage(error);
+      } else {
+        const applicantName =
+          membershipApplicants[request.applicant_id]?.username || `用户 #${request.applicant_id}`;
+        setMembershipRequestTone("success");
+        setMembershipRequestMessage(
+          verificationStatus === "approved"
+            ? `已批准 ${applicantName} 加入社团`
+            : `已驳回 ${applicantName} 的入社申请`,
+        );
+        await refresh();
+      }
+    } catch (error) {
+      setMembershipRequestTone("error");
+      setMembershipRequestMessage(error);
+    } finally {
+      setMembershipRequestSubmittingId(null);
+    }
+  };
+
+  const changeMemberRole = async (member: ClubMember, membership: ClubMemberAssignableRole) => {
+    setMemberSubmittingId(member.user_id);
+    setMemberMessage(null);
+    try {
+      const { error } = await client.PATCH("/api/v1/clubs/{club_id}/members/{user_id}", {
+        params: { path: { club_id: clubId, user_id: member.user_id } },
+        body: { membership },
+      });
+      if (error) {
+        setMemberTone("error");
+        setMemberMessage(error);
+        return false;
+      }
+
+      setMemberTone("success");
+      setMemberMessage(
+        membership === "president"
+          ? `已将社团交接给 ${member.user.username}`
+          : membership === "vice_president"
+            ? `已将 ${member.user.username} 设置为副社长`
+            : `已将 ${member.user.username} 调整为普通成员`,
+      );
+      await refresh();
+      return true;
+    } catch (error) {
+      setMemberTone("error");
+      setMemberMessage(error);
+      return false;
+    } finally {
+      setMemberSubmittingId(null);
+    }
+  };
+
+  const confirmTransfer = async () => {
+    if (!pendingTransfer || transferCountdown > 0) return;
+    if (await changeMemberRole(pendingTransfer, "president")) {
+      setPendingTransfer(null);
+    }
+  };
+
+  const removeMember = async (member: ClubMember) => {
+    if (!window.confirm(`确定要将 ${member.user.username} 移出社团吗？`)) return;
+
+    setMemberSubmittingId(member.user_id);
+    setMemberMessage(null);
+    try {
+      const { error } = await client.DELETE("/api/v1/clubs/{club_id}/members/{user_id}", {
+        params: { path: { club_id: clubId, user_id: member.user_id } },
+      });
+      if (error) {
+        setMemberTone("error");
+        setMemberMessage(error);
+      } else {
+        setMemberTone("success");
+        setMemberMessage(`已将 ${member.user.username} 移出社团`);
+        await refresh();
+      }
+    } catch (error) {
+      setMemberTone("error");
+      setMemberMessage(error);
+    } finally {
+      setMemberSubmittingId(null);
+    }
+  };
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -572,6 +752,212 @@ export function ClubWorkspace() {
                 </div>
               </div>
             </Surface>
+          )}
+
+          {club && canVerifyMemberships && (
+            <Surface>
+              <SectionTitle icon={<Users size={20} />} title="成员管理" />
+              <div className="grid gap-7">
+                <section>
+                  <div className="mb-3 flex items-center justify-between gap-3">
+                    <h3 className="font-semibold text-slate-900">待审批申请</h3>
+                    <Badge tone={membershipRequests.length ? "yellow" : "slate"}>
+                      {membershipRequests.length} 条
+                    </Badge>
+                  </div>
+                  <StatusMessage value={membershipRequestMessage} tone={membershipRequestTone} />
+                  <div className="mt-4 grid gap-3">
+                    {membershipRequests.length ? (
+                      membershipRequests.map((request) => {
+                        const applicant = membershipApplicants[request.applicant_id];
+                        const isSubmitting = membershipRequestSubmittingId === request.id;
+                        return (
+                          <div
+                            key={request.id}
+                            className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
+                          >
+                            <div className="min-w-0 flex-1">
+                              <Link
+                                to={`/users/${request.applicant_id}`}
+                                className="font-semibold text-slate-900 hover:text-primary-600"
+                              >
+                                {applicant?.username || `用户 #${request.applicant_id}`}
+                              </Link>
+                              <p className="mt-1 text-sm text-slate-500">
+                                {request.message.trim() || "申请人没有填写留言"}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-2 md:justify-end">
+                              <PrimaryButton
+                                type="button"
+                                loading={isSubmitting}
+                                disabled={membershipRequestSubmittingId !== null}
+                                onClick={() => verifyMembershipRequest(request, "approved")}
+                                className="px-4 py-2.5"
+                              >
+                                <Check size={16} /> 通过
+                              </PrimaryButton>
+                              <DangerButton
+                                type="button"
+                                disabled={membershipRequestSubmittingId !== null}
+                                onClick={() => verifyMembershipRequest(request, "rejected")}
+                              >
+                                <X size={16} /> 驳回
+                              </DangerButton>
+                            </div>
+                          </div>
+                        );
+                      })
+                    ) : (
+                      <EmptyState title="暂无待审批的入社申请" />
+                    )}
+                  </div>
+                </section>
+
+                {isPresident && (
+                  <section className="border-t border-slate-100 pt-7">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <h3 className="font-semibold text-slate-900">社团成员</h3>
+                      <Badge>{activeMembers.length} 人</Badge>
+                    </div>
+                    <StatusMessage value={memberMessage} tone={memberTone} />
+                    <div className="mt-4 grid gap-3">
+                      {activeMembers.map((member) => {
+                        const isCurrentPresident = member.membership === "president";
+                        const isSubmitting = memberSubmittingId === member.user_id;
+                        return (
+                          <div
+                            key={member.id}
+                            className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
+                          >
+                            <div className="flex min-w-0 flex-1 items-center gap-3">
+                              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white font-semibold text-slate-500">
+                                {member.user.avatar_uri ? (
+                                  <img
+                                    src={member.user.avatar_uri}
+                                    alt=""
+                                    className="h-full w-full object-cover"
+                                  />
+                                ) : (
+                                  member.user.username.slice(0, 1).toUpperCase()
+                                )}
+                              </div>
+                              <div className="min-w-0">
+                                <Link
+                                  to={`/users/${member.user_id}`}
+                                  className="truncate font-semibold text-slate-900 hover:text-primary-600"
+                                >
+                                  {member.user.username}
+                                </Link>
+                                <div className="mt-1">
+                                  <Badge tone={isCurrentPresident ? "primary" : "slate"}>
+                                    {MEMBERSHIP_MAP[member.membership]}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+
+                            {!isCurrentPresident && (
+                              <div className="flex flex-wrap gap-2 md:justify-end">
+                                <SecondaryButton
+                                  type="button"
+                                  disabled={memberSubmittingId !== null}
+                                  onClick={() =>
+                                    changeMemberRole(
+                                      member,
+                                      member.membership === "vice_president"
+                                        ? "member"
+                                        : "vice_president",
+                                    )
+                                  }
+                                >
+                                  <ShieldCheck size={16} />
+                                  {isSubmitting
+                                    ? "处理中..."
+                                    : member.membership === "vice_president"
+                                      ? "取消副社长"
+                                      : "设为副社长"}
+                                </SecondaryButton>
+                                <DangerButton
+                                  type="button"
+                                  disabled={memberSubmittingId !== null}
+                                  onClick={() => setPendingTransfer(member)}
+                                >
+                                  交接社团
+                                </DangerButton>
+                                <DangerButton
+                                  type="button"
+                                  disabled={memberSubmittingId !== null}
+                                  onClick={() => removeMember(member)}
+                                >
+                                  <Trash2 size={16} /> 移除
+                                </DangerButton>
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </section>
+                )}
+              </div>
+            </Surface>
+          )}
+
+          {pendingTransfer && (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="transfer-club-title"
+            >
+              <div className="w-full max-w-lg rounded-md border border-red-200 bg-white p-6 shadow-2xl">
+                <div className="flex items-start justify-between gap-4">
+                  <div>
+                    <p className="text-sm font-bold text-red-600">危险操作</p>
+                    <h2
+                      id="transfer-club-title"
+                      className="mt-1 text-2xl font-display font-bold text-slate-900"
+                    >
+                      确认交接社团？
+                    </h2>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingTransfer(null)}
+                    className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                    aria-label="取消交接"
+                  >
+                    <X size={20} />
+                  </button>
+                </div>
+                <div className="mt-5 rounded-md border border-red-100 bg-red-50 p-4 text-sm leading-6 text-red-800">
+                  你将把 <strong>{club.name}</strong> 交接给{" "}
+                  <strong>{pendingTransfer.user.username}</strong>。提交后，对方会立即成为社长，
+                  你会降为普通成员，并失去仅限社长的成员管理权限。
+                </div>
+                <p className="mt-4 text-sm text-slate-500">
+                  请确认接任人无误。为防止误操作，确认按钮将在 5 秒后启用。
+                </p>
+                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                  <SecondaryButton type="button" onClick={() => setPendingTransfer(null)}>
+                    取消
+                  </SecondaryButton>
+                  <DangerButton
+                    type="button"
+                    disabled={transferCountdown > 0 || memberSubmittingId !== null}
+                    onClick={confirmTransfer}
+                    className="bg-red-600 text-white hover:bg-red-700"
+                  >
+                    {memberSubmittingId === pendingTransfer.user_id
+                      ? "正在交接..."
+                      : transferCountdown > 0
+                        ? `请等待 ${transferCountdown} 秒`
+                        : "再次确认并交接"}
+                  </DangerButton>
+                </div>
+              </div>
+            </div>
           )}
 
           <Surface>
@@ -1113,6 +1499,16 @@ function EditorHeader({
 function sameStringArray(left: string[], right: string[]) {
   if (left.length !== right.length) return false;
   return left.every((item, index) => item === right[index]);
+}
+
+function membershipOrder(membership: components["schemas"]["ClubMembershipEnum"]) {
+  return {
+    president: 0,
+    vice_president: 1,
+    member: 2,
+    pending: 3,
+    left: 4,
+  }[membership];
 }
 
 function getAuditTone(status: components["schemas"]["AuditStatusEnum"]) {

@@ -20,6 +20,8 @@ from app.models.user import User
 from app.schemas.club import (
     ClubCreate,
     ClubInfo,
+    ClubMemberInfo,
+    ClubMemberRoleUpdate,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreatePublic,
@@ -142,3 +144,49 @@ async def leave_club(
 ) -> None:
     """Leave a club."""
     await service.leave_club(club_id, user)
+
+
+@router.patch(
+    "/{club_id}/members/{user_id}",
+    responses=(
+        TOKEN_INVALID_RESPONSE
+        | PERMISSION_DENIED_RESPONSE
+        | RESOURCE_NOT_FOUND_RESPONSE
+    ),
+    dependencies=[
+        Depends(ClubRoleChecker([ClubMembershipEnum.president])),
+    ],
+)
+async def update_club_member_role(
+    club_id: int,
+    user_id: int,
+    obj_in: ClubMemberRoleUpdate,
+    service: ClubServiceDep,
+    president: Annotated[User, Depends(get_current_user)],
+) -> ClubMemberInfo:
+    """Appoint a vice president, demote one, or transfer the presidency."""
+    return ClubMemberInfo.model_validate(
+        await service.update_member_role(club_id, user_id, obj_in, president),
+    )
+
+
+@router.delete(
+    "/{club_id}/members/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=(
+        TOKEN_INVALID_RESPONSE
+        | PERMISSION_DENIED_RESPONSE
+        | RESOURCE_NOT_FOUND_RESPONSE
+    ),
+    dependencies=[
+        Depends(ClubRoleChecker([ClubMembershipEnum.president])),
+    ],
+)
+async def remove_club_member(
+    club_id: int,
+    user_id: int,
+    service: ClubServiceDep,
+    president: Annotated[User, Depends(get_current_user)],
+) -> None:
+    """Remove a member from the club."""
+    await service.remove_member(club_id, user_id, president)

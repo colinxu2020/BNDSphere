@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import { MEMBERSHIP_MAP } from "../lib/labels";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
@@ -311,8 +312,10 @@ export function ClubDetail() {
                     to={`/users/${member.user_id}`}
                     className="flex items-center justify-between gap-3 rounded-md bg-slate-50 border border-slate-100 px-3 py-2 text-sm font-medium text-slate-600 hover:text-primary-600 transition-colors"
                   >
-                    <span>用户 #{member.user_id}</span>
-                    <span className="text-xs text-slate-400">{member.membership}</span>
+                    <span>{member.user.username}</span>
+                    <span className="text-xs text-slate-400">
+                      {MEMBERSHIP_MAP[member.membership]}
+                    </span>
                   </Link>
                 ))}
               </div>
