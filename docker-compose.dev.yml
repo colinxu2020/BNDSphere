@@ -54,13 +54,13 @@ services:
       - test
     environment:
       - CORS_ORIGIN=*
-      # Harmless object-storage settings so the test app can resolve
-      # ObjectStorageServiceDep without mounting real OSS secrets. Tests that
-      # exercise upload routes should override ObjectStorageServiceDep directly.
+      # Object-storage settings so the test app can resolve
+      # ObjectStorageServiceDep. Credentials come from the mounted secrets
+      # (read via pydantic-settings secrets_dir=/run/secrets); endpoint and
+      # bucket names are not secrets. Tests that exercise upload routes should
+      # override ObjectStorageServiceDep directly instead of hitting a real S3.
       - OSS_ENDPOINT_URL=http://localhost:9000
       - OSS_BUCKET=test
-      - OSS_ACCESS_KEY_ID=test
-      - OSS_ACCESS_KEY=test
     read_only: false
     depends_on:
       postgres:
@@ -80,6 +80,10 @@ services:
         target: migration_password
       - source: secret_key
         target: secret_key
+      - source: oss_access_key_id
+        target: oss_access_key_id
+      - source: oss_access_key
+        target: oss_access_key
     command: ["uv", "run", "pytest", "tests/"]
 
 volumes:
