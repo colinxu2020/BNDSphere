@@ -30,6 +30,16 @@ class JointActivityParticipationInfo(IdMixin, BaseModel):
     club: JointActivityClubInfo
 
 
+class JointActivityPublicParticipationInfo(IdMixin, BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    activity_id: int
+    club_id: int
+    is_initiator: bool
+    created_at: datetime
+    club: JointActivityClubInfo
+
+
 class JointActivityBase(BaseModel):
     name: str = Field(..., max_length=constants.JOINT_ACTIVITY_MAX_NAME_LENGTH)
     description: str
@@ -107,7 +117,27 @@ class JointActivityPreliminaryReview(BaseModel):
 
 
 class JointActivityFinalReview(JointActivityPreliminaryReview):
-    final_score: int = Field(0, ge=0)
+    final_score: int = Field(
+        0,
+        ge=0,
+        le=constants.JOINT_ACTIVITY_MAX_FINAL_SCORE,
+    )
+
+    @model_validator(mode="after")
+    def validate_approved_score(self) -> Self:
+        if (
+            self.status == AuditStatusEnum.approved
+            and self.final_score < constants.JOINT_ACTIVITY_MIN_FINAL_SCORE
+        ):
+            raise BadRequestError(
+                "error.joint_activity.invalid_final_score",
+                "JOINT_ACTIVITY_INVALID_FINAL_SCORE",
+                {
+                    "min_score": constants.JOINT_ACTIVITY_MIN_FINAL_SCORE,
+                    "max_score": constants.JOINT_ACTIVITY_MAX_FINAL_SCORE,
+                },
+            )
+        return self
 
 
 class JointActivityInfo(JointActivityBase, IdMixin):
@@ -130,3 +160,16 @@ class JointActivityInfo(JointActivityBase, IdMixin):
     academic_term: AcademicTermInfo
     initiator_club: JointActivityClubInfo
     participations: list[JointActivityParticipationInfo]
+
+
+class JointActivityPublicInfo(JointActivityBase, IdMixin):
+    model_config = ConfigDict(from_attributes=True)
+
+    initiator_club_id: int
+    archive_text: str | None
+    archive_files: list[str]
+    final_status: AuditStatusEnum | None
+    final_score: int
+    academic_term: AcademicTermInfo
+    initiator_club: JointActivityClubInfo
+    participations: list[JointActivityPublicParticipationInfo]

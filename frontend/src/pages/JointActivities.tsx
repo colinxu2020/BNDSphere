@@ -13,7 +13,7 @@ import {
 } from "../components/ui/AppPrimitives";
 import { formatDateTime } from "../lib/format";
 
-type JointActivity = components["schemas"]["JointActivityInfo"];
+type JointActivity = components["schemas"]["JointActivityPublicInfo"];
 
 export function JointActivities() {
   const [items, setItems] = useState<JointActivity[]>([]);

@@ -2460,7 +2460,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/Page_JointActivityInfo_" }
+                "schema": { "$ref": "#/components/schemas/Page_JointActivityPublicInfo_" }
               }
             }
           },
@@ -2493,7 +2493,9 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JointActivityPublicInfo" }
+              }
             }
           },
           "404": {
@@ -5797,7 +5799,13 @@
       "JointActivityFinalReview": {
         "properties": {
           "status": { "$ref": "#/components/schemas/AuditStatusEnum" },
-          "final_score": { "type": "integer", "minimum": 0, "title": "Final Score", "default": 0 }
+          "final_score": {
+            "type": "integer",
+            "maximum": 8,
+            "minimum": 0,
+            "title": "Final Score",
+            "default": 0
+          }
         },
         "type": "object",
         "required": ["status"],
@@ -5912,6 +5920,68 @@
         "type": "object",
         "required": ["status"],
         "title": "JointActivityPreliminaryReview"
+      },
+      "JointActivityPublicInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "starts_at": { "type": "string", "format": "date-time", "title": "Starts At" },
+          "ends_at": { "type": "string", "format": "date-time", "title": "Ends At" },
+          "initiator_club_id": { "type": "integer", "title": "Initiator Club Id" },
+          "archive_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Archive Text"
+          },
+          "archive_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Archive Files"
+          },
+          "final_status": {
+            "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
+          },
+          "final_score": { "type": "integer", "title": "Final Score" },
+          "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
+          "initiator_club": { "$ref": "#/components/schemas/JointActivityClubInfo" },
+          "participations": {
+            "items": { "$ref": "#/components/schemas/JointActivityPublicParticipationInfo" },
+            "type": "array",
+            "title": "Participations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "location",
+          "starts_at",
+          "ends_at",
+          "initiator_club_id",
+          "archive_text",
+          "archive_files",
+          "final_status",
+          "final_score",
+          "academic_term",
+          "initiator_club",
+          "participations"
+        ],
+        "title": "JointActivityPublicInfo"
+      },
+      "JointActivityPublicParticipationInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "activity_id": { "type": "integer", "title": "Activity Id" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "is_initiator": { "type": "boolean", "title": "Is Initiator" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "club": { "$ref": "#/components/schemas/JointActivityClubInfo" }
+        },
+        "type": "object",
+        "required": ["id", "activity_id", "club_id", "is_initiator", "created_at", "club"],
+        "title": "JointActivityPublicParticipationInfo"
       },
       "JointActivityUpdate": {
         "properties": {
@@ -6119,6 +6189,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[JointActivityInfo]"
+      },
+      "Page_JointActivityPublicInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/JointActivityPublicInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[JointActivityPublicInfo]"
       },
       "Page_StarLevelApplicationInfo_": {
         "properties": {

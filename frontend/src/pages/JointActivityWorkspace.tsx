@@ -32,6 +32,7 @@ import { AUDIT_STATUS_MAP } from "../lib/labels";
 import { formatDateTime, fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
+type JointActivityPublic = components["schemas"]["JointActivityPublicInfo"];
 type Club = components["schemas"]["ClubInfo"];
 
 const emptyForm = { name: "", description: "", location: "", startsAt: "", endsAt: "" };
@@ -41,7 +42,7 @@ export function JointActivityWorkspace() {
   const clubId = Number(id);
   const [club, setClub] = useState<Club | null>(null);
   const [clubActivities, setClubActivities] = useState<JointActivity[]>([]);
-  const [publicActivities, setPublicActivities] = useState<JointActivity[]>([]);
+  const [publicActivities, setPublicActivities] = useState<JointActivityPublic[]>([]);
   const [form, setForm] = useState(emptyForm);
   const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);

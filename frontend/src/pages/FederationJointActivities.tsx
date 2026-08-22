@@ -81,6 +81,12 @@ export function FederationJointActivities() {
   };
 
   const finalReview = async (activityId: number, status: "approved" | "rejected") => {
+    const finalScore = Number(scores[activityId] || 0);
+    if (status === "approved" && (finalScore < 6 || finalScore > 8)) {
+      setMessageTone("error");
+      setMessage("联合活动通过终审时，最终分值必须为 6–8 分");
+      return;
+    }
     setBusyId(activityId);
     const response = await client.PATCH(
       "/api/v1/club-federation/joint-activities/{activity_id}/final-review",
@@ -88,7 +94,7 @@ export function FederationJointActivities() {
         params: { path: { activity_id: activityId } },
         body: {
           status,
-          final_score: status === "approved" ? Number(scores[activityId] || 0) : 0,
+          final_score: status === "approved" ? finalScore : 0,
         },
       },
     );
@@ -173,7 +179,8 @@ export function FederationJointActivities() {
                     <input
                       className={inputClassName}
                       type="number"
-                      min="0"
+                      min="6"
+                      max="8"
                       value={scores[activity.id] || ""}
                       onChange={(event) =>
                         setScores({ ...scores, [activity.id]: event.target.value })

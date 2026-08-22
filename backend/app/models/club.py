@@ -87,13 +87,13 @@ class Club(Base):
     initiated_joint_activities: Mapped[list[JointActivity]] = relationship(
         back_populates="initiator_club",
         cascade="all, delete-orphan",
-        lazy="selectin",
+        lazy="select",
     )
     joint_activity_participations: Mapped[list[JointActivityParticipation]] = (
         relationship(
             back_populates="club",
             cascade="all, delete-orphan",
-            lazy="selectin",
+            lazy="select",
         )
     )
 

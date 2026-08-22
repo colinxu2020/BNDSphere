@@ -1903,6 +1903,57 @@ export interface components {
     JointActivityPreliminaryReview: {
       status: components["schemas"]["AuditStatusEnum"];
     };
+    /** JointActivityPublicInfo */
+    JointActivityPublicInfo: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      /** Description */
+      description: string;
+      /** Location */
+      location: string;
+      /**
+       * Starts At
+       * Format: date-time
+       */
+      starts_at: string;
+      /**
+       * Ends At
+       * Format: date-time
+       */
+      ends_at: string;
+      /** Initiator Club Id */
+      initiator_club_id: number;
+      /** Archive Text */
+      archive_text: string | null;
+      /** Archive Files */
+      archive_files: string[];
+      final_status: components["schemas"]["AuditStatusEnum"] | null;
+      /** Final Score */
+      final_score: number;
+      academic_term: components["schemas"]["AcademicTermInfo"];
+      initiator_club: components["schemas"]["JointActivityClubInfo"];
+      /** Participations */
+      participations: components["schemas"]["JointActivityPublicParticipationInfo"][];
+    };
+    /** JointActivityPublicParticipationInfo */
+    JointActivityPublicParticipationInfo: {
+      /** Id */
+      id: number;
+      /** Activity Id */
+      activity_id: number;
+      /** Club Id */
+      club_id: number;
+      /** Is Initiator */
+      is_initiator: boolean;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      club: components["schemas"]["JointActivityClubInfo"];
+    };
     /** JointActivityUpdate */
     JointActivityUpdate: {
       /** Name */
@@ -2055,6 +2106,19 @@ export interface components {
     Page_JointActivityInfo_: {
       /** Items */
       items: components["schemas"]["JointActivityInfo"][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+    };
+    /** Page[JointActivityPublicInfo] */
+    Page_JointActivityPublicInfo_: {
+      /** Items */
+      items: components["schemas"]["JointActivityPublicInfo"][];
       /** Total */
       total: number;
       /** Page */
@@ -4778,7 +4842,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Page_JointActivityInfo_"];
+          "application/json": components["schemas"]["Page_JointActivityPublicInfo_"];
         };
       };
       /** @description Validation Error */
@@ -4809,7 +4873,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["JointActivityInfo"];
+          "application/json": components["schemas"]["JointActivityPublicInfo"];
         };
       };
       /** @description Resource Not Found */
