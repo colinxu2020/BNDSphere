@@ -7,10 +7,12 @@ from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import JointActivityServiceDep, get_current_user
 from app.models.user import User
 from app.schemas.joint_activities import (
-    JointActivityFinalReview,
     JointActivityInfo,
-    JointActivityPreliminaryReview,
 )
+from app.schemas.moderations.joint_activity import (
+    JointActivityPreliminaryModeration,
+)
+from app.schemas.verifications.joint_activity import JointActivityFinalVerification
 
 router = APIRouter(tags=["Federation: Joint Activities"])
 
@@ -31,12 +33,12 @@ async def list_joint_activities_for_federation(
 )
 async def review_joint_activity_preliminarily(
     activity_id: int,
-    obj_in: JointActivityPreliminaryReview,
+    obj_in: JointActivityPreliminaryModeration,
     service: JointActivityServiceDep,
-    user: Annotated[User, Depends(get_current_user)],
+    moderator: Annotated[User, Depends(get_current_user)],
 ) -> JointActivityInfo:
     return JointActivityInfo.model_validate(
-        await service.preliminary_review(activity_id, obj_in, user),
+        await service.preliminary_review(activity_id, obj_in, moderator),
     )
 
 
@@ -46,10 +48,10 @@ async def review_joint_activity_preliminarily(
 )
 async def review_joint_activity_finally(
     activity_id: int,
-    obj_in: JointActivityFinalReview,
+    obj_in: JointActivityFinalVerification,
     service: JointActivityServiceDep,
-    user: Annotated[User, Depends(get_current_user)],
+    verifier: Annotated[User, Depends(get_current_user)],
 ) -> JointActivityInfo:
     return JointActivityInfo.model_validate(
-        await service.final_review(activity_id, obj_in, user),
+        await service.final_review(activity_id, obj_in, verifier),
     )

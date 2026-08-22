@@ -25,7 +25,7 @@ import {
   Surface,
   inputClassName,
 } from "../components/ui/AppPrimitives";
-import { AUDIT_STATUS_MAP } from "../lib/labels";
+import { MODERATION_STATUS_MAP, VERIFICATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
@@ -72,7 +72,10 @@ export function FederationJointActivities() {
     setBusyId(activityId);
     const response = await client.PATCH(
       "/api/v1/club-federation/joint-activities/{activity_id}/preliminary-review",
-      { params: { path: { activity_id: activityId } }, body: { status } },
+      {
+        params: { path: { activity_id: activityId } },
+        body: { moderation_status: status },
+      },
     );
     setBusyId(null);
     setMessageTone(response.error ? "error" : "success");
@@ -93,7 +96,7 @@ export function FederationJointActivities() {
       {
         params: { path: { activity_id: activityId } },
         body: {
-          status,
+          verification_status: status,
           final_score: status === "approved" ? finalScore : 0,
         },
       },
@@ -232,10 +235,10 @@ export function FederationJointActivities() {
                           : "yellow"
                     }
                   >
-                    预审 {AUDIT_STATUS_MAP[activity.preliminary_status]}
+                    预审 {MODERATION_STATUS_MAP[activity.preliminary_status]}
                   </Badge>
                   {activity.final_status && (
-                    <Badge>终审 {AUDIT_STATUS_MAP[activity.final_status]}</Badge>
+                    <Badge>终审 {VERIFICATION_STATUS_MAP[activity.final_status]}</Badge>
                   )}
                 </div>
                 <h3 className="mt-2 font-bold text-slate-900">{activity.name}</h3>

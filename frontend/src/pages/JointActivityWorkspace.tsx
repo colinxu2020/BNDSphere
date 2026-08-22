@@ -28,7 +28,7 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
-import { AUDIT_STATUS_MAP } from "../lib/labels";
+import { MODERATION_STATUS_MAP, VERIFICATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime, fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
@@ -365,7 +365,7 @@ function ManagedActivityCard({
                 : "yellow"
           }
         >
-          预审：{AUDIT_STATUS_MAP[activity.preliminary_status]}
+          预审：{MODERATION_STATUS_MAP[activity.preliminary_status]}
         </Badge>
         {activity.final_status && (
           <Badge
@@ -377,7 +377,7 @@ function ManagedActivityCard({
                   : "yellow"
             }
           >
-            终审：{AUDIT_STATUS_MAP[activity.final_status]}
+            终审：{VERIFICATION_STATUS_MAP[activity.final_status]}
           </Badge>
         )}
       </div>

@@ -144,3 +144,12 @@ export const MODERATION_STATUS_MAP: Record<components["schemas"]["ModerationStat
     rejected: "已驳回",
     superseded: "已被替代",
   };
+
+export const VERIFICATION_STATUS_MAP: Record<
+  components["schemas"]["VerificationStatusEnum"],
+  string
+> = {
+  pending: "待审核",
+  approved: "已通过",
+  rejected: "已驳回",
+};

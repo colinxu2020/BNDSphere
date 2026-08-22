@@ -1814,9 +1814,9 @@ export interface components {
        */
       ends_at: string;
     };
-    /** JointActivityFinalReview */
-    JointActivityFinalReview: {
-      status: components["schemas"]["AuditStatusEnum"];
+    /** JointActivityFinalVerification */
+    JointActivityFinalVerification: {
+      verification_status: components["schemas"]["VerificationStatusEnum"];
       /**
        * Final Score
        * @default 0
@@ -1847,7 +1847,7 @@ export interface components {
       initiator_club_id: number;
       /** Created By User Id */
       created_by_user_id: number;
-      preliminary_status: components["schemas"]["AuditStatusEnum"];
+      preliminary_status: components["schemas"]["ModerationStatusEnum"];
       /** Preliminary Auditor Id */
       preliminary_auditor_id: number | null;
       /** Preliminary Reviewed At */
@@ -1856,7 +1856,7 @@ export interface components {
       archive_text: string | null;
       /** Archive Files */
       archive_files: string[];
-      final_status: components["schemas"]["AuditStatusEnum"] | null;
+      final_status: components["schemas"]["VerificationStatusEnum"] | null;
       /** Final Score */
       final_score: number;
       /** Final Submitted At */
@@ -1899,9 +1899,9 @@ export interface components {
       created_at: string;
       club: components["schemas"]["JointActivityClubInfo"];
     };
-    /** JointActivityPreliminaryReview */
-    JointActivityPreliminaryReview: {
-      status: components["schemas"]["AuditStatusEnum"];
+    /** JointActivityPreliminaryModeration */
+    JointActivityPreliminaryModeration: {
+      moderation_status: components["schemas"]["ModerationStatusEnum"];
     };
     /** JointActivityPublicInfo */
     JointActivityPublicInfo: {
@@ -1929,7 +1929,7 @@ export interface components {
       archive_text: string | null;
       /** Archive Files */
       archive_files: string[];
-      final_status: components["schemas"]["AuditStatusEnum"] | null;
+      final_status: components["schemas"]["VerificationStatusEnum"] | null;
       /** Final Score */
       final_score: number;
       academic_term: components["schemas"]["AcademicTermInfo"];
@@ -6327,7 +6327,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["JointActivityPreliminaryReview"];
+        "application/json": components["schemas"]["JointActivityPreliminaryModeration"];
       };
     };
     responses: {
@@ -6410,7 +6410,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["JointActivityFinalReview"];
+        "application/json": components["schemas"]["JointActivityFinalVerification"];
       };
     };
     responses: {

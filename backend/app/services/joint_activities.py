@@ -4,15 +4,19 @@ from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
 from app.models import JointActivity
-from app.models.user import AuditStatusEnum, User
+from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.joint_activities import JointActivityRepository
 from app.schemas.joint_activities import (
     JointActivityArchiveUpdate,
     JointActivityCreate,
-    JointActivityFinalReview,
-    JointActivityPreliminaryReview,
     JointActivityUpdate,
 )
+from app.schemas.moderations.joint_activity import (
+    JointActivityPreliminaryModeration,
+)
+from app.schemas.verifications.joint_activity import JointActivityFinalVerification
 from app.services.base import ServiceBase
 from app.services.errors import (
     BadRequestError,
@@ -37,7 +41,10 @@ class JointActivityService(
 
     async def get_public(self, activity_id: int) -> JointActivity:
         activity = await self.get(activity_id)
-        if activity is None or activity.preliminary_status != AuditStatusEnum.approved:
+        if (
+            activity is None
+            or activity.preliminary_status != ModerationStatusEnum.approved
+        ):
             raise _not_found(activity_id)
         return activity
 
@@ -88,7 +95,7 @@ class JointActivityService(
             if activity is None:
                 raise _not_found(activity_id)
             self._ensure_initiator(activity, club_id)
-            if activity.preliminary_status == AuditStatusEnum.approved:
+            if activity.preliminary_status == ModerationStatusEnum.approved:
                 raise ResourceForbiddenError(
                     "error.joint_activity.preliminary_approved",
                     "JOINT_ACTIVITY_PRELIMINARY_APPROVED",
@@ -104,7 +111,7 @@ class JointActivityService(
                 )
 
             activity = await self.repository.update(activity, obj_in)
-            activity.preliminary_status = AuditStatusEnum.pending
+            activity.preliminary_status = ModerationStatusEnum.pending
             activity.preliminary_auditor_id = None
             activity.preliminary_reviewed_at = None
             await self.repository.db.flush()
@@ -122,7 +129,7 @@ class JointActivityService(
                 activity = await self._get_with_lock(activity_id)
                 if activity is None:
                     raise _not_found(activity_id)
-                if activity.preliminary_status != AuditStatusEnum.approved:
+                if activity.preliminary_status != ModerationStatusEnum.approved:
                     raise ResourceForbiddenError(
                         "error.joint_activity.not_public",
                         "JOINT_ACTIVITY_NOT_PUBLIC",
@@ -172,8 +179,8 @@ class JointActivityService(
             self._ensure_initiator(activity, club_id)
             self._ensure_archivable(activity)
             if activity.final_status in (
-                AuditStatusEnum.pending,
-                AuditStatusEnum.approved,
+                VerificationStatusEnum.pending,
+                VerificationStatusEnum.approved,
             ):
                 raise ResourceForbiddenError(
                     "error.joint_activity.final_review_locked",
@@ -200,8 +207,8 @@ class JointActivityService(
             self._ensure_initiator(activity, club_id)
             self._ensure_archivable(activity)
             if activity.final_status in (
-                AuditStatusEnum.pending,
-                AuditStatusEnum.approved,
+                VerificationStatusEnum.pending,
+                VerificationStatusEnum.approved,
             ):
                 raise ResourceForbiddenError(
                     "error.joint_activity.final_review_locked",
@@ -212,7 +219,7 @@ class JointActivityService(
                     "error.joint_activity.archive_required",
                     "JOINT_ACTIVITY_ARCHIVE_REQUIRED",
                 )
-            activity.final_status = AuditStatusEnum.pending
+            activity.final_status = VerificationStatusEnum.pending
             activity.final_submitted_at = datetime.now(tz=UTC)
             activity.final_auditor_id = None
             activity.final_reviewed_at = None
@@ -225,44 +232,44 @@ class JointActivityService(
     async def preliminary_review(
         self,
         activity_id: int,
-        review: JointActivityPreliminaryReview,
-        auditor: User,
+        moderation: JointActivityPreliminaryModeration,
+        moderator: User,
     ) -> JointActivity:
         async with self.transaction():
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
-            if activity.preliminary_status != AuditStatusEnum.pending:
+            if activity.preliminary_status != ModerationStatusEnum.pending:
                 raise ResourceForbiddenError(
                     "error.joint_activity.preliminary_reviewed",
                     "JOINT_ACTIVITY_PRELIMINARY_REVIEWED",
                 )
             return await self.repository.preliminary_review(
                 activity,
-                status=review.status,
-                auditor=auditor,
+                status=moderation.moderation_status,
+                moderator=moderator,
                 reviewed_at=datetime.now(tz=UTC),
             )
 
     async def final_review(
         self,
         activity_id: int,
-        review: JointActivityFinalReview,
-        auditor: User,
+        verification: JointActivityFinalVerification,
+        verifier: User,
     ) -> JointActivity:
         async with self.transaction():
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
-            if activity.final_status != AuditStatusEnum.pending:
+            if activity.final_status != VerificationStatusEnum.pending:
                 raise ResourceForbiddenError(
                     "error.joint_activity.final_review_not_pending",
                     "JOINT_ACTIVITY_FINAL_REVIEW_NOT_PENDING",
                 )
             return await self.repository.final_review(
                 activity,
-                review,
-                auditor=auditor,
+                verification,
+                verifier=verifier,
                 reviewed_at=datetime.now(tz=UTC),
             )
 
@@ -277,7 +284,7 @@ class JointActivityService(
 
     @staticmethod
     def _ensure_archivable(activity: JointActivity) -> None:
-        if activity.preliminary_status != AuditStatusEnum.approved:
+        if activity.preliminary_status != ModerationStatusEnum.approved:
             raise ResourceForbiddenError(
                 "error.joint_activity.not_public",
                 "JOINT_ACTIVITY_NOT_PUBLIC",

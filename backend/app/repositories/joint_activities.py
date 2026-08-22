@@ -6,13 +6,15 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 
 from app.models import JointActivity, JointActivityParticipation
-from app.models.user import AuditStatusEnum, User
+from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.joint_activities import (
     JointActivityCreate,
-    JointActivityFinalReview,
     JointActivityUpdate,
 )
+from app.schemas.verifications.joint_activity import JointActivityFinalVerification
 
 
 class JointActivityRepository(
@@ -33,7 +35,7 @@ class JointActivityRepository(
         )
         if public_only:
             stmt = stmt.where(
-                self.model.preliminary_status == AuditStatusEnum.approved,
+                self.model.preliminary_status == ModerationStatusEnum.approved,
             )
         if search:
             stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
@@ -103,12 +105,12 @@ class JointActivityRepository(
         self,
         activity: JointActivity,
         *,
-        status: AuditStatusEnum,
-        auditor: User,
+        status: ModerationStatusEnum,
+        moderator: User,
         reviewed_at: datetime,
     ) -> JointActivity:
         activity.preliminary_status = status
-        activity.preliminary_auditor_id = auditor.id
+        activity.preliminary_auditor_id = moderator.id
         activity.preliminary_reviewed_at = reviewed_at
         self.db.add(activity)
         await self.db.flush()
@@ -118,16 +120,18 @@ class JointActivityRepository(
     async def final_review(
         self,
         activity: JointActivity,
-        review: JointActivityFinalReview,
+        verification: JointActivityFinalVerification,
         *,
-        auditor: User,
+        verifier: User,
         reviewed_at: datetime,
     ) -> JointActivity:
-        activity.final_status = review.status
+        activity.final_status = verification.verification_status
         activity.final_score = (
-            review.final_score if review.status == AuditStatusEnum.approved else 0
+            verification.final_score
+            if verification.verification_status == VerificationStatusEnum.approved
+            else 0
         )
-        activity.final_auditor_id = auditor.id
+        activity.final_auditor_id = verifier.id
         activity.final_reviewed_at = reviewed_at
         self.db.add(activity)
         await self.db.flush()

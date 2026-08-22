@@ -13,6 +13,7 @@ from app.models.general_activity import (
 from app.models.joint_activity import JointActivity, JointActivityParticipation
 from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum, User, UserGradeEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 
 
 class StarRatingRepository:
@@ -134,7 +135,7 @@ class StarRatingRepository:
             )
             .where(
                 JointActivityParticipation.club_id == club_id,
-                JointActivity.final_status == AuditStatusEnum.approved,
+                JointActivity.final_status == VerificationStatusEnum.approved,
             )
         )
         if term is not None:

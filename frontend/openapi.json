@@ -4020,7 +4020,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/JointActivityPreliminaryReview" }
+              "schema": { "$ref": "#/components/schemas/JointActivityPreliminaryModeration" }
             }
           }
         },
@@ -4097,7 +4097,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/JointActivityFinalReview" }
+              "schema": { "$ref": "#/components/schemas/JointActivityFinalVerification" }
             }
           }
         },
@@ -5796,9 +5796,9 @@
         "required": ["name", "description", "location", "starts_at", "ends_at"],
         "title": "JointActivityCreate"
       },
-      "JointActivityFinalReview": {
+      "JointActivityFinalVerification": {
         "properties": {
-          "status": { "$ref": "#/components/schemas/AuditStatusEnum" },
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
           "final_score": {
             "type": "integer",
             "maximum": 8,
@@ -5808,8 +5808,8 @@
           }
         },
         "type": "object",
-        "required": ["status"],
-        "title": "JointActivityFinalReview"
+        "required": ["verification_status"],
+        "title": "JointActivityFinalVerification"
       },
       "JointActivityInfo": {
         "properties": {
@@ -5821,7 +5821,7 @@
           "ends_at": { "type": "string", "format": "date-time", "title": "Ends At" },
           "initiator_club_id": { "type": "integer", "title": "Initiator Club Id" },
           "created_by_user_id": { "type": "integer", "title": "Created By User Id" },
-          "preliminary_status": { "$ref": "#/components/schemas/AuditStatusEnum" },
+          "preliminary_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "preliminary_auditor_id": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
             "title": "Preliminary Auditor Id"
@@ -5840,7 +5840,7 @@
             "title": "Archive Files"
           },
           "final_status": {
-            "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
+            "anyOf": [{ "$ref": "#/components/schemas/VerificationStatusEnum" }, { "type": "null" }]
           },
           "final_score": { "type": "integer", "title": "Final Score" },
           "final_submitted_at": {
@@ -5915,11 +5915,13 @@
         ],
         "title": "JointActivityParticipationInfo"
       },
-      "JointActivityPreliminaryReview": {
-        "properties": { "status": { "$ref": "#/components/schemas/AuditStatusEnum" } },
+      "JointActivityPreliminaryModeration": {
+        "properties": {
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" }
+        },
         "type": "object",
-        "required": ["status"],
-        "title": "JointActivityPreliminaryReview"
+        "required": ["moderation_status"],
+        "title": "JointActivityPreliminaryModeration"
       },
       "JointActivityPublicInfo": {
         "properties": {
@@ -5940,7 +5942,7 @@
             "title": "Archive Files"
           },
           "final_status": {
-            "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
+            "anyOf": [{ "$ref": "#/components/schemas/VerificationStatusEnum" }, { "type": "null" }]
           },
           "final_score": { "type": "integer", "title": "Final Score" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },

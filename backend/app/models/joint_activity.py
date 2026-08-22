@@ -4,12 +4,14 @@ from datetime import datetime
 from typing import TYPE_CHECKING
 
 from sqlalchemy import JSON, DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy.dialects.postgresql import ENUM
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
-from app.models.user import AuditStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -36,8 +38,13 @@ class JointActivity(Base, AcademicTermMixin):
     )
     created_by_user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
 
-    preliminary_status: Mapped[AuditStatusEnum] = mapped_column(
-        default=AuditStatusEnum.pending,
+    preliminary_status: Mapped[ModerationStatusEnum] = mapped_column(
+        ENUM(
+            ModerationStatusEnum,
+            name="moderatestatusenum",
+            create_type=False,
+        ),
+        default=ModerationStatusEnum.pending,
         index=True,
     )
     preliminary_auditor_id: Mapped[int | None] = mapped_column(
@@ -51,7 +58,12 @@ class JointActivity(Base, AcademicTermMixin):
 
     archive_text: Mapped[str | None] = mapped_column(Text, default=None)
     archive_files: Mapped[list[str]] = mapped_column(JSON, default=list)
-    final_status: Mapped[AuditStatusEnum | None] = mapped_column(
+    final_status: Mapped[VerificationStatusEnum | None] = mapped_column(
+        ENUM(
+            VerificationStatusEnum,
+            name="verificationstatusenum",
+            create_type=False,
+        ),
         default=None,
         index=True,
     )

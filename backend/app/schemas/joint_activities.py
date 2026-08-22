@@ -6,7 +6,8 @@ from typing import Self
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from app.core import constants
-from app.models.user import AuditStatusEnum
+from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import JointActivityArchiveUri
@@ -103,54 +104,17 @@ class JointActivityArchiveUpdate(BaseModel):
     )
 
 
-class JointActivityPreliminaryReview(BaseModel):
-    status: AuditStatusEnum
-
-    @model_validator(mode="after")
-    def validate_decision(self) -> Self:
-        if self.status == AuditStatusEnum.pending:
-            raise BadRequestError(
-                "error.joint_activity.review_decision_required",
-                "JOINT_ACTIVITY_REVIEW_DECISION_REQUIRED",
-            )
-        return self
-
-
-class JointActivityFinalReview(JointActivityPreliminaryReview):
-    final_score: int = Field(
-        0,
-        ge=0,
-        le=constants.JOINT_ACTIVITY_MAX_FINAL_SCORE,
-    )
-
-    @model_validator(mode="after")
-    def validate_approved_score(self) -> Self:
-        if (
-            self.status == AuditStatusEnum.approved
-            and self.final_score < constants.JOINT_ACTIVITY_MIN_FINAL_SCORE
-        ):
-            raise BadRequestError(
-                "error.joint_activity.invalid_final_score",
-                "JOINT_ACTIVITY_INVALID_FINAL_SCORE",
-                {
-                    "min_score": constants.JOINT_ACTIVITY_MIN_FINAL_SCORE,
-                    "max_score": constants.JOINT_ACTIVITY_MAX_FINAL_SCORE,
-                },
-            )
-        return self
-
-
 class JointActivityInfo(JointActivityBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     initiator_club_id: int
     created_by_user_id: int
-    preliminary_status: AuditStatusEnum
+    preliminary_status: ModerationStatusEnum
     preliminary_auditor_id: int | None
     preliminary_reviewed_at: datetime | None
     archive_text: str | None
     archive_files: list[str]
-    final_status: AuditStatusEnum | None
+    final_status: VerificationStatusEnum | None
     final_score: int
     final_submitted_at: datetime | None
     final_auditor_id: int | None
@@ -168,7 +132,7 @@ class JointActivityPublicInfo(JointActivityBase, IdMixin):
     initiator_club_id: int
     archive_text: str | None
     archive_files: list[str]
-    final_status: AuditStatusEnum | None
+    final_status: VerificationStatusEnum | None
     final_score: int
     academic_term: AcademicTermInfo
     initiator_club: JointActivityClubInfo
