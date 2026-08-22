@@ -353,5 +353,10 @@ async def setup_class_users(
 
         class_users[username] = {"headers": headers, "user": user}
 
+    # Commit (release the savepoint) so the seeded users join the outer
+    # transaction before any test runs. A later rollback in the first test
+    # then only unwinds its own savepoint, never the seeded rows.
+    await db_session.commit()
+
     request.cls.configured_users = class_users
     yield

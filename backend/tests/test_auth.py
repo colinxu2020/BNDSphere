@@ -1,3 +1,5 @@
+from typing import ClassVar
+
 from httpx import AsyncClient
 
 
@@ -29,5 +31,39 @@ class TestAuthWorkflow:
             "username": "test_user_1",
             "password": "3f1c9a7b2d4e6f80",
         }
+        resp = await client.post("/auth/register", json=payload)
+        assert resp.status_code == 409
+
+
+class TestSeededUsersSurviveRollback:
+    """Regression guard for ``setup_class_users``.
+
+    The fixture seeds ``seeded_user`` and commits (releases its savepoint)
+    before yielding, so the seeded row joins the outer class transaction. The
+    first test below triggers a duplicate-username 409 whose request-time
+    rollback only unwinds its own savepoint, so the seeded user must still
+    conflict in the second test. Before the fix, that rollback deleted the
+    seeded row and the second registration returned 201.
+    """
+
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {"username": "seeded_user", "password": "ada8d837f6b62e24"},
+    ]
+
+    async def test_first_request_triggers_rollback(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        payload = {"username": "seeded_user", "password": "6748dfa41e25ffbf"}
+        resp = await client.post("/auth/register", json=payload)
+        assert resp.status_code == 409
+
+    async def test_seeded_user_still_exists(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        payload = {"username": "seeded_user", "password": "3f1c9a7b2d4e6f80"}
         resp = await client.post("/auth/register", json=payload)
         assert resp.status_code == 409

@@ -54,12 +54,20 @@ services:
       - test
     environment:
       - CORS_ORIGIN=*
+      # Harmless object-storage settings so the test app can resolve
+      # ObjectStorageServiceDep without mounting real OSS secrets. Tests that
+      # exercise upload routes should override ObjectStorageServiceDep directly.
+      - OSS_ENDPOINT_URL=http://localhost:9000
+      - OSS_BUCKET=test
+      - OSS_ACCESS_KEY_ID=test
+      - OSS_ACCESS_KEY=test
     read_only: false
     depends_on:
       postgres:
         condition: service_healthy
     networks:
       - postgres-network
+      - backend-network
     volumes:
       - ./backend:/backend
       - backend-venv:/backend/.venv
