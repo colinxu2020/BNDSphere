@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DB_PASSWORD_VALUE="$(cat "$APP_DB_PASSWORD_FILE")"
-MIGRATION_DB_PASSWORD_VALUE="$(cat "$MIGRATION_DB_PASSWORD_FILE")"
+APP_DB_PASSWORD_VALUE="${APP_DB_PASSWORD:?app password not resolved by entrypoint}"
+MIGRATION_DB_PASSWORD_VALUE="${MIGRATION_DB_PASSWORD:?migration password not resolved by entrypoint}"
 
 echo "[initdb] configuring roles, schemas, and privileges for database: ${POSTGRES_DB}"
 
