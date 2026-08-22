@@ -16,9 +16,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
             }
           },
           "401": {
@@ -55,9 +53,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
             }
           },
           "404": {
@@ -93,9 +89,7 @@
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UserUpdateRequestCreate"
-              }
+              "schema": { "$ref": "#/components/schemas/UserUpdateRequestCreate" }
             }
           },
           "required": true
@@ -105,9 +99,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/UserUpdateRequestInfo" }
               }
             }
           },
@@ -155,9 +147,7 @@
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/UserCreate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } }
           },
           "required": true
         },
@@ -165,17 +155,13 @@
           "201": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
             }
           },
           "409": {
             "description": "Username already exists",
             "content": {
-              "application/json": {
-                "example": { "detail": "Username already exists" }
-              }
+              "application/json": { "example": { "detail": "Username already exists" } }
             }
           },
           "422": {
@@ -198,9 +184,7 @@
         "requestBody": {
           "content": {
             "application/x-www-form-urlencoded": {
-              "schema": {
-                "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post"
-              }
+              "schema": { "$ref": "#/components/schemas/Body_login_api_v1_auth_login_post" }
             }
           },
           "required": true
@@ -209,17 +193,13 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Token" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Token" } }
             }
           },
           "401": {
             "description": "Incorrect username or password",
             "content": {
-              "application/json": {
-                "example": { "detail": "Incorrect username or password" }
-              }
+              "application/json": { "example": { "detail": "Incorrect username or password" } }
             }
           },
           "422": {
@@ -251,9 +231,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ClubInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
           "401": {
@@ -289,18 +267,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/ClubCreate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/ClubCreate" } }
           }
         },
         "responses": {
           "201": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ClubInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
           "401": {
@@ -318,9 +292,7 @@
           "409": {
             "description": "Club with the same name already exists",
             "content": {
-              "application/json": {
-                "example": { "detail": "Club with name HCC already exists." }
-              }
+              "application/json": { "example": { "detail": "Club with name HCC already exists." } }
             }
           },
           "422": {
@@ -343,20 +315,14 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "category",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "$ref": "#/components/schemas/ClubCategoryEnum" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "$ref": "#/components/schemas/ClubCategoryEnum" }, { "type": "null" }],
               "title": "Category"
             }
           },
@@ -392,9 +358,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
             }
           },
           "422": {
@@ -426,9 +390,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubUpdateRequestCreatePublic"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubUpdateRequestCreatePublic" }
             }
           }
         },
@@ -437,9 +399,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubUpdateRequestInfo" }
               }
             }
           },
@@ -497,9 +457,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubMembershipRequestCreatePublic"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubMembershipRequestCreatePublic" }
             }
           }
         },
@@ -508,9 +466,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubMembershipRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubMembershipRequestInfo" }
               }
             }
           },
@@ -594,9 +550,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubMembershipRequestInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubMembershipRequestInfo_" }
               }
             }
           },
@@ -747,9 +701,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubActivityInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubActivityInfo_" }
               }
             }
           },
@@ -783,9 +735,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubActivityCreateRequestCreatePublic"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubActivityCreateRequestCreatePublic" }
             }
           }
         },
@@ -794,9 +744,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubActivityCreateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubActivityCreateRequestInfo" }
               }
             }
           },
@@ -860,9 +808,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubActivityUpdateRequestCreatePublic"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubActivityUpdateRequestCreatePublic" }
             }
           }
         },
@@ -871,9 +817,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo" }
               }
             }
           },
@@ -924,20 +868,14 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "role",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "$ref": "#/components/schemas/RoleEnum" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "$ref": "#/components/schemas/RoleEnum" }, { "type": "null" }],
               "title": "Role"
             }
           },
@@ -973,9 +911,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Page_UserInfo_" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_UserInfo_" } }
             }
           },
           "401": {
@@ -1031,18 +967,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminUserUpdate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AdminUserUpdate" } }
           }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/UserInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
             }
           },
           "401": {
@@ -1105,20 +1037,14 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "category",
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "$ref": "#/components/schemas/ClubCategoryEnum" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "$ref": "#/components/schemas/ClubCategoryEnum" }, { "type": "null" }],
               "title": "Category"
             }
           },
@@ -1127,10 +1053,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "$ref": "#/components/schemas/ClubStatusEnum" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "$ref": "#/components/schemas/ClubStatusEnum" }, { "type": "null" }],
               "title": "Club Status"
             }
           },
@@ -1166,9 +1089,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
             }
           },
           "401": {
@@ -1225,9 +1146,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ClubInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
           "401": {
@@ -1294,18 +1213,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AdminClubUpdate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AdminClubUpdate" } }
           }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ClubInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
           "401": {
@@ -1397,9 +1312,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_AcademicTermInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_AcademicTermInfo_" }
               }
             }
           },
@@ -1446,18 +1359,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AcademicTermCreate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermCreate" } }
           }
         },
         "responses": {
           "201": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcademicTermInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
           "401": {
@@ -1514,9 +1423,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcademicTermInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
           "401": {
@@ -1583,18 +1490,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AcademicTermUpdate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermUpdate" } }
           }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcademicTermInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
           "401": {
@@ -1662,9 +1565,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcademicTermInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
           "401": {
@@ -1734,9 +1635,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AcademicTermInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
           "401": {
@@ -1799,10 +1698,7 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "level",
@@ -1849,9 +1745,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_GeneralActivityInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_GeneralActivityInfo_" }
               }
             }
           },
@@ -2109,20 +2003,13 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "active_only",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": false,
-              "title": "Active Only"
-            }
+            "schema": { "type": "boolean", "default": false, "title": "Active Only" }
           },
           {
             "name": "page",
@@ -2157,9 +2044,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_AnnouncementInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_AnnouncementInfo_" }
               }
             }
           },
@@ -2206,18 +2091,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AnnouncementCreate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementCreate" } }
           }
         },
         "responses": {
           "201": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
           "401": {
@@ -2273,18 +2154,14 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/AnnouncementUpdate" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementUpdate" } }
           }
         },
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
           "401": {
@@ -2352,9 +2229,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AnnouncementInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
           "401": {
@@ -2450,10 +2325,7 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "level",
@@ -2472,10 +2344,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "type": "string", "format": "date-time" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
               "title": "Starts Before"
             }
           },
@@ -2484,10 +2353,7 @@
             "in": "query",
             "required": false,
             "schema": {
-              "anyOf": [
-                { "type": "string", "format": "date-time" },
-                { "type": "null" }
-              ],
+              "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
               "title": "Ends After"
             }
           },
@@ -2533,9 +2399,574 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_GeneralActivityInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_GeneralActivityInfo_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/joint-activities/": {
+      "get": {
+        "tags": ["Joint Activities"],
+        "summary": "List Joint Activities",
+        "description": "List pre-approved joint activities for public viewing.",
+        "operationId": "list_joint_activities_api_v1_joint_activities__get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_JointActivityPublicInfo_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/joint-activities/{activity_id}": {
+      "get": {
+        "tags": ["Joint Activities"],
+        "summary": "Get Joint Activity",
+        "description": "Get a pre-approved joint activity for public viewing.",
+        "operationId": "get_joint_activity_api_v1_joint_activities__activity_id__get",
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/JointActivityPublicInfo" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/joint-activities/": {
+      "get": {
+        "tags": ["Club Joint Activities"],
+        "summary": "List Club Joint Activities",
+        "operationId": "list_club_joint_activities_api_v1_clubs__club_id__joint_activities__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_JointActivityInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Club Joint Activities"],
+        "summary": "Create Joint Activity",
+        "operationId": "create_joint_activity_api_v1_clubs__club_id__joint_activities__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityCreate" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/joint-activities/{activity_id}": {
+      "patch": {
+        "tags": ["Club Joint Activities"],
+        "summary": "Update Joint Activity",
+        "operationId": "update_joint_activity_api_v1_clubs__club_id__joint_activities__activity_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityUpdate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/participations": {
+      "post": {
+        "tags": ["Club Joint Activities"],
+        "summary": "Register Joint Activity Participation",
+        "operationId": "register_joint_activity_participation_api_v1_clubs__club_id__joint_activities__activity_id__participations_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/archive": {
+      "patch": {
+        "tags": ["Club Joint Activities"],
+        "summary": "Update Joint Activity Archive",
+        "operationId": "update_joint_activity_archive_api_v1_clubs__club_id__joint_activities__activity_id__archive_patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JointActivityArchiveUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/final-submission": {
+      "post": {
+        "tags": ["Club Joint Activities"],
+        "summary": "Submit Joint Activity Final Review",
+        "operationId": "submit_joint_activity_final_review_api_v1_clubs__club_id__joint_activities__activity_id__final_submission_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },
@@ -2596,9 +3027,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubGeneralActivityInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubGeneralActivityInfo_" }
               }
             }
           },
@@ -2630,9 +3059,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubGeneralActivityCreate"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubGeneralActivityCreate" }
             }
           }
         },
@@ -2641,9 +3068,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubGeneralActivityInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" }
               }
             }
           },
@@ -2699,9 +3124,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/ClubGeneralActivityUpdate"
-              }
+              "schema": { "$ref": "#/components/schemas/ClubGeneralActivityUpdate" }
             }
           }
         },
@@ -2710,9 +3133,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubGeneralActivityInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" }
               }
             }
           },
@@ -2810,9 +3231,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_StarLevelApplicationInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_StarLevelApplicationInfo_" }
               }
             }
           },
@@ -2844,9 +3263,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StarLevelApplicationCreate"
-              }
+              "schema": { "$ref": "#/components/schemas/StarLevelApplicationCreate" }
             }
           }
         },
@@ -2855,9 +3272,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StarLevelApplicationInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/StarLevelApplicationInfo" }
               }
             }
           },
@@ -2969,9 +3384,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_StarLevelApplicationPublicInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_StarLevelApplicationPublicInfo_" }
               }
             }
           },
@@ -3004,9 +3417,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StarLevelApplicationInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/StarLevelApplicationInfo" }
               }
             }
           },
@@ -3037,9 +3448,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StarLevelApplicationUpdate"
-              }
+              "schema": { "$ref": "#/components/schemas/StarLevelApplicationUpdate" }
             }
           }
         },
@@ -3048,9 +3457,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StarLevelApplicationInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/StarLevelApplicationInfo" }
               }
             }
           },
@@ -3317,9 +3724,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/FederationRecordUpdate"
-              }
+              "schema": { "$ref": "#/components/schemas/FederationRecordUpdate" }
             }
           }
         },
@@ -3328,9 +3733,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubGeneralActivityInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" }
               }
             }
           },
@@ -3400,9 +3803,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StarLevelApplicationReview"
-              }
+              "schema": { "$ref": "#/components/schemas/StarLevelApplicationReview" }
             }
           }
         },
@@ -3411,9 +3812,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StarLevelApplicationReviewPreview"
-                }
+                "schema": { "$ref": "#/components/schemas/StarLevelApplicationReviewPreview" }
               }
             }
           },
@@ -3470,9 +3869,7 @@
           "required": true,
           "content": {
             "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/StarLevelApplicationReview"
-              }
+              "schema": { "$ref": "#/components/schemas/StarLevelApplicationReview" }
             }
           }
         },
@@ -3481,9 +3878,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/StarLevelApplicationInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/StarLevelApplicationInfo" }
               }
             }
           },
@@ -3506,6 +3901,245 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/club-federation/joint-activities/": {
+      "get": {
+        "tags": ["Federation: Joint Activities"],
+        "summary": "List Joint Activities For Federation",
+        "operationId": "list_joint_activities_for_federation_api_v1_club_federation_joint_activities__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_JointActivityInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/club-federation/joint-activities/{activity_id}/preliminary-review": {
+      "patch": {
+        "tags": ["Federation: Joint Activities"],
+        "summary": "Review Joint Activity Preliminarily",
+        "operationId": "review_joint_activity_preliminarily_api_v1_club_federation_joint_activities__activity_id__preliminary_review_patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JointActivityPreliminaryModeration" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/club-federation/joint-activities/{activity_id}/final-review": {
+      "patch": {
+        "tags": ["Federation: Joint Activities"],
+        "summary": "Review Joint Activity Finally",
+        "operationId": "review_joint_activity_finally_api_v1_club_federation_joint_activities__activity_id__final_review_patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/JointActivityFinalVerification" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3563,9 +4197,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_UserUpdateRequestInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_UserUpdateRequestInfo_" }
               }
             }
           },
@@ -3631,9 +4263,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/UserUpdateRequestInfo" }
               }
             }
           },
@@ -3713,9 +4343,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubActivityCreateRequestInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubActivityCreateRequestInfo_" }
               }
             }
           },
@@ -3782,9 +4410,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubActivityCreateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubActivityCreateRequestInfo" }
               }
             }
           },
@@ -3864,9 +4490,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubActivityUpdateRequestInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubActivityUpdateRequestInfo_" }
               }
             }
           },
@@ -3933,9 +4557,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo" }
               }
             }
           },
@@ -4015,9 +4637,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_ClubUpdateRequestInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_ClubUpdateRequestInfo_" }
               }
             }
           },
@@ -4084,9 +4704,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubUpdateRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubUpdateRequestInfo" }
               }
             }
           },
@@ -4149,9 +4767,7 @@
         "requestBody": {
           "required": true,
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/RequestVerifyPublic" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/RequestVerifyPublic" } }
           }
         },
         "responses": {
@@ -4159,9 +4775,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ClubMembershipRequestInfo"
-                }
+                "schema": { "$ref": "#/components/schemas/ClubMembershipRequestInfo" }
               }
             }
           },
@@ -4231,9 +4845,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InitiateUploadResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/InitiateUploadResponse" }
               }
             }
           },
@@ -4267,9 +4879,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ConfirmUploadResponse"
-                }
+                "schema": { "$ref": "#/components/schemas/ConfirmUploadResponse" }
               }
             }
           },
@@ -4296,20 +4906,13 @@
             "name": "search",
             "in": "query",
             "required": false,
-            "schema": {
-              "anyOf": [{ "type": "string" }, { "type": "null" }],
-              "title": "Search"
-            }
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
           },
           {
             "name": "active_only",
             "in": "query",
             "required": false,
-            "schema": {
-              "type": "boolean",
-              "default": true,
-              "title": "Active Only"
-            }
+            "schema": { "type": "boolean", "default": true, "title": "Active Only" }
           },
           {
             "name": "page",
@@ -4344,9 +4947,7 @@
             "description": "Successful Response",
             "content": {
               "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/Page_AnnouncementInfo_"
-                }
+                "schema": { "$ref": "#/components/schemas/Page_AnnouncementInfo_" }
               }
             }
           },
@@ -4374,22 +4975,11 @@
       "AcademicTermCreate": {
         "properties": {
           "term_name": {
-            "anyOf": [
-              { "type": "string", "maxLength": 50 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
             "title": "Term Name"
           },
-          "start_date": {
-            "type": "string",
-            "format": "date",
-            "title": "Start Date"
-          },
-          "end_date": {
-            "type": "string",
-            "format": "date",
-            "title": "End Date"
-          },
+          "start_date": { "type": "string", "format": "date", "title": "Start Date" },
+          "end_date": { "type": "string", "format": "date", "title": "End Date" },
           "is_current": { "type": "boolean", "title": "Is Current" }
         },
         "type": "object",
@@ -4399,21 +4989,9 @@
       "AcademicTermInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
-          "term_name": {
-            "type": "string",
-            "maxLength": 50,
-            "title": "Term Name"
-          },
-          "start_date": {
-            "type": "string",
-            "format": "date",
-            "title": "Start Date"
-          },
-          "end_date": {
-            "type": "string",
-            "format": "date",
-            "title": "End Date"
-          },
+          "term_name": { "type": "string", "maxLength": 50, "title": "Term Name" },
+          "start_date": { "type": "string", "format": "date", "title": "Start Date" },
+          "end_date": { "type": "string", "format": "date", "title": "End Date" },
           "is_current": { "type": "boolean", "title": "Is Current" }
         },
         "type": "object",
@@ -4423,24 +5001,15 @@
       "AcademicTermUpdate": {
         "properties": {
           "term_name": {
-            "anyOf": [
-              { "type": "string", "maxLength": 50 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
             "title": "Term Name"
           },
           "start_date": {
-            "anyOf": [
-              { "type": "string", "format": "date" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }],
             "title": "Start Date"
           },
           "end_date": {
-            "anyOf": [
-              { "type": "string", "format": "date" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date" }, { "type": "null" }],
             "title": "End Date"
           }
         },
@@ -4450,42 +5019,25 @@
       "AdminClubUpdate": {
         "properties": {
           "summary": {
-            "anyOf": [
-              { "type": "string", "maxLength": 50 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
             "title": "Summary"
           },
           "description": {
-            "anyOf": [
-              { "type": "string", "maxLength": 400 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
           },
           "star_level": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/ClubStarLevelEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/ClubStarLevelEnum" }, { "type": "null" }]
           },
           "status": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/ClubStatusEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/ClubStatusEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -4493,47 +5045,25 @@
       },
       "AdminUserUpdate": {
         "properties": {
-          "username": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Username"
-          },
+          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
           "email": {
-            "anyOf": [
-              { "type": "string", "maxLength": 64, "format": "email" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
             "title": "Email"
           },
           "avatar_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
           },
           "description": {
-            "anyOf": [
-              { "type": "string", "maxLength": 400 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
-          "role": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/RoleEnum" },
-              { "type": "null" }
-            ]
-          },
+          "role": { "anyOf": [{ "$ref": "#/components/schemas/RoleEnum" }, { "type": "null" }] },
           "grade": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -4544,31 +5074,18 @@
           "title": { "type": "string", "maxLength": 120, "title": "Title" },
           "body": { "type": "string", "maxLength": 2000, "title": "Body" },
           "link_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Link Url"
           },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
-          }
+          "is_active": { "type": "boolean", "title": "Is Active", "default": true }
         },
         "type": "object",
         "required": ["title", "body"],
@@ -4580,36 +5097,19 @@
           "title": { "type": "string", "maxLength": 120, "title": "Title" },
           "body": { "type": "string", "maxLength": 2000, "title": "Body" },
           "link_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Link Url"
           },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
-          "is_active": {
-            "type": "boolean",
-            "title": "Is Active",
-            "default": true
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
+          "is_active": { "type": "boolean", "title": "Is Active", "default": true },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
         },
         "type": "object",
         "required": ["id", "title", "body", "created_at"],
@@ -4618,38 +5118,23 @@
       "AnnouncementUpdate": {
         "properties": {
           "title": {
-            "anyOf": [
-              { "type": "string", "maxLength": 120 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 120 }, { "type": "null" }],
             "title": "Title"
           },
           "body": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2000 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2000 }, { "type": "null" }],
             "title": "Body"
           },
           "link_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Link Url"
           },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
           "is_active": {
@@ -4668,18 +5153,11 @@
       "Body_login_api_v1_auth_login_post": {
         "properties": {
           "grant_type": {
-            "anyOf": [
-              { "type": "string", "pattern": "^password$" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "pattern": "^password$" }, { "type": "null" }],
             "title": "Grant Type"
           },
           "username": { "type": "string", "title": "Username" },
-          "password": {
-            "type": "string",
-            "format": "password",
-            "title": "Password"
-          },
+          "password": { "type": "string", "format": "password", "title": "Password" },
           "scope": { "type": "string", "title": "Scope", "default": "" },
           "client_id": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
@@ -4698,77 +5176,30 @@
       "ClubActivityCreateRequestCreatePublic": {
         "properties": {
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start Time"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "End Time"
-          },
-          "location": {
-            "type": "string",
-            "maxLength": 200,
-            "title": "Location"
-          }
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
+          "end_time": { "type": "string", "format": "date-time", "title": "End Time" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" }
         },
         "type": "object",
-        "required": [
-          "name",
-          "description",
-          "start_time",
-          "end_time",
-          "location"
-        ],
+        "required": ["name", "description", "start_time", "end_time", "location"],
         "title": "ClubActivityCreateRequestCreatePublic"
       },
       "ClubActivityCreateRequestInfo": {
         "properties": {
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start Time"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "End Time"
-          },
-          "location": {
-            "type": "string",
-            "maxLength": 200,
-            "title": "Location"
-          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
+          "end_time": { "type": "string", "format": "date-time", "title": "End Time" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
           "id": { "type": "integer", "title": "Id" },
-          "moderation_status": {
-            "$ref": "#/components/schemas/ModerationStatusEnum"
-          },
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Moderate At"
           },
           "requestor_id": { "type": "integer", "title": "Requestor Id" },
-          "request_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Request At"
-          },
+          "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
           "club_id": { "type": "integer", "title": "Club Id" }
         },
         "type": "object",
@@ -4790,26 +5221,10 @@
         "properties": {
           "id": { "type": "integer", "title": "Id" },
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
-          "location": {
-            "type": "string",
-            "maxLength": 200,
-            "title": "Location"
-          },
-          "start_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Start Time"
-          },
-          "end_time": {
-            "type": "string",
-            "format": "date-time",
-            "title": "End Time"
-          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
+          "end_time": { "type": "string", "format": "date-time", "title": "End Time" },
           "club_id": { "type": "integer", "title": "Club Id" },
           "picture_urls": {
             "items": { "type": "string" },
@@ -4835,45 +5250,27 @@
       "ClubActivityUpdateRequestCreatePublic": {
         "properties": {
           "name": {
-            "anyOf": [
-              { "type": "string", "maxLength": 64 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 64 }, { "type": "null" }],
             "title": "Name"
           },
           "description": {
-            "anyOf": [
-              { "type": "string", "maxLength": 400 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "start_time": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Start Time"
           },
           "end_time": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "End Time"
           },
           "location": {
-            "anyOf": [
-              { "type": "string", "maxLength": 200 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }],
             "title": "Location"
           },
           "picture_urls": {
-            "anyOf": [
-              { "items": { "type": "string" }, "type": "array" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "items": { "type": "string" }, "type": "array" }, { "type": "null" }],
             "title": "Picture Urls"
           }
         },
@@ -4883,88 +5280,46 @@
       "ClubActivityUpdateRequestInfo": {
         "properties": {
           "name": {
-            "anyOf": [
-              { "type": "string", "maxLength": 64 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 64 }, { "type": "null" }],
             "title": "Name"
           },
           "description": {
-            "anyOf": [
-              { "type": "string", "maxLength": 400 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "start_time": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Start Time"
           },
           "end_time": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "End Time"
           },
           "location": {
-            "anyOf": [
-              { "type": "string", "maxLength": 200 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }],
             "title": "Location"
           },
           "picture_urls": {
-            "anyOf": [
-              { "items": { "type": "string" }, "type": "array" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "items": { "type": "string" }, "type": "array" }, { "type": "null" }],
             "title": "Picture Urls"
           },
           "id": { "type": "integer", "title": "Id" },
-          "moderation_status": {
-            "$ref": "#/components/schemas/ModerationStatusEnum"
-          },
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Moderate At"
           },
           "requestor_id": { "type": "integer", "title": "Requestor Id" },
-          "request_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Request At"
-          },
+          "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
           "club_activity_id": { "type": "integer", "title": "Club Activity Id" }
         },
         "type": "object",
-        "required": [
-          "id",
-          "moderation_status",
-          "requestor_id",
-          "request_at",
-          "club_activity_id"
-        ],
+        "required": ["id", "moderation_status", "requestor_id", "request_at", "club_activity_id"],
         "title": "ClubActivityUpdateRequestInfo"
       },
       "ClubCategoryEnum": {
         "type": "string",
-        "enum": [
-          "sports",
-          "humanity",
-          "arts",
-          "science",
-          "charity",
-          "business",
-          "campus",
-          "other"
-        ],
+        "enum": ["sports", "humanity", "arts", "science", "charity", "business", "campus", "other"],
         "title": "ClubCategoryEnum"
       },
       "ClubCreate": {
@@ -4972,19 +5327,10 @@
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
@@ -4997,14 +5343,8 @@
       "ClubGeneralActivityCreate": {
         "properties": {
           "activity_id": { "type": "integer", "title": "Activity Id" },
-          "participation_type": {
-            "$ref": "#/components/schemas/ParticipationTypeEnum"
-          },
-          "proof_files": {
-            "items": { "type": "string" },
-            "type": "array",
-            "title": "Proof Files"
-          },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
+          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
           "requested_score": { "type": "integer", "title": "Requested Score" }
         },
         "type": "object",
@@ -5014,21 +5354,11 @@
       "ClubGeneralActivityInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
-          "proof_files": {
-            "items": { "type": "string" },
-            "type": "array",
-            "title": "Proof Files"
-          },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
+          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
           "audit_status": { "$ref": "#/components/schemas/AuditStatusEnum" },
           "requested_score": { "type": "integer", "title": "Requested Score" },
-          "participation_type": {
-            "$ref": "#/components/schemas/ParticipationTypeEnum"
-          },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
           "met_conditions": {
             "items": { "$ref": "#/components/schemas/RecordConditionDetail" },
             "type": "array",
@@ -5059,14 +5389,8 @@
       "ClubGeneralActivityUpdate": {
         "properties": {
           "activity_id": { "type": "integer", "title": "Activity Id" },
-          "participation_type": {
-            "$ref": "#/components/schemas/ParticipationTypeEnum"
-          },
-          "proof_files": {
-            "items": { "type": "string" },
-            "type": "array",
-            "title": "Proof Files"
-          },
+          "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
+          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
           "requested_score": { "type": "integer", "title": "Requested Score" }
         },
         "type": "object",
@@ -5079,28 +5403,15 @@
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
           "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
           "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" },
           "members": {
@@ -5141,11 +5452,7 @@
           "user_id": { "type": "integer", "title": "User Id" },
           "club_id": { "type": "integer", "title": "Club Id" },
           "membership": { "$ref": "#/components/schemas/ClubMembershipEnum" },
-          "updated_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Updated At"
-          }
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" }
         },
         "type": "object",
         "required": ["id", "user_id", "club_id", "membership", "updated_at"],
@@ -5166,33 +5473,17 @@
         "properties": {
           "message": { "type": "string", "title": "Message" },
           "id": { "type": "integer", "title": "Id" },
-          "verification_status": {
-            "$ref": "#/components/schemas/VerificationStatusEnum"
-          },
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
           "verify_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Verify At"
           },
           "applicant_id": { "type": "integer", "title": "Applicant Id" },
-          "apply_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Apply At"
-          },
+          "apply_at": { "type": "string", "format": "date-time", "title": "Apply At" },
           "club_id": { "type": "integer", "title": "Club Id" }
         },
         "type": "object",
-        "required": [
-          "message",
-          "id",
-          "verification_status",
-          "applicant_id",
-          "apply_at",
-          "club_id"
-        ],
+        "required": ["message", "id", "verification_status", "applicant_id", "apply_at", "club_id"],
         "title": "ClubMembershipRequestInfo"
       },
       "ClubStarLevelEnum": {
@@ -5215,22 +5506,14 @@
       },
       "ClubUpdateRequestCreatePublic": {
         "properties": {
-          "summary": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Summary"
-          },
+          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
           "description": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
@@ -5241,53 +5524,30 @@
       },
       "ClubUpdateRequestInfo": {
         "properties": {
-          "summary": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Summary"
-          },
+          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
           "description": {
             "anyOf": [{ "type": "string" }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
           },
           "id": { "type": "integer", "title": "Id" },
-          "moderation_status": {
-            "$ref": "#/components/schemas/ModerationStatusEnum"
-          },
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Moderate At"
           },
           "requestor_id": { "type": "integer", "title": "Requestor Id" },
-          "request_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Request At"
-          },
+          "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
           "club_id": { "type": "integer", "title": "Club Id" }
         },
         "type": "object",
-        "required": [
-          "id",
-          "moderation_status",
-          "requestor_id",
-          "request_at",
-          "club_id"
-        ],
+        "required": ["id", "moderation_status", "requestor_id", "request_at", "club_id"],
         "title": "ClubUpdateRequestInfo"
       },
       "ConfirmUploadRequest": {
@@ -5325,11 +5585,7 @@
             "title": "Message Key",
             "description": "i18n translate key"
           },
-          "error_code": {
-            "type": "string",
-            "title": "Error Code",
-            "description": "error code"
-          },
+          "error_code": { "type": "string", "title": "Error Code", "description": "error code" },
           "details": {
             "additionalProperties": true,
             "type": "object",
@@ -5359,36 +5615,22 @@
           "description": { "type": "string", "title": "Description" },
           "level": { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
           "poster_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2048,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Article Url"
           }
         },
@@ -5403,43 +5645,25 @@
           "description": { "type": "string", "title": "Description" },
           "level": { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
           "poster_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2048,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Article Url"
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
           "club_records": {
             "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
             "type": "array",
@@ -5467,10 +5691,7 @@
       "GeneralActivityUpdate": {
         "properties": {
           "name": {
-            "anyOf": [
-              { "type": "string", "maxLength": 128 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 128 }, { "type": "null" }],
             "title": "Name"
           },
           "description": {
@@ -5484,36 +5705,22 @@
             ]
           },
           "starts_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Starts At"
           },
           "ends_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Ends At"
           },
           "poster_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2048,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2048 },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
             "title": "Article Url"
           }
         },
@@ -5534,12 +5741,7 @@
       "InitiateUploadRequest": {
         "properties": {
           "scene": { "$ref": "#/components/schemas/UploadScene" },
-          "filename": {
-            "type": "string",
-            "maxLength": 256,
-            "minLength": 1,
-            "title": "Filename"
-          },
+          "filename": { "type": "string", "maxLength": 256, "minLength": 1, "title": "Filename" },
           "content_type": { "type": "string", "title": "Content Type" },
           "size": { "type": "integer", "exclusiveMinimum": 0, "title": "Size" }
         },
@@ -5556,6 +5758,258 @@
         "type": "object",
         "required": ["object_key", "upload_url", "expires_seconds"],
         "title": "InitiateUploadResponse"
+      },
+      "JointActivityArchiveUpdate": {
+        "properties": {
+          "archive_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Archive Text"
+          },
+          "archive_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Archive Files"
+          }
+        },
+        "type": "object",
+        "title": "JointActivityArchiveUpdate"
+      },
+      "JointActivityClubInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "title": "Name" }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "JointActivityClubInfo"
+      },
+      "JointActivityCreate": {
+        "properties": {
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "starts_at": { "type": "string", "format": "date-time", "title": "Starts At" },
+          "ends_at": { "type": "string", "format": "date-time", "title": "Ends At" }
+        },
+        "type": "object",
+        "required": ["name", "description", "location", "starts_at", "ends_at"],
+        "title": "JointActivityCreate"
+      },
+      "JointActivityFinalVerification": {
+        "properties": {
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
+          "final_score": {
+            "type": "integer",
+            "maximum": 8,
+            "minimum": 0,
+            "title": "Final Score",
+            "default": 0
+          }
+        },
+        "type": "object",
+        "required": ["verification_status"],
+        "title": "JointActivityFinalVerification"
+      },
+      "JointActivityInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "starts_at": { "type": "string", "format": "date-time", "title": "Starts At" },
+          "ends_at": { "type": "string", "format": "date-time", "title": "Ends At" },
+          "initiator_club_id": { "type": "integer", "title": "Initiator Club Id" },
+          "created_by_user_id": { "type": "integer", "title": "Created By User Id" },
+          "preliminary_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
+          "preliminary_auditor_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Preliminary Auditor Id"
+          },
+          "preliminary_reviewed_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Preliminary Reviewed At"
+          },
+          "archive_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Archive Text"
+          },
+          "archive_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Archive Files"
+          },
+          "final_status": {
+            "anyOf": [{ "$ref": "#/components/schemas/VerificationStatusEnum" }, { "type": "null" }]
+          },
+          "final_score": { "type": "integer", "title": "Final Score" },
+          "final_submitted_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Final Submitted At"
+          },
+          "final_auditor_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Final Auditor Id"
+          },
+          "final_reviewed_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Final Reviewed At"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" },
+          "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
+          "initiator_club": { "$ref": "#/components/schemas/JointActivityClubInfo" },
+          "participations": {
+            "items": { "$ref": "#/components/schemas/JointActivityParticipationInfo" },
+            "type": "array",
+            "title": "Participations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "location",
+          "starts_at",
+          "ends_at",
+          "initiator_club_id",
+          "created_by_user_id",
+          "preliminary_status",
+          "preliminary_auditor_id",
+          "preliminary_reviewed_at",
+          "archive_text",
+          "archive_files",
+          "final_status",
+          "final_score",
+          "final_submitted_at",
+          "final_auditor_id",
+          "final_reviewed_at",
+          "created_at",
+          "updated_at",
+          "academic_term",
+          "initiator_club",
+          "participations"
+        ],
+        "title": "JointActivityInfo"
+      },
+      "JointActivityParticipationInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "activity_id": { "type": "integer", "title": "Activity Id" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "registered_by_user_id": { "type": "integer", "title": "Registered By User Id" },
+          "is_initiator": { "type": "boolean", "title": "Is Initiator" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "club": { "$ref": "#/components/schemas/JointActivityClubInfo" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "activity_id",
+          "club_id",
+          "registered_by_user_id",
+          "is_initiator",
+          "created_at",
+          "club"
+        ],
+        "title": "JointActivityParticipationInfo"
+      },
+      "JointActivityPreliminaryModeration": {
+        "properties": {
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" }
+        },
+        "type": "object",
+        "required": ["moderation_status"],
+        "title": "JointActivityPreliminaryModeration"
+      },
+      "JointActivityPublicInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "description": { "type": "string", "title": "Description" },
+          "location": { "type": "string", "maxLength": 200, "title": "Location" },
+          "starts_at": { "type": "string", "format": "date-time", "title": "Starts At" },
+          "ends_at": { "type": "string", "format": "date-time", "title": "Ends At" },
+          "initiator_club_id": { "type": "integer", "title": "Initiator Club Id" },
+          "archive_text": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Archive Text"
+          },
+          "archive_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Archive Files"
+          },
+          "final_status": {
+            "anyOf": [{ "$ref": "#/components/schemas/VerificationStatusEnum" }, { "type": "null" }]
+          },
+          "final_score": { "type": "integer", "title": "Final Score" },
+          "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
+          "initiator_club": { "$ref": "#/components/schemas/JointActivityClubInfo" },
+          "participations": {
+            "items": { "$ref": "#/components/schemas/JointActivityPublicParticipationInfo" },
+            "type": "array",
+            "title": "Participations"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "description",
+          "location",
+          "starts_at",
+          "ends_at",
+          "initiator_club_id",
+          "archive_text",
+          "archive_files",
+          "final_status",
+          "final_score",
+          "academic_term",
+          "initiator_club",
+          "participations"
+        ],
+        "title": "JointActivityPublicInfo"
+      },
+      "JointActivityPublicParticipationInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "activity_id": { "type": "integer", "title": "Activity Id" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "is_initiator": { "type": "boolean", "title": "Is Initiator" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "club": { "$ref": "#/components/schemas/JointActivityClubInfo" }
+        },
+        "type": "object",
+        "required": ["id", "activity_id", "club_id", "is_initiator", "created_at", "club"],
+        "title": "JointActivityPublicParticipationInfo"
+      },
+      "JointActivityUpdate": {
+        "properties": {
+          "name": {
+            "anyOf": [{ "type": "string", "maxLength": 128 }, { "type": "null" }],
+            "title": "Name"
+          },
+          "description": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Description"
+          },
+          "location": {
+            "anyOf": [{ "type": "string", "maxLength": 200 }, { "type": "null" }],
+            "title": "Location"
+          },
+          "starts_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Starts At"
+          },
+          "ends_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Ends At"
+          }
+        },
+        "type": "object",
+        "title": "JointActivityUpdate"
       },
       "ModerationStatusEnum": {
         "type": "string",
@@ -5597,9 +6051,7 @@
       "Page_ClubActivityCreateRequestInfo_": {
         "properties": {
           "items": {
-            "items": {
-              "$ref": "#/components/schemas/ClubActivityCreateRequestInfo"
-            },
+            "items": { "$ref": "#/components/schemas/ClubActivityCreateRequestInfo" },
             "type": "array",
             "title": "Items"
           },
@@ -5631,9 +6083,7 @@
       "Page_ClubActivityUpdateRequestInfo_": {
         "properties": {
           "items": {
-            "items": {
-              "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo"
-            },
+            "items": { "$ref": "#/components/schemas/ClubActivityUpdateRequestInfo" },
             "type": "array",
             "title": "Items"
           },
@@ -5681,9 +6131,7 @@
       "Page_ClubMembershipRequestInfo_": {
         "properties": {
           "items": {
-            "items": {
-              "$ref": "#/components/schemas/ClubMembershipRequestInfo"
-            },
+            "items": { "$ref": "#/components/schemas/ClubMembershipRequestInfo" },
             "type": "array",
             "title": "Items"
           },
@@ -5728,12 +6176,42 @@
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[GeneralActivityInfo]"
       },
+      "Page_JointActivityInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/JointActivityInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[JointActivityInfo]"
+      },
+      "Page_JointActivityPublicInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/JointActivityPublicInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[JointActivityPublicInfo]"
+      },
       "Page_StarLevelApplicationInfo_": {
         "properties": {
           "items": {
-            "items": {
-              "$ref": "#/components/schemas/StarLevelApplicationInfo"
-            },
+            "items": { "$ref": "#/components/schemas/StarLevelApplicationInfo" },
             "type": "array",
             "title": "Items"
           },
@@ -5749,9 +6227,7 @@
       "Page_StarLevelApplicationPublicInfo_": {
         "properties": {
           "items": {
-            "items": {
-              "$ref": "#/components/schemas/StarLevelApplicationPublicInfo"
-            },
+            "items": { "$ref": "#/components/schemas/StarLevelApplicationPublicInfo" },
             "type": "array",
             "title": "Items"
           },
@@ -5813,9 +6289,7 @@
       },
       "RequestModeratePublic": {
         "properties": {
-          "moderation_status": {
-            "$ref": "#/components/schemas/ModerationStatusEnum"
-          }
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" }
         },
         "type": "object",
         "required": ["moderation_status"],
@@ -5823,9 +6297,7 @@
       },
       "RequestVerifyPublic": {
         "properties": {
-          "verification_status": {
-            "$ref": "#/components/schemas/VerificationStatusEnum"
-          }
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" }
         },
         "type": "object",
         "required": ["verification_status"],
@@ -5833,26 +6305,14 @@
       },
       "RoleEnum": {
         "type": "string",
-        "enum": [
-          "ban",
-          "user",
-          "moderator",
-          "federation_staff",
-          "admin",
-          "dev"
-        ],
+        "enum": ["ban", "user", "moderator", "federation_staff", "admin", "dev"],
         "title": "RoleEnum"
       },
       "StarLevelApplicationCreate": {
         "properties": {
           "contest_attachment": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Contest Attachment"
@@ -5867,27 +6327,16 @@
           },
           "growth_story_url": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Growth Story Url"
           },
           "target_grade_1": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "target_grade_2": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -5898,12 +6347,7 @@
           "id": { "type": "integer", "title": "Id" },
           "contest_attachment": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Contest Attachment"
@@ -5918,40 +6362,21 @@
           },
           "growth_story_url": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Growth Story Url"
           },
           "target_grade_1": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "target_grade_2": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "club_id": { "type": "integer", "title": "Club Id" },
-          "auditor": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserInfo" },
-              { "type": "null" }
-            ]
-          },
+          "auditor": { "anyOf": [{ "$ref": "#/components/schemas/UserInfo" }, { "type": "null" }] },
           "audit_status": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/AuditStatusEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
           },
           "final_contest_score": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
@@ -5970,10 +6395,7 @@
             "title": "Approved Score"
           },
           "approved_level": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/ClubStarLevelEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/ClubStarLevelEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -5995,12 +6417,7 @@
           "id": { "type": "integer", "title": "Id" },
           "contest_attachment": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Contest Attachment"
@@ -6015,36 +6432,22 @@
           },
           "growth_story_url": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Growth Story Url"
           },
           "target_grade_1": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "target_grade_2": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "club_id": { "type": "integer", "title": "Club Id" },
           "club": { "$ref": "#/components/schemas/StarLevelClubInfo" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
           "audit_status": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/AuditStatusEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
           },
           "final_contest_score": {
             "anyOf": [{ "type": "integer" }, { "type": "null" }],
@@ -6063,16 +6466,9 @@
             "title": "Approved Score"
           },
           "approved_level": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/ClubStarLevelEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/ClubStarLevelEnum" }, { "type": "null" }]
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
         },
         "type": "object",
         "required": [
@@ -6117,10 +6513,7 @@
             "title": "Approved Score"
           },
           "approved_level": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/ClubStarLevelEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/ClubStarLevelEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -6131,12 +6524,7 @@
         "properties": {
           "contest_attachment": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Contest Attachment"
@@ -6151,27 +6539,16 @@
           },
           "growth_story_url": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Growth Story Url"
           },
           "target_grade_1": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "target_grade_2": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -6184,12 +6561,7 @@
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "logo_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
@@ -6198,14 +6570,7 @@
           "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" }
         },
         "type": "object",
-        "required": [
-          "id",
-          "name",
-          "category",
-          "logo_uri",
-          "status",
-          "star_level"
-        ],
+        "required": ["id", "name", "category", "logo_uri", "status", "star_level"],
         "title": "StarLevelClubInfo"
       },
       "StarRatingBreakdown": {
@@ -6325,16 +6690,18 @@
       },
       "UploadScene": {
         "type": "string",
-        "enum": ["avatar", "club_logo", "activity_poster", "application_file"],
+        "enum": [
+          "avatar",
+          "club_logo",
+          "activity_poster",
+          "application_file",
+          "joint_activity_archive"
+        ],
         "title": "UploadScene"
       },
       "UserCreate": {
         "properties": {
-          "username": {
-            "type": "string",
-            "maxLength": 32,
-            "title": "Username"
-          },
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" }
         },
         "type": "object",
@@ -6360,47 +6727,24 @@
       "UserInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
-          "username": {
-            "type": "string",
-            "maxLength": 32,
-            "title": "Username"
-          },
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
           "email": {
-            "anyOf": [
-              { "type": "string", "maxLength": 64, "format": "email" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
             "title": "Email"
           },
           "avatar_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 255,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
           },
-          "description": {
-            "type": "string",
-            "maxLength": 400,
-            "title": "Description"
-          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
           "role": { "$ref": "#/components/schemas/RoleEnum" },
           "grade": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
-          "created_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Created At"
-          }
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
         },
         "type": "object",
         "required": [
@@ -6417,18 +6761,10 @@
       },
       "UserUpdateRequestCreate": {
         "properties": {
-          "username": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Username"
-          },
+          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
           "avatar_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
@@ -6438,10 +6774,7 @@
             "title": "Description"
           },
           "grade": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "update_fields": {
             "items": { "type": "string" },
@@ -6455,34 +6788,17 @@
       "UserUpdateRequestInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
-          "moderation_status": {
-            "$ref": "#/components/schemas/ModerationStatusEnum"
-          },
+          "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {
-            "anyOf": [
-              { "type": "string", "format": "date-time" },
-              { "type": "null" }
-            ],
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
             "title": "Moderate At"
           },
-          "request_at": {
-            "type": "string",
-            "format": "date-time",
-            "title": "Request At"
-          },
+          "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
           "user_id": { "type": "integer", "title": "User Id" },
-          "username": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Username"
-          },
+          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
           "avatar_uri": {
             "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 2083,
-                "minLength": 1,
-                "format": "uri"
-              },
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
@@ -6492,10 +6808,7 @@
             "title": "Description"
           },
           "grade": {
-            "anyOf": [
-              { "$ref": "#/components/schemas/UserGradeEnum" },
-              { "type": "null" }
-            ]
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           }
         },
         "type": "object",
@@ -6527,9 +6840,7 @@
     "securitySchemes": {
       "OAuth2PasswordBearer": {
         "type": "oauth2",
-        "flows": {
-          "password": { "scopes": {}, "tokenUrl": "/api/v1/auth/login" }
-        }
+        "flows": { "password": { "scopes": {}, "tokenUrl": "/api/v1/auth/login" } }
       }
     }
   }

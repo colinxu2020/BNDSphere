@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from app.models.club_activity import ClubActivity
     from app.models.clubmember import ClubMember
     from app.models.general_activity import ClubGeneralActivityRecord
+    from app.models.joint_activity import JointActivity, JointActivityParticipation
     from app.models.tag import Tag
 
 
@@ -82,6 +83,18 @@ class Club(Base):
         back_populates="club",
         cascade="all, delete-orphan",
         lazy="selectin",
+    )
+    initiated_joint_activities: Mapped[list[JointActivity]] = relationship(
+        back_populates="initiator_club",
+        cascade="all, delete-orphan",
+        lazy="select",
+    )
+    joint_activity_participations: Mapped[list[JointActivityParticipation]] = (
+        relationship(
+            back_populates="club",
+            cascade="all, delete-orphan",
+            lazy="select",
+        )
     )
 
     __table_args__ = (

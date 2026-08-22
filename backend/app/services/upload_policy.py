@@ -78,6 +78,10 @@ UPLOAD_POLICIES: Mapping[UploadScene, UploadPolicy] = MappingProxyType(
             allowed_extensions=APPLICATION_FILE_ALLOWED_EXTENSIONS,
             oss_dir=SCENE_OSS_DIRS[UploadScene.APPLICATION_FILE],
         ),
+        UploadScene.JOINT_ACTIVITY_ARCHIVE: image_upload_policy(
+            scene=UploadScene.JOINT_ACTIVITY_ARCHIVE,
+            oss_dir=SCENE_OSS_DIRS[UploadScene.JOINT_ACTIVITY_ARCHIVE],
+        ),
     },
 )
 

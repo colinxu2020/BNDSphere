@@ -62,6 +62,20 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   USER_NOT_FOUND: "没有找到这个用户",
   USER_UPDATE_REQUEST_MODERATED: "这条用户资料修改申请已经审核过",
   USER_UPDATE_REQUEST_NOT_FOUND: "没有找到这条用户资料修改申请",
+  JOINT_ACTIVITY_ARCHIVE_REQUIRED: "请至少上传文字或图片活动资料",
+  JOINT_ACTIVITY_CLUB_REGISTERED: "本社团已经登记参与该联合活动",
+  JOINT_ACTIVITY_FINAL_REVIEW_LOCKED: "联合活动正在终审或已通过终审，当前不能修改",
+  JOINT_ACTIVITY_FINAL_REVIEW_NOT_PENDING: "该联合活动当前不在待终审状态",
+  JOINT_ACTIVITY_INITIATOR_REQUIRED: "只有发起社团可以执行此操作",
+  JOINT_ACTIVITY_INVALID_TIME_RANGE: "联合活动结束时间必须晚于开始时间",
+  JOINT_ACTIVITY_INVALID_FINAL_SCORE: "联合活动通过终审时，最终分值必须为 6–8 分",
+  JOINT_ACTIVITY_NOT_ENDED: "联合活动结束后才能上传档案",
+  JOINT_ACTIVITY_NOT_FOUND: "没有找到这个联合活动",
+  JOINT_ACTIVITY_NOT_PUBLIC: "该联合活动尚未通过预审",
+  JOINT_ACTIVITY_PRELIMINARY_APPROVED: "联合活动预审通过后不能再修改基本信息",
+  JOINT_ACTIVITY_PRELIMINARY_REVIEWED: "该联合活动已经完成预审",
+  JOINT_ACTIVITY_REGISTRATION_CLOSED: "联合活动已经结束，不能再登记参与",
+  JOINT_ACTIVITY_REVIEW_DECISION_REQUIRED: "审核结果只能选择通过或驳回",
 };
 
 const MESSAGE_KEY_TEXT: Record<string, string> = {
@@ -109,6 +123,20 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.user.not_found": "没有找到这个用户",
   "error.user_update_request.moderated": "这条用户资料修改申请已经审核过",
   "error.user_update_request.not_found": "没有找到这条用户资料修改申请",
+  "error.joint_activity.archive_required": "请至少上传文字或图片活动资料",
+  "error.joint_activity.club_registered": "本社团已经登记参与该联合活动",
+  "error.joint_activity.final_review_locked": "联合活动正在终审或已通过终审，当前不能修改",
+  "error.joint_activity.final_review_not_pending": "该联合活动当前不在待终审状态",
+  "error.joint_activity.initiator_required": "只有发起社团可以执行此操作",
+  "error.joint_activity.invalid_time_range": "联合活动结束时间必须晚于开始时间",
+  "error.joint_activity.invalid_final_score": "联合活动通过终审时，最终分值必须为 6–8 分",
+  "error.joint_activity.not_ended": "联合活动结束后才能上传档案",
+  "error.joint_activity.not_found": "没有找到这个联合活动",
+  "error.joint_activity.not_public": "该联合活动尚未通过预审",
+  "error.joint_activity.preliminary_approved": "联合活动预审通过后不能再修改基本信息",
+  "error.joint_activity.preliminary_reviewed": "该联合活动已经完成预审",
+  "error.joint_activity.registration_closed": "联合活动已经结束，不能再登记参与",
+  "error.joint_activity.review_decision_required": "审核结果只能选择通过或驳回",
 };
 
 const PLAIN_ERROR_MESSAGES: Record<string, string> = {

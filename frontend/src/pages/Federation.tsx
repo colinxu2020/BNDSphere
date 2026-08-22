@@ -472,9 +472,17 @@ export function Federation() {
         eyebrow="Federation"
         title="社联工作台"
         action={
-          <SecondaryButton type="button" onClick={loadWorkspace} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              to="/federation/joint-activities"
+              className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
+            >
+              <CalendarDays size={16} /> 联合活动审核
+            </Link>
+            <SecondaryButton type="button" onClick={loadWorkspace} disabled={isLoading}>
+              <RefreshCw size={16} /> 刷新
+            </SecondaryButton>
+          </div>
         }
       />
 
