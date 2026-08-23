@@ -61,6 +61,9 @@ services:
       # override ObjectStorageServiceDep directly instead of hitting a real S3.
       - OSS_ENDPOINT_URL=http://localhost:9000
       - OSS_BUCKET=test
+      # Required by OSSSettings but never actually used by tests: upload-route
+      # tests override ObjectStorageServiceDep directly. Placeholder value only.
+      - OSS_PUBLIC_BASE_URL=http://localhost:9000
     read_only: false
     depends_on:
       postgres:
