@@ -1,6 +1,6 @@
 # 快速开始
 
-BNDSphere 采用前后端分离架构，后端 FastAPI（Python 3.14 + uv），前端 React/TypeScript（Node 22+），数据库 PostgreSQL。开发/测试通过 Docker Compose 编排，本地快速迭代可直接用 uv 跑后端。
+BNDSphere 采用前后端分离架构，后端 FastAPI（Python 3.14 + uv），前端 React/TypeScript（Node 22+），数据库 PostgreSQL。开发/测试统一通过 Docker Compose 编排。
 
 ## 环境要求
 
@@ -55,26 +55,7 @@ docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
 
 API 交互式文档：`/api/docs`（Swagger）、`/api/redoc`（ReDoc）。
 
-## 4. 本地跑后端（不用 Docker）
-
-适合只想改后端、不跑前端容器：
-
-```bash
-cd backend
-uv sync                       # 安装依赖 + 创建 .venv
-uv run alembic upgrade head    # 应用迁移（需本地 PostgreSQL 可连）
-uv run uvicorn app.main:app --reload --port 6666
-```
-
-## 5. 本地跑前端
-
-```bash
-cd frontend
-npm ci
-npm run dev
-```
-
-## 6. 测试
+## 4. 测试
 
 验收测试通过 compose 的 `test` 服务（`--profile test`）运行，与 `make test` 等价：
 
@@ -88,7 +69,7 @@ make test
 
 测试栈：pytest + pytest-asyncio（`asyncio_mode=auto`，session-scoped event loop，见 `backend/pyproject.toml` 的 `[tool.pytest.ini_options]`）。
 
-## 7. Lint / 类型检查
+## 5. Lint / 类型检查
 
 ```bash
 cd backend
@@ -97,7 +78,7 @@ uv run ruff format app          # 格式化
 uv run mypy app                 # 类型检查（strict）
 ```
 
-## 8. 提交前检查
+## 6. 提交前检查
 
 在仓库根目录安装 pre-commit / pre-push hooks：
 
@@ -112,7 +93,7 @@ pre-commit run --all-files
 pre-commit run --all-files --hook-stage pre-push
 ```
 
-## 9. 迁移管理
+## 7. 迁移管理
 
 新增/修改模型后生成迁移：
 
