@@ -78,7 +78,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
     if (!isUserMenuOpen) return;
 
     const closeOnOutsidePress = (event: PointerEvent) => {
-      if (!userMenuRef.current?.contains(event.target as Node)) {
+      if (event.target instanceof Node && !userMenuRef.current?.contains(event.target)) {
         setIsUserMenuOpen(false);
       }
     };
@@ -160,7 +160,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 </Link>
               </>
             ) : (
-              <div ref={userMenuRef} className="group relative">
+              <div ref={userMenuRef} className="relative">
                 <button
                   type="button"
                   onClick={() => setIsUserMenuOpen((open) => !open)}
@@ -187,7 +187,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 <div
                   id="user-menu"
                   className={cn(
-                    "invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100",
+                    "invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition",
                     isUserMenuOpen && "visible translate-y-0 opacity-100",
                   )}
                 >

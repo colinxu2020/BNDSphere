@@ -22,12 +22,13 @@ export function ThemeToggle() {
   const [theme, setTheme] = useState<Theme>(readTheme);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, theme);
     applyTheme(theme);
   }, [theme]);
 
   const cycle = () => {
-    setTheme((current) => (current === "light" ? "dark" : "light"));
+    const next = theme === "light" ? "dark" : "light";
+    localStorage.setItem(STORAGE_KEY, next);
+    setTheme(next);
   };
 
   const Icon = icons[theme];
