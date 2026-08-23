@@ -2236,7 +2236,8 @@ export interface components {
       target_grade_2?: components["schemas"]["UserGradeEnum"] | null;
       /** Club Id */
       club_id: number;
-      auditor: components["schemas"]["UserInfo"] | null;
+      /** Auditor Id */
+      auditor_id: number | null;
       audit_status: components["schemas"]["AuditStatusEnum"] | null;
       /** Final Contest Score */
       final_contest_score: number | null;
@@ -2435,6 +2436,23 @@ export interface components {
       | "inter_grade_10"
       | "inter_grade_11"
       | "inter_grade_12";
+    /** PublicUserInfo */
+    PublicUserInfo: {
+      /** Id */
+      id: number;
+      /** Username */
+      username: string;
+      /** Avatar Uri */
+      avatar_uri: string | null;
+      /** Description */
+      description: string;
+      grade: components["schemas"]["UserGradeEnum"] | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
     /** UserInfo */
     UserInfo: {
       /** Id */
@@ -2568,7 +2586,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UserInfo"];
+          "application/json": components["schemas"]["PublicUserInfo"];
         };
       };
       /** @description Resource Not Found */
@@ -5571,6 +5589,36 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_StarLevelApplicationInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */

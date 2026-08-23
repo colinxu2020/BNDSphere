@@ -1,7 +1,7 @@
 from datetime import datetime
 from typing import Self
 
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
 from app.schemas.generic import IdMixin
 from app.services.errors import BadRequestError
@@ -10,7 +10,7 @@ from app.services.errors import BadRequestError
 class AnnouncementBase(BaseModel):
     title: str = Field(..., max_length=120)
     body: str = Field(..., max_length=2000)
-    link_url: str | None = Field(None, max_length=2048)
+    link_url: HttpUrl | None = Field(None, max_length=2048)
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
     is_active: bool = Field(default=True)
@@ -38,7 +38,7 @@ class AnnouncementUpdate(BaseModel):
 
     title: str | None = Field(None, max_length=120)
     body: str | None = Field(None, max_length=2000)
-    link_url: str | None = Field(None, max_length=2048)
+    link_url: HttpUrl | None = Field(None, max_length=2048)
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
     is_active: bool | None = Field(None)

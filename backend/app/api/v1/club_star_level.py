@@ -9,13 +9,18 @@ from app.api.dependencies import (
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.schemas.star_level import StarLevelApplicationCreate, StarLevelApplicationInfo
-from app.services.errors import ClubNotFoundError
 
 router = APIRouter(tags=["Club Star Level"])
 
 
 @router.get(
     "/",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker([ClubMembershipEnum.president]),
+        ),
+    ],
 )
 async def get_club_applications(
     club_id: int,
@@ -23,9 +28,7 @@ async def get_club_applications(
     club_service: ClubServiceDep,
 ) -> Page[StarLevelApplicationInfo]:
     """List all star level applications of the given club."""
-    club = await club_service.get(club_id)
-    if club is None:
-        raise ClubNotFoundError(club_id) from None
+    club = await club_service.ensure_club_normal(club_id)
     return Page[StarLevelApplicationInfo].model_validate(
         await service.list_by_club(club),
     )

@@ -82,8 +82,10 @@ async def update_joint_activity(
     club_id: int,
     activity_id: int,
     obj_in: JointActivityUpdate,
+    club_service: ClubServiceDep,
     service: JointActivityServiceDep,
 ) -> JointActivityInfo:
+    await club_service.ensure_club_normal(club_id)
     return JointActivityInfo.model_validate(
         await service.update_for_initiator(activity_id, club_id, obj_in),
     )
