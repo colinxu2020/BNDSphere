@@ -5,7 +5,7 @@
 > **源代码目录**：`backend/app/models/`
 > **迁移目录**：`backend/migrations/versions/`（Alembic）
 
-本文档与 Alembic 迁移保持同步，作为 `docs/architecture/database.md` 的权威来源。模型字段以 `backend/app/models/` 为准。
+本文档与 Alembic 迁移保持同步，作为数据库架构的权威来源/参考。模型字段以 `backend/app/models/` 为准。
 
 ---
 

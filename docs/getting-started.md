@@ -64,8 +64,6 @@ cd backend
 uv sync                       # 安装依赖 + 创建 .venv
 uv run alembic upgrade head    # 应用迁移（需本地 PostgreSQL 可连）
 uv run uvicorn app.main:app --reload --port 6666
-# 或开发模式
-uv run fastapi dev --app app --port 6666
 ```
 
 ## 5. 本地跑前端
@@ -84,7 +82,7 @@ npm run dev
 make test
 # 等价于：
 #   ./scripts/gen-secrets.sh
-#   docker compose -f docker-compose.yml -f docker-compose.build.yml build postgres backend-dev
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build postgres backend
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test run test
 ```
 

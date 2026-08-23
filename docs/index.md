@@ -32,7 +32,7 @@ BNDSphere 是 BNDS 社团管理平台的后端与前端一体化仓库。本文�
 │   │   ├── schemas/       # Pydantic 请求/响应模型
 │   │   ├── services/      # 业务逻辑层
 │   │   ├── repositories/  # 数据访问层
-│   │   └── api/v1/        # API 路由（分层：models → schemas → services → repositories → api/v1）
+│   │   └── api/v1/        # API 路由（依赖方向：api/v1 → schemas → services → repositories → models）
 │   └── migrations/        # Alembic 迁移
 ├── frontend/              # React/TypeScript 前端
 ├── infra/                 # Caddy 等基础设施配置
