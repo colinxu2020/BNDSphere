@@ -138,7 +138,7 @@ export function Home() {
         </div>
 
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
-          <section className="order-2 rounded-md border border-slate-200 bg-white p-3">
+          <section className="order-4 rounded-md border border-slate-200 bg-white p-3 lg:order-1">
             <div className="mb-3 flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <CalendarDays size={16} className="text-slate-500" />
@@ -249,7 +249,7 @@ function HomeClubPanel({
   return (
     <section
       className={cn(
-        "order-3 rounded-md border border-slate-200 bg-white p-5 lg:flex-1",
+        "order-2 rounded-md border border-slate-200 bg-white p-5 lg:flex-1",
         isLoggedIn ? "min-h-[300px]" : "min-h-[220px]",
       )}
     >
@@ -318,7 +318,7 @@ function HomeClubPanel({
 
 function AnnouncementPanel({ items }: { items: Announcement[] }) {
   return (
-    <section className="order-4 rounded-md border border-slate-200 bg-white p-5 lg:flex-1">
+    <section className="order-3 rounded-md border border-slate-200 bg-white p-5 lg:order-2 lg:flex-1">
       <div className="mb-4 flex items-center gap-2">
         <Megaphone size={18} className="text-slate-500" />
         <h2 className="font-display text-lg font-bold">公告</h2>

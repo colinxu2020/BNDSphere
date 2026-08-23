@@ -91,16 +91,16 @@ export function Workspace() {
         eyebrow="My Clubs"
         title="我管理的社团"
         action={
-          <div className="flex flex-wrap gap-2">
-            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
-              <RefreshCw size={16} /> 刷新
-            </SecondaryButton>
+          <div className="flex flex-wrap justify-between gap-2">
             <Link
               to="/clubs/new"
               className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-4 py-2.5 font-semibold text-white shadow-md shadow-primary-500/20 hover:bg-primary-600"
             >
               <Plus size={16} /> 创建社团
             </Link>
+            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
+              <RefreshCw size={16} /> 刷新
+            </SecondaryButton>
           </div>
         }
       />
