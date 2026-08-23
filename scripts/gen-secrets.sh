@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
+# `declare -A` requires Bash 4+ (macOS ships /bin/bash 3.2 by default).
+if (( BASH_VERSINFO[0] < 4 )); then
+  echo "[gen-secrets] ERROR: Bash 4+ required (found ${BASH_VERSION})" >&2
+  exit 2
+fi
+
 # Generate local development/test secrets under secrets/ (one file per secret).
 #
 # These files are consumed by docker compose's top-level `secrets:` block and
