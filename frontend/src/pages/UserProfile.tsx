@@ -4,21 +4,14 @@ import { ArrowLeft, User } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { ROLE_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  Surface,
-} from "../components/ui/AppPrimitives";
+import { EmptyState, PageHeader, StatusMessage, Surface } from "../components/ui/AppPrimitives";
 
-type UserInfo = components["schemas"]["UserInfo"];
+type PublicUserInfo = components["schemas"]["PublicUserInfo"];
 
 export function UserProfile() {
   const { id } = useParams<{ id: string }>();
-  const [user, setUser] = useState<UserInfo | null>(null);
+  const [user, setUser] = useState<PublicUserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
@@ -87,9 +80,7 @@ export function UserProfile() {
 
             <div className="flex flex-col gap-2">
               <h2 className="text-2xl font-bold text-slate-900">{user.username}</h2>
-              {user.email && <p className="text-slate-500 font-medium">{user.email}</p>}
               <div className="flex items-center gap-2 mt-2">
-                <Badge tone="primary">{ROLE_MAP[user.role]}</Badge>
                 <span className="text-xs text-slate-400 font-medium">
                   加入于 {formatDate(user.created_at)}
                 </span>

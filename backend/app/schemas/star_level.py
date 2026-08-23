@@ -6,7 +6,7 @@ from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
 from app.models.user import AuditStatusEnum, UserGradeEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
-from app.schemas.user import UserInfo
+from app.schemas.upload import ApplicationFileUri
 
 
 class StarLevelApplicationBase(BaseModel):
@@ -19,14 +19,15 @@ class StarLevelApplicationBase(BaseModel):
 
 
 class StarLevelApplicationCreate(StarLevelApplicationBase):
-    pass
+    contest_attachment: ApplicationFileUri = Field(None)
+    growth_story_url: ApplicationFileUri = Field(None)
 
 
 class StarLevelApplicationUpdate(BaseModel):
-    contest_attachment: HttpUrl | None = Field(None)
+    contest_attachment: ApplicationFileUri = Field(None)
     requested_contest_score: int | None = Field(None)
     uniqueness_statement: str | None = Field(None)
-    growth_story_url: HttpUrl | None = Field(None)
+    growth_story_url: ApplicationFileUri = Field(None)
     target_grade_1: UserGradeEnum | None = Field(None)
     target_grade_2: UserGradeEnum | None = Field(None)
 
@@ -47,7 +48,7 @@ class StarLevelApplicationInfo(StarLevelApplicationBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     club_id: int
-    auditor: UserInfo | None
+    auditor_id: int | None
     audit_status: AuditStatusEnum | None
     final_contest_score: int | None
     uniqueness_approved: bool | None
