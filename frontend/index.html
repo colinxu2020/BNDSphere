@@ -6,6 +6,12 @@
     <link rel="preload" as="image" href="/LOGO_FULL.webp" type="image/webp" fetchpriority="high" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>BNDSphere</title>
+    <script>
+      // Pre-paint theme, avoids a light flash. Mirrors applyTheme() in ThemeToggle.tsx.
+      var t = localStorage.getItem("bnd_theme");
+      if (t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches))
+        document.documentElement.classList.add("dark");
+    </script>
   </head>
   <body>
     <div id="root"></div>

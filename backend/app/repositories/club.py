@@ -69,13 +69,31 @@ class ClubMemberRepository(
     model = ClubMember
 
     async def get_by_club_user(self, club: Club, user: User) -> ClubMember | None:
+        return await self.get_by_club_user_id(club.id, user.id)
+
+    async def get_by_club_user_id(
+        self,
+        club_id: int,
+        user_id: int,
+    ) -> ClubMember | None:
         result = await self.db.execute(
             select(self.model).where(
-                self.model.user_id == user.id,
-                self.model.club_id == club.id,
+                self.model.user_id == user_id,
+                self.model.club_id == club_id,
             ),
         )
         return result.scalars().first()
+
+    async def set_membership(
+        self,
+        member: ClubMember,
+        membership: ClubMembershipEnum,
+    ) -> ClubMember:
+        member.membership = membership
+        self.db.add(member)
+        await self.db.flush()
+        await self.db.refresh(member)
+        return member
 
     async def set_relationship(
         self,

@@ -18,7 +18,12 @@ from app.repositories.club import (
     ClubUpdateRequestRepository,
 )
 from app.repositories.user import UserRepository
-from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate
+from app.schemas.club import (
+    AdminClubUpdate,
+    ClubCreate,
+    ClubMemberRoleUpdate,
+    ClubMemberUpdate,
+)
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
     ClubUpdateRequestCreatePublic,
@@ -163,7 +168,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
 
     async def leave_club(self, club_id: int, user: User) -> None:
         async with self.transaction():
-            club = await self.ensure_club_normal(club_id)
+            club = await self._get_locked_active_club(club_id)
             relationship = await self.member_repository.get_by_club_user(club, user)
             if (
                 relationship is None
@@ -187,6 +192,99 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                 user,
                 ClubMembershipEnum.left,
             )
+
+    async def update_member_role(
+        self,
+        club_id: int,
+        target_user_id: int,
+        obj_in: ClubMemberRoleUpdate,
+        president: User,
+    ) -> ClubMember:
+        async with self.transaction():
+            club = await self._get_locked_active_club(club_id)
+            president_membership = await self._ensure_president(club, president)
+            target = await self._get_active_member(club, target_user_id)
+            desired_membership = ClubMembershipEnum(obj_in.membership.value)
+
+            if target.user_id == president.id:
+                if desired_membership == ClubMembershipEnum.president:
+                    return target
+                raise ResourceForbiddenError(
+                    "error.club.cannot_change_president_role",
+                    "CANNOT_CHANGE_PRESIDENT_ROLE",
+                    {"club_id": club_id},
+                ) from None
+
+            if desired_membership == ClubMembershipEnum.president:
+                await self.member_repository.set_membership(
+                    president_membership,
+                    ClubMembershipEnum.member,
+                )
+
+            return await self.member_repository.set_membership(
+                target,
+                desired_membership,
+            )
+
+    async def remove_member(
+        self,
+        club_id: int,
+        target_user_id: int,
+        president: User,
+    ) -> None:
+        async with self.transaction():
+            club = await self._get_locked_active_club(club_id)
+            await self._ensure_president(club, president)
+            target = await self._get_active_member(club, target_user_id)
+            if target.membership == ClubMembershipEnum.president:
+                raise ResourceForbiddenError(
+                    "error.club.cannot_remove_president",
+                    "CANNOT_REMOVE_PRESIDENT",
+                    {"club_id": club_id},
+                ) from None
+            await self.member_repository.set_membership(
+                target,
+                ClubMembershipEnum.left,
+            )
+
+    async def _get_locked_active_club(self, club_id: int) -> Club:
+        club = await self.repository.get_with_lock(club_id)
+        if club is None:
+            raise ClubNotFoundError(club_id) from None
+        if club.status != ClubStatusEnum.normal:
+            raise ResourceForbiddenError(
+                "error.club.not_active",
+                "CLUB_NOT_ACTIVE",
+                {"club_id": club_id},
+            ) from None
+        return club
+
+    async def _ensure_president(self, club: Club, user: User) -> ClubMember:
+        membership = await self.member_repository.get_by_club_user(club, user)
+        if membership is None or membership.membership != ClubMembershipEnum.president:
+            raise ResourceForbiddenError(
+                "error.club.president_required",
+                "CLUB_PRESIDENT_REQUIRED",
+                {"club_id": club.id},
+            ) from None
+        return membership
+
+    async def _get_active_member(self, club: Club, user_id: int) -> ClubMember:
+        membership = await self.member_repository.get_by_club_user_id(
+            club.id,
+            user_id,
+        )
+        if membership is None or membership.membership not in {
+            ClubMembershipEnum.member,
+            ClubMembershipEnum.vice_president,
+            ClubMembershipEnum.president,
+        }:
+            raise ResourceNotFoundError(
+                "error.club.member_not_found",
+                "CLUB_MEMBER_NOT_FOUND",
+                {"club_id": club.id, "user_id": user_id},
+            ) from None
+        return membership
 
 
 class ClubMemberService(
