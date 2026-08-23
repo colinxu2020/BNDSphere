@@ -125,8 +125,10 @@ async def update_joint_activity_archive(
     club_id: int,
     activity_id: int,
     obj_in: JointActivityArchiveUpdate,
+    club_service: ClubServiceDep,
     service: JointActivityServiceDep,
 ) -> JointActivityInfo:
+    await club_service.ensure_club_normal(club_id)
     return JointActivityInfo.model_validate(
         await service.update_archive(activity_id, club_id, obj_in),
     )
@@ -142,8 +144,10 @@ async def update_joint_activity_archive(
 async def submit_joint_activity_final_review(
     club_id: int,
     activity_id: int,
+    club_service: ClubServiceDep,
     service: JointActivityServiceDep,
 ) -> JointActivityInfo:
+    await club_service.ensure_club_normal(club_id)
     return JointActivityInfo.model_validate(
         await service.submit_final_review(activity_id, club_id),
     )
