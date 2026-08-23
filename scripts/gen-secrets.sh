@@ -45,4 +45,24 @@ done
 # Enforce 600 on all secret files (including any pre-existing ones).
 chmod 600 "${SECRETS_DIR}"/*.txt 2>/dev/null || true
 
+# Align secret ownership to uid 1000 (the container `appuser`, see
+# backend/Dockerfile). file-type compose secrets are bind mounts that preserve
+# the host uid/mode: the CI runner runs as uid 1001, so 600 files owned by 1001
+# are unreadable once the container drops to appuser (uid 1000) — pydantic then
+# fails to read postgres_password and the smoke test crashes at import time.
+# Local dev already runs as uid 1000 (no-op); keep files 600 throughout.
+if [[ "$(id -u)" -eq 0 ]]; then
+  # root: chown directly.
+  chown -R 1000:1000 "${SECRETS_DIR}"
+elif [[ "$(id -u)" -ne 1000 ]]; then
+  # Non-1000 non-root (e.g. GitHub runner uid 1001): prefer passwordless sudo.
+  if sudo -n true 2>/dev/null; then
+    sudo chown -R 1000:1000 "${SECRETS_DIR}"
+  else
+    echo "[gen-secrets] WARNING: cannot chown secrets to 1000:1000 (no passwordless sudo);" >&2
+    echo "[gen-secrets]   container user (uid 1000) may be unable to read these files." >&2
+  fi
+fi
+# uid == 1000 (appuser, local dev): already correct owner, nothing to do.
+
 echo "[gen-secrets] done"
