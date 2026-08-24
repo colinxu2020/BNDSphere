@@ -1,4 +1,5 @@
 from functools import cache
+from pathlib import Path
 from urllib.parse import quote_plus
 
 from pydantic import computed_field
@@ -47,6 +48,12 @@ class DeploymentSettings(_AppBaseSettings):
     # ground truth for "what version is running" — never inferred from a file
     # on disk, which an updater crash could leave stale (spec §7).
     app_version: str = "dev"
+    github_repo: str = "colinxu2020/BNDSphere"
+    github_token: str | None = None
+    # Mounted read-write / read-only respectively into the backend container;
+    # the updater sidecar owns everything under status_dir.
+    request_dir: Path = Path("/srv/request")
+    status_dir: Path = Path("/srv/status")
 
 
 @cache

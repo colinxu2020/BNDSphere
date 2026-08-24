@@ -9,6 +9,7 @@ from app.api.v1.club_general_activities import router as club_general_activities
 from app.api.v1.club_joint_activities import router as club_joint_activities_router
 from app.api.v1.club_star_level import router as club_star_level_router
 from app.api.v1.clubs import router as clubs_router
+from app.api.v1.dev import router as dev_router
 from app.api.v1.general_activities import router as general_activities_router
 from app.api.v1.joint_activities import router as joint_activities_router
 from app.api.v1.moderations import router as moderation_router
@@ -24,6 +25,7 @@ router.include_router(auth_router, prefix="/auth")
 router.include_router(clubs_router, prefix="/clubs")
 router.include_router(club_activities_router, prefix="/clubs/{club_id}/activities")
 router.include_router(admin_router, prefix="/admin")
+router.include_router(dev_router, prefix="/dev")
 router.include_router(general_activities_router, prefix="/general-activities")
 router.include_router(joint_activities_router, prefix="/joint-activities")
 router.include_router(
