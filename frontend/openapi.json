@@ -53,7 +53,9 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PublicUserInfo" }
+              }
             }
           },
           "404": {
@@ -3191,6 +3193,7 @@
         "summary": "Get Club Applications",
         "description": "List all star level applications of the given club.",
         "operationId": "get_club_applications_api_v1_clubs__club_id__star_level__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "club_id",
@@ -3232,6 +3235,30 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Page_StarLevelApplicationInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },
@@ -5074,7 +5101,10 @@
           "title": { "type": "string", "maxLength": 120, "title": "Title" },
           "body": { "type": "string", "maxLength": 2000, "title": "Body" },
           "link_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Link Url"
           },
           "starts_at": {
@@ -5097,7 +5127,10 @@
           "title": { "type": "string", "maxLength": 120, "title": "Title" },
           "body": { "type": "string", "maxLength": 2000, "title": "Body" },
           "link_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Link Url"
           },
           "starts_at": {
@@ -5126,7 +5159,10 @@
             "title": "Body"
           },
           "link_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Link Url"
           },
           "starts_at": {
@@ -5630,7 +5666,10 @@
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Article Url"
           }
         },
@@ -5660,7 +5699,10 @@
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Article Url"
           },
           "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
@@ -5720,7 +5762,10 @@
             "title": "Poster Uri"
           },
           "article_url": {
-            "anyOf": [{ "type": "string", "maxLength": 2048 }, { "type": "null" }],
+            "anyOf": [
+              { "type": "string", "maxLength": 2048, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
             "title": "Article Url"
           }
         },
@@ -6374,7 +6419,10 @@
             "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "club_id": { "type": "integer", "title": "Club Id" },
-          "auditor": { "anyOf": [{ "$ref": "#/components/schemas/UserInfo" }, { "type": "null" }] },
+          "auditor_id": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Auditor Id"
+          },
           "audit_status": {
             "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
           },
@@ -6402,7 +6450,7 @@
         "required": [
           "id",
           "club_id",
-          "auditor",
+          "auditor_id",
           "audit_status",
           "final_contest_score",
           "uniqueness_approved",
@@ -6723,6 +6771,27 @@
           "inter_grade_12"
         ],
         "title": "UserGradeEnum"
+      },
+      "PublicUserInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "avatar_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Avatar Uri"
+          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "grade": {
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
+        },
+        "type": "object",
+        "required": ["id", "username", "avatar_uri", "description", "grade", "created_at"],
+        "title": "PublicUserInfo"
       },
       "UserInfo": {
         "properties": {

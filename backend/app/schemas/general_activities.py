@@ -22,7 +22,7 @@ class GeneralActivityBase(BaseModel):
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
     poster_uri: HttpUrl | None = Field(None, max_length=2048)
-    article_url: str | None = Field(None, max_length=2048)
+    article_url: HttpUrl | None = Field(None, max_length=2048)
 
     @model_validator(mode="after")
     def validate_time_range(self) -> Self:
@@ -62,7 +62,7 @@ class GeneralActivityUpdate(BaseModel):
     starts_at: datetime | None = Field(None)
     ends_at: datetime | None = Field(None)
     poster_uri: ActivityPosterUri = Field(None, max_length=2048)
-    article_url: str | None = Field(None, max_length=2048)
+    article_url: HttpUrl | None = Field(None, max_length=2048)
 
     @model_validator(mode="after")
     def validate_time_range(self) -> Self:

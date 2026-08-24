@@ -113,8 +113,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
         <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-start gap-2 px-4 sm:px-6 md:justify-between md:gap-0 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <img
-              src="/LOGO_FULL.png"
+              src="/LOGO_FULL.webp"
               alt="BNDSphere"
+              width={600}
+              height={140}
+              fetchPriority="high"
               className={cn("brand-logo w-auto", isLoggedIn ? "h-10" : "h-8 md:h-10")}
             />
           </Link>

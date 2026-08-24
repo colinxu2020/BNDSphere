@@ -55,12 +55,14 @@ async def get_club_general_activities(
 async def create_club_general_activities(
     club_id: int,
     obj: ClubGeneralActivityCreate,
+    club_service: ClubServiceDep,
     general_activity_service: GeneralActivityServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> ClubGeneralActivityInfo:
     """Create a new record of general activity practiced by the club.
     Only club president and vice president can perform this operation.
     """
+    await club_service.ensure_club_normal(club_id)
     activity = await general_activity_service.get(obj.activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(obj.activity_id) from None

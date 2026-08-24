@@ -17,7 +17,7 @@ from app.schemas.moderations.user_update_request import (
     UserUpdateRequestCreate,
     UserUpdateRequestInfo,
 )
-from app.schemas.user import UserInfo
+from app.schemas.user import PublicUserInfo, UserInfo
 from app.services.errors import ResourceNotFoundError
 
 router = APIRouter(tags=["Users"])
@@ -38,7 +38,7 @@ async def get_current_user_info(
     "/{user_id}",
     responses=RESOURCE_NOT_FOUND_RESPONSE,
 )
-async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
+async def get_user_profile(user_id: int, service: UserServiceDep) -> PublicUserInfo:
     """Get public profile of a user by user id."""
     user = await service.get(user_id)
     if user is None:
@@ -47,7 +47,7 @@ async def get_user_profile(user_id: int, service: UserServiceDep) -> UserInfo:
             error_code="USER_NOT_FOUND",
             details={"user_id": user_id},
         ) from None
-    return UserInfo.model_validate(user)
+    return PublicUserInfo.model_validate(user)
 
 
 @router.post(

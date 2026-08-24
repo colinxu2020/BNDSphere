@@ -28,6 +28,15 @@ class UserInfo(UserBase, IdMixin):
     created_at: datetime
 
 
+class PublicUserInfo(UserBase, IdMixin):
+    model_config = ConfigDict(from_attributes=True)
+
+    avatar_uri: HttpUrl | None = Field(..., max_length=255)
+    description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)
+    grade: UserGradeEnum | None
+    created_at: datetime
+
+
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 

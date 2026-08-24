@@ -94,6 +94,10 @@ def _validate_activity_poster_uri(url: HttpUrl | None) -> HttpUrl | None:
     return ensure_uploaded_object_url(UploadScene.ACTIVITY_POSTER, url)
 
 
+def _validate_application_file_uri(url: HttpUrl | None) -> HttpUrl | None:
+    return ensure_uploaded_object_url(UploadScene.APPLICATION_FILE, url)
+
+
 def _validate_joint_activity_archive_uri(url: str) -> str:
     validated = ensure_uploaded_object_url(
         UploadScene.JOINT_ACTIVITY_ARCHIVE,
@@ -107,6 +111,10 @@ LogoUri = Annotated[HttpUrl | None, AfterValidator(_validate_logo_uri)]
 ActivityPosterUri = Annotated[
     HttpUrl | None,
     AfterValidator(_validate_activity_poster_uri),
+]
+ApplicationFileUri = Annotated[
+    HttpUrl | None,
+    AfterValidator(_validate_application_file_uri),
 ]
 JointActivityArchiveUri = Annotated[
     str,
