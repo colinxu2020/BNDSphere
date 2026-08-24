@@ -824,14 +824,16 @@ _c3_run_update_final_write_fails() (
     run_migration() { return 0; }
     recreate_services() { return 0; }
     wait_healthy() { return 0; }
-    # First deployed_set call is target_backend_ref/target_caddy_ref (must
-    # succeed so the run reaches the current_* write this test targets);
-    # second call is the final current_* write, which this test forces to
-    # fail.
+    # Three deployed_set calls happen on this path: (1) target_backend_ref/
+    # target_caddy_ref, (2) previous_version/previous_backend_ref/
+    # previous_caddy_ref (written just before recreate_services), (3) the
+    # final current_* write. The first two must succeed so the run reaches
+    # the current_* write this test targets; the third is what this test
+    # forces to fail.
     _calls=0
     deployed_set() {
         _calls=$((_calls + 1))
-        [ "$_calls" -ge 2 ] && return 1
+        [ "$_calls" -ge 3 ] && return 1
         return 0
     }
     run_update v2.0.0
@@ -936,8 +938,27 @@ case "$ROLLBACK_BODY" in
 esac
 
 # Rollback must never run migrations, under either trigger (spec §12.2).
-assert_eq "" "$(printf '%s' "$ROLLBACK_BODY" | grep -n 'run_migration')" \
-    "run_rollback never runs migrations"
+# Widened beyond the function name: a direct `compose run --rm
+# "$MIGRATION_SERVICE"` (bypassing run_migration entirely) or any literal
+# mention of the migration service/tool would go undetected by a check that
+# only greps for the one call-site spelling.
+assert_eq "" "$(printf '%s' "$ROLLBACK_BODY" | grep -niE 'run_migration|alembic|MIGRATION_SERVICE')" \
+    "run_rollback never runs migrations (by name, service constant, or direct invocation)"
+
+# Shadowing hazard, asserted directly: updater.sh must not define run_rollback
+# or run_update itself. Both live in lib/deploy.sh (sourced above them); a
+# stub reintroduced here after that sourcing would silently shadow the real
+# implementation (this bit run_update in Task 5, and would have made every
+# production rollback a silent no-op if reintroduced for run_rollback). The
+# behavioural tests below cannot catch this: selfcheck.sh itself re-sources
+# lib/deploy.sh after updater.sh, which would overwrite any such shadow
+# before a single rollback test ran -- masking the exact defect this
+# assertion exists to catch in the real container, where deploy.sh is
+# sourced only once, from inside updater.sh, in the shadowed order.
+assert_eq "" "$(grep -n '^run_rollback()' /updater/updater.sh)" \
+    "updater.sh does not itself define run_rollback"
+assert_eq "" "$(grep -n '^run_update()' /updater/updater.sh)" \
+    "updater.sh does not itself define run_update"
 
 # Both call sites must exist and both must reach the same function. The
 # brief's original version of this check expected 2 total call sites
@@ -993,6 +1014,11 @@ case "$RS_OUT" in
         printf 'FAIL: rollback constructed a command naming postgres (got: %s)\n' "$RS_OUT" >&2 ;;
     *) PASSES=$((PASSES + 1)) ;;
 esac
+case "$RS_OUT" in
+    *alembic*) FAILURES=$((FAILURES + 1))
+        printf 'FAIL: rollback constructed a command naming the migration service (got: %s)\n' "$RS_OUT" >&2 ;;
+    *) PASSES=$((PASSES + 1)) ;;
+esac
 rm -f "$_wh_args_file"
 rm -rf "$PDR" "$STATUS_DIR"
 
@@ -1025,16 +1051,37 @@ rm -rf "$PDA" "$STATUS_DIR"
 
 # No previous refs recorded at all (e.g. never deployed twice) must also
 # refuse, distinct from a mismatched target but with the same code -- both
-# mean rollback cannot proceed from here.
+# mean rollback cannot proceed from here. previous_version is deliberately
+# set to MATCH the requested target, so the mismatch guard would not fire if
+# reached: this isolates the empty-ref guard specifically. Checking the
+# error_message (not just the shared error_code) and that recreate_services
+# is never called are both required for that isolation -- with only the
+# error_code check, deleting the empty-ref guard entirely would still leave
+# this green, because the mismatch guard (or, if previous_version also
+# matched, the image-presence guard against an empty ref) produces the same
+# rollback_unavailable code.
 PDN=$(mktemp -d); mkdir -p "$PDN/deploy" "$PDN/secrets"; touch "$PDN/docker-compose.yml"
 COMPOSE_PROJECT_DIR=$PDN; export COMPOSE_PROJECT_DIR
 COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 state_init
-deployed_set current_version v1.0.0 current_backend_ref "backend:v1" current_caddy_ref "caddy:v1"
-run_rollback v0.9.0 automatic
+deployed_set current_version v1.0.0 current_backend_ref "backend:v1" current_caddy_ref "caddy:v1" \
+    previous_version v0.9.0
+# previous_backend_ref/previous_caddy_ref are deliberately left unset:
+# deployed_get returns "" for a key that was never written.
+_recreate_called_file_n=$(mktemp)
+_rollback_no_previous_refs() (
+    recreate_services() { printf 'called' > "$_recreate_called_file_n"; return 0; }
+    run_rollback v0.9.0 automatic
+)
+_rollback_no_previous_refs
 assert_eq "rollback_unavailable" "$(state_get error_code)" \
     "rollback with no previous refs recorded refuses with rollback_unavailable"
+assert_eq "no previous image references recorded" "$(state_get error_message)" \
+    "rollback with no previous refs recorded is refused specifically for missing refs, not a target mismatch"
+assert_eq "" "$(cat "$_recreate_called_file_n" 2>/dev/null)" \
+    "rollback never recreates services when no previous refs are recorded"
+rm -f "$_recreate_called_file_n"
 rm -rf "$PDN" "$STATUS_DIR"
 
 # ── rollback: a stale previous_version that does not match the target
@@ -1096,6 +1143,38 @@ assert_fail "a failed final write is never recorded as rollback_success" \
     [ "$(state_get stage)" = "rollback_success" ]
 rm -rf "$PDF" "$STATUS_DIR"
 
+# ── rollback: the opening stage/trigger write is checked too ────────────
+# Every other durable write in run_rollback aborts on refusal; the opening
+# `state_set stage rolling_back trigger ...` must not be the one silent
+# exception, or a refused write here leaves the trigger field absent with no
+# indication anything went wrong.
+PDG=$(mktemp -d); mkdir -p "$PDG/deploy" "$PDG/secrets"; touch "$PDG/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDG; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 \
+    current_backend_ref "backend:v2" current_caddy_ref "caddy:v2" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+
+_recreate_called_file_g=$(mktemp)
+_rollback_stage_write_fails() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    recreate_services() { printf 'called' > "$_recreate_called_file_g"; return 0; }
+    wait_healthy() { return 0; }
+    state_set() { return 1; }
+    run_rollback v1.0.0 automatic
+)
+_rollback_stage_write_fails
+RC=$?
+assert_ok "rollback returns non-zero when the opening state_set write fails" \
+    [ "$RC" -ne 0 ]
+assert_eq "" "$(cat "$_recreate_called_file_g" 2>/dev/null)" \
+    "rollback never touches running containers when the opening state_set write fails"
+rm -f "$_recreate_called_file_g"
+rm -rf "$PDG" "$STATUS_DIR"
+
 # ── rollback: automatic and manual reach run_rollback identically, proven
 # behaviourally (not just by the static grep above) -- same inputs, same
 # outputs, the trigger only shows up in the recorded field. ─────────────
@@ -1122,6 +1201,127 @@ _rollback_via manual
 assert_eq "manual" "$(state_get trigger)" "a manual rollback records trigger=manual"
 assert_eq "rollback_success" "$(state_get stage)" "a manual rollback reaches rollback_success"
 rm -rf "$PDT" "$STATUS_DIR"
+
+# ── rollback: end-to-end, driven entirely through run_update ────────────
+# Pins the Critical fix's placement of the previous_* write: two good
+# deploys, then a third whose health check fails. acquire_images/
+# manifest_field are stubbed to derive deterministic, version-tagged refs
+# (e.g. "backend:v2.0.0") straight from the requested version, so each
+# deploy in the sequence gets distinguishable refs without extra plumbing.
+PDE=$(mktemp -d); mkdir -p "$PDE/deploy" "$PDE/secrets"; touch "$PDE/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDE; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+
+_e2e_deploy_good() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_update "$1"
+)
+_e2e_deploy_good v1.0.0
+_e2e_deploy_good v2.0.0
+assert_eq "v2.0.0" "$(deployed_get current_version)" \
+    "e2e: two good deploys land on v2.0.0"
+assert_eq "v1.0.0" "$(deployed_get previous_version)" \
+    "e2e: two good deploys record v1.0.0 as previous"
+
+# Third deploy's health check fails -> automatic rollback must restore
+# v2.0.0. wait_healthy is called from two places here: run_update's forward
+# check (no args, must fail) and run_rollback's check (explicit restored
+# refs, must pass) -- distinguished by whether an argument was passed.
+_e2e_deploy_v3_unhealthy() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { [ -n "${1:-}" ] && return 0; return 1; }
+    docker() { case "$1" in image) return 0 ;; esac; }
+    run_update v3.0.0
+)
+_e2e_deploy_v3_unhealthy
+RC=$?
+assert_ok "e2e: a failing health check on the third deploy returns non-zero" [ "$RC" -ne 0 ]
+assert_eq "rollback_success" "$(state_get stage)" \
+    "e2e: automatic rollback reaches rollback_success after a failed health check"
+assert_eq "v2.0.0" "$(deployed_get current_version)" \
+    "e2e: automatic rollback restores current_version to the previous version"
+assert_eq "backend:v2.0.0" "$(deployed_get current_backend_ref)" \
+    "e2e: automatic rollback restores the previous backend ref"
+rm -rf "$PDE" "$STATUS_DIR"
+
+# Critical fix pin: an aborted (migration_failed) update must leave
+# previous_version/previous_backend_ref/previous_caddy_ref untouched -- and a
+# subsequent MANUAL rollback to the genuine previous version must still
+# work, not be refused and not silently "succeed" at restoring the version
+# that is already running.
+PDE2=$(mktemp -d); mkdir -p "$PDE2/deploy" "$PDE2/secrets"; touch "$PDE2/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDE2; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+
+_e2e2_deploy_good() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_update "$1"
+)
+_e2e2_deploy_good v1.0.0
+_e2e2_deploy_good v2.0.0
+
+_e2e2_deploy_v3_migration_fails() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 1; }
+    run_update v3.0.0
+)
+_e2e2_deploy_v3_migration_fails
+assert_eq "v2.0.0" "$(deployed_get current_version)" \
+    "e2e: an aborted (migration_failed) update leaves current_version on the running v2.0.0"
+assert_eq "v1.0.0" "$(deployed_get previous_version)" \
+    "e2e: an aborted update does not overwrite previous_version with the version still running"
+
+_e2e2_manual_rollback_after_abort() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_rollback v1.0.0 manual
+)
+_e2e2_manual_rollback_after_abort
+RC=$?
+assert_eq "0" "$RC" \
+    "e2e: manual rollback to the genuine previous version succeeds after an aborted update"
+assert_eq "rollback_success" "$(state_get stage)" \
+    "e2e: manual rollback after an aborted update reaches rollback_success"
+assert_eq "v1.0.0" "$(deployed_get current_version)" \
+    "e2e: manual rollback after an aborted update actually restores v1.0.0, not a v2.0.0 no-op"
+rm -rf "$PDE2" "$STATUS_DIR"
 
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

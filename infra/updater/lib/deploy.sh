@@ -176,17 +176,8 @@ run_update() {
     # Recorded before any side effect so the crash probes in Task 7 can ask
     # "are the running containers the ones we intended?" after an interruption
     # -- and so wait_healthy's image-identity check below has something to
-    # compare against. previous_* is written here too, not only in the final
-    # success commit below: if THIS attempt fails its health check and
-    # triggers an automatic rollback further down, run_rollback resolves what
-    # to restore via deployed.json's previous_version/previous_backend_ref/
-    # previous_caddy_ref -- and that must already name the version this
-    # attempt started from, not whatever an earlier successful deploy left
-    # there. Without this, an automatic rollback on the second-or-later
-    # deploy would restore the version from two deploys ago instead of one.
-    if ! deployed_set target_backend_ref "$_backend_ref" target_caddy_ref "$_caddy_ref" \
-        previous_version "$_current" previous_backend_ref "$_prev_backend" \
-        previous_caddy_ref "$_prev_caddy"; then
+    # compare against.
+    if ! deployed_set target_backend_ref "$_backend_ref" target_caddy_ref "$_caddy_ref"; then
         state_terminal failed state_write_failed \
             "could not record target image refs; refusing to proceed"
         return 1
@@ -198,7 +189,12 @@ run_update() {
         return 1
     fi
     if ! run_migration "$_backend_ref"; then
-        # Aborting here means the old application is still running and serving.
+        # Aborting here means the old application is still running and serving,
+        # and previous_* must NOT have been touched by this attempt: the
+        # design defines migration_failed as "nothing deployed, old app keeps
+        # running", so previous_version must keep naming whatever a manual
+        # rollback should actually restore -- not the version that is, right
+        # now, still running.
         state_terminal failed migration_failed \
             "alembic exited non-zero; application containers were NOT replaced"
         return 1
@@ -207,6 +203,22 @@ run_update() {
     if ! state_stage deploying; then
         state_terminal failed state_write_failed \
             "could not record deploying stage; refusing to proceed"
+        return 1
+    fi
+    # Committed here, immediately before recreate_services -- the first step
+    # a rollback could ever need to follow -- and not any earlier. Writing it
+    # right after target_backend_ref (before migration) would have it survive
+    # a migration_failed abort too, overwriting previous_version with the
+    # version that is still running: a later manual rollback to the genuine
+    # previous version would then be refused as a "mismatch" (or worse,
+    # silently "succeed" at restoring the version already running). Recorded
+    # here, not only on final success below, so an automatic rollback
+    # triggered further down in THIS attempt resolves the version it actually
+    # started from -- not whatever an earlier successful deploy left behind.
+    if ! deployed_set previous_version "$_current" \
+        previous_backend_ref "$_prev_backend" previous_caddy_ref "$_prev_caddy"; then
+        state_terminal failed state_write_failed \
+            "could not record previous image refs; refusing to proceed"
         return 1
     fi
     if ! recreate_services "$_backend_ref" "$_caddy_ref"; then
@@ -256,6 +268,12 @@ run_rollback() {
     _trigger=$2
 
     state_set stage rolling_back trigger "$_trigger" target_version "$_target"
+    _stage_write_rc=$?
+    if [ "$_stage_write_rc" -ne 0 ]; then
+        state_terminal failed state_write_failed \
+            "could not record rollback stage; refusing to proceed"
+        return 1
+    fi
     log "rollback to $_target (trigger=$_trigger)"
 
     _backend_ref=$(deployed_get previous_backend_ref)
