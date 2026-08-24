@@ -257,7 +257,10 @@ run_update() {
     # redundant.
 
     state_terminal success "" "updated to $_version"
-    prune_superseded_images
+    # Superseded images are deliberately never pruned: rollback restores the
+    # previous images from the local store, so keeping them IS the feature.
+    # Disk is cheaper than an impossible rollback. An operator can reclaim
+    # space by hand when they choose to.
     return 0
 }
 

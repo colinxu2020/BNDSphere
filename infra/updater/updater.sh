@@ -15,7 +15,6 @@ set -u
 . /updater/lib/artifact.sh
 . /updater/lib/deploy.sh
 . /updater/lib/recover.sh
-. /updater/lib/retention.sh
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
