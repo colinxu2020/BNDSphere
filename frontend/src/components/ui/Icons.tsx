@@ -36,6 +36,7 @@ export {
   IconRefresh as RefreshCw,
   IconDeviceFloppy as Save,
   IconSearch as Search,
+  IconShare3 as Share3,
   IconSettings as Settings,
   IconShield as Shield,
   IconShieldCheck as ShieldCheck,

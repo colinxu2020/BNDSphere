@@ -16,6 +16,7 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
 type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
@@ -82,6 +83,7 @@ export function Moderation() {
   const [activeQueue, setActiveQueue] = useState<QueueKey>("users");
   const [items, setItems] = useState<ModerationItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isForbidden, setIsForbidden] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [actionMessage, setActionMessage] = useState<unknown>(null);
   const [actionTone, setActionTone] = useState<"error" | "success">("error");
@@ -89,6 +91,7 @@ export function Moderation() {
 
   const fetchQueue = async () => {
     setIsLoading(true);
+    setIsForbidden(false);
     setError(null);
     setActionMessage(null);
 
@@ -97,7 +100,10 @@ export function Moderation() {
         const { data, error } = await client.GET("/api/v1/moderations/users/update-requests", {
           params: { query: { size: 50 } },
         });
-        if (error) setError(error);
+        if (error) {
+          setError(error);
+          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+        }
         setItems(data?.items || []);
       }
 
@@ -108,7 +114,10 @@ export function Moderation() {
             params: { query: { size: 50 } },
           },
         );
-        if (error) setError(error);
+        if (error) {
+          setError(error);
+          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+        }
         setItems(data?.items || []);
       }
 
@@ -119,7 +128,10 @@ export function Moderation() {
             params: { query: { size: 50 } },
           },
         );
-        if (error) setError(error);
+        if (error) {
+          setError(error);
+          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+        }
         setItems(data?.items || []);
       }
 
@@ -127,7 +139,10 @@ export function Moderation() {
         const { data, error } = await client.GET("/api/v1/moderations/clubs/update-requests", {
           params: { query: { size: 50 } },
         });
-        if (error) setError(error);
+        if (error) {
+          setError(error);
+          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+        }
         setItems(data?.items || []);
       }
     } catch (requestError) {
@@ -204,6 +219,10 @@ export function Moderation() {
 
   const activeMeta = QUEUES.find((queue) => queue.key === activeQueue);
 
+  if (isForbidden) {
+    return <ForbiddenPage description="只有审核员及获授权的管理角色可以进入审核台。" />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -264,14 +283,7 @@ export function Moderation() {
         )}
 
         {isLoading ? (
-          <div className="grid gap-4">
-            {[...Array(3)].map((_, index) => (
-              <div
-                key={index}
-                className="animate-pulse bg-slate-50 h-40 rounded-md border border-slate-100"
-              />
-            ))}
-          </div>
+          <PageLoading compact />
         ) : items.length ? (
           <div className="grid gap-4">
             {items.map((item) => (

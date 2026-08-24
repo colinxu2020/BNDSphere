@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -16,7 +16,7 @@ import {
   Users,
   X,
 } from "@/src/components/ui/Icons";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import {
@@ -53,6 +53,7 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 
 type Club = components["schemas"]["ClubInfo"];
 type ClubMember = components["schemas"]["ClubMemberInfo"];
@@ -68,7 +69,11 @@ type UserInfo = components["schemas"]["UserInfo"];
 
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
+  const requestedActivityId = searchParams.get("activity");
   const clubId = Number(id);
+  const activityManagementRef = useRef<HTMLDivElement>(null);
+  const hasHandledActivityDeepLink = useRef<string | null>(null);
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -80,6 +85,7 @@ export function ClubWorkspace() {
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [starRating, setStarRating] = useState<StarRating | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isForbidden, setIsForbidden] = useState(false);
   const [loadErrors, setLoadErrors] = useState<Record<string, unknown>>({});
 
   const [memberMessage, setMemberMessage] = useState<unknown>(null);
@@ -147,6 +153,7 @@ export function ClubWorkspace() {
 
   const refresh = async () => {
     setIsLoading(true);
+    setIsForbidden(false);
     const errors: Record<string, unknown> = {};
 
     const clubResponse = await client.GET("/api/v1/clubs/{club_id}", {
@@ -202,6 +209,9 @@ export function ClubWorkspace() {
     });
     if (activitiesResponse.error) {
       errors.activities = activitiesResponse.error;
+      if (isForbiddenResponse(activitiesResponse.response, activitiesResponse.error)) {
+        setIsForbidden(true);
+      }
       setActivities([]);
     } else {
       setActivities(activitiesResponse.data?.items || []);
@@ -259,6 +269,31 @@ export function ClubWorkspace() {
     // Refresh when the routed club changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [clubId]);
+
+  useEffect(() => {
+    if (isLoading || !requestedActivityId || !activities.length) return;
+
+    const activityItem = activities.find((item) => String(item.id) === requestedActivityId);
+    if (!activityItem) return;
+
+    const deepLinkKey = `${clubId}:${requestedActivityId}`;
+    if (updateActivityId !== requestedActivityId) {
+      selectActivityForUpdate(activityItem);
+      return;
+    }
+    if (activityEditorMode !== "update" || hasHandledActivityDeepLink.current === deepLinkKey) {
+      return;
+    }
+
+    const frame = window.requestAnimationFrame(() => {
+      window.requestAnimationFrame(() => {
+        activityManagementRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+        hasHandledActivityDeepLink.current = deepLinkKey;
+      });
+    });
+
+    return () => window.cancelAnimationFrame(frame);
+  }, [activities, activityEditorMode, clubId, isLoading, requestedActivityId, updateActivityId]);
 
   useEffect(() => {
     if (!pendingTransfer) return;
@@ -647,6 +682,20 @@ export function ClubWorkspace() {
     }
   };
 
+  if (isLoading) {
+    return <PageLoading />;
+  }
+
+  if (isForbidden) {
+    return (
+      <ForbiddenPage
+        description="只有该社团的社长或副社长可以进入管理工作台。"
+        backTo={`/club/${clubId}`}
+        backLabel="返回社团详情"
+      />
+    );
+  }
+
   const confirmTransfer = async () => {
     if (!pendingTransfer || transferCountdown > 0) return;
     if (await changeMemberRole(pendingTransfer, "president")) {
@@ -991,178 +1040,180 @@ export function ClubWorkspace() {
             )}
           </Surface>
 
-          <Surface>
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle
-                className="mb-0"
-                icon={<CalendarDays size={20} />}
-                title="社团活动申请"
-              />
-              <SecondaryButton
-                type="button"
-                onClick={openActivityCreate}
-                className="w-full whitespace-nowrap sm:w-auto"
-              >
-                <Plus size={16} /> 新建社团活动申请
-              </SecondaryButton>
-            </div>
-            <div
-              className={`grid gap-6 ${
-                activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
-              }`}
-            >
-              <div className="grid gap-3">
-                {activities.length ? (
-                  activities.map((activityItem) => (
-                    <button
-                      key={activityItem.id}
-                      type="button"
-                      onClick={() => selectActivityForUpdate(activityItem)}
-                      className={`rounded-md border p-4 text-left transition hover:bg-white ${
-                        updateActivityId === String(activityItem.id)
-                          ? "border-primary-200 bg-primary-50"
-                          : "border-slate-100 bg-slate-50"
-                      }`}
-                    >
-                      <h3 className="font-semibold text-slate-900">{activityItem.name}</h3>
-                      <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                        {activityItem.description}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-slate-400">
-                        #{activityItem.id} · {formatDateTime(activityItem.start_time)} ·{" "}
-                        {activityItem.location}
-                      </p>
-                    </button>
-                  ))
-                ) : (
-                  <EmptyState title="暂无社团活动" />
-                )}
+          <div id="club-activity-management" ref={activityManagementRef} className="scroll-mt-24">
+            <Surface>
+              <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <SectionTitle
+                  className="mb-0"
+                  icon={<CalendarDays size={20} />}
+                  title="社团活动申请"
+                />
+                <SecondaryButton
+                  type="button"
+                  onClick={openActivityCreate}
+                  className="w-full whitespace-nowrap sm:w-auto"
+                >
+                  <Plus size={16} /> 新建社团活动申请
+                </SecondaryButton>
               </div>
-
-              {activityEditorMode && (
-                <div className="rounded-md border border-slate-100 bg-white p-5">
-                  {activityEditorMode === "create" ? (
-                    <form onSubmit={submitActivityCreate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="新建申请"
-                        title="创建社团活动"
-                        onClose={closeActivityEditor}
-                      />
-                      <Field label="活动名称">
-                        <input
-                          className={inputClassName}
-                          value={activityName}
-                          onChange={(event) => setActivityName(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <Field label="活动描述">
-                        <textarea
-                          className={textareaClassName}
-                          value={activityDescription}
-                          onChange={(event) => setActivityDescription(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <Field label="开始时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={activityStart}
-                            onChange={(event) => setActivityStart(event.target.value)}
-                            required
-                          />
-                        </Field>
-                        <Field label="结束时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={activityEnd}
-                            onChange={(event) => setActivityEnd(event.target.value)}
-                            required
-                          />
-                        </Field>
-                      </div>
-                      <Field label="地点">
-                        <input
-                          className={inputClassName}
-                          value={activityLocation}
-                          onChange={(event) => setActivityLocation(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <StatusMessage value={activityCreateMessage} tone={activityCreateTone} />
-                      <PrimaryButton type="submit" loading={isActivityCreating}>
-                        提交活动申请
-                      </PrimaryButton>
-                    </form>
-                  ) : selectedUpdateActivity ? (
-                    <form onSubmit={submitActivityUpdate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="当前编辑"
-                        title={selectedUpdateActivity.name}
-                        onClose={closeActivityEditor}
-                      />
-                      <Field label="新名称">
-                        <input
-                          className={inputClassName}
-                          value={updateActivityName}
-                          onChange={(event) => setUpdateActivityName(event.target.value)}
-                        />
-                      </Field>
-                      <Field label="新描述">
-                        <textarea
-                          className={textareaClassName}
-                          value={updateActivityDescription}
-                          onChange={(event) => setUpdateActivityDescription(event.target.value)}
-                        />
-                      </Field>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="新开始时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={updateActivityStart}
-                            onChange={(event) => setUpdateActivityStart(event.target.value)}
-                          />
-                        </Field>
-                        <Field label="新结束时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={updateActivityEnd}
-                            onChange={(event) => setUpdateActivityEnd(event.target.value)}
-                          />
-                        </Field>
-                      </div>
-                      <Field label="新地点">
-                        <input
-                          className={inputClassName}
-                          value={updateActivityLocation}
-                          onChange={(event) => setUpdateActivityLocation(event.target.value)}
-                        />
-                      </Field>
-                      <FileUploadField
-                        label="活动图片"
-                        scene="activity_poster"
-                        values={updateActivityPictureUrls}
-                        onValuesChange={setUpdateActivityPictureUrls}
-                        multiple
-                        accept="image/*"
-                      />
-                      <StatusMessage value={activityUpdateMessage} tone={activityUpdateTone} />
-                      <PrimaryButton type="submit" loading={isActivityUpdating}>
-                        提交修改申请
-                      </PrimaryButton>
-                    </form>
+              <div
+                className={`grid gap-6 ${
+                  activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
+                }`}
+              >
+                <div className="grid gap-3">
+                  {activities.length ? (
+                    activities.map((activityItem) => (
+                      <button
+                        key={activityItem.id}
+                        type="button"
+                        onClick={() => selectActivityForUpdate(activityItem)}
+                        className={`rounded-md border p-4 text-left transition hover:bg-white ${
+                          updateActivityId === String(activityItem.id)
+                            ? "border-primary-200 bg-primary-50"
+                            : "border-slate-100 bg-slate-50"
+                        }`}
+                      >
+                        <h3 className="font-semibold text-slate-900">{activityItem.name}</h3>
+                        <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                          {activityItem.description}
+                        </p>
+                        <p className="mt-2 text-xs font-medium text-slate-400">
+                          #{activityItem.id} · {formatDateTime(activityItem.start_time)} ·{" "}
+                          {activityItem.location}
+                        </p>
+                      </button>
+                    ))
                   ) : (
-                    <EmptyState title="请选择社团活动" />
+                    <EmptyState title="暂无社团活动" />
                   )}
                 </div>
-              )}
-            </div>
-          </Surface>
+
+                {activityEditorMode && (
+                  <div className="rounded-md border border-slate-100 bg-white p-5">
+                    {activityEditorMode === "create" ? (
+                      <form onSubmit={submitActivityCreate} className="flex flex-col gap-4">
+                        <EditorHeader
+                          eyebrow="新建申请"
+                          title="创建社团活动"
+                          onClose={closeActivityEditor}
+                        />
+                        <Field label="活动名称">
+                          <input
+                            className={inputClassName}
+                            value={activityName}
+                            onChange={(event) => setActivityName(event.target.value)}
+                            required
+                          />
+                        </Field>
+                        <Field label="活动描述">
+                          <textarea
+                            className={textareaClassName}
+                            value={activityDescription}
+                            onChange={(event) => setActivityDescription(event.target.value)}
+                            required
+                          />
+                        </Field>
+                        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                          <Field label="开始时间">
+                            <input
+                              className={inputClassName}
+                              type="datetime-local"
+                              value={activityStart}
+                              onChange={(event) => setActivityStart(event.target.value)}
+                              required
+                            />
+                          </Field>
+                          <Field label="结束时间">
+                            <input
+                              className={inputClassName}
+                              type="datetime-local"
+                              value={activityEnd}
+                              onChange={(event) => setActivityEnd(event.target.value)}
+                              required
+                            />
+                          </Field>
+                        </div>
+                        <Field label="地点">
+                          <input
+                            className={inputClassName}
+                            value={activityLocation}
+                            onChange={(event) => setActivityLocation(event.target.value)}
+                            required
+                          />
+                        </Field>
+                        <StatusMessage value={activityCreateMessage} tone={activityCreateTone} />
+                        <PrimaryButton type="submit" loading={isActivityCreating}>
+                          提交活动申请
+                        </PrimaryButton>
+                      </form>
+                    ) : selectedUpdateActivity ? (
+                      <form onSubmit={submitActivityUpdate} className="flex flex-col gap-4">
+                        <EditorHeader
+                          eyebrow="当前编辑"
+                          title={selectedUpdateActivity.name}
+                          onClose={closeActivityEditor}
+                        />
+                        <Field label="新名称">
+                          <input
+                            className={inputClassName}
+                            value={updateActivityName}
+                            onChange={(event) => setUpdateActivityName(event.target.value)}
+                          />
+                        </Field>
+                        <Field label="新描述">
+                          <textarea
+                            className={textareaClassName}
+                            value={updateActivityDescription}
+                            onChange={(event) => setUpdateActivityDescription(event.target.value)}
+                          />
+                        </Field>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Field label="新开始时间">
+                            <input
+                              className={inputClassName}
+                              type="datetime-local"
+                              value={updateActivityStart}
+                              onChange={(event) => setUpdateActivityStart(event.target.value)}
+                            />
+                          </Field>
+                          <Field label="新结束时间">
+                            <input
+                              className={inputClassName}
+                              type="datetime-local"
+                              value={updateActivityEnd}
+                              onChange={(event) => setUpdateActivityEnd(event.target.value)}
+                            />
+                          </Field>
+                        </div>
+                        <Field label="新地点">
+                          <input
+                            className={inputClassName}
+                            value={updateActivityLocation}
+                            onChange={(event) => setUpdateActivityLocation(event.target.value)}
+                          />
+                        </Field>
+                        <FileUploadField
+                          label="活动图片"
+                          scene="activity_poster"
+                          values={updateActivityPictureUrls}
+                          onValuesChange={setUpdateActivityPictureUrls}
+                          multiple
+                          accept="image/*"
+                        />
+                        <StatusMessage value={activityUpdateMessage} tone={activityUpdateTone} />
+                        <PrimaryButton type="submit" loading={isActivityUpdating}>
+                          提交修改申请
+                        </PrimaryButton>
+                      </form>
+                    ) : (
+                      <EmptyState title="请选择社团活动" />
+                    )}
+                  </div>
+                )}
+              </div>
+            </Surface>
+          </div>
 
           <Surface>
             <SectionTitle
