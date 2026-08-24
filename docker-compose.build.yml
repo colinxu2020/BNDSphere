@@ -21,3 +21,10 @@ services:
       dockerfile: infra/Dockerfile.Caddy
       network: host
       target: prod
+
+  updater:
+    image: bndsphere-updater
+    build:
+      context: .
+      dockerfile: infra/Dockerfile.Updater
+      network: host
