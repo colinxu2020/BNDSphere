@@ -1377,21 +1377,38 @@ git commit -m "feat: add unified rollback executor shared by both triggers"
 
 ---
 
-### Task 7: Crash recovery probes
+### Task 7: Interrupted-operation marking
+
+**Scope reduced.** This task originally specified per-stage crash-recovery probes
+that observed real system state (`alembic_version` in the database, running
+container image refs, partial download detection), an `observed` JSON block, and a
+distinct `unverified_deploy` outcome. That machinery existed to service a
+long-running sidecar that could die at any point in a multi-stage operation, and
+it is out of proportion to what this deployment actually needs.
+
+What replaces it: on startup, if the recorded stage is not terminal, mark the
+operation `failed` with `interrupted`, preserving the stage it stopped at, and
+require an explicit new request. No probing, no auto-resume, no auto-rollback.
+
+The safety argument still holds. An interrupted update leaves the durable pins and
+`deployed.json` exactly as the last successful write left them, so an operator can
+see where it stopped and re-request. The health gate (Task 5) already refuses to
+record success unless the running containers match the intended images, so an
+interrupted deploy cannot be mistaken for a completed one.
 
 **Files:**
 - Create: `infra/updater/lib/recover.sh`
+- Modify: `infra/updater/updater.sh` (add the source line; delete the `recover_if_interrupted` stub)
 - Modify: `infra/updater/selfcheck.sh`
 
 **Interfaces:**
-- Produces:
-  - `probe_<stage>` for `downloading`, `verifying`, `migrating`, `deploying`, `health_checking`, `rolling_back` — each echoes a JSON observation.
-  - `recover_if_interrupted` — probes, records `observed`, reaps orphans, lands on `failed`/`interrupted`.
-  - Error code `unverified_deploy` for the §19.4 case.
+- Produces: `recover_if_interrupted` — no-op when the stage is terminal; otherwise
+  reaps orphaned one-off containers, releases the lock, marks the request
+  processed, and lands on `failed` / `interrupted`.
 
-- [ ] **Step 1: Write the failing self-check additions**
+- [ ] **Step 1: Write the failing self-check**
 
-Append to `infra/updater/selfcheck.sh` before the summary:
+Append to `infra/updater/selfcheck.sh` before the summary block:
 
 ```sh
 . /updater/lib/recover.sh
@@ -1399,49 +1416,34 @@ Append to `infra/updater/selfcheck.sh` before the summary:
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 state_init
 
-# A terminal stage on boot means nothing was interrupted — leave it alone.
+# A terminal stage means nothing was interrupted — leave it untouched.
 state_set stage success
 recover_if_interrupted
-assert_eq "success" "$(state_get stage)" "recovery leaves terminal stages untouched"
+assert_eq "success" "$(state_get stage)" "recovery leaves a terminal stage alone"
 
 # Every non-terminal stage must land on failed/interrupted, never resume.
-for stg in checking downloading verifying migrating deploying rolling_back; do
+for stg in checking downloading verifying migrating deploying rolling_back health_checking; do
     state_init_force
     state_set stage "$stg" request_id "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
     recover_if_interrupted
     assert_eq "failed" "$(state_get stage)" "recovery from $stg lands on failed"
     assert_eq "interrupted" "$(state_get error_code)" "recovery from $stg sets interrupted"
     assert_eq "$stg" "$(state_get interrupted_stage)" "recovery from $stg preserves the stage"
-    # A crash must never let the request run again silently (spec §19.6).
+    # A crash must never let the same request run again silently.
     assert_eq "3f2504e0-4f89-41d3-9a0c-0305e82c3301" \
         "$(state_get last_processed_request_id)" \
         "recovery from $stg marks the request processed"
-    _obs=$(state_get observed)
-    [ -n "$_obs" ] && PASSES=$((PASSES + 1)) || {
-        FAILURES=$((FAILURES + 1))
-        printf 'FAIL: recovery from %s records no observation\n' "$stg" >&2
-    }
 done
 
-# §19.4: the one crash outcome that looks healthy and is not. It must be
-# distinguishable from a plain interruption.
-state_init_force
-state_set stage health_checking request_id "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
-UPDATER_TEST_RUNNING_MATCHES_TARGET=1; export UPDATER_TEST_RUNNING_MATCHES_TARGET
-recover_if_interrupted
-assert_eq "unverified_deploy" "$(state_get error_code)" \
-    "crash after deploy before verification is flagged distinctly"
-unset UPDATER_TEST_RUNNING_MATCHES_TARGET
-
-# Recovery must never auto-resume or auto-rollback.
-RECOVER_BODY=$(cat /updater/lib/recover.sh)
-assert_eq "" "$(printf '%s' "$RECOVER_BODY" | grep -nE 'run_update|run_rollback|recreate_services')" \
-    "recovery never invokes update, rollback, or recreate"
+# Recovery must never act on the deployment itself.
+RECOVER_SRC=$(cat /updater/lib/recover.sh)
+assert_eq "" "$(printf '%s' "$RECOVER_SRC" | grep -nE 'run_update|run_rollback|recreate_services|compose up')" \
+    "recovery never invokes update, rollback, or a compose recreate"
 
 rm -rf "$STATUS_DIR"
 ```
 
-- [ ] **Step 2: Run to verify it fails**
+- [ ] **Step 2: Run it to verify it fails**
 
 Run:
 ```bash
@@ -1450,86 +1452,25 @@ docker build -f infra/Dockerfile.Updater -t bndsphere-updater . \
 ```
 Expected: FAIL — `/updater/lib/recover.sh: No such file or directory`
 
-- [ ] **Step 3: Add `state_init_force` to the state library**
-
-Append to `infra/updater/lib/state.sh`:
-
-```sh
-# Test helper and first-boot reset: unconditionally rewrite state.json.
-state_init_force() {
-    rm -f "$(state_file)"
-    state_init
-}
-```
-
-- [ ] **Step 4: Write the recovery library**
+- [ ] **Step 3: Write the library**
 
 Create `infra/updater/lib/recover.sh`:
 
 ```sh
 #!/bin/sh
-# Crash recovery.
+# Interrupted-operation marking.
 #
-# State is written AROUND side-effecting commands, so a crash always lands in
-# the gap between "command finished" and "state recorded". The updater can
-# therefore never learn from its own state file whether the last operation
-# completed.
+# State is written around side-effecting commands, so a restart can always land
+# in the gap between "command finished" and "state recorded". Rather than trying
+# to reconstruct which side of that gap it was on, this stops and says so.
 #
-# So recovery does not infer. It PROBES the world, records what it found, and
-# stops. It never resumes and never auto-rolls-back: acting automatically on a
-# half-completed deploy at boot is worse than stopping loudly (spec §19.2).
+# It never resumes and never auto-rolls-back: acting automatically on a
+# half-completed deploy at boot is worse than stopping loudly. The durable pins
+# and deployed.json are whatever the last successful write left, so an operator
+# can see where it stopped, and Task 5's health gate already refuses to record
+# success unless the running containers match the intended images.
 
-probe_downloading() {
-    # Partial downloads use a .part suffix and are renamed only on completion,
-    # so their presence is unambiguous.
-    jq -n --arg partials "$(ls "${WORK_DIR:-/tmp/updater}"/*.part 2>/dev/null | tr '\n' ' ')" \
-          --arg tarball "$([ -f "${WORK_DIR:-/tmp/updater}/$ASSET_TARBALL" ] && echo present || echo absent)" \
-          '{partial_downloads: $partials, tarball: $tarball}'
-}
-
-probe_verifying() {
-    _target=$(state_get target_version)
-    jq -n --arg backend "$(docker image inspect --format '{{.Id}}' \
-              "$(deployed_get target_backend_ref)" 2>/dev/null || echo absent)" \
-          --arg target "$_target" \
-          '{target_version: $target, backend_image: $backend}'
-}
-
-# The genuinely ambiguous stage. alembic_version in the live database is
-# authoritative and independent of anything the updater recorded (spec §19.5).
-probe_migrating() {
-    _rev=$(compose exec -T postgres psql -U postgres -d bndsphere -tAc \
-        'SELECT version_num FROM app.alembic_version' 2>/dev/null | tr -d ' \n')
-    jq -n --arg rev "${_rev:-unknown}" \
-          '{alembic_version: $rev,
-            note: "compare against the revision shipped in the target image"}'
-}
-
-# Are the containers currently running the images we intended to deploy?
-_running_matches_target() {
-    [ "${UPDATER_TEST_RUNNING_MATCHES_TARGET:-0}" = "1" ] && return 0
-    _want=$(deployed_get target_backend_ref)
-    [ -n "$_want" ] || return 1
-    _cid=$(compose ps -q backend 2>/dev/null)
-    [ -n "$_cid" ] || return 1
-    _got=$(docker inspect --format '{{.Config.Image}}' "$_cid" 2>/dev/null)
-    [ "$_want" = "$_got" ]
-}
-
-probe_deploying() {
-    _cid=$(compose ps -q backend 2>/dev/null)
-    jq -n \
-      --arg running "$(docker inspect --format '{{.Config.Image}}' "$_cid" 2>/dev/null || echo none)" \
-      --arg health "$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' "$_cid" 2>/dev/null || echo none)" \
-      --arg pins "$(cat "$COMPOSE_PROJECT_DIR/deploy/versions.env" 2>/dev/null | tr '\n' ' ')" \
-      '{running_backend_image: $running, container_health: $health, version_pins: $pins}'
-}
-
-probe_health_checking() { probe_deploying; }
-probe_rolling_back()    { probe_deploying; }
-probe_checking()        { jq -n '{note: "read-only stage, no side effects"}'; }
-
-# Compose `run --rm` containers can be orphaned if the updater dies mid-run.
+# Compose `run --rm` helpers can be orphaned if the updater dies mid-run.
 reap_orphans() {
     _ids=$(docker ps -aq \
         --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
@@ -1546,47 +1487,31 @@ recover_if_interrupted() {
     [ -n "$_stage" ] || return 0
     is_terminal "$_stage" && return 0
 
-    log "updater restarted while in stage '$_stage' — probing actual state"
-
-    case "$_stage" in
-        checking)        _observed=$(probe_checking) ;;
-        downloading)     _observed=$(probe_downloading) ;;
-        verifying)       _observed=$(probe_verifying) ;;
-        migrating)       _observed=$(probe_migrating) ;;
-        deploying)       _observed=$(probe_deploying) ;;
-        health_checking) _observed=$(probe_health_checking) ;;
-        rolling_back)    _observed=$(probe_rolling_back) ;;
-        *)               _observed=$(jq -n '{note: "unknown stage"}') ;;
-    esac
+    log "updater restarted while in stage '$_stage' — marking interrupted, not resuming"
 
     reap_orphans
     release_lock
 
-    # §19.4: containers may be running the NEW images while nothing ever
-    # verified them. The stack looks up and no failure was reported — the one
-    # silently-bad outcome, so it gets its own error code.
-    _code=interrupted
-    _msg="updater restarted during '$_stage'; no work was resumed"
-    case "$_stage" in
-        deploying|health_checking)
-            if _running_matches_target; then
-                _code=unverified_deploy
-                _msg="$(state_get target_version) is running but was never health-verified"
-            fi
-            ;;
-    esac
-
-    state_set observed "$_observed" interrupted_stage "$_stage" \
-        last_processed_request_id "$(state_get request_id)"
-    state_terminal failed "$_code" "$_msg"
+    # Mark the request processed so a crash can never cause a silent re-run.
+    state_set interrupted_stage "$_stage" \
+        last_processed_request_id "$(state_get request_id)" || true
+    state_terminal failed interrupted \
+        "updater restarted during '$_stage'; no work was resumed"
 }
 ```
 
-- [ ] **Step 5: Remove the recovery stub**
+- [ ] **Step 4: Wire it in**
 
-Delete the `recover_if_interrupted() { :; }` stub from `infra/updater/updater.sh`.
+Add the source line to `infra/updater/updater.sh` alongside the existing ones:
 
-- [ ] **Step 6: Run to verify it passes**
+```sh
+. /updater/lib/recover.sh
+```
+
+and delete the temporary `recover_if_interrupted() { :; }` stub. The stub is
+defined after the sourcing block, so leaving it would shadow the real function.
+
+- [ ] **Step 5: Run to verify it passes**
 
 Run:
 ```bash
@@ -1595,15 +1520,13 @@ docker build -f infra/Dockerfile.Updater -t bndsphere-updater . \
 ```
 Expected: PASS — `0 failed`
 
-- [ ] **Step 7: Commit**
+- [ ] **Step 6: Commit**
 
 ```bash
-git add infra/updater/lib/recover.sh infra/updater/lib/state.sh \
-        infra/updater/updater.sh infra/updater/selfcheck.sh
-git commit -m "feat: add per-stage crash recovery probes to the updater"
+git add infra/updater/lib/recover.sh infra/updater/updater.sh infra/updater/selfcheck.sh
+git commit -m "feat: mark interrupted updater operations instead of resuming them"
 ```
 
----
 
 ### Task 8: Narrow image retention
 

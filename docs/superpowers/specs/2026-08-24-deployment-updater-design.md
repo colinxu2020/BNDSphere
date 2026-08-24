@@ -726,6 +726,27 @@ why the N-1 policy is load-bearing rather than merely tidy.
 never cause a request to execute twice — the worst case is a request that is
 marked processed having done nothing, which is visible and safely re-requestable.
 
-## 20. Open items
+## 20. Amendments during implementation
 
-None. All items previously open are resolved in §18.
+**§19 (crash recovery and idempotency) is reduced.** The per-stage probes, the
+`observed` block, and the distinct `unverified_deploy` outcome are withdrawn. On
+restart, a non-terminal stage is marked `failed` / `interrupted`, preserving the
+stage it stopped at, and requires an explicit new request. No probing, no
+auto-resume, no auto-rollback.
+
+Rationale: that machinery existed to reconstruct which side of a state-write gap a
+long-running sidecar died on. It is out of proportion to a single-host deployment,
+and the guarantee it was protecting is already held elsewhere — Task 5's health
+gate refuses to record success unless the running containers match the intended
+images, so an interrupted deploy cannot be mistaken for a completed one. §16's
+failure table still holds for every row except the `unverified_deploy` case, which
+now reports plain `interrupted`.
+
+**Periodic update checking added.** §14 originally offered only an on-demand
+`/check`. The panel now also surfaces new releases without interaction: the
+backend caches the release lookup for 5 minutes and the panel polls `/status` on a
+timer. No scheduler is introduced.
+
+## 21. Open items
+
+None.
