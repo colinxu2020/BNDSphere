@@ -563,12 +563,136 @@ case "$RS_OUT" in
     *) PASSES=$((PASSES + 1)) ;;
 esac
 case "$RS_OUT" in
-    *"up -d backend caddy"*) PASSES=$((PASSES + 1)) ;;
+    *"up -d --no-deps backend caddy"*) PASSES=$((PASSES + 1)) ;;
     *) FAILURES=$((FAILURES + 1))
        printf 'FAIL: recreate_services did not target backend caddy (got: %s)\n' "$RS_OUT" >&2 ;;
 esac
+
+# Important 1 fix: --no-deps must be present, or `up` pulls postgres in via
+# depends_on (starting a deliberately-stopped postgres) and re-runs
+# alembic-migration a second time via backend's service_completed_successfully
+# dependency. This grep can only see the constructed argv -- it structurally
+# cannot observe whether Compose's depends_on fan-out actually starts
+# postgres or reruns migrations; that requires a live daemon and is
+# unexercised here (see report).
+case "$RS_OUT" in
+    *"--no-deps"*) PASSES=$((PASSES + 1)) ;;
+    *) FAILURES=$((FAILURES + 1))
+       printf 'FAIL: recreate_services omits --no-deps (got: %s)\n' "$RS_OUT" >&2 ;;
+esac
 unset COMPOSE_ECHO
 rm -rf "$PD4" "$STATUS_DIR"
+
+# ── Critical 1 fix: write_version_pins/recreate_services must propagate a
+# refused write instead of masking it behind log's always-zero return ──────
+#
+# atomic_write/compose are REAL library functions other tests below still
+# need. A bare `func() { ... }` redefinition followed by `unset -f func` does
+# NOT restore the original -- sh has no notion of a shadowed definition to
+# fall back to, so `unset -f` just deletes it, permanently, for the rest of
+# the script. Every override in this fix-round section therefore runs inside
+# a `(...)` subshell function body: redefinitions made inside are local to
+# that one call and vanish when the subshell exits, while any real file
+# writes it makes (state.json, deployed.json) persist normally.
+PDC1=$(mktemp -d); mkdir -p "$PDC1/deploy" "$PDC1/secrets"; touch "$PDC1/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC1; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+
+_c1_write_pins_with_failing_atomic_write() (
+    atomic_write() { cat >/dev/null; return 1; }
+    write_version_pins "backend:v1" "caddy:v1"
+)
+assert_fail "write_version_pins returns non-zero when the underlying write fails" \
+    _c1_write_pins_with_failing_atomic_write
+
+_c1_up_called_file=$(mktemp)
+_c1_recreate_with_failing_write() (
+    atomic_write() { cat >/dev/null; return 1; }
+    compose() { case "$1" in up) printf 'called' > "$_c1_up_called_file" ;; esac; }
+    recreate_services "backend:v1" "caddy:v1"
+)
+_c1_recreate_with_failing_write >/dev/null 2>&1
+assert_eq "" "$(cat "$_c1_up_called_file" 2>/dev/null)" \
+    "recreate_services never calls compose up when the pin write failed"
+
+rm -f "$_c1_up_called_file"
+rm -rf "$PDC1" "$STATUS_DIR"
+
+# ── Critical 2 fix: the health gate must fail when the running image does
+# not match the recorded target, even if container health alone looks fine.
+PDC2=$(mktemp -d); mkdir -p "$PDC2/deploy" "$PDC2/secrets"; touch "$PDC2/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC2; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+
+deployed_set target_backend_ref "new-backend:v2" target_caddy_ref "new-caddy:v2"
+
+# Container health reports "healthy", but the running image is still the OLD
+# one -- exactly what a silently-failed pin write / no-op `compose up` would
+# produce. wait_healthy must not be fooled by that.
+_c2_wait_healthy_mismatch() (
+    HEALTH_TIMEOUT=1
+    HEALTH_INTERVAL=0
+    compose() { case "$1" in ps) printf 'fake-cid' ;; esac; }
+    docker() {
+        case "$1" in
+            inspect)
+                case "$*" in
+                    *Health.Status*) printf 'healthy' ;;
+                    *Config.Image*)  printf 'old-backend:v1' ;;
+                esac
+                ;;
+        esac
+    }
+    app_ready() { return 0; }
+    wait_healthy
+)
+assert_fail "wait_healthy fails when the running image does not match the recorded target" \
+    _c2_wait_healthy_mismatch
+rm -rf "$PDC2" "$STATUS_DIR"
+
+# ── Important 2 fix: a failed deployed_set current_* must never be followed
+# by a recorded success -- the deploy is real and healthy, but the
+# bookkeeping is stale, so this must surface as a failure, not silently as
+# `state_terminal success`.
+PDC3=$(mktemp -d); mkdir -p "$PDC3/deploy" "$PDC3/secrets"; touch "$PDC3/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC3; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
+
+_c3_run_update_final_write_fails() (
+    acquire_images() { printf '%s' "$PDC3/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'new-backend' ;;
+            *caddy*)   printf 'new-caddy' ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    # First deployed_set call is target_backend_ref/target_caddy_ref (must
+    # succeed so the run reaches the current_* write this test targets);
+    # second call is the final current_* write, which this test forces to
+    # fail.
+    _calls=0
+    deployed_set() {
+        _calls=$((_calls + 1))
+        [ "$_calls" -ge 2 ] && return 1
+        return 0
+    }
+    run_update v2.0.0
+)
+_c3_run_update_final_write_fails
+RC=$?
+assert_ok "run_update returns non-zero when the final deployed_set fails" [ "$RC" -ne 0 ]
+assert_fail "a failed deployed_set current_* does not result in a recorded success" \
+    [ "$(state_get stage)" = "success" ]
+
+unset RC
+rm -rf "$PDC3" "$STATUS_DIR"
 
 # The migration must run against the NEW image, exposed as an environment
 # override, NOT the old pin still on disk in versions.env. Compose ranks
