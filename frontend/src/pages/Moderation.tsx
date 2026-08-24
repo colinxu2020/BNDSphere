@@ -97,18 +97,18 @@ export function Moderation() {
 
     try {
       if (activeQueue === "users") {
-        const { data, error } = await client.GET("/api/v1/moderations/users/update-requests", {
+        const { data, error, response } = await client.GET("/api/v1/moderations/users/update-requests", {
           params: { query: { size: 50 } },
         });
         if (error) {
           setError(error);
-          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+          if (isForbiddenResponse(response, error)) setIsForbidden(true);
         }
         setItems(data?.items || []);
       }
 
       if (activeQueue === "activityCreate") {
-        const { data, error } = await client.GET(
+        const { data, error, response } = await client.GET(
           "/api/v1/moderations/club-activities/create-requests",
           {
             params: { query: { size: 50 } },
@@ -116,13 +116,13 @@ export function Moderation() {
         );
         if (error) {
           setError(error);
-          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+          if (isForbiddenResponse(response, error)) setIsForbidden(true);
         }
         setItems(data?.items || []);
       }
 
       if (activeQueue === "activityUpdate") {
-        const { data, error } = await client.GET(
+        const { data, error, response } = await client.GET(
           "/api/v1/moderations/club-activities/update-requests",
           {
             params: { query: { size: 50 } },
@@ -130,18 +130,18 @@ export function Moderation() {
         );
         if (error) {
           setError(error);
-          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+          if (isForbiddenResponse(response, error)) setIsForbidden(true);
         }
         setItems(data?.items || []);
       }
 
       if (activeQueue === "clubUpdate") {
-        const { data, error } = await client.GET("/api/v1/moderations/clubs/update-requests", {
+        const { data, error, response } = await client.GET("/api/v1/moderations/clubs/update-requests", {
           params: { query: { size: 50 } },
         });
         if (error) {
           setError(error);
-          if (isForbiddenResponse(undefined, error)) setIsForbidden(true);
+          if (isForbiddenResponse(response, error)) setIsForbidden(true);
         }
         setItems(data?.items || []);
       }
