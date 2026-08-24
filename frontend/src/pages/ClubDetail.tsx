@@ -133,7 +133,6 @@ export function ClubDetail() {
       }
       await navigator.clipboard.writeText(shareData.url);
       setCopiedActivityId(activityId);
-      window.setTimeout(() => setCopiedActivityId(null), 2200);
     } catch (shareError) {
       if (shareError instanceof DOMException && shareError.name === "AbortError") return;
       setActionTone("error");
@@ -141,6 +140,11 @@ export function ClubDetail() {
     }
   };
 
+  useEffect(() => {
+    if (copiedActivityId == null) return;
+    const timer = window.setTimeout(() => setCopiedActivityId(null), 2200);
+    return () => window.clearTimeout(timer);
+  }, [copiedActivityId]);
   const currentMembership = useMemo(
     () =>
       club?.members.find((member) => member.user_id === user?.id && member.membership !== "left")
