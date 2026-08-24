@@ -42,7 +42,11 @@ def _github_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
         *args: object,
         **kwargs: object,
     ) -> httpx.Response:
-        if "api.github.com" in str(url):
+        # Compare the parsed host, not a substring of the whole URL: a
+        # substring check also matches something like
+        # "https://evil.example/?x=api.github.com", which is why CodeQL flags
+        # the pattern (py/incomplete-url-substring-sanitization).
+        if httpx.URL(url).host == "api.github.com":
             raise httpx.ConnectError("no network in tests")
         return await original_get(self, url, *args, **kwargs)  # type: ignore[arg-type]
 

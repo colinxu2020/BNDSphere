@@ -270,10 +270,7 @@ export function DevPanel() {
       )}
 
       {unreachable && (
-        <StatusMessage
-          tone="info"
-          value="后端服务正在重启，等待其恢复中，页面会持续自动刷新…"
-        />
+        <StatusMessage tone="info" value="后端服务正在重启，等待其恢复中，页面会持续自动刷新…" />
       )}
 
       {status?.record_diverged && (
@@ -316,9 +313,7 @@ export function DevPanel() {
               <p className="mt-2 text-lg font-display font-bold text-slate-900">
                 {status.installed_version}
               </p>
-              {status.record_diverged && (
-                <Badge tone="red">状态不一致</Badge>
-              )}
+              {status.record_diverged && <Badge tone="red">状态不一致</Badge>}
             </Surface>
 
             <Surface className="p-5">
@@ -331,7 +326,9 @@ export function DevPanel() {
               </p>
               <div className="mt-1 flex flex-wrap items-center gap-2">
                 {status.has_update && <Badge tone="green">有更新可用</Badge>}
-                {status.is_stale && <span className="text-xs text-slate-400">数据可能不是最新</span>}
+                {status.is_stale && (
+                  <span className="text-xs text-slate-400">数据可能不是最新</span>
+                )}
               </div>
             </Surface>
           </div>
@@ -339,7 +336,9 @@ export function DevPanel() {
           <Surface className="grid gap-3">
             <h2 className="font-display text-lg font-bold text-slate-900">运行详情</h2>
             <DetailRow label="状态">
-              <Badge tone={stageTone(status.stage)}>{STAGE_LABELS[status.stage] || status.stage}</Badge>
+              <Badge tone={stageTone(status.stage)}>
+                {STAGE_LABELS[status.stage] || status.stage}
+              </Badge>
             </DetailRow>
             {path && <DetailRow label="更新路径">{path}</DetailRow>}
             {error && (
@@ -376,7 +375,9 @@ export function DevPanel() {
                 {status.latest_notes || "本次发布没有提供说明"}
               </p>
               {status.latest_published_at && (
-                <p className="text-xs text-slate-400">发布时间：{formatDate(status.latest_published_at)}</p>
+                <p className="text-xs text-slate-400">
+                  发布时间：{formatDate(status.latest_published_at)}
+                </p>
               )}
             </Surface>
           )}
@@ -411,7 +412,9 @@ export function DevPanel() {
           </div>
 
           <Surface className="p-5">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">运行日志</h2>
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">
+              运行日志
+            </h2>
             <div className="max-h-80 overflow-y-auto font-mono text-xs leading-relaxed text-slate-700">
               {status.log_tail.length ? (
                 status.log_tail.map((line, index) => (

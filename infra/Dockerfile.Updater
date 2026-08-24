@@ -1,17 +1,37 @@
 # Updater sidecar. Holds /var/run/docker.sock: compromise here means host
 # compromise (spec §4). Kept minimal for that reason, not because minimality
 # makes socket access safe.
-FROM docker:28-cli
+# docker:29-cli ships the compose v5 plugin; the 28-cli line bundled compose
+# 2.40.3, whose vendored Go stdlib and modules carried ~40 HIGH/MEDIUM CVEs
+# that Trivy flags on every build.
+FROM docker:29-cli
 
+# bash is deliberately absent: every script here is #!/bin/sh (busybox ash).
+# coreutils is required for GNU `wc`/`sha256sum` semantics the scripts rely on
+# (busybox `wc -l` pads its output, which breaks the single-line guards).
 RUN apk add --no-cache \
-        bash=~5.2 \
-        curl=~8.14 \
+        curl=~8.21 \
         jq=~1.8 \
-        coreutils=~9.7 \
+        coreutils=~9.11 \
     && rm -rf /var/cache/apk/*
 
 COPY infra/updater/ /updater/
 RUN chmod +x /updater/updater.sh /updater/selfcheck.sh
+
+# checkov:skip=CKV_DOCKER_3:This container's sole function is to command the
+# Docker daemon through /var/run/docker.sock. Any user it runs as must be able
+# to write that socket, and socket access is root-equivalent on the host — so a
+# non-root USER here either breaks the tool or provides no protection against
+# the one threat that matters. Adding it would be exactly the security theatre
+# the design spec forbids (§4: hardening reduces surface, it does NOT make
+# socket access safe). The real mitigation is that this is the only container
+# holding the socket, it has no listener, and it accepts no commands.
+
+# Proves the status volume is mounted, writable, and holds valid state — which
+# is how a wedged or read-only status mount actually manifests. A dead poll
+# loop takes PID 1 with it, so liveness alone would tell us nothing new.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
+    CMD jq -e . "$STATUS_DIR/state.json" >/dev/null 2>&1 || exit 1
 
 # No EXPOSE, no listener, no published port — by design (spec §7).
 ENV STATUS_DIR=/srv/status \

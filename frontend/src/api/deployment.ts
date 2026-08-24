@@ -89,9 +89,7 @@ export class DeploymentHttpError extends Error {
 }
 
 export async function getDeploymentStatus(): Promise<DeploymentStatus> {
-  const { data, error, response } = await (client.GET as any)(
-    "/api/v1/dev/deployment/status",
-  );
+  const { data, error, response } = await (client.GET as any)("/api/v1/dev/deployment/status");
 
   if (error) {
     throw new DeploymentHttpError(response?.status ?? 0, error);
