@@ -23,7 +23,7 @@
 - amd64 only in v1; the asset name says so explicitly.
 - Commit messages follow Conventional Commits — `.github/workflows/conventional-checks.yml` enforces this.
 - Backend tests run inside Docker against the `postgres` service. Run them with:
-  `docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm backend /backend/.venv/bin/pytest <args>`
+  `docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test run --rm test uv run pytest <args>`
 
 ---
 
@@ -97,8 +97,8 @@ def test_settings_class_is_directly_constructible() -> None:
 
 Run:
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm backend \
-  /backend/.venv/bin/pytest tests/test_deployment_settings.py -v
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test \
+  run --rm test uv run pytest tests/test_deployment_settings.py -v
 ```
 Expected: FAIL — `ImportError: cannot import name 'DeploymentSettings' from 'app.core.settings'`
 
@@ -128,8 +128,8 @@ Note: unlike the other accessors this needs no `# type: ignore[call-arg]`, becau
 
 Run:
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml run --rm backend \
-  /backend/.venv/bin/pytest tests/test_deployment_settings.py -v
+docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test \
+  run --rm test uv run pytest tests/test_deployment_settings.py -v
 ```
 Expected: PASS — 4 passed
 
