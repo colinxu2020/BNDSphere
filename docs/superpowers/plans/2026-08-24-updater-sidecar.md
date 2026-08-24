@@ -1767,7 +1767,9 @@ Add to `docker-compose.yml` under `services:`:
       - /var/run/docker.sock:/var/run/docker.sock
       # The deployment directory at its OWN absolute path, so Compose
       # bind-mount sources resolve identically here and on the host daemon
-      # (spec §13). ${COMPOSE_PROJECT_DIR} must be set in .env.
+      # (spec §13). ${COMPOSE_PROJECT_DIR} is written into .env by
+      # deploy/bootstrap.sh (Plan 1 Task 2); the updater reads it and fails
+      # closed if it is wrong, but never resolves or searches for it itself.
       - ${COMPOSE_PROJECT_DIR}:${COMPOSE_PROJECT_DIR}:ro
       # deploy/ is writable so the updater can persist version pins while the
       # rest of the project stays read-only. The nested mount wins for its path.
@@ -1839,8 +1841,7 @@ In the same file, the "Prepare dummy local files for Compose parsing" step must 
 - [ ] **Step 4: Verify Compose parses and the sidecar boots**
 
 ```bash
-echo "COMPOSE_PROJECT_DIR=$(pwd)" >> .env
-mkdir -p deploy && cp deploy/versions.env.example deploy/versions.env
+./deploy/bootstrap.sh   # sets COMPOSE_PROJECT_DIR and seeds versions.env
 
 docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet
 ```

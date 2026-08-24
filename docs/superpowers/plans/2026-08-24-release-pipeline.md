@@ -224,14 +224,16 @@ A host must be able to run a published version without editing tracked files. Th
 **Files:**
 - Modify: `docker-compose.yml` (services `alembic-migration`, `backend`, `caddy`, `alembic-autorevision`)
 - Create: `deploy/versions.env.example`
+- Create: `deploy/bootstrap.sh`
 - Modify: `.gitignore`
-- Test: verification commands in Step 4 (Compose config resolution — no unit-test harness exists for Compose, and `docker compose config` is the real check CI already uses)
+- Test: verification commands in Steps 4 and 6 (Compose config resolution — no unit-test harness exists for Compose, and `docker compose config` is the real check CI already uses)
 
 **Interfaces:**
 - Consumes: Task 1's images.
 - Produces:
   - Env var names `BACKEND_IMAGE` and `CADDY_IMAGE`, defaulting to `bndsphere-backend` / `bndsphere-caddy`. Plan 2's updater writes exactly these two names into `deploy/versions.env`.
   - Path `deploy/versions.env` (git-ignored, host state) and `deploy/versions.env.example` (committed template).
+  - `deploy/bootstrap.sh` — resolves and persists `COMPOSE_PROJECT_DIR` into `.env`. Plan 2's `updater` service reads that variable; the updater itself never resolves it.
 
 - [ ] **Step 1: Parameterise the four image references**
 
@@ -292,7 +294,132 @@ Append to `.gitignore`:
 deploy/versions.env
 ```
 
-- [ ] **Step 4: Verify Compose still resolves, both defaulted and pinned**
+- [ ] **Step 4: Write the bootstrap script**
+
+`COMPOSE_PROJECT_DIR` must be the absolute host path of the deployment, because
+Compose bind-mount sources (`./secrets/*`) are resolved by the host daemon
+(spec §13). Making an operator discover and type that path by hand is a
+reliable way to get a subtly wrong value — a relative path, a symlinked path,
+or a trailing slash — which then fails at deploy time as a confusing secrets
+error rather than as a configuration mistake.
+
+So the value is **resolved once, mechanically, at setup**. Note what this script
+does *not* do: it never searches the filesystem for a project, and the updater
+never resolves or guesses this value either. The updater reads the configured
+path and fails closed if it does not hold the expected Compose file (Plan 2
+Task 1 `validate_startup`). Resolution happens exactly once, here, where the
+script's own location is unambiguous evidence of where the deployment lives.
+
+Create `deploy/bootstrap.sh`:
+
+```sh
+#!/bin/sh
+# One-time deployment setup: resolve and persist this deployment's absolute
+# path, and seed the version pins.
+#
+# Idempotent — safe to re-run. Run from anywhere:
+#     ./deploy/bootstrap.sh
+set -eu
+
+# The script's own location IS the evidence of where the deployment lives, so
+# no searching is needed or wanted. `pwd -P` resolves symlinks: the host Docker
+# daemon resolves bind-mount sources against the physical filesystem, and a
+# logical path containing a symlink would resolve differently there than here.
+PROJECT_DIR=$(cd "$(dirname "$0")/.." && pwd -P)
+
+# Fail closed rather than persisting a value that cannot work.
+[ -f "$PROJECT_DIR/docker-compose.yml" ] || {
+    printf 'ERROR: no docker-compose.yml in %s\n' "$PROJECT_DIR" >&2
+    printf 'Run this script from inside the deployment checkout.\n' >&2
+    exit 1
+}
+[ -d "$PROJECT_DIR/secrets" ] || {
+    printf 'ERROR: no secrets/ in %s — create it before bootstrapping.\n' \
+        "$PROJECT_DIR" >&2
+    exit 1
+}
+
+ENV_FILE="$PROJECT_DIR/.env"
+touch "$ENV_FILE"
+
+# Upsert, never blind-append: re-running must not leave two conflicting
+# COMPOSE_PROJECT_DIR lines, where Compose silently takes the last one.
+if grep -q '^COMPOSE_PROJECT_DIR=' "$ENV_FILE"; then
+    EXISTING=$(grep '^COMPOSE_PROJECT_DIR=' "$ENV_FILE" | tail -n 1 | cut -d= -f2-)
+    if [ "$EXISTING" = "$PROJECT_DIR" ]; then
+        printf 'COMPOSE_PROJECT_DIR already correct: %s\n' "$PROJECT_DIR"
+    else
+        printf 'Updating COMPOSE_PROJECT_DIR: %s -> %s\n' "$EXISTING" "$PROJECT_DIR"
+        grep -v '^COMPOSE_PROJECT_DIR=' "$ENV_FILE" > "$ENV_FILE.tmp"
+        printf 'COMPOSE_PROJECT_DIR=%s\n' "$PROJECT_DIR" >> "$ENV_FILE.tmp"
+        mv -f "$ENV_FILE.tmp" "$ENV_FILE"
+    fi
+else
+    printf 'COMPOSE_PROJECT_DIR=%s\n' "$PROJECT_DIR" >> "$ENV_FILE"
+    printf 'Set COMPOSE_PROJECT_DIR=%s\n' "$PROJECT_DIR"
+fi
+
+# Seed the version pins. Never overwrite: after the first deployment this file
+# is the updater's, and clobbering it would discard the rollback target.
+if [ -f "$PROJECT_DIR/deploy/versions.env" ]; then
+    printf 'deploy/versions.env already exists — left untouched.\n'
+else
+    cp "$PROJECT_DIR/deploy/versions.env.example" "$PROJECT_DIR/deploy/versions.env"
+    printf 'Created deploy/versions.env from the template.\n'
+fi
+
+printf 'Bootstrap complete.\n'
+```
+
+Make it executable:
+
+```bash
+chmod +x deploy/bootstrap.sh
+```
+
+- [ ] **Step 5: Verify the bootstrap is correct and idempotent**
+
+```bash
+./deploy/bootstrap.sh
+grep '^COMPOSE_PROJECT_DIR=' .env
+```
+Expected: the absolute physical path of this checkout, matching `pwd -P`.
+
+```bash
+test "$(grep '^COMPOSE_PROJECT_DIR=' .env | cut -d= -f2-)" = "$(pwd -P)" \
+  && echo "path matches pwd -P"
+```
+Expected: `path matches pwd -P`
+
+Re-running must not duplicate the line or clobber host state:
+```bash
+echo "BACKEND_IMAGE=ghcr.io/example/bndsphere-backend:v1.2.3" > deploy/versions.env
+echo "CADDY_IMAGE=ghcr.io/example/bndsphere-caddy:v1.2.3" >> deploy/versions.env
+./deploy/bootstrap.sh
+test "$(grep -c '^COMPOSE_PROJECT_DIR=' .env)" -eq 1 && echo "exactly one entry"
+grep BACKEND_IMAGE deploy/versions.env
+```
+Expected: `exactly one entry`, and `versions.env` still shows the pinned
+`ghcr.io/example/...` value — re-running must never discard the rollback target.
+
+A stale value must be corrected, not appended to:
+```bash
+sed -i.bak 's#^COMPOSE_PROJECT_DIR=.*#COMPOSE_PROJECT_DIR=/wrong/path#' .env && rm -f .env.bak
+./deploy/bootstrap.sh
+test "$(grep -c '^COMPOSE_PROJECT_DIR=' .env)" -eq 1 \
+  && test "$(grep '^COMPOSE_PROJECT_DIR=' .env | cut -d= -f2-)" = "$(pwd -P)" \
+  && echo "stale value corrected in place"
+```
+Expected: `stale value corrected in place`
+
+And it must fail closed rather than persist an unusable path:
+```bash
+TMP=$(mktemp -d) && mkdir -p "$TMP/deploy" && cp deploy/bootstrap.sh "$TMP/deploy/"
+"$TMP/deploy/bootstrap.sh" 2>&1 | head -2; echo "exit=$?"
+```
+Expected: `ERROR: no docker-compose.yml in ...` and a non-zero exit. Clean up with `rm -rf "$TMP"`.
+
+- [ ] **Step 6: Verify Compose still resolves, both defaulted and pinned**
 
 The stack's secret files must exist for `config` to parse. If you do not have real ones locally, create throwaways exactly as CI does in `.github/workflows/docker.yml`:
 
@@ -333,10 +460,10 @@ docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compo
 ```
 Expected: no output, exit 0
 
-- [ ] **Step 5: Commit**
+- [ ] **Step 7: Commit**
 
 ```bash
-git add docker-compose.yml deploy/versions.env.example .gitignore
+git add docker-compose.yml deploy/versions.env.example deploy/bootstrap.sh .gitignore
 git commit -m "feat: make compose image refs environment-driven for pinned deploys"
 ```
 
@@ -775,6 +902,7 @@ git commit -m "docs: add N-1 database compatibility policy for rollback safety"
 - [ ] `deployment_settings().app_version` reads that env var, defaulting to `dev`. Tests pass.
 - [ ] `docker compose config` resolves to local image names with no env file, and to pinned refs with `--env-file deploy/versions.env`. Postgres resolves to `bndsphere-postgres` in both cases.
 - [ ] `deploy/versions.env` is git-ignored; only `.example` is tracked.
+- [ ] `deploy/bootstrap.sh` resolves `COMPOSE_PROJECT_DIR` to `pwd -P`, upserts it into `.env`, is idempotent, never clobbers an existing `versions.env`, and exits non-zero outside a real deployment.
 - [ ] A tagged push produces a Release carrying `bndsphere-images-amd64.tar.gz`, `release-manifest.json`, and `SHA256SUMS`, and pushes both images to GHCR.
 - [ ] `sha256sum -c SHA256SUMS` passes on the downloaded assets.
 - [ ] The tarball's loaded config digests match `release-manifest.json` — proving both delivery paths came from one build.
