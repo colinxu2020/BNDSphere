@@ -1,0 +1,197 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version tag to build (e.g. v1.5.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  release:
+    name: Build once, publish to GHCR and Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Resolve version and image references
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+            version="${{ inputs.version }}"
+          else
+            version="${GITHUB_REF#refs/tags/}"
+          fi
+
+          # Same grammar the updater enforces (spec §8). Rejecting here means a
+          # malformed tag fails at release time, not on someone's deploy host.
+          if ! printf '%s' "$version" \
+             | grep -Eq '^v?[0-9]+(\.[0-9]+){0,3}([-+][0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version tag: $version"
+            exit 1
+          fi
+
+          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"   # GHCR requires lowercase
+
+          {
+            echo "version=$version"
+            echo "backend_ref=ghcr.io/${owner_lc}/bndsphere-backend:${version}"
+            echo "caddy_ref=ghcr.io/${owner_lc}/bndsphere-caddy:${version}"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Build backend and caddy images (exactly once)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker build \
+            --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
+            --target prod \
+            -f backend/Dockerfile \
+            -t "${{ steps.meta.outputs.backend_ref }}" \
+            backend
+
+          docker build \
+            --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
+            --target prod \
+            -f infra/Dockerfile.Caddy \
+            -t "${{ steps.meta.outputs.caddy_ref }}" \
+            .
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push to GHCR and capture digests
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          backend_ref="${{ steps.meta.outputs.backend_ref }}"
+          caddy_ref="${{ steps.meta.outputs.caddy_ref }}"
+
+          docker push "$backend_ref"
+          docker push "$caddy_ref"
+
+          # RepoDigests is only populated after a successful push.
+          backend_registry_digest=$(
+            docker image inspect --format '{{index .RepoDigests 0}}' "$backend_ref" \
+              | cut -d@ -f2
+          )
+          caddy_registry_digest=$(
+            docker image inspect --format '{{index .RepoDigests 0}}' "$caddy_ref" \
+              | cut -d@ -f2
+          )
+
+          # The local image ID — what `docker load` reproduces on the fallback path.
+          backend_config_digest=$(docker image inspect --format '{{.Id}}' "$backend_ref")
+          caddy_config_digest=$(docker image inspect --format '{{.Id}}' "$caddy_ref")
+
+          for d in "$backend_registry_digest" "$caddy_registry_digest" \
+                   "$backend_config_digest" "$caddy_config_digest"; do
+            case "$d" in
+              sha256:*) ;;
+              *) echo "::error::Expected a sha256 digest, got: $d"; exit 1 ;;
+            esac
+          done
+
+          {
+            echo "backend_registry_digest=$backend_registry_digest"
+            echo "caddy_registry_digest=$caddy_registry_digest"
+            echo "backend_config_digest=$backend_config_digest"
+            echo "caddy_config_digest=$caddy_config_digest"
+          } >> "$GITHUB_OUTPUT"
+
+      - name: Save the same images to a release tarball
+        shell: bash
+        run: |
+          set -euo pipefail
+          # NOTE: no rebuild. These are the exact local images just pushed, which
+          # is what makes the fallback path equivalent to the registry path.
+          docker save \
+            "${{ steps.meta.outputs.backend_ref }}" \
+            "${{ steps.meta.outputs.caddy_ref }}" \
+            | gzip -9 > bndsphere-images-amd64.tar.gz
+
+          ls -lh bndsphere-images-amd64.tar.gz
+
+      - name: Write release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg version        "${{ steps.meta.outputs.version }}" \
+            --arg built_at       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg commit         "$GITHUB_SHA" \
+            --arg backend_ref    "${{ steps.meta.outputs.backend_ref }}" \
+            --arg backend_rdig   "${{ steps.push.outputs.backend_registry_digest }}" \
+            --arg backend_cdig   "${{ steps.push.outputs.backend_config_digest }}" \
+            --arg caddy_ref      "${{ steps.meta.outputs.caddy_ref }}" \
+            --arg caddy_rdig     "${{ steps.push.outputs.caddy_registry_digest }}" \
+            --arg caddy_cdig     "${{ steps.push.outputs.caddy_config_digest }}" \
+            '{
+              version: $version,
+              arch: "amd64",
+              built_at: $built_at,
+              commit: $commit,
+              images: {
+                backend: {
+                  ref: $backend_ref,
+                  registry_digest: $backend_rdig,
+                  config_digest: $backend_cdig
+                },
+                caddy: {
+                  ref: $caddy_ref,
+                  registry_digest: $caddy_rdig,
+                  config_digest: $caddy_cdig
+                }
+              },
+              assets: { tarball: "bndsphere-images-amd64.tar.gz" }
+            }' > release-manifest.json
+
+          cat release-manifest.json
+
+      - name: Write SHA256SUMS
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Manifest must already exist — it is covered by these sums.
+          sha256sum bndsphere-images-amd64.tar.gz release-manifest.json > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
+
+          if gh release view "$version" >/dev/null 2>&1; then
+            gh release upload "$version" \
+              bndsphere-images-amd64.tar.gz release-manifest.json SHA256SUMS \
+              --clobber
+          else
+            gh release create "$version" \
+              --title "$version" \
+              --generate-notes \
+              bndsphere-images-amd64.tar.gz release-manifest.json SHA256SUMS
+          fi
