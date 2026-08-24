@@ -316,5 +316,71 @@ release_lock
 unset UPDATER_NO_MAIN
 rm -rf "$STATUS_DIR" "$REQUEST_DIR"
 
+# ── review round 2: deployed_set has the same guards as state_set (Important) ──
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+
+printf 'not json' > "$(deployed_file)"
+assert_ok "deployed_set recovers from a corrupt deployed.json" \
+    deployed_set current_version v1.5.0
+assert_eq "v1.5.0" "$(deployed_get current_version)" \
+    "deployed_set wrote through after repairing a corrupt file"
+
+rm -f "$(deployed_file)"
+assert_ok "deployed_set creates deployed.json when missing" \
+    deployed_set current_version v1.0.0
+assert_eq "v1.0.0" "$(deployed_get current_version)" \
+    "deployed_set on a missing file creates and writes it"
+
+deployed_set previous_version v0.9.0
+assert_eq "v1.0.0" "$(deployed_get current_version)" \
+    "deployed_set merges, does not replace"
+assert_eq "v0.9.0" "$(deployed_get previous_version)" \
+    "deployed_set wrote the second key"
+
+assert_fail "deployed_set rejects an odd argument count" \
+    deployed_set current_version v2.0.0 previous_version
+assert_eq "v1.0.0" "$(deployed_get current_version)" \
+    "deployed_set made no partial write on odd args"
+
+rm -rf "$STATUS_DIR"
+
+# ── review round 2: main's startup lock-clear and signal handling ──────
+# main() loops forever, so it cannot be sourced in-process like
+# handle_request above. Instead this drives the real script as a child
+# process (UPDATER_NO_MAIN left unset) and signals it -- the same shape as
+# the container-level `docker kill`/`docker stop` checks in the report, just
+# without a container. This proves the startup lock-clear runs and that
+# SIGTERM makes the process exit promptly; it does NOT prove docker's exit
+# code or that no request can slip in during shutdown -- see the report for
+# the container-level evidence covering that.
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+REQUEST_DIR=$(mktemp -d); export REQUEST_DIR
+PROJ=$(mktemp -d); mkdir -p "$PROJ/secrets"; touch "$PROJ/docker-compose.yml"
+export COMPOSE_PROJECT_DIR="$PROJ"
+export POLL_INTERVAL=5
+
+# A lock left behind by a killed prior process.
+mkdir -p "$STATUS_DIR"
+mkdir "$STATUS_DIR/updater.lock"
+printf '99999' > "$STATUS_DIR/updater.lock/pid"
+
+sh /updater/updater.sh &
+MAIN_PID=$!
+sleep 1
+
+assert_fail "startup clears a lock left by a previous, killed process" \
+    [ -d "$STATUS_DIR/updater.lock" ]
+
+kill -TERM "$MAIN_PID"
+sleep 1
+assert_fail "a SIGTERM'd process is gone within seconds, not SIGKILLed after a timeout" \
+    kill -0 "$MAIN_PID"
+
+kill -9 "$MAIN_PID" 2>/dev/null
+wait "$MAIN_PID" 2>/dev/null
+
+unset COMPOSE_PROJECT_DIR POLL_INTERVAL
+rm -rf "$STATUS_DIR" "$REQUEST_DIR" "$PROJ"
+
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

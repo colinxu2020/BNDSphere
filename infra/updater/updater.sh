@@ -27,7 +27,17 @@ main() {
     release_lock
     # Release on every exit path, including die() and signals, so the common
     # case is clean without relying on the next boot to recover.
-    trap release_lock TERM INT EXIT
+    #
+    # A signal trap that returns normally RESUMES the interrupted code in
+    # POSIX sh (busybox ash) -- it does not exit. TERM/INT must therefore
+    # exit explicitly (143 = 128+SIGTERM, 130 = 128+SIGINT), or the sidecar
+    # ignores shutdown signals, `docker stop` burns the full grace period
+    # into a SIGKILL, and the lock is freed while the loop keeps polling and
+    # can still dispatch a deploy after being told to stop. release_lock is
+    # `rm -rf`, so it tolerates the EXIT trap running it again afterward.
+    trap 'release_lock; exit 143' TERM
+    trap 'release_lock; exit 130' INT
+    trap release_lock EXIT
 
     log "updater started (project=$COMPOSE_PROJECT_NAME dir=$COMPOSE_PROJECT_DIR)"
 
@@ -36,7 +46,14 @@ main() {
 
     while true; do
         handle_request
-        sleep "$POLL_INTERVAL"
+        # A foreground `sleep` blocks trap delivery until it returns: POSIX
+        # shells only run a pending trap once the current foreground command
+        # completes, so a plain `sleep "$POLL_INTERVAL"` would leave SIGTERM
+        # sitting unhandled for up to a whole poll interval. Backgrounding
+        # the sleep and waiting on it explicitly lets the trap interrupt
+        # `wait` immediately instead.
+        sleep "$POLL_INTERVAL" &
+        wait "$!"
     done
 }
 

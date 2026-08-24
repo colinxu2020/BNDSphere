@@ -158,12 +158,37 @@ deployed_get() {
 
 deployed_set() {
     _file=$(deployed_file)
-    [ -f "$_file" ] || printf '{}' | atomic_write "$_file"
-    _json=$(cat "$_file")
+
+    # Same hazard as state_set: an unpaired trailing key would be dropped
+    # silently. This file holds previous_version -- the rollback target --
+    # so a lost field here is worse than cosmetic.
+    [ "$(( $# % 2 ))" -eq 0 ] || {
+        log "deployed_set: odd argument count ($#), refusing"
+        return 1
+    }
+
+    # Create it if missing, and replace it if present-but-invalid: a corrupt
+    # deployed.json is exactly as dangerous as a missing one here.
+    if ! { [ -f "$_file" ] && jq -e . "$_file" >/dev/null 2>&1; }; then
+        printf '{}' | atomic_write "$_file"
+    fi
+
+    # Refuse to write when the read or any merge step failed or produced
+    # nothing, instead of silently truncating deployed.json to empty.
+    _json=$(cat "$_file") && [ -n "$_json" ] || {
+        log "deployed_set: $_file missing or unreadable, refusing to write"
+        return 1
+    }
+
     while [ "$#" -ge 2 ]; do
-        _json=$(printf '%s' "$_json" | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v')
+        _json=$(printf '%s' "$_json" \
+            | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v') && [ -n "$_json" ] || {
+            log "deployed_set: jq failed merging key '$1', refusing to write"
+            return 1
+        }
         shift 2
     done
+
     printf '%s' "$_json" | atomic_write "$_file"
 }
 
