@@ -371,13 +371,28 @@ sleep 1
 assert_fail "startup clears a lock left by a previous, killed process" \
     [ -d "$STATUS_DIR/updater.lock" ]
 
-kill -TERM "$MAIN_PID"
-sleep 1
-assert_fail "a SIGTERM'd process is gone within seconds, not SIGKILLed after a timeout" \
-    kill -0 "$MAIN_PID"
+# A process that crashed on boot would still be "gone" a moment after TERM,
+# which would make the termination check below pass for the wrong reason.
+# Confirm it is actually alive first, so "it was never running" cannot
+# masquerade as "it terminated correctly".
+assert_ok "the child is alive before it is signaled" kill -0 "$MAIN_PID"
 
-kill -9 "$MAIN_PID" 2>/dev/null
-wait "$MAIN_PID" 2>/dev/null
+kill -TERM "$MAIN_PID"
+
+# Capture the real exit status rather than just checking liveness: only the
+# status distinguishes a clean, handled exit (143) from any other way of
+# dying (crash, hang, or a SIGKILL after a timeout). A background watchdog
+# bounds the wait so a regression that makes TERM unhandled again fails this
+# assertion instead of hanging the suite forever.
+( sleep 5; kill -9 "$MAIN_PID" 2>/dev/null ) &
+WATCHDOG=$!
+wait "$MAIN_PID"
+MAIN_STATUS=$?
+kill "$WATCHDOG" 2>/dev/null
+wait "$WATCHDOG" 2>/dev/null
+
+assert_eq "143" "$MAIN_STATUS" \
+    "a SIGTERM'd process exits with status 143 (handled), not left running or SIGKILLed"
 
 unset COMPOSE_PROJECT_DIR POLL_INTERVAL
 rm -rf "$STATUS_DIR" "$REQUEST_DIR" "$PROJ"

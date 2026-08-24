@@ -17,16 +17,14 @@ COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
 
 main() {
-    validate_startup
-    state_init
-
-    # One process runs per container: any lock directory found here was left
-    # by a process that no longer exists. A restart reuses pids, so judging
-    # staleness from the recorded pid is unsafe -- clearing unconditionally,
-    # before the poll loop begins, is correct here.
-    release_lock
-    # Release on every exit path, including die() and signals, so the common
-    # case is clean without relying on the next boot to recover.
+    # Installed before ANY other work, including validate_startup. This
+    # process runs as PID 1, and the kernel does not queue signals with
+    # default disposition for PID 1 -- it drops them. A TERM arriving before
+    # a trap is installed is simply lost, and nothing later in the function
+    # can ever catch up on it. release_lock (from lib/state.sh, sourced at
+    # the top of this file) is already defined by the time main() is ever
+    # called, so it is safe to trap here regardless of where in main() this
+    # sits.
     #
     # A signal trap that returns normally RESUMES the interrupted code in
     # POSIX sh (busybox ash) -- it does not exit. TERM/INT must therefore
@@ -38,6 +36,16 @@ main() {
     trap 'release_lock; exit 143' TERM
     trap 'release_lock; exit 130' INT
     trap release_lock EXIT
+
+    validate_startup
+    state_init
+
+    # One process runs per container: any lock directory found here was left
+    # by a process that no longer exists. A restart reuses pids, so judging
+    # staleness from the recorded pid is unsafe -- clearing unconditionally,
+    # before anything can acquire the lock (the poll loop below), is correct
+    # here.
+    release_lock
 
     log "updater started (project=$COMPOSE_PROJECT_NAME dir=$COMPOSE_PROJECT_DIR)"
 
