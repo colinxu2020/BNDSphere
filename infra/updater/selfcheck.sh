@@ -509,11 +509,11 @@ rm -rf "$MWD"
 PD=$(mktemp -d); mkdir -p "$PD/deploy" "$PD/secrets"; touch "$PD/docker-compose.yml"
 COMPOSE_PROJECT_DIR=$PD; export COMPOSE_PROJECT_DIR
 
-write_version_pins "ghcr.io/o/bndsphere-backend:v1.5.0" "ghcr.io/o/bndsphere-caddy:v1.5.0"
-assert_eq "ghcr.io/o/bndsphere-backend:v1.5.0" \
+write_version_pins "bndsphere-backend:v1.5.0" "bndsphere-caddy:v1.5.0"
+assert_eq "bndsphere-backend:v1.5.0" \
     "$(. "$PD/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
     "write_version_pins sets BACKEND_IMAGE"
-assert_eq "ghcr.io/o/bndsphere-caddy:v1.5.0" \
+assert_eq "bndsphere-caddy:v1.5.0" \
     "$(. "$PD/deploy/versions.env"; printf '%s' "$CADDY_IMAGE")" \
     "write_version_pins sets CADDY_IMAGE"
 assert_eq "" "$(find "$PD/deploy" -name '*.tmp.*')" \
@@ -556,7 +556,7 @@ COMPOSE_PROJECT_DIR=$PD4; export COMPOSE_PROJECT_DIR
 COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 COMPOSE_ECHO=1; export COMPOSE_ECHO
-RS_OUT=$(recreate_services "ghcr.io/o/bndsphere-backend:v1.6.0" "ghcr.io/o/bndsphere-caddy:v1.6.0")
+RS_OUT=$(recreate_services "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0")
 case "$RS_OUT" in
     *postgres*) FAILURES=$((FAILURES + 1))
         printf 'FAIL: recreate_services named postgres (got: %s)\n' "$RS_OUT" >&2 ;;
@@ -855,7 +855,7 @@ rm -rf "$PDC3" "$STATUS_DIR"
 PD2=$(mktemp -d); mkdir -p "$PD2/deploy" "$PD2/secrets"; touch "$PD2/docker-compose.yml"
 COMPOSE_PROJECT_DIR=$PD2; export COMPOSE_PROJECT_DIR
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-write_version_pins "ghcr.io/o/bndsphere-backend:OLD" "ghcr.io/o/bndsphere-caddy:OLD"
+write_version_pins "bndsphere-backend:OLD" "bndsphere-caddy:OLD"
 
 # compose is a REAL library function; overriding it at top level and later
 # `unset -f`-ing it would permanently delete the real one for the rest of
@@ -863,12 +863,12 @@ write_version_pins "ghcr.io/o/bndsphere-backend:OLD" "ghcr.io/o/bndsphere-caddy:
 # at the Critical 1 fix block above). Confined to a subshell instead.
 _pd2_run_migration_uses_new_ref() (
     compose() { printf '%s' "$BACKEND_IMAGE"; }
-    run_migration 'ghcr.io/o/bndsphere-backend:NEW'
+    run_migration 'bndsphere-backend:NEW'
 )
-assert_eq "ghcr.io/o/bndsphere-backend:NEW" \
+assert_eq "bndsphere-backend:NEW" \
     "$(_pd2_run_migration_uses_new_ref)" \
     "run_migration exposes the NEW backend ref to compose, not the old pin"
-assert_eq "ghcr.io/o/bndsphere-backend:OLD" \
+assert_eq "bndsphere-backend:OLD" \
     "$(. "$PD2/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
     "run_migration does not itself touch the still-OLD versions.env pin"
 rm -rf "$PD2" "$STATUS_DIR"

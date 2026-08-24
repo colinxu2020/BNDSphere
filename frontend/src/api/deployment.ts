@@ -72,11 +72,29 @@ export const TERMINAL_STAGES: readonly DeploymentStage[] = [
   "failed",
 ];
 
+/**
+ * Thrown when the server answered with an HTTP error. Distinct from a transport
+ * failure (backend down mid-deploy), because those two must render differently:
+ * a 401/403 is a permission problem the user has to act on, not a restart to
+ * wait out.
+ */
+export class DeploymentHttpError extends Error {
+  constructor(
+    readonly status: number,
+    readonly body: unknown,
+  ) {
+    super(`Deployment API returned HTTP ${status}`);
+    this.name = "DeploymentHttpError";
+  }
+}
+
 export async function getDeploymentStatus(): Promise<DeploymentStatus> {
-  const { data, error } = await (client.GET as any)("/api/v1/dev/deployment/status");
+  const { data, error, response } = await (client.GET as any)(
+    "/api/v1/dev/deployment/status",
+  );
 
   if (error) {
-    throw error;
+    throw new DeploymentHttpError(response?.status ?? 0, error);
   }
   if (!data) {
     throw new Error("Deployment status response is empty.");

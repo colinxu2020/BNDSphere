@@ -13,6 +13,7 @@ import {
   Tag,
 } from "@/src/components/ui/Icons";
 import {
+  DeploymentHttpError,
   checkDeploymentUpdate,
   getDeploymentStatus,
   requestDeploymentRollback,
@@ -115,6 +116,7 @@ function repoInfoFromUrl(url: string | null): { label: string; href: string } | 
 export function DevPanel() {
   const [status, setStatus] = useState<DeploymentStatus | null>(null);
   const [unreachable, setUnreachable] = useState(false);
+  const [httpError, setHttpError] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
   const [busyAction, setBusyAction] = useState<"update" | "rollback" | null>(null);
@@ -139,14 +141,25 @@ export function DevPanel() {
         unreachableRef.current = false;
         setStatus(next);
         setUnreachable(false);
-      } catch {
-        // The backend is one of the containers replaced during an update —
-        // it will stop answering mid-deploy. That is expected, not an
-        // error: keep the last known status on screen, flag it quietly,
-        // and poll fast until it answers again.
+        setHttpError(null);
+      } catch (err) {
         if (!mountedRef.current) return;
-        unreachableRef.current = true;
-        setUnreachable(true);
+        // Only a TRANSPORT failure means "the backend is being replaced".
+        // An HTTP status means the server answered and is emphatically up —
+        // reporting a 401 as "restarting, please wait" leaves the user
+        // watching a spinner forever for something a login would fix.
+        if (err instanceof DeploymentHttpError) {
+          unreachableRef.current = false;
+          setUnreachable(false);
+          setHttpError(err.status);
+        } else {
+          // The backend is one of the containers replaced during an update —
+          // it will stop answering mid-deploy. That is expected, not an
+          // error: keep the last known status on screen, flag it quietly,
+          // and poll fast until it answers again.
+          unreachableRef.current = true;
+          setUnreachable(true);
+        }
       } finally {
         if (mountedRef.current) {
           setLoading(false);
@@ -242,6 +255,19 @@ export function DevPanel() {
       className="grid min-w-0 gap-6 pb-20"
     >
       <PageHeader eyebrow="Dev" title="部署面板" description="查看并管理当前环境的发布与回滚状态" />
+
+      {httpError !== null && (
+        <StatusMessage
+          tone="error"
+          value={
+            httpError === 401
+              ? "登录状态已失效，请重新登录后再查看部署面板。"
+              : httpError === 403
+                ? "当前账号没有开发者权限，无法查看或操作部署面板。"
+                : `部署接口返回错误（HTTP ${httpError}），请稍后重试。`
+          }
+        />
+      )}
 
       {unreachable && (
         <StatusMessage
@@ -362,7 +388,11 @@ export function DevPanel() {
               loading={busyAction === "update"}
             >
               <Rocket size={16} />
-              更新到 {status.latest_version || "最新版本"}
+              {status.has_update && status.latest_version
+                ? `更新到 ${status.latest_version}`
+                : status.latest_version
+                  ? "已是最新版本"
+                  : "暂无可用发布"}
             </PrimaryButton>
             <SecondaryButton onClick={runCheck} disabled={checking}>
               <RefreshCw size={16} className={cn(checking && "animate-spin")} />
@@ -380,9 +410,9 @@ export function DevPanel() {
             )}
           </div>
 
-          <div className="rounded-md border border-slate-800 bg-slate-900 p-4">
-            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-400">运行日志</h2>
-            <div className="max-h-80 overflow-y-auto font-mono text-xs leading-relaxed text-slate-200">
+          <Surface className="p-5">
+            <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">运行日志</h2>
+            <div className="max-h-80 overflow-y-auto font-mono text-xs leading-relaxed text-slate-700">
               {status.log_tail.length ? (
                 status.log_tail.map((line, index) => (
                   <div key={index} className="whitespace-pre-wrap break-all">
@@ -390,10 +420,10 @@ export function DevPanel() {
                   </div>
                 ))
               ) : (
-                <p className="text-slate-500">暂无日志</p>
+                <p className="text-slate-400">暂无日志</p>
               )}
             </div>
-          </div>
+          </Surface>
         </>
       )}
     </motion.div>

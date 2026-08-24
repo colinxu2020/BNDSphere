@@ -747,6 +747,21 @@ now reports plain `interrupted`.
 backend caches the release lookup for 5 minutes and the panel polls `/status` on a
 timer. No scheduler is introduced.
 
+**The GHCR delivery path is withdrawn.** §6 and §18.1 describe publishing to
+both GHCR and a GitHub Release tarball; only the tarball path ships. The
+release workflow no longer logs in to or pushes to GHCR, and `pull_from_ghcr`
+is removed from `lib/artifact.sh`. `release-manifest.json` drops
+`registry_digest` (it had no meaning without a registry) and keeps
+`config_digest`, which the updater still uses to verify a loaded image
+against the manifest. `delivery_path` in `state.json` is unaffected in shape
+and is now always `"tarball"`. Rationale: the repository is public and
+anonymous release-asset download already works with no credentials, whereas
+GHCR was the only thing requiring a manual package-visibility change and
+registry credentials on the deploy host; removing it deletes code, config,
+and a manual step, and drops the delivery path least likely to be reachable
+from the deployment's network. The only thing lost is layer deduplication
+across releases, which does not matter when updates are infrequent.
+
 ## 21. Open items
 
 None.

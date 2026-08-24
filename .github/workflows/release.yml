@@ -13,11 +13,10 @@ on:
 
 permissions:
   contents: write
-  packages: write
 
 jobs:
   release:
-    name: Build once, publish to GHCR and Release
+    name: Build once, publish to Release
     runs-on: ubuntu-latest
 
     steps:
@@ -46,12 +45,10 @@ jobs:
             exit 1
           fi
 
-          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"   # GHCR requires lowercase
-
           {
             echo "version=$version"
-            echo "backend_ref=ghcr.io/${owner_lc}/bndsphere-backend:${version}"
-            echo "caddy_ref=ghcr.io/${owner_lc}/bndsphere-caddy:${version}"
+            echo "backend_ref=bndsphere-backend:${version}"
+            echo "caddy_ref=bndsphere-caddy:${version}"
           } >> "$GITHUB_OUTPUT"
 
       - name: Build backend and caddy images (exactly once)
@@ -73,15 +70,8 @@ jobs:
             -t "${{ steps.meta.outputs.caddy_ref }}" \
             .
 
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Push to GHCR and capture digests
-        id: push
+      - name: Capture local image digests
+        id: digest
         shell: bash
         run: |
           set -euo pipefail
@@ -89,25 +79,12 @@ jobs:
           backend_ref="${{ steps.meta.outputs.backend_ref }}"
           caddy_ref="${{ steps.meta.outputs.caddy_ref }}"
 
-          docker push "$backend_ref"
-          docker push "$caddy_ref"
-
-          # RepoDigests is only populated after a successful push.
-          backend_registry_digest=$(
-            docker image inspect --format '{{index .RepoDigests 0}}' "$backend_ref" \
-              | cut -d@ -f2
-          )
-          caddy_registry_digest=$(
-            docker image inspect --format '{{index .RepoDigests 0}}' "$caddy_ref" \
-              | cut -d@ -f2
-          )
-
-          # The local image ID — what `docker load` reproduces on the fallback path.
+          # The local image ID — what `docker load` reproduces on the deploy host,
+          # and what the updater re-checks after loading the tarball.
           backend_config_digest=$(docker image inspect --format '{{.Id}}' "$backend_ref")
           caddy_config_digest=$(docker image inspect --format '{{.Id}}' "$caddy_ref")
 
-          for d in "$backend_registry_digest" "$caddy_registry_digest" \
-                   "$backend_config_digest" "$caddy_config_digest"; do
+          for d in "$backend_config_digest" "$caddy_config_digest"; do
             case "$d" in
               sha256:*) ;;
               *) echo "::error::Expected a sha256 digest, got: $d"; exit 1 ;;
@@ -115,18 +92,16 @@ jobs:
           done
 
           {
-            echo "backend_registry_digest=$backend_registry_digest"
-            echo "caddy_registry_digest=$caddy_registry_digest"
             echo "backend_config_digest=$backend_config_digest"
             echo "caddy_config_digest=$caddy_config_digest"
           } >> "$GITHUB_OUTPUT"
 
-      - name: Save the same images to a release tarball
+      - name: Save the built images to a release tarball
         shell: bash
         run: |
           set -euo pipefail
-          # NOTE: no rebuild. These are the exact local images just pushed, which
-          # is what makes the fallback path equivalent to the registry path.
+          # NOTE: no rebuild. These are the exact local images just built, which
+          # is what makes the post-load digest check meaningful.
           docker save \
             "${{ steps.meta.outputs.backend_ref }}" \
             "${{ steps.meta.outputs.caddy_ref }}" \
@@ -144,11 +119,9 @@ jobs:
             --arg built_at       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
             --arg commit         "$GITHUB_SHA" \
             --arg backend_ref    "${{ steps.meta.outputs.backend_ref }}" \
-            --arg backend_rdig   "${{ steps.push.outputs.backend_registry_digest }}" \
-            --arg backend_cdig   "${{ steps.push.outputs.backend_config_digest }}" \
+            --arg backend_cdig   "${{ steps.digest.outputs.backend_config_digest }}" \
             --arg caddy_ref      "${{ steps.meta.outputs.caddy_ref }}" \
-            --arg caddy_rdig     "${{ steps.push.outputs.caddy_registry_digest }}" \
-            --arg caddy_cdig     "${{ steps.push.outputs.caddy_config_digest }}" \
+            --arg caddy_cdig     "${{ steps.digest.outputs.caddy_config_digest }}" \
             '{
               version: $version,
               arch: "amd64",
@@ -157,12 +130,10 @@ jobs:
               images: {
                 backend: {
                   ref: $backend_ref,
-                  registry_digest: $backend_rdig,
                   config_digest: $backend_cdig
                 },
                 caddy: {
                   ref: $caddy_ref,
-                  registry_digest: $caddy_rdig,
                   config_digest: $caddy_cdig
                 }
               },

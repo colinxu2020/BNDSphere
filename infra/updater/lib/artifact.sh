@@ -1,9 +1,10 @@
 #!/bin/sh
-# Artifact acquisition. Two delivery paths, both verified.
+# Artifact acquisition. One delivery path (the GitHub Release tarball),
+# verified at every step.
 #
-# Nothing downloaded is ever executed unverified: the GHCR path pulls by
-# immutable digest (self-verifying), and the tarball path checks SHA256SUMS
-# BEFORE docker load, then re-checks the loaded config digests (spec §6.3).
+# Nothing downloaded is ever executed unverified: the tarball is checked
+# against SHA256SUMS BEFORE docker load, then the loaded config digests are
+# re-checked against the manifest (spec §6.3).
 
 GITHUB_REPO="${GITHUB_REPO:-colinxu2020/BNDSphere}"
 WORK_DIR="${WORK_DIR:-/tmp/updater}"
@@ -44,10 +45,8 @@ fetch_manifest() {
     _version=$1
     mkdir -p "$WORK_DIR"
     # SHA256SUMS must land before the manifest is validated: the manifest is
-    # the root of trust for the digest checks on BOTH delivery paths (a GHCR
-    # pull trusts the registry_digest it read from this file just as much as
-    # the tarball path trusts config_digest), so it gets the same
-    # verify-before-use treatment as the tarball itself. This buys integrity
+    # the root of trust for the post-load config_digest check, so it gets the
+    # same verify-before-use treatment as the tarball itself. This buys integrity
     # against truncation/corruption -- not authenticity, since the manifest
     # and SHA256SUMS both arrive over the same unauthenticated channel.
     # Signing is the intended follow-up (design spec) and is out of scope here.
@@ -64,26 +63,6 @@ fetch_manifest() {
 
 manifest_field() {
     jq -r "$2 // empty" "$1"
-}
-
-pull_from_ghcr() {
-    _manifest=$1
-    for _component in backend caddy; do
-        _ref=$(manifest_field "$_manifest" ".images.${_component}.ref")
-        _digest=$(manifest_field "$_manifest" ".images.${_component}.registry_digest")
-        [ -n "$_ref" ] && [ -n "$_digest" ] || return 1
-
-        # Pull by digest, never by tag: a tag is mutable and a mutable
-        # reference defeats the point of recording a digest at release time.
-        _repo=${_ref%%:*}
-        case "$_ref" in *:*/*) _repo=${_ref%:*} ;; *) _repo=${_ref%:*} ;; esac
-
-        log "pulling ${_repo}@${_digest}"
-        docker pull "${_repo}@${_digest}" >/dev/null 2>&1 || return 1
-        # Re-tag to the human-readable ref so Compose pins stay readable.
-        docker tag "${_repo}@${_digest}" "$_ref" || return 1
-    done
-    return 0
 }
 
 fetch_and_load_tarball() {
@@ -135,15 +114,8 @@ acquire_images() {
     }
 
     state_stage downloading
-    if pull_from_ghcr "$_manifest"; then
-        state_set delivery_path ghcr
-        state_stage verifying
-        log "images acquired from GHCR by digest (self-verifying)"
-        printf '%s' "$_manifest"
-        return 0
-    fi
-
-    log "GHCR unavailable, falling back to the release tarball"
+    # delivery_path is always "tarball" now: the field is kept (not the value
+    # space) because the panel reads it, and keeping it avoids a schema change.
     state_set delivery_path tarball
 
     fetch_and_load_tarball "$_version" "$_manifest"
