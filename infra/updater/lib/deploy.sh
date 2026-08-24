@@ -176,8 +176,17 @@ run_update() {
     # Recorded before any side effect so the crash probes in Task 7 can ask
     # "are the running containers the ones we intended?" after an interruption
     # -- and so wait_healthy's image-identity check below has something to
-    # compare against.
-    if ! deployed_set target_backend_ref "$_backend_ref" target_caddy_ref "$_caddy_ref"; then
+    # compare against. previous_* is written here too, not only in the final
+    # success commit below: if THIS attempt fails its health check and
+    # triggers an automatic rollback further down, run_rollback resolves what
+    # to restore via deployed.json's previous_version/previous_backend_ref/
+    # previous_caddy_ref -- and that must already name the version this
+    # attempt started from, not whatever an earlier successful deploy left
+    # there. Without this, an automatic rollback on the second-or-later
+    # deploy would restore the version from two deploys ago instead of one.
+    if ! deployed_set target_backend_ref "$_backend_ref" target_caddy_ref "$_caddy_ref" \
+        previous_version "$_current" previous_backend_ref "$_prev_backend" \
+        previous_caddy_ref "$_prev_caddy"; then
         state_terminal failed state_write_failed \
             "could not record target image refs; refusing to proceed"
         return 1
@@ -225,16 +234,98 @@ run_update() {
     if ! deployed_set \
         current_version "$_version" \
         current_backend_ref "$_backend_ref" \
-        current_caddy_ref "$_caddy_ref" \
-        previous_version "$_current" \
-        previous_backend_ref "$_prev_backend" \
-        previous_caddy_ref "$_prev_caddy"; then
+        current_caddy_ref "$_caddy_ref"; then
         state_terminal failed state_write_failed \
             "deployment succeeded but recording the new current version failed"
         return 1
     fi
+    # previous_version/previous_backend_ref/previous_caddy_ref were already
+    # committed durably above, before migration ran -- re-writing the same
+    # values here would be redundant.
 
     state_terminal success "" "updated to $_version"
     prune_superseded_images
+    return 0
+}
+
+# THE rollback path. Both triggers land here; there is no second
+# implementation (spec §12.1). `_trigger` is recorded for the panel and the
+# audit log and is deliberately never used in a conditional.
+run_rollback() {
+    _target=$1
+    _trigger=$2
+
+    state_set stage rolling_back trigger "$_trigger" target_version "$_target"
+    log "rollback to $_target (trigger=$_trigger)"
+
+    _backend_ref=$(deployed_get previous_backend_ref)
+    _caddy_ref=$(deployed_get previous_caddy_ref)
+
+    if [ -z "$_backend_ref" ] || [ -z "$_caddy_ref" ]; then
+        state_terminal failed rollback_unavailable \
+            "no previous image references recorded"
+        return 1
+    fi
+
+    # previous_backend_ref/previous_caddy_ref are only trustworthy alongside
+    # the previous_version they were recorded with. A forward update whose
+    # final durable write failed (or any other stale bookkeeping) can leave
+    # previous_version naming a version older than the one this call was
+    # asked to restore -- silently restoring it anyway would skip a version
+    # entirely. Refuse with the same code as "no refs at all": to an operator
+    # both mean rollback cannot safely proceed from here.
+    _recorded_previous_version=$(deployed_get previous_version)
+    if [ "$_recorded_previous_version" != "$_target" ]; then
+        state_terminal failed rollback_unavailable \
+            "recorded previous_version ($_recorded_previous_version) does not match rollback target ($_target); refusing a possible two-hop rollback"
+        return 1
+    fi
+
+    # Retention guarantees these are present; verify rather than assume,
+    # because discovering it during an incident is the worst possible time.
+    for _ref in "$_backend_ref" "$_caddy_ref"; do
+        docker image inspect "$_ref" >/dev/null 2>&1 || {
+            state_terminal failed rollback_unavailable \
+                "previous image $_ref is no longer present locally"
+            return 1
+        }
+    done
+
+    # No migration, forward or backward. The schema stays at N while the
+    # application returns to N-1; the N-1 compatibility policy is what makes
+    # that safe.
+    if ! recreate_services "$_backend_ref" "$_caddy_ref"; then
+        state_terminal failed rollback_failed \
+            "could not recreate services on the previous version"
+        return 1
+    fi
+
+    # The same health gate as a forward deploy, but explicitly against the
+    # RESTORED refs: wait_healthy's own default (target_backend_ref /
+    # target_caddy_ref) names the version being rolled back FROM, and would
+    # fail every single time here.
+    if ! wait_healthy "$_backend_ref" "$_caddy_ref"; then
+        state_terminal failed rollback_failed \
+            "the previous version did not become healthy — manual intervention required"
+        return 1
+    fi
+
+    if ! deployed_set \
+        current_version "$_target" \
+        current_backend_ref "$_backend_ref" \
+        current_caddy_ref "$_caddy_ref"; then
+        # The application IS back on the previous version at this point --
+        # only the bookkeeping failed. Recording a clean success here would
+        # be exactly the lie the equivalent guard in run_update refuses to
+        # tell. rollback_failed, not rollback_success: the highest-severity
+        # terminal state is reserved for "the new version is unhealthy and
+        # the old one would not come back" -- this is milder (the old
+        # version DID come back), but it must not read as a clean win either.
+        state_terminal failed state_write_failed \
+            "rollback succeeded but recording the restored version failed"
+        return 1
+    fi
+
+    state_terminal rollback_success "" "rolled back to $_target"
     return 0
 }

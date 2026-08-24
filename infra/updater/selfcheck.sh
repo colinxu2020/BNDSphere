@@ -855,11 +855,17 @@ COMPOSE_PROJECT_DIR=$PD2; export COMPOSE_PROJECT_DIR
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 write_version_pins "ghcr.io/o/bndsphere-backend:OLD" "ghcr.io/o/bndsphere-caddy:OLD"
 
-compose() { printf '%s' "$BACKEND_IMAGE"; }
+# compose is a REAL library function; overriding it at top level and later
+# `unset -f`-ing it would permanently delete the real one for the rest of
+# this script (sh has no shadowing to fall back to -- same trap documented
+# at the Critical 1 fix block above). Confined to a subshell instead.
+_pd2_run_migration_uses_new_ref() (
+    compose() { printf '%s' "$BACKEND_IMAGE"; }
+    run_migration 'ghcr.io/o/bndsphere-backend:NEW'
+)
 assert_eq "ghcr.io/o/bndsphere-backend:NEW" \
-    "$(run_migration 'ghcr.io/o/bndsphere-backend:NEW')" \
+    "$(_pd2_run_migration_uses_new_ref)" \
     "run_migration exposes the NEW backend ref to compose, not the old pin"
-unset -f compose
 assert_eq "ghcr.io/o/bndsphere-backend:OLD" \
     "$(. "$PD2/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
     "run_migration does not itself touch the still-OLD versions.env pin"
@@ -876,22 +882,32 @@ state_init
 deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
 write_version_pins "old-backend" "old-caddy"
 
-acquire_images() { printf '%s' "$PD3/manifest.json"; }
-manifest_field() {
-    case "$2" in
-        *backend*) printf 'new-backend' ;;
-        *caddy*)   printf 'new-caddy' ;;
-    esac
-}
-run_migration() { return 1; }
-RECREATE_CALLED=0
-recreate_services() { RECREATE_CALLED=1; }
-run_rollback() { ROLLBACK_CALLED=1; }
-
-run_update v2.0.0
-assert_eq "0" "$RECREATE_CALLED" \
+# run_rollback is now a REAL library function (Task 6), not merely a test
+# stub -- `unset -f` cannot un-shadow it (sh has no such concept; unset -f
+# just deletes it, for the rest of this script). Every override here
+# therefore runs inside a `(...)` subshell, same discipline as the Critical 1
+# fix block above: redefinitions vanish when the subshell exits, and the two
+# outcomes this test cares about are captured to files instead of variables,
+# since subshell variable assignments do not propagate out either.
+_recreate_called_file3=$(mktemp)
+_rollback_called_file3=$(mktemp)
+_pd3_failed_migration() (
+    acquire_images() { printf '%s' "$PD3/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'new-backend' ;;
+            *caddy*)   printf 'new-caddy' ;;
+        esac
+    }
+    run_migration() { return 1; }
+    recreate_services() { printf 'called' > "$_recreate_called_file3"; }
+    run_rollback() { printf 'called' > "$_rollback_called_file3"; }
+    run_update v2.0.0
+)
+_pd3_failed_migration
+assert_eq "" "$(cat "$_recreate_called_file3" 2>/dev/null)" \
     "a failed migration never reaches recreate_services"
-assert_eq "" "${ROLLBACK_CALLED:-}" \
+assert_eq "" "$(cat "$_rollback_called_file3" 2>/dev/null)" \
     "a failed migration does not trigger rollback (nothing was replaced yet)"
 assert_eq "failed" "$(state_get stage)" \
     "a failed migration lands in the failed terminal stage"
@@ -901,9 +917,211 @@ assert_eq "old-backend" \
     "$(. "$PD3/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
     "a failed migration leaves the durable pins on the OLD running version"
 
-unset -f acquire_images manifest_field run_migration recreate_services run_rollback
-unset RECREATE_CALLED ROLLBACK_CALLED
+rm -f "$_recreate_called_file3" "$_rollback_called_file3"
 rm -rf "$PD3" "$STATUS_DIR"
+
+# ── rollback: the shared executor ────────────────────────────────────
+# The unification guarantee, asserted mechanically: `trigger` may be
+# recorded, but it must never appear in a conditional. If someone later
+# writes `if [ "$trigger" = automatic ]`, this fails.
+ROLLBACK_BODY=$(sed -n '/^run_rollback()/,/^}/p' /updater/lib/deploy.sh)
+assert_eq "" \
+    "$(printf '%s' "$ROLLBACK_BODY" | grep -nE '(if|case|&&|\|\|).*(_trigger|automatic|manual)')" \
+    "run_rollback never branches on trigger"
+
+# And it must actually record it.
+case "$ROLLBACK_BODY" in
+    *"trigger"*) PASSES=$((PASSES + 1)) ;;
+    *) FAILURES=$((FAILURES + 1)); printf 'FAIL: run_rollback does not record trigger\n' >&2 ;;
+esac
+
+# Rollback must never run migrations, under either trigger (spec §12.2).
+assert_eq "" "$(printf '%s' "$ROLLBACK_BODY" | grep -n 'run_migration')" \
+    "run_rollback never runs migrations"
+
+# Both call sites must exist and both must reach the same function. The
+# brief's original version of this check expected 2 total call sites
+# (one automatic, one manual); the real run_update has TWO automatic call
+# sites (recreate_services failure and wait_healthy failure), so the
+# accurate total is 3. Asserted precisely per site instead of as a vague
+# sum, so a regression in either file is unambiguous about which broke.
+assert_eq "2" "$(grep -c 'run_rollback "\$_current" automatic' /updater/lib/deploy.sh)" \
+    "run_update has exactly two automatic rollback call sites"
+assert_eq "1" "$(grep -c 'run_rollback "\$_version" manual' /updater/updater.sh)" \
+    "updater.sh has exactly one manual rollback call site"
+
+# postgres must never appear anywhere run_rollback's function definition
+# constructs or names services.
+assert_eq "" "$(printf '%s' "$ROLLBACK_BODY" | grep -ni postgres)" \
+    "run_rollback never mentions postgres"
+
+# ── rollback: happy path ─────────────────────────────────────────────
+PDR=$(mktemp -d); mkdir -p "$PDR/deploy" "$PDR/secrets"; touch "$PDR/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDR; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 \
+    current_backend_ref "new-backend:v2" current_caddy_ref "new-caddy:v2" \
+    target_backend_ref "wrong-backend:v3" target_caddy_ref "wrong-caddy:v3" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+
+_wh_args_file=$(mktemp)
+COMPOSE_ECHO=1; export COMPOSE_ECHO
+_rollback_happy_path() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    wait_healthy() { printf '%s %s' "$1" "$2" > "$_wh_args_file"; return 0; }
+    run_rollback v1.0.0 automatic
+)
+RS_OUT=$(_rollback_happy_path)
+RC=$?
+unset COMPOSE_ECHO
+
+assert_eq "0" "$RC" \
+    "rollback succeeds when the previous images are present and health passes"
+assert_eq "rollback_success" "$(state_get stage)" \
+    "rollback records rollback_success on the happy path"
+assert_eq "v1.0.0" "$(deployed_get current_version)" \
+    "rollback updates current_version to the restored target"
+assert_eq "old-backend:v1" "$(deployed_get current_backend_ref)" \
+    "rollback updates current_backend_ref to the restored ref"
+assert_eq "old-backend:v1 old-caddy:v1" "$(cat "$_wh_args_file")" \
+    "rollback passes the restored OLD refs to the health gate, not the recorded target refs"
+case "$RS_OUT" in
+    *postgres*) FAILURES=$((FAILURES + 1))
+        printf 'FAIL: rollback constructed a command naming postgres (got: %s)\n' "$RS_OUT" >&2 ;;
+    *) PASSES=$((PASSES + 1)) ;;
+esac
+rm -f "$_wh_args_file"
+rm -rf "$PDR" "$STATUS_DIR"
+
+# ── rollback: absent previous images fail closed, before anything changes ──
+PDA=$(mktemp -d); mkdir -p "$PDA/deploy" "$PDA/secrets"; touch "$PDA/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDA; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 \
+    current_backend_ref "new-backend:v2" current_caddy_ref "new-caddy:v2" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+
+_recreate_called_file=$(mktemp)
+_rollback_absent_images() (
+    docker() { case "$1" in image) return 1 ;; esac; }
+    recreate_services() { printf 'called' > "$_recreate_called_file"; return 0; }
+    run_rollback v1.0.0 automatic
+)
+_rollback_absent_images
+RC=$?
+assert_ok "rollback fails when the previous images are absent locally" [ "$RC" -ne 0 ]
+assert_eq "rollback_unavailable" "$(state_get error_code)" \
+    "absent previous images record rollback_unavailable"
+assert_eq "" "$(cat "$_recreate_called_file" 2>/dev/null)" \
+    "rollback never recreates services when the previous images are absent"
+rm -f "$_recreate_called_file"
+rm -rf "$PDA" "$STATUS_DIR"
+
+# No previous refs recorded at all (e.g. never deployed twice) must also
+# refuse, distinct from a mismatched target but with the same code -- both
+# mean rollback cannot proceed from here.
+PDN=$(mktemp -d); mkdir -p "$PDN/deploy" "$PDN/secrets"; touch "$PDN/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDN; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "backend:v1" current_caddy_ref "caddy:v1"
+run_rollback v0.9.0 automatic
+assert_eq "rollback_unavailable" "$(state_get error_code)" \
+    "rollback with no previous refs recorded refuses with rollback_unavailable"
+rm -rf "$PDN" "$STATUS_DIR"
+
+# ── rollback: a stale previous_version that does not match the target
+# is refused (the two-hop hazard) ────────────────────────────────────
+PDS=$(mktemp -d); mkdir -p "$PDS/deploy" "$PDS/secrets"; touch "$PDS/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDS; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+# deployed.json's previous_version names v1.0.0, but the caller is asking to
+# restore v2.0.0 -- e.g. an operator undoing a failed v2.0.0 -> v3.0.0
+# update whose previous_version bookkeeping is one hop stale. Restoring
+# v1.0.0's refs anyway would silently skip v2.0.0 entirely.
+deployed_set current_version v3.0.0 \
+    current_backend_ref "backend:v3" current_caddy_ref "caddy:v3" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+
+_recreate_called_file2=$(mktemp)
+_rollback_stale_previous() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    recreate_services() { printf 'called' > "$_recreate_called_file2"; return 0; }
+    run_rollback v2.0.0 manual
+)
+_rollback_stale_previous
+RC=$?
+assert_ok "rollback refuses a target that does not match the recorded previous_version" \
+    [ "$RC" -ne 0 ]
+assert_eq "rollback_unavailable" "$(state_get error_code)" \
+    "a mismatched rollback target records rollback_unavailable"
+assert_eq "" "$(cat "$_recreate_called_file2" 2>/dev/null)" \
+    "rollback never touches running containers when the target does not match the recorded previous version"
+rm -f "$_recreate_called_file2"
+rm -rf "$PDS" "$STATUS_DIR"
+
+# ── rollback: a failed final durable write is never a recorded success ──
+PDF=$(mktemp -d); mkdir -p "$PDF/deploy" "$PDF/secrets"; touch "$PDF/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDF; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 \
+    current_backend_ref "backend:v2" current_caddy_ref "caddy:v2" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+
+_rollback_final_write_fails() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    deployed_set() { return 1; }
+    run_rollback v1.0.0 automatic
+)
+_rollback_final_write_fails
+RC=$?
+assert_ok "rollback returns non-zero when the final deployed_set write fails" \
+    [ "$RC" -ne 0 ]
+assert_fail "a failed final write is never recorded as rollback_success" \
+    [ "$(state_get stage)" = "rollback_success" ]
+rm -rf "$PDF" "$STATUS_DIR"
+
+# ── rollback: automatic and manual reach run_rollback identically, proven
+# behaviourally (not just by the static grep above) -- same inputs, same
+# outputs, the trigger only shows up in the recorded field. ─────────────
+PDT=$(mktemp -d); mkdir -p "$PDT/deploy" "$PDT/secrets"; touch "$PDT/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDT; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 \
+    current_backend_ref "backend:v2" current_caddy_ref "caddy:v2" \
+    previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
+_rollback_via() (
+    docker() { case "$1" in image) return 0 ;; esac; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_rollback v1.0.0 "$1"
+)
+_rollback_via automatic
+assert_eq "automatic" "$(state_get trigger)" "an automatic rollback records trigger=automatic"
+assert_eq "rollback_success" "$(state_get stage)" "an automatic rollback reaches rollback_success"
+deployed_set current_version v2.0.0 previous_version v1.0.0
+_rollback_via manual
+assert_eq "manual" "$(state_get trigger)" "a manual rollback records trigger=manual"
+assert_eq "rollback_success" "$(state_get stage)" "a manual rollback reaches rollback_success"
+rm -rf "$PDT" "$STATUS_DIR"
 
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

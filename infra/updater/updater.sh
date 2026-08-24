@@ -105,8 +105,12 @@ handle_request() {
     release_lock
 }
 
-# Replaced in Tasks 6-8.
-run_rollback()           { log "run_rollback stub: $1 ($2)"; state_terminal failed not_implemented "stub"; }
+# run_rollback is defined in lib/deploy.sh (sourced above), alongside
+# run_update -- it must not be redefined here. A stub sitting after the
+# library sourcing would shadow the real implementation and every rollback
+# would silently no-op; that exact trap already bit run_update in Task 5.
+#
+# Replaced in Task 8.
 recover_if_interrupted() { :; }
 
 # UPDATER_NO_MAIN lets the self-check source this file to get its functions
