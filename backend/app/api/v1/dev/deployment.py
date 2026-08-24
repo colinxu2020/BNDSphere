@@ -36,6 +36,7 @@ async def _version_check(service: DeploymentService) -> dict[str, Any]:
     has_update = latest_tag is not None and version_newer(latest_tag, current)
 
     return {
+        "github_repo": service.github_repo,
         "installed_version": current,
         "latest_version": latest_tag,
         "latest_notes": release.notes if release else None,

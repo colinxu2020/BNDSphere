@@ -8,6 +8,10 @@ from app.services.deployment import VERSION_MAX_LEN, VERSION_PATTERN
 class VersionCheckResponse(BaseModel):
     """Discourse-shaped version check: flat, cheap, cached, separate from execution."""
 
+    # The configured repository, always present so the panel can name it even
+    # before any release has ever been seen. Deriving it from a release URL
+    # leaves the card blank on a fresh install, which is when it matters most.
+    github_repo: str
     installed_version: str
     latest_version: str | None = None
     latest_notes: str | None = None

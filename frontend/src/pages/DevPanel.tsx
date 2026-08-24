@@ -227,7 +227,11 @@ export function DevPanel() {
   }
 
   const isBusy = Boolean(status?.is_busy) || unreachable;
-  const repoInfo = repoInfoFromUrl(status?.latest_url ?? null);
+  // github_repo comes straight from the API so the card is never blank on an
+  // install that has no releases yet; the URL derivation is only a fallback.
+  const repoInfo = status?.github_repo
+    ? { label: status.github_repo, href: `https://github.com/${status.github_repo}` }
+    : repoInfoFromUrl(status?.latest_url ?? null);
   const path = status ? deliveryPathText(status) : null;
   const error = status ? errorText(status) : null;
 

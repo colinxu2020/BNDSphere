@@ -5,6 +5,7 @@ import { client } from "./client";
 // backend/app/schemas/deployment.py.
 
 export interface VersionCheck {
+  github_repo: string;
   installed_version: string;
   latest_version: string | null;
   latest_notes: string | null;
