@@ -1263,6 +1263,63 @@ assert_eq "backend:v2.0.0" "$(deployed_get current_backend_ref)" \
     "e2e: automatic rollback restores the previous backend ref"
 rm -rf "$PDE" "$STATUS_DIR"
 
+# Pins the Critical fix from the OTHER side: two good deploys, then a third
+# whose container RECREATION fails (not the health check). Migration has
+# already succeeded by this point, so the previous_* write has already
+# happened -- if it were moved any later (e.g. after recreate_services, the
+# reviewer's own counter-example), automatic rollback here would read
+# previous_backend_ref/previous_version still naming v1.0.0 (the version
+# before v2.0.0), not v2.0.0 -- a target/previous_version mismatch that
+# refuses with rollback_unavailable before ever reaching recreation.
+PDR2=$(mktemp -d); mkdir -p "$PDR2/deploy" "$PDR2/secrets"; touch "$PDR2/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDR2; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+
+_e2e3_deploy_good() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_update "$1"
+)
+_e2e3_deploy_good v1.0.0
+_e2e3_deploy_good v2.0.0
+
+_e2e3_deploy_v3_recreate_fails() (
+    acquire_images() { printf '%s' "$1"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:%s' "$1" ;;
+            *caddy*)   printf 'caddy:%s' "$1" ;;
+        esac
+    }
+    run_migration() { return 0; }
+    # Fails only for the forward attempt's NEW (v3.0.0) refs; the automatic
+    # rollback below calls this same function again to restore v2.0.0's
+    # refs, and that second call must succeed.
+    recreate_services() { case "$1" in *v3.0.0*) return 1 ;; *) return 0 ;; esac; }
+    wait_healthy() { return 0; }
+    docker() { case "$1" in image) return 0 ;; esac; }
+    run_update v3.0.0
+)
+_e2e3_deploy_v3_recreate_fails
+RC=$?
+assert_ok "e2e: a failing container recreation on the third deploy returns non-zero" \
+    [ "$RC" -ne 0 ]
+assert_eq "rollback_success" "$(state_get stage)" \
+    "e2e: automatic rollback reaches rollback_success after a failed recreation"
+assert_eq "v2.0.0" "$(deployed_get current_version)" \
+    "e2e: automatic rollback after a failed recreation restores the previous version"
+rm -rf "$PDR2" "$STATUS_DIR"
+
 # Critical fix pin: an aborted (migration_failed) update must leave
 # previous_version/previous_backend_ref/previous_caddy_ref untouched -- and a
 # subsequent MANUAL rollback to the genuine previous version must still

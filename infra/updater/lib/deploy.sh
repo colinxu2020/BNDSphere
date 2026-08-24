@@ -252,8 +252,9 @@ run_update() {
         return 1
     fi
     # previous_version/previous_backend_ref/previous_caddy_ref were already
-    # committed durably above, before migration ran -- re-writing the same
-    # values here would be redundant.
+    # committed durably above -- after migration succeeded, immediately
+    # before recreate_services -- re-writing the same values here would be
+    # redundant.
 
     state_terminal success "" "updated to $_version"
     prune_superseded_images
