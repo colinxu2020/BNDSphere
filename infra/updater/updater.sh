@@ -13,6 +13,7 @@ set -u
 . /updater/lib/state.sh
 . /updater/lib/validate.sh
 . /updater/lib/artifact.sh
+. /updater/lib/deploy.sh
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
@@ -104,8 +105,7 @@ handle_request() {
     release_lock
 }
 
-# Replaced in Tasks 4-8.
-run_update()             { log "run_update stub: $1"; state_terminal failed not_implemented "stub"; }
+# Replaced in Tasks 6-8.
 run_rollback()           { log "run_rollback stub: $1 ($2)"; state_terminal failed not_implemented "stub"; }
 recover_if_interrupted() { :; }
 

@@ -501,5 +501,134 @@ assert_eq "" "$FM_OUT" \
     "fetch_manifest emits no manifest path when the checksum check fails"
 rm -rf "$MWD"
 
+# ── deploy: migration, recreation, health verification ──────────────
+. /updater/lib/deploy.sh
+
+# versions.env must be rewritten atomically and completely. A partial write
+# here makes the stack unstartable by any means, including rollback.
+PD=$(mktemp -d); mkdir -p "$PD/deploy" "$PD/secrets"; touch "$PD/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PD; export COMPOSE_PROJECT_DIR
+
+write_version_pins "ghcr.io/o/bndsphere-backend:v1.5.0" "ghcr.io/o/bndsphere-caddy:v1.5.0"
+assert_eq "ghcr.io/o/bndsphere-backend:v1.5.0" \
+    "$(. "$PD/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
+    "write_version_pins sets BACKEND_IMAGE"
+assert_eq "ghcr.io/o/bndsphere-caddy:v1.5.0" \
+    "$(. "$PD/deploy/versions.env"; printf '%s' "$CADDY_IMAGE")" \
+    "write_version_pins sets CADDY_IMAGE"
+assert_eq "" "$(find "$PD/deploy" -name '*.tmp.*')" \
+    "write_version_pins leaves no temp file"
+
+# Postgres must never appear in a pin file the updater writes.
+assert_fail "version pins never mention postgres" \
+    grep -qi postgres "$PD/deploy/versions.env"
+
+# The Compose wrapper must always pass all four explicit flags (spec §13).
+COMPOSE_ECHO=1; export COMPOSE_ECHO
+_cmd=$(compose up -d backend caddy)
+for _flag in --project-directory -f --env-file -p; do
+    case "$_cmd" in
+        *"$_flag"*) PASSES=$((PASSES + 1)) ;;
+        *) FAILURES=$((FAILURES + 1))
+           printf 'FAIL: compose wrapper omits %s (got: %s)\n' "$_flag" "$_cmd" >&2 ;;
+    esac
+done
+case "$_cmd" in
+    *postgres*) FAILURES=$((FAILURES + 1))
+        printf 'FAIL: compose wrapper named postgres\n' >&2 ;;
+    *) PASSES=$((PASSES + 1)) ;;
+esac
+unset COMPOSE_ECHO
+rm -rf "$PD"
+
+# MANAGED_SERVICES is the hardcoded list run_update may recreate. Postgres
+# must never be named, recreated, or restarted (spec §5, §8, §18.3).
+case "$MANAGED_SERVICES" in
+    *postgres*) FAILURES=$((FAILURES + 1))
+        printf 'FAIL: MANAGED_SERVICES includes postgres\n' >&2 ;;
+    *) PASSES=$((PASSES + 1)) ;;
+esac
+
+# recreate_services must only ever target the managed app services, never
+# postgres, and must go through the same four-flag compose wrapper.
+PD4=$(mktemp -d); mkdir -p "$PD4/deploy" "$PD4/secrets"; touch "$PD4/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PD4; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+COMPOSE_ECHO=1; export COMPOSE_ECHO
+RS_OUT=$(recreate_services "ghcr.io/o/bndsphere-backend:v1.6.0" "ghcr.io/o/bndsphere-caddy:v1.6.0")
+case "$RS_OUT" in
+    *postgres*) FAILURES=$((FAILURES + 1))
+        printf 'FAIL: recreate_services named postgres (got: %s)\n' "$RS_OUT" >&2 ;;
+    *) PASSES=$((PASSES + 1)) ;;
+esac
+case "$RS_OUT" in
+    *"up -d backend caddy"*) PASSES=$((PASSES + 1)) ;;
+    *) FAILURES=$((FAILURES + 1))
+       printf 'FAIL: recreate_services did not target backend caddy (got: %s)\n' "$RS_OUT" >&2 ;;
+esac
+unset COMPOSE_ECHO
+rm -rf "$PD4" "$STATUS_DIR"
+
+# The migration must run against the NEW image, exposed as an environment
+# override, NOT the old pin still on disk in versions.env. Compose ranks
+# shell env above --env-file, so this is how an abort leaves the durable
+# pins on the running version. Reversed, this would silently run the OLD
+# migrations and report success.
+PD2=$(mktemp -d); mkdir -p "$PD2/deploy" "$PD2/secrets"; touch "$PD2/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PD2; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+write_version_pins "ghcr.io/o/bndsphere-backend:OLD" "ghcr.io/o/bndsphere-caddy:OLD"
+
+compose() { printf '%s' "$BACKEND_IMAGE"; }
+assert_eq "ghcr.io/o/bndsphere-backend:NEW" \
+    "$(run_migration 'ghcr.io/o/bndsphere-backend:NEW')" \
+    "run_migration exposes the NEW backend ref to compose, not the old pin"
+unset -f compose
+assert_eq "ghcr.io/o/bndsphere-backend:OLD" \
+    "$(. "$PD2/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
+    "run_migration does not itself touch the still-OLD versions.env pin"
+rm -rf "$PD2" "$STATUS_DIR"
+
+# A failed migration must abort BEFORE any application container is
+# replaced, leaving the old application running. No rollback is needed or
+# attempted here, since nothing was replaced yet.
+PD3=$(mktemp -d); mkdir -p "$PD3/deploy" "$PD3/secrets"; touch "$PD3/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PD3; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
+write_version_pins "old-backend" "old-caddy"
+
+acquire_images() { printf '%s' "$PD3/manifest.json"; }
+manifest_field() {
+    case "$2" in
+        *backend*) printf 'new-backend' ;;
+        *caddy*)   printf 'new-caddy' ;;
+    esac
+}
+run_migration() { return 1; }
+RECREATE_CALLED=0
+recreate_services() { RECREATE_CALLED=1; }
+run_rollback() { ROLLBACK_CALLED=1; }
+
+run_update v2.0.0
+assert_eq "0" "$RECREATE_CALLED" \
+    "a failed migration never reaches recreate_services"
+assert_eq "" "${ROLLBACK_CALLED:-}" \
+    "a failed migration does not trigger rollback (nothing was replaced yet)"
+assert_eq "failed" "$(state_get stage)" \
+    "a failed migration lands in the failed terminal stage"
+assert_eq "migration_failed" "$(state_get error_code)" \
+    "a failed migration records migration_failed"
+assert_eq "old-backend" \
+    "$(. "$PD3/deploy/versions.env"; printf '%s' "$BACKEND_IMAGE")" \
+    "a failed migration leaves the durable pins on the OLD running version"
+
+unset -f acquire_images manifest_field run_migration recreate_services run_rollback
+unset RECREATE_CALLED ROLLBACK_CALLED
+rm -rf "$PD3" "$STATUS_DIR"
+
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]
