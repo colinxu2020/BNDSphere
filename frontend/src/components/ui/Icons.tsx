@@ -41,6 +41,7 @@ export {
   IconDeviceFloppy as Save,
   IconSearch as Search,
   IconServer as Server,
+  IconTerminal2 as Terminal,
   IconSettings as Settings,
   IconShield as Shield,
   IconShieldCheck as ShieldCheck,
