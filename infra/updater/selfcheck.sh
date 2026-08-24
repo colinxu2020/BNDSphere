@@ -173,5 +173,44 @@ assert_fail "read_request rejects malformed json" read_request "$RD/request.json
 assert_fail "read_request rejects a missing file" read_request "$RD/nope.json"
 rm -rf "$RD"
 
+# ── state machine ────────────────────────────────────────────────────
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+. /updater/lib/state.sh
+
+state_init
+assert_eq "idle" "$(state_get stage)" "state initialises to idle"
+
+state_set stage checking target_version v1.5.0
+assert_eq "checking" "$(state_get stage)" "state_set updates stage"
+assert_eq "v1.5.0" "$(state_get target_version)" "state_set updates a second key"
+
+# A merge must not drop existing keys — the panel reads all of them.
+state_set stage downloading
+assert_eq "v1.5.0" "$(state_get target_version)" "state_set merges, does not replace"
+
+assert_ok   "idle is terminal"             is_terminal idle
+assert_ok   "success is terminal"          is_terminal success
+assert_ok   "rollback_success is terminal" is_terminal rollback_success
+assert_ok   "failed is terminal"           is_terminal failed
+assert_fail "migrating is not terminal"    is_terminal migrating
+assert_fail "deploying is not terminal"    is_terminal deploying
+assert_fail "rolling_back is not terminal" is_terminal rolling_back
+
+state_terminal failed migration_failed "alembic exited 1"
+assert_eq "failed" "$(state_get stage)" "state_terminal sets the stage"
+assert_eq "migration_failed" "$(state_get error_code)" "state_terminal sets error_code"
+assert_eq "alembic exited 1" "$(state_get error_message)" "state_terminal sets message"
+
+# state.json must stay valid JSON after every transition — the backend parses it.
+assert_ok "state.json remains valid json" jq -e . "$STATUS_DIR/state.json"
+
+assert_ok   "lock acquires when free" acquire_lock
+assert_fail "lock refuses when held"  acquire_lock
+release_lock
+assert_ok   "lock re-acquires after release" acquire_lock
+release_lock
+
+rm -rf "$STATUS_DIR"
+
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

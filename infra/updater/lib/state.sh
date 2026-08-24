@@ -62,3 +62,96 @@ validate_startup() {
     mkdir -p "$STATUS_DIR"
     return 0
 }
+
+TERMINAL_STAGES="idle success rollback_success failed"
+
+state_file()    { printf '%s/state.json' "$STATUS_DIR"; }
+deployed_file() { printf '%s/deployed.json' "$STATUS_DIR"; }
+lock_file()     { printf '%s/updater.lock' "$STATUS_DIR"; }
+
+state_init() {
+    mkdir -p "$STATUS_DIR"
+    [ -f "$(state_file)" ] && return 0
+    printf '%s' '{"stage":"idle","action":null,"request_id":null,
+"last_processed_request_id":null,"requested_version":null,"target_version":null,
+"previous_version":null,"delivery_path":null,"trigger":null,"started_at":null,
+"updated_at":null,"finished_at":null,"error_code":null,"error_message":null,
+"observed":null}' | jq -c . | atomic_write "$(state_file)"
+}
+
+state_get() {
+    [ -f "$(state_file)" ] || { printf ''; return 0; }
+    jq -r --arg k "$1" '.[$k] // "" | if type == "object" or type == "array"
+        then tojson else tostring end' "$(state_file)"
+}
+
+# Merge key/value pairs into state.json. Merge, never replace: the panel reads
+# every field, and a transition that silently blanked target_version would make
+# a failure unreadable exactly when it matters.
+#
+# One jq pass per pair, each value passed as --arg. Values are therefore always
+# JSON strings and never parsed as jq syntax — the same discipline as the shell
+# argument-vector rule: data never becomes code.
+state_set() {
+    _file=$(state_file)
+    _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
+    _json=$(cat "$_file")
+
+    while [ "$#" -ge 2 ]; do
+        _json=$(printf '%s' "$_json" \
+            | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v')
+        shift 2
+    done
+
+    printf '%s' "$_json" | jq -c --arg t "$_now" '.updated_at = $t' \
+        | atomic_write "$_file"
+}
+
+state_stage() {
+    state_set stage "$1"
+    log "stage -> $1"
+}
+
+state_terminal() {
+    state_set stage "$1" error_code "${2:-}" error_message "${3:-}" \
+        finished_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    log "terminal: $1 (${2:-ok}) ${3:-}"
+}
+
+is_terminal() {
+    for _s in $TERMINAL_STAGES; do
+        [ "$1" = "$_s" ] && return 0
+    done
+    return 1
+}
+
+deployed_get() {
+    [ -f "$(deployed_file)" ] || { printf ''; return 0; }
+    jq -r --arg k "$1" '.[$k] // ""' "$(deployed_file)"
+}
+
+deployed_set() {
+    _file=$(deployed_file)
+    [ -f "$_file" ] || printf '{}' | atomic_write "$_file"
+    _json=$(cat "$_file")
+    while [ "$#" -ge 2 ]; do
+        _json=$(printf '%s' "$_json" | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v')
+        shift 2
+    done
+    printf '%s' "$_json" | atomic_write "$_file"
+}
+
+# The lock is updater-owned and authoritative. The backend's 409 pre-check is
+# advisory only — it races, this does not.
+acquire_lock() {
+    mkdir -p "$STATUS_DIR"
+    # mkdir is atomic and fails if the directory exists: a lock primitive that
+    # needs no flock, which busybox sh lacks.
+    mkdir "$(lock_file)" 2>/dev/null || return 1
+    printf '%s' "$$" > "$(lock_file)/pid"
+    return 0
+}
+
+release_lock() {
+    rm -rf "$(lock_file)"
+}
