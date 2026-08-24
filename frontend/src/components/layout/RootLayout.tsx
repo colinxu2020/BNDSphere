@@ -5,12 +5,11 @@ import {
   Compass,
   LayoutDashboard,
   LogOut,
-  Menu,
   Settings,
   Shield,
   User,
 } from "@/src/components/ui/Icons";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
@@ -29,7 +28,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem("bnd_token")));
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const token = localStorage.getItem("bnd_token");
@@ -69,6 +70,30 @@ export function RootLayout({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  useEffect(() => {
+    setIsUserMenuOpen(false);
+  }, [location.pathname]);
+
+  useEffect(() => {
+    if (!isUserMenuOpen) return;
+
+    const closeOnOutsidePress = (event: PointerEvent) => {
+      if (event.target instanceof Node && !userMenuRef.current?.contains(event.target)) {
+        setIsUserMenuOpen(false);
+      }
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsUserMenuOpen(false);
+    };
+
+    document.addEventListener("pointerdown", closeOnOutsidePress);
+    document.addEventListener("keydown", closeOnEscape);
+    return () => {
+      document.removeEventListener("pointerdown", closeOnOutsidePress);
+      document.removeEventListener("keydown", closeOnEscape);
+    };
+  }, [isUserMenuOpen]);
+
   const canOpenFederation = useMemo(
     () => user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev",
     [user?.role],
@@ -85,7 +110,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen bg-slate-50 text-slate-900">
       <header className="sticky top-0 z-50 border-b border-slate-200 bg-white">
-        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
+        <nav className="mx-auto flex h-16 w-full max-w-7xl items-center justify-start gap-2 px-4 sm:px-6 md:justify-between md:gap-0 lg:px-8">
           <Link to="/" className="flex items-center gap-3">
             <img
               src="/LOGO_FULL.webp"
@@ -93,7 +118,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
               width={600}
               height={140}
               fetchPriority="high"
-              className="brand-logo h-10 w-auto"
+              className={cn("brand-logo w-auto", isLoggedIn ? "h-10" : "h-8 md:h-10")}
             />
           </Link>
 
@@ -120,7 +145,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
             })}
           </div>
 
-          <div className="flex min-w-32 items-center justify-end gap-2">
+          <div className="ml-auto flex shrink-0 items-center justify-end gap-2 md:ml-0">
             <ThemeToggle />
             {!isLoggedIn ? (
               <>
@@ -138,11 +163,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 </Link>
               </>
             ) : (
-              <div className="group relative">
+              <div ref={userMenuRef} className="relative">
                 <button
                   type="button"
+                  onClick={() => setIsUserMenuOpen((open) => !open)}
                   className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-slate-200 bg-slate-50 text-slate-600"
                   aria-label="用户菜单"
+                  aria-expanded={isUserMenuOpen}
+                  aria-controls="user-menu"
                 >
                   {user?.avatar_uri ? (
                     <img
@@ -159,7 +187,13 @@ export function RootLayout({ children }: { children: ReactNode }) {
                   )}
                 </button>
 
-                <div className="invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition group-hover:visible group-hover:translate-y-0 group-hover:opacity-100">
+                <div
+                  id="user-menu"
+                  className={cn(
+                    "invisible absolute right-0 top-full z-50 w-56 translate-y-1 pt-2 opacity-0 transition",
+                    isUserMenuOpen && "visible translate-y-0 opacity-100",
+                  )}
+                >
                   <div className="rounded-md border border-slate-200 bg-white p-2 shadow-lg">
                     <div className="px-3 py-2">
                       <p className="truncate text-sm font-semibold text-slate-900">
@@ -170,19 +204,35 @@ export function RootLayout({ children }: { children: ReactNode }) {
                       </p>
                     </div>
                     <div className="my-1 h-px bg-slate-100" />
-                    <MenuItem to="/profile" icon={<User size={16} />}>
+                    <MenuItem
+                      to="/profile"
+                      icon={<User size={16} />}
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
                       个人主页
                     </MenuItem>
-                    <MenuItem to="/workspace" icon={<Settings size={16} />}>
+                    <MenuItem
+                      to="/workspace"
+                      icon={<Settings size={16} />}
+                      onClick={() => setIsUserMenuOpen(false)}
+                    >
                       我管理的社团
                     </MenuItem>
                     {canOpenFederation && (
-                      <MenuItem to="/federation" icon={<LayoutDashboard size={16} />}>
+                      <MenuItem
+                        to="/federation"
+                        icon={<LayoutDashboard size={16} />}
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
                         社联工作台
                       </MenuItem>
                     )}
                     {canOpenAdmin && (
-                      <MenuItem to="/admin" icon={<Shield size={16} />}>
+                      <MenuItem
+                        to="/admin"
+                        icon={<Shield size={16} />}
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
                         管理员控制台
                       </MenuItem>
                     )}
@@ -198,13 +248,6 @@ export function RootLayout({ children }: { children: ReactNode }) {
                 </div>
               </div>
             )}
-            <button
-              type="button"
-              className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-slate-200 text-slate-600 md:hidden"
-              aria-label="打开导航"
-            >
-              <Menu size={18} />
-            </button>
           </div>
         </nav>
       </header>
@@ -239,10 +282,21 @@ export function RootLayout({ children }: { children: ReactNode }) {
   );
 }
 
-function MenuItem({ to, icon, children }: { to: string; icon: ReactNode; children: ReactNode }) {
+function MenuItem({
+  to,
+  icon,
+  children,
+  onClick,
+}: {
+  to: string;
+  icon: ReactNode;
+  children: ReactNode;
+  onClick?: () => void;
+}) {
   return (
     <Link
       to={to}
+      onClick={onClick}
       className="flex items-center gap-2 rounded-md px-3 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
     >
       {icon}

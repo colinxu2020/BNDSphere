@@ -1,13 +1,6 @@
 import { useEffect, useState, type Key } from "react";
 import { motion } from "motion/react";
-import {
-  Award,
-  Building2,
-  CalendarDays,
-  ExternalLink,
-  FileText,
-  RefreshCw,
-} from "@/src/components/ui/Icons";
+import { Award, Building2, CalendarDays, ExternalLink, FileText } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -17,7 +10,6 @@ import {
   Badge,
   EmptyState,
   PageHeader,
-  SecondaryButton,
   StatusMessage,
   Surface,
 } from "../components/ui/AppPrimitives";
@@ -82,15 +74,7 @@ export function StarLevelApplications() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col gap-6 pb-20"
     >
-      <PageHeader
-        eyebrow="Star Level"
-        title="星级评价"
-        action={
-          <SecondaryButton type="button" onClick={fetchApplications} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
-        }
-      />
+      <PageHeader eyebrow="Star Level" title="星级评价" />
 
       {loadError && <StatusMessage value={loadError} />}
 

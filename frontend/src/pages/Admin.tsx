@@ -74,42 +74,13 @@ export function Admin() {
     setMessage(error || data || "操作已完成");
   };
 
-  const checkHealth = async () => {
-    setMessage(null);
-    setMessageTone("info");
-    setMessage("正在检查服务状态...");
-    try {
-      const { error, response } = await client.GET("/health", {
-        parseAs: "text",
-      });
-      if (response.ok) {
-        setMessageTone("success");
-        setMessage(`服务正常（HTTP ${response.status}）`);
-      } else {
-        setMessageTone("error");
-        setMessage(error || `健康检查失败（HTTP ${response.status}）`);
-      }
-    } catch (error) {
-      setMessageTone("error");
-      setMessage(error || "无法连接后端健康检查接口，请确认后端服务正在运行");
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       className="grid min-w-0 gap-6 pb-20"
     >
-      <PageHeader
-        eyebrow="Admin"
-        title="管理员控制台"
-        action={
-          <SecondaryButton type="button" onClick={checkHealth}>
-            <RefreshCw size={16} /> 健康检查
-          </SecondaryButton>
-        }
-      />
+      <PageHeader eyebrow="Admin" title="管理员控制台" />
 
       {message && <StatusMessage value={message} tone={messageTone} />}
 
