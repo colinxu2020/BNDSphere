@@ -14,6 +14,7 @@ set -u
 . /updater/lib/validate.sh
 . /updater/lib/artifact.sh
 . /updater/lib/deploy.sh
+. /updater/lib/recover.sh
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
@@ -51,7 +52,8 @@ main() {
 
     log "updater started (project=$COMPOSE_PROJECT_NAME dir=$COMPOSE_PROJECT_DIR)"
 
-    # Recovery runs before the first poll (Task 8 fills this in).
+    # Recovery runs before the first poll: a restart mid-operation must be
+    # marked interrupted before this process ever considers a new request.
     recover_if_interrupted
 
     while true; do
@@ -105,14 +107,12 @@ handle_request() {
     release_lock
 }
 
-# run_rollback is defined in lib/deploy.sh (sourced above), alongside
-# run_update -- it must not be redefined here. A stub sitting after the
-# library sourcing would shadow the real implementation and every rollback
-# would silently no-op; that exact trap already bit run_update in Task 5.
-#
-# Replaced in Task 8.
-recover_if_interrupted() { :; }
+# run_rollback and run_update are defined in lib/deploy.sh, and
+# recover_if_interrupted is defined in lib/recover.sh (both sourced above) --
+# none of them may be redefined here. A stub sitting after the library
+# sourcing would shadow the real implementation and make it a silent no-op;
+# that exact trap already bit run_update in Task 5 and run_rollback in Task 6.
 
 # UPDATER_NO_MAIN lets the self-check source this file to get its functions
-# (handle_request, the stubs) without launching the infinite poll loop.
+# (handle_request) without launching the infinite poll loop.
 [ "${UPDATER_NO_MAIN:-}" ] || main "$@"

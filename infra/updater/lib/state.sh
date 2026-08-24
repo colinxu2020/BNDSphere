@@ -69,17 +69,30 @@ state_file()    { printf '%s/state.json' "$STATUS_DIR"; }
 deployed_file() { printf '%s/deployed.json' "$STATUS_DIR"; }
 lock_file()     { printf '%s/updater.lock' "$STATUS_DIR"; }
 
+_state_write_initial() {
+    mkdir -p "$STATUS_DIR"
+    printf '%s' '{"stage":"idle","action":null,"request_id":null,
+"last_processed_request_id":null,"requested_version":null,"target_version":null,
+"previous_version":null,"delivery_path":null,"trigger":null,"started_at":null,
+"updated_at":null,"finished_at":null,"error_code":null,"error_message":null,
+"observed":null}' | jq -c . | atomic_write "$(state_file)"
+}
+
 state_init() {
     mkdir -p "$STATUS_DIR"
     # Test validity, not mere existence: a truncated or corrupt file must be
     # replaced, or the sidecar boots blank forever -- the exact failure this
     # guard exists to prevent.
     [ -f "$(state_file)" ] && jq -e . "$(state_file)" >/dev/null 2>&1 && return 0
-    printf '%s' '{"stage":"idle","action":null,"request_id":null,
-"last_processed_request_id":null,"requested_version":null,"target_version":null,
-"previous_version":null,"delivery_path":null,"trigger":null,"started_at":null,
-"updated_at":null,"finished_at":null,"error_code":null,"error_message":null,
-"observed":null}' | jq -c . | atomic_write "$(state_file)"
+    _state_write_initial
+}
+
+# Unconditionally resets state.json back to idle, even when the current file
+# is valid JSON. state_init is deliberately idempotent against a healthy file
+# (a real restart must not blow away in-flight state); tests that need a
+# clean slate between cases use this instead.
+state_init_force() {
+    _state_write_initial
 }
 
 state_get() {

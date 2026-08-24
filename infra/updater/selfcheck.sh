@@ -959,6 +959,13 @@ assert_eq "" "$(grep -n '^run_rollback()' /updater/updater.sh)" \
     "updater.sh does not itself define run_rollback"
 assert_eq "" "$(grep -n '^run_update()' /updater/updater.sh)" \
     "updater.sh does not itself define run_update"
+# Same trap, same fix, for recover_if_interrupted (lib/recover.sh, Task 7):
+# a stub reintroduced after the sourcing block would shadow the real function
+# and make every restart-time recovery a silent no-op. Same masking caveat as
+# above -- selfcheck.sh also re-sources lib/recover.sh later for the recovery
+# tests below, which would overwrite any such shadow before those tests ran.
+assert_eq "" "$(grep -n '^recover_if_interrupted()' /updater/updater.sh)" \
+    "updater.sh does not itself define recover_if_interrupted"
 
 # Both call sites must exist and both must reach the same function. The
 # brief's original version of this check expected 2 total call sites
@@ -1379,6 +1386,38 @@ assert_eq "rollback_success" "$(state_get stage)" \
 assert_eq "v1.0.0" "$(deployed_get current_version)" \
     "e2e: manual rollback after an aborted update actually restores v1.0.0, not a v2.0.0 no-op"
 rm -rf "$PDE2" "$STATUS_DIR"
+
+# ── recovery: interrupted operations are marked, never resumed ─────────
+. /updater/lib/recover.sh
+
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+
+# A terminal stage means nothing was interrupted — leave it untouched.
+state_set stage success
+recover_if_interrupted
+assert_eq "success" "$(state_get stage)" "recovery leaves a terminal stage alone"
+
+# Every non-terminal stage must land on failed/interrupted, never resume.
+for stg in checking downloading verifying migrating deploying rolling_back health_checking; do
+    state_init_force
+    state_set stage "$stg" request_id "3f2504e0-4f89-41d3-9a0c-0305e82c3301"
+    recover_if_interrupted
+    assert_eq "failed" "$(state_get stage)" "recovery from $stg lands on failed"
+    assert_eq "interrupted" "$(state_get error_code)" "recovery from $stg sets interrupted"
+    assert_eq "$stg" "$(state_get interrupted_stage)" "recovery from $stg preserves the stage"
+    # A crash must never let the same request run again silently.
+    assert_eq "3f2504e0-4f89-41d3-9a0c-0305e82c3301" \
+        "$(state_get last_processed_request_id)" \
+        "recovery from $stg marks the request processed"
+done
+
+# Recovery must never act on the deployment itself.
+RECOVER_SRC=$(cat /updater/lib/recover.sh)
+assert_eq "" "$(printf '%s' "$RECOVER_SRC" | grep -nE 'run_update|run_rollback|recreate_services|compose up')" \
+    "recovery never invokes update, rollback, or a compose recreate"
+
+rm -rf "$STATUS_DIR"
 
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]
