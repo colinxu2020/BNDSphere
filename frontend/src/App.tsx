@@ -1,25 +1,6 @@
 import { createBrowserRouter, RouterProvider, Outlet } from "react-router-dom";
 import { RootLayout } from "./components/layout/RootLayout";
 import { Home } from "./pages/Home";
-import { ExploreClubs } from "./pages/ExploreClubs";
-import { ClubDetail } from "./pages/ClubDetail";
-import { Profile } from "./pages/Profile";
-import { Login } from "./pages/Login";
-import { Register } from "./pages/Register";
-import { CreateClub } from "./pages/CreateClub";
-import { UserProfile } from "./pages/UserProfile";
-import { GeneralActivities } from "./pages/GeneralActivities";
-import { GeneralActivityDetail } from "./pages/GeneralActivityDetail";
-import { ClubWorkspace } from "./pages/ClubWorkspace";
-import { Workspace } from "./pages/Workspace";
-import { Moderation } from "./pages/Moderation";
-import { Admin } from "./pages/Admin";
-import { Federation } from "./pages/Federation";
-import { StarLevelApplications } from "./pages/StarLevelApplications";
-import { JointActivities } from "./pages/JointActivities";
-import { JointActivityDetail } from "./pages/JointActivityDetail";
-import { JointActivityWorkspace } from "./pages/JointActivityWorkspace";
-import { FederationJointActivities } from "./pages/FederationJointActivities";
 
 function LayoutWrapper() {
   return (
@@ -40,79 +21,111 @@ const router = createBrowserRouter([
       },
       {
         path: "explore",
-        element: <ExploreClubs />,
+        lazy: () =>
+          import("./pages/ExploreClubs").then(({ ExploreClubs }) => ({
+            Component: ExploreClubs,
+          })),
       },
       {
         path: "club/:id",
-        element: <ClubDetail />,
+        lazy: () =>
+          import("./pages/ClubDetail").then(({ ClubDetail }) => ({ Component: ClubDetail })),
       },
       {
         path: "club/:id/manage",
-        element: <ClubWorkspace />,
+        lazy: () =>
+          import("./pages/ClubWorkspace").then(({ ClubWorkspace }) => ({
+            Component: ClubWorkspace,
+          })),
       },
       {
         path: "club/:id/joint-activities/manage",
-        element: <JointActivityWorkspace />,
+        lazy: () =>
+          import("./pages/JointActivityWorkspace").then(({ JointActivityWorkspace }) => ({
+            Component: JointActivityWorkspace,
+          })),
       },
       {
         path: "clubs/new",
-        element: <CreateClub />,
+        lazy: () =>
+          import("./pages/CreateClub").then(({ CreateClub }) => ({ Component: CreateClub })),
       },
       {
         path: "activities",
-        element: <GeneralActivities />,
+        lazy: () =>
+          import("./pages/GeneralActivities").then(({ GeneralActivities }) => ({
+            Component: GeneralActivities,
+          })),
       },
       {
         path: "activities/:id",
-        element: <GeneralActivityDetail />,
+        lazy: () =>
+          import("./pages/GeneralActivityDetail").then(({ GeneralActivityDetail }) => ({
+            Component: GeneralActivityDetail,
+          })),
       },
       {
         path: "joint-activities",
-        element: <JointActivities />,
+        lazy: () =>
+          import("./pages/JointActivities").then(({ JointActivities }) => ({
+            Component: JointActivities,
+          })),
       },
       {
         path: "joint-activities/:id",
-        element: <JointActivityDetail />,
+        lazy: () =>
+          import("./pages/JointActivityDetail").then(({ JointActivityDetail }) => ({
+            Component: JointActivityDetail,
+          })),
       },
       {
         path: "users/:id",
-        element: <UserProfile />,
+        lazy: () =>
+          import("./pages/UserProfile").then(({ UserProfile }) => ({ Component: UserProfile })),
       },
       {
         path: "workspace",
-        element: <Workspace />,
+        lazy: () => import("./pages/Workspace").then(({ Workspace }) => ({ Component: Workspace })),
       },
       {
         path: "star-level",
-        element: <StarLevelApplications />,
+        lazy: () =>
+          import("./pages/StarLevelApplications").then(({ StarLevelApplications }) => ({
+            Component: StarLevelApplications,
+          })),
       },
       {
         path: "moderation",
-        element: <Moderation />,
+        lazy: () =>
+          import("./pages/Moderation").then(({ Moderation }) => ({ Component: Moderation })),
       },
       {
         path: "admin",
-        element: <Admin />,
+        lazy: () => import("./pages/Admin").then(({ Admin }) => ({ Component: Admin })),
       },
       {
         path: "federation",
-        element: <Federation />,
+        lazy: () =>
+          import("./pages/Federation").then(({ Federation }) => ({ Component: Federation })),
       },
       {
         path: "federation/joint-activities",
-        element: <FederationJointActivities />,
+        lazy: () =>
+          import("./pages/FederationJointActivities").then(({ FederationJointActivities }) => ({
+            Component: FederationJointActivities,
+          })),
       },
       {
         path: "profile",
-        element: <Profile />,
+        lazy: () => import("./pages/Profile").then(({ Profile }) => ({ Component: Profile })),
       },
       {
         path: "login",
-        element: <Login />,
+        lazy: () => import("./pages/Login").then(({ Login }) => ({ Component: Login })),
       },
       {
         path: "register",
-        element: <Register />,
+        lazy: () => import("./pages/Register").then(({ Register }) => ({ Component: Register })),
       },
     ],
   },
