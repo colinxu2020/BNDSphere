@@ -229,6 +229,18 @@ assert_fail "state_set refuses to write when state.json is empty" \
 assert_eq "" "$(cat "$(state_file)")" \
     "state_set made no write at all against an empty file"
 
+# ── review round 2 (Important 3 regression pin): state_stage/state_terminal
+# must propagate state_set's failure, not mask it with log's (always-zero)
+# status. Corrupting state.json is the reachable way to force state_set to
+# refuse, exactly as used manually during review.
+printf 'not json' > "$(state_file)"
+assert_fail "state_stage returns non-zero when the underlying state_set is refused" \
+    state_stage checking
+: > "$(state_file)"
+assert_fail "state_terminal returns non-zero when the underlying state_set is refused" \
+    state_terminal failed some_code "some message"
+state_init
+
 # ── review round 1: state_init repairs an invalid state.json (Critical 2) ──
 printf 'not json' > "$(state_file)"
 state_init
@@ -421,6 +433,13 @@ assert_fail "verify_checksum rejects a missing SHA256SUMS" \
 printf 'payload' > "$WD/bndsphere-images-amd64.tar.gz"
 ( cd "$WD" && sha256sum bndsphere-images-amd64.tar.gz > SHA256SUMS )
 rm -f "$WD/bndsphere-images-amd64.tar.gz"
+# NOTE (review round 2): this pins fail-closed *behaviour*, not the explicit
+# `[ -f "$_dir/$_name" ]` guard specifically -- sha256sum -c already refuses
+# to check an entry whose file is missing on disk, so deleting the guard
+# still leaves this assertion passing. It is kept anyway as belt-and-braces
+# input validation (fail fast with a plain `return 1` instead of relying on
+# the checksum tool's own error path), and the assertion is kept as honest
+# documentation of the outcome, not a claim that it isolates that one line.
 assert_fail "verify_checksum rejects when the target file is absent" \
     verify_checksum "$WD" bndsphere-images-amd64.tar.gz
 
@@ -459,6 +478,28 @@ assert_fail "fetch_and_load_tarball refuses when manifest image fields are missi
         fetch_and_load_tarball v1.0.0 "'"$DWD"'/release-manifest.json"
     '
 rm -rf "$DWD"
+
+# review round 2 (Critical 2 regression pin): fetch_manifest must reject a
+# manifest whose recorded checksum does not match, and must emit no path for
+# a manifest it never verified. This is the exact fixture used to
+# demonstrate the fix during review, promoted into the suite so a future
+# revert of the verify_checksum call in fetch_manifest is caught here.
+MWD=$(mktemp -d)
+printf '{"images":{}}' > "$MWD/release-manifest.json"
+printf 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef  release-manifest.json\n' \
+    > "$MWD/SHA256SUMS"
+FM_OUT=$(env WORK_DIR="$MWD" STATUS_DIR="$(mktemp -d)" sh -c '
+    . /updater/lib/state.sh
+    . /updater/lib/artifact.sh
+    download_asset() { return 0; }
+    fetch_manifest v1.0.0
+')
+FM_RC=$?
+assert_ok "fetch_manifest rejects a manifest whose checksum does not match" \
+    [ "$FM_RC" -ne 0 ]
+assert_eq "" "$FM_OUT" \
+    "fetch_manifest emits no manifest path when the checksum check fails"
+rm -rf "$MWD"
 
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

@@ -89,7 +89,12 @@ pull_from_ghcr() {
 fetch_and_load_tarball() {
     _version=$1; _manifest=$2
 
-    download_asset "$_version" "$ASSET_SUMS" || return 1
+    # SHA256SUMS is already in $WORK_DIR: fetch_manifest downloaded and
+    # verified it before this ever runs (review round 2). Re-fetching it here
+    # bought nothing but a wasted round trip, and it deleted the known-good
+    # copy first -- a transient failure on the re-fetch would discard a good
+    # file, and the manifest and tarball could in principle end up checked
+    # against two different versions of the sums file.
     download_asset "$_version" "$ASSET_TARBALL" || return 1
 
     # THE gate. Verify before load, never after.
