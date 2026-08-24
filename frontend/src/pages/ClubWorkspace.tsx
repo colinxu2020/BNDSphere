@@ -285,14 +285,18 @@ export function ClubWorkspace() {
       return;
     }
 
-    const frame = window.requestAnimationFrame(() => {
-      window.requestAnimationFrame(() => {
+    let innerFrame = 0;
+    const outerFrame = window.requestAnimationFrame(() => {
+      innerFrame = window.requestAnimationFrame(() => {
         activityManagementRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
         hasHandledActivityDeepLink.current = deepLinkKey;
       });
     });
 
-    return () => window.cancelAnimationFrame(frame);
+    return () => {
+      window.cancelAnimationFrame(outerFrame);
+      if (innerFrame) window.cancelAnimationFrame(innerFrame);
+    };
   }, [activities, activityEditorMode, clubId, isLoading, requestedActivityId, updateActivityId]);
 
   useEffect(() => {
