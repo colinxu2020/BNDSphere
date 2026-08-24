@@ -415,13 +415,50 @@ assert_fail "verify_checksum rejects a tampered file" \
 rm -f "$WD/SHA256SUMS"
 assert_fail "verify_checksum rejects a missing SHA256SUMS" \
     verify_checksum "$WD" bndsphere-images-amd64.tar.gz
+
+# review round 1: fill in the two branches that previously rested on
+# unasserted external-tool behaviour.
+printf 'payload' > "$WD/bndsphere-images-amd64.tar.gz"
+( cd "$WD" && sha256sum bndsphere-images-amd64.tar.gz > SHA256SUMS )
+rm -f "$WD/bndsphere-images-amd64.tar.gz"
+assert_fail "verify_checksum rejects when the target file is absent" \
+    verify_checksum "$WD" bndsphere-images-amd64.tar.gz
+
+printf 'payload' > "$WD/bndsphere-images-amd64.tar.gz"
+printf 'deadbeef  some-other-file.tar.gz\n' > "$WD/SHA256SUMS"
+assert_fail "verify_checksum rejects a SHA256SUMS with no entry for the file" \
+    verify_checksum "$WD" bndsphere-images-amd64.tar.gz
 rm -rf "$WD"
 
 # Asset URLs are built from the updater's own config plus a validated version.
-# The repo must never come from the request.
-assert_eq "https://github.com/colinxu2020/BNDSphere/releases/download/v1.5.0/SHA256SUMS" \
-    "$(GITHUB_REPO=colinxu2020/BNDSphere asset_url v1.5.0 SHA256SUMS)" \
-    "asset_url builds from configured repo"
+# The repo must never come from the request. The configured value here is
+# deliberately NOT the built-in default -- an assertion using the default
+# would pass even if asset_url ignored $GITHUB_REPO and hardcoded the URL.
+assert_eq "https://github.com/some-other-org/some-other-repo/releases/download/v1.5.0/SHA256SUMS" \
+    "$(GITHUB_REPO=some-other-org/some-other-repo asset_url v1.5.0 SHA256SUMS)" \
+    "asset_url builds from configured repo, not the default"
+
+# review round 1 (Critical 1): the post-load digest re-check must not pass
+# vacuously when the manifest is missing image fields. A manifest with an
+# empty .images yields an empty "want" digest; the image also won't exist
+# under an empty ref, so "got" is empty too -- "" = "" must NOT read as a
+# match. docker and download_asset are stubbed out: this environment has
+# neither a real registry/release to hit nor a docker daemon socket, so the
+# stubs isolate exactly the comparison logic being pinned, not the I/O around
+# it (which remains unexercised -- see the report).
+DWD=$(mktemp -d)
+printf 'irrelevant' > "$DWD/bndsphere-images-amd64.tar.gz"
+( cd "$DWD" && sha256sum bndsphere-images-amd64.tar.gz > SHA256SUMS )
+printf '{"images":{}}' > "$DWD/release-manifest.json"
+assert_fail "fetch_and_load_tarball refuses when manifest image fields are missing, instead of a vacuous pass" \
+    env WORK_DIR="$DWD" STATUS_DIR="$(mktemp -d)" sh -c '
+        . /updater/lib/state.sh
+        . /updater/lib/artifact.sh
+        download_asset() { return 0; }
+        docker() { case "$1" in load) return 0 ;; image) return 1 ;; esac; }
+        fetch_and_load_tarball v1.0.0 "'"$DWD"'/release-manifest.json"
+    '
+rm -rf "$DWD"
 
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

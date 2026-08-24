@@ -134,14 +134,21 @@ state_set() {
 }
 
 state_stage() {
-    state_set stage "$1"
+    # Propagate state_set's status, not log's -- log always succeeds, so
+    # returning its status masked every refused write and made a stale stage
+    # indistinguishable from a recorded one to every caller.
+    _rc=0
+    state_set stage "$1" || _rc=$?
     log "stage -> $1"
+    return "$_rc"
 }
 
 state_terminal() {
+    _rc=0
     state_set stage "$1" error_code "${2:-}" error_message "${3:-}" \
-        finished_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+        finished_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" || _rc=$?
     log "terminal: $1 (${2:-ok}) ${3:-}"
+    return "$_rc"
 }
 
 is_terminal() {

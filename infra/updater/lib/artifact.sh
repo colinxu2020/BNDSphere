@@ -43,7 +43,21 @@ verify_checksum() {
 fetch_manifest() {
     _version=$1
     mkdir -p "$WORK_DIR"
+    # SHA256SUMS must land before the manifest is validated: the manifest is
+    # the root of trust for the digest checks on BOTH delivery paths (a GHCR
+    # pull trusts the registry_digest it read from this file just as much as
+    # the tarball path trusts config_digest), so it gets the same
+    # verify-before-use treatment as the tarball itself. This buys integrity
+    # against truncation/corruption -- not authenticity, since the manifest
+    # and SHA256SUMS both arrive over the same unauthenticated channel.
+    # Signing is the intended follow-up (design spec) and is out of scope here.
+    download_asset "$_version" "$ASSET_SUMS" || return 1
     download_asset "$_version" "$ASSET_MANIFEST" || return 1
+    verify_checksum "$WORK_DIR" "$ASSET_MANIFEST" || {
+        rm -f "$WORK_DIR/$ASSET_MANIFEST"
+        log "checksum mismatch for $ASSET_MANIFEST — refusing to trust it"
+        return 1
+    }
     jq -e . "$WORK_DIR/$ASSET_MANIFEST" >/dev/null 2>&1 || return 1
     printf '%s/%s' "$WORK_DIR" "$ASSET_MANIFEST"
 }
@@ -93,8 +107,12 @@ fetch_and_load_tarball() {
         _ref=$(manifest_field "$_manifest" ".images.${_component}.ref")
         _want=$(manifest_field "$_manifest" ".images.${_component}.config_digest")
         _got=$(docker image inspect --format '{{.Id}}' "$_ref" 2>/dev/null)
-        [ "$_want" = "$_got" ] || {
-            log "config digest mismatch for $_component: want $_want got $_got"
+        # Both sides must be non-empty before comparing: an absent
+        # config_digest (or ref) must never compare "" = "" and pass
+        # vacuously -- a manifest with missing/renamed image fields is a
+        # digest mismatch, not a pass.
+        [ -n "$_want" ] && [ -n "$_got" ] && [ "$_want" = "$_got" ] || {
+            log "config digest mismatch for $_component: want '$_want' got '$_got'"
             return 4
         }
     done
