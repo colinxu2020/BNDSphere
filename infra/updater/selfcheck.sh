@@ -397,5 +397,31 @@ assert_eq "143" "$MAIN_STATUS" \
 unset COMPOSE_PROJECT_DIR POLL_INTERVAL
 rm -rf "$STATUS_DIR" "$REQUEST_DIR" "$PROJ"
 
+# ── artifact acquisition ─────────────────────────────────────────────
+. /updater/lib/artifact.sh
+
+# Checksum verification is the gate that stands between a downloaded blob and
+# `docker load`. Test it directly.
+WD=$(mktemp -d)
+printf 'payload' > "$WD/bndsphere-images-amd64.tar.gz"
+( cd "$WD" && sha256sum bndsphere-images-amd64.tar.gz > SHA256SUMS )
+assert_ok "verify_checksum accepts a matching file" \
+    verify_checksum "$WD" bndsphere-images-amd64.tar.gz
+
+printf 'tampered' > "$WD/bndsphere-images-amd64.tar.gz"
+assert_fail "verify_checksum rejects a tampered file" \
+    verify_checksum "$WD" bndsphere-images-amd64.tar.gz
+
+rm -f "$WD/SHA256SUMS"
+assert_fail "verify_checksum rejects a missing SHA256SUMS" \
+    verify_checksum "$WD" bndsphere-images-amd64.tar.gz
+rm -rf "$WD"
+
+# Asset URLs are built from the updater's own config plus a validated version.
+# The repo must never come from the request.
+assert_eq "https://github.com/colinxu2020/BNDSphere/releases/download/v1.5.0/SHA256SUMS" \
+    "$(GITHUB_REPO=colinxu2020/BNDSphere asset_url v1.5.0 SHA256SUMS)" \
+    "asset_url builds from configured repo"
+
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]

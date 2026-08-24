@@ -12,6 +12,7 @@ set -u
 
 . /updater/lib/state.sh
 . /updater/lib/validate.sh
+. /updater/lib/artifact.sh
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
 POLL_INTERVAL="${POLL_INTERVAL:-5}"
