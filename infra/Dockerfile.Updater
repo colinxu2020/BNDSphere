@@ -1,0 +1,26 @@
+# Updater sidecar. Holds /var/run/docker.sock: compromise here means host
+# compromise (spec §4). Kept minimal for that reason, not because minimality
+# makes socket access safe.
+FROM docker:28-cli
+
+RUN apk add --no-cache \
+        bash=~5.2 \
+        curl=~8.14 \
+        jq=~1.8 \
+        coreutils=~9.7 \
+    && rm -rf /var/cache/apk/*
+
+COPY infra/updater/ /updater/
+RUN chmod +x /updater/updater.sh /updater/selfcheck.sh
+
+# No EXPOSE, no listener, no published port — by design (spec §7).
+ENV STATUS_DIR=/srv/status \
+    REQUEST_DIR=/srv/request \
+    COMPOSE_PROJECT_NAME=bndsphere
+
+# CMD (not ENTRYPOINT): with exec-form ENTRYPOINT, `docker run image <script>`
+# appends <script> as an argument to the entrypoint instead of replacing it,
+# which breaks the selfcheck invocation (`docker run --rm IMAGE
+# /updater/selfcheck.sh`). CMD lets that command replace the default process
+# for one-off runs while a bare `docker run image` still launches the updater.
+CMD ["/updater/updater.sh"]
