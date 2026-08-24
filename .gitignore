@@ -130,3 +130,6 @@ secrets
 .env
 .DS_Store
 .codegraph/
+
+# Host deployment state — owned by the updater, never committed (spec §18.2)
+deploy/versions.env
