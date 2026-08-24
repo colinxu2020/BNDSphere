@@ -42,6 +42,13 @@ class OSSSettings(_AppBaseSettings):
     oss_public_base_url: str
 
 
+class DeploymentSettings(_AppBaseSettings):
+    # Baked in at image build time via the APP_VERSION build arg. This is
+    # ground truth for "what version is running" — never inferred from a file
+    # on disk, which an updater crash could leave stale (spec §7).
+    app_version: str = "dev"
+
+
 @cache
 def db_settings() -> DatabaseSettings:
     return DatabaseSettings()  # type: ignore[call-arg]
@@ -55,3 +62,8 @@ def web_settings() -> WebSettings:
 @cache
 def oss_settings() -> OSSSettings:
     return OSSSettings()  # type: ignore[call-arg]
+
+
+@cache
+def deployment_settings() -> DeploymentSettings:
+    return DeploymentSettings()
