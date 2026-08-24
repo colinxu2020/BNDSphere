@@ -38,13 +38,15 @@ write_version_pins() {
     # so returning its status (as this function used to, implicitly) masked
     # every refused write behind an apparently-successful pin update -- the
     # same hazard state_stage/state_terminal were already fixed for.
-    _rc=$?
-    if [ "$_rc" -eq 0 ]; then
+    # Named _write_pins_rc (not the generic _rc some lib/state.sh functions
+    # use) so this local can never collide with theirs on the critical path.
+    _write_pins_rc=$?
+    if [ "$_write_pins_rc" -eq 0 ]; then
         log "pinned BACKEND_IMAGE=$1 CADDY_IMAGE=$2"
     else
         log "write_version_pins: atomic_write failed for $(versions_env), refusing"
     fi
-    return "$_rc"
+    return "$_write_pins_rc"
 }
 
 # Run the NEW image's migrations against the live database while the OLD
@@ -69,15 +71,18 @@ recreate_services() {
         log "recreate_services: aborting, version pins were not written"
         return 1
     }
-    # --no-deps: `up -d backend caddy` would otherwise pull postgres in via
-    # depends_on (starting a deliberately-stopped postgres) and re-run
-    # alembic-migration a second time via backend's
-    # service_completed_successfully dependency. The explicit migration step
-    # in run_migration already runs under `compose run`, which waits for
-    # postgres to be healthy on its own, so that dependency buys nothing
-    # here. If postgres is genuinely down, backend/caddy will fail to become
-    # healthy and wait_healthy rolls the deploy back -- the correct outcome
-    # for a component with no business starting databases.
+    # --no-deps: without it, `up -d backend caddy` pulls postgres in via
+    # depends_on (starting a deliberately-stopped postgres) and re-runs
+    # alembic-migration a SECOND time via backend's
+    # service_completed_successfully dependency -- run_migration above
+    # already ran it once against the new image, under `compose run`, which
+    # waits for postgres to be healthy on its own. That duplicate run is the
+    # actual reason for --no-deps (NOT that this updater has no business
+    # starting databases -- it already started postgres two lines earlier,
+    # for the migration). --no-deps also drops caddy's compose-level wait on
+    # backend being healthy; if postgres is genuinely down, backend/caddy
+    # will simply fail to become healthy and wait_healthy rolls the deploy
+    # back, so that wait was never load-bearing here.
     # shellcheck disable=SC2086 # MANAGED_SERVICES is a fixed internal literal.
     compose up -d --no-deps $MANAGED_SERVICES
 }
@@ -85,15 +90,21 @@ recreate_services() {
 # `docker compose up` exiting 0 means "containers created", not "the
 # application works". Committing a version on that basis is how a broken
 # deploy gets recorded as a success (spec §10.6).
+# $1/$2: expected backend/caddy image refs, defaulting to the recorded
+# target_*_ref when not supplied. A forward deploy needs no arguments -- the
+# refs it just wrote are the right comparison. Rollback (next task) MUST
+# pass the restored OLD refs explicitly: the durable target_*_ref fields
+# still name the version being rolled back FROM, and comparing rollback's
+# restored containers against those would fail every single time, on the
+# one path that only runs after something has already gone wrong.
 wait_healthy() {
+    _want_backend=${1:-$(deployed_get target_backend_ref)}
+    _want_caddy=${2:-$(deployed_get target_caddy_ref)}
     _deadline=$(( $(date +%s) + HEALTH_TIMEOUT ))
-    # Recorded before recreate_services ran (spec: crash probes compare
-    # against these). Reused here for the identity check below: container
-    # health alone cannot distinguish the NEW version from the OLD one -- if
-    # the pin write silently failed and nothing was actually recreated, the
-    # OLD containers are genuinely healthy too and would otherwise pass.
-    _target_backend=$(deployed_get target_backend_ref)
-    _target_caddy=$(deployed_get target_caddy_ref)
+    # Container health alone cannot distinguish the NEW version from the OLD
+    # one -- if the pin write silently failed and nothing was actually
+    # recreated, the OLD containers are genuinely healthy too and would
+    # otherwise pass.
 
     while [ "$(date +%s)" -lt "$_deadline" ]; do
         _all_healthy=1
@@ -106,8 +117,8 @@ wait_healthy() {
             [ "$_status" = "healthy" ] || { _all_healthy=0; break; }
 
             case "$_svc" in
-                backend) _want=$_target_backend ;;
-                caddy)   _want=$_target_caddy ;;
+                backend) _want=$_want_backend ;;
+                caddy)   _want=$_want_caddy ;;
                 *)       _want= ;;
             esac
             _running=$(docker inspect --format '{{.Config.Image}}' "$_cid" 2>/dev/null)

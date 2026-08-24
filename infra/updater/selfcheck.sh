@@ -651,6 +651,157 @@ assert_fail "wait_healthy fails when the running image does not match the record
     _c2_wait_healthy_mismatch
 rm -rf "$PDC2" "$STATUS_DIR"
 
+# Positive control: the gate above proves wait_healthy can fail. Nothing so
+# far proves it ever PASSES when it should -- a wait_healthy hard-coded to
+# `return 1` would leave every prior assertion in this file green.
+_c2b_wait_healthy_match() (
+    HEALTH_TIMEOUT=1
+    HEALTH_INTERVAL=0
+    compose() { case "$1" in ps) printf 'fake-cid' ;; esac; }
+    docker() {
+        case "$1" in
+            inspect)
+                case "$*" in
+                    *Health.Status*) printf 'healthy' ;;
+                    *Config.Image*)  printf 'new-backend:v2' ;;
+                esac
+                ;;
+        esac
+    }
+    app_ready() { return 0; }
+    # Exercises the parameterised form directly (spec correction: rollback
+    # must be able to pass its own expected refs instead of the recorded
+    # target_*_ref, which name the version being rolled back FROM).
+    wait_healthy "new-backend:v2" "new-backend:v2"
+)
+assert_ok "wait_healthy succeeds when containers are healthy and running the expected images" \
+    _c2b_wait_healthy_match
+
+# review round 2 (regression pin): the `-n "$_want"` guard must stay. Without
+# it, an empty recorded/supplied target ref compared against an empty
+# `docker inspect` result ("" = "") would pass vacuously -- the exact defect
+# class already fixed once in lib/artifact.sh's digest re-check. No target
+# ref has been recorded here (fresh STATUS_DIR, nothing written), so both
+# sides of the comparison are empty by construction.
+PDC2C=$(mktemp -d); mkdir -p "$PDC2C/deploy" "$PDC2C/secrets"; touch "$PDC2C/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC2C; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+_c2c_wait_healthy_vacuous() (
+    HEALTH_TIMEOUT=1
+    HEALTH_INTERVAL=0
+    compose() { case "$1" in ps) printf 'fake-cid' ;; esac; }
+    docker() {
+        case "$1" in
+            inspect)
+                case "$*" in
+                    *Health.Status*) printf 'healthy' ;;
+                    *Config.Image*)  printf '' ;;
+                esac
+                ;;
+        esac
+    }
+    app_ready() { return 0; }
+    wait_healthy
+)
+assert_fail "wait_healthy refuses to pass when the target ref and the running image are both empty" \
+    _c2c_wait_healthy_vacuous
+rm -rf "$PDC2C" "$STATUS_DIR"
+
+# review round 2: the state_set target_version guard has its own test --
+# removing it left the suite green, since nothing previously drove run_update
+# through a state_set failure at that specific site.
+PDC4=$(mktemp -d); mkdir -p "$PDC4/deploy" "$PDC4/secrets"; touch "$PDC4/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC4; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
+
+_c4_migration_called_file=$(mktemp)
+_c4_terminal_args_file=$(mktemp)
+_c4_state_set_target_version_fails() (
+    acquire_images() { printf '%s' "$PDC4/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'new-backend' ;;
+            *caddy*)   printf 'new-caddy' ;;
+        esac
+    }
+    run_migration() { printf 'called' > "$_c4_migration_called_file"; return 0; }
+    # `command state_set "$@"` cannot delegate to the real state_set: `command`
+    # deliberately bypasses shell functions, and every library function here
+    # is a shell function, so that delegation was a silent no-op. Instead,
+    # fail only the exact call under test and succeed (without writing) for
+    # every other call, then capture state_terminal's own arguments directly
+    # rather than reading them back out of a state.json that was never
+    # actually written to.
+    state_set() {
+        [ "$1" = "target_version" ] && return 1
+        return 0
+    }
+    state_terminal() { printf '%s\n' "$@" > "$_c4_terminal_args_file"; }
+    run_update v2.0.0
+)
+_c4_state_set_target_version_fails
+RC=$?
+assert_ok "run_update returns non-zero when state_set target_version fails" [ "$RC" -ne 0 ]
+assert_eq "" "$(cat "$_c4_migration_called_file" 2>/dev/null)" \
+    "run_update never reaches run_migration when state_set target_version fails"
+assert_eq "state_write_failed" "$(sed -n '2p' "$_c4_terminal_args_file" 2>/dev/null)" \
+    "a failed state_set target_version records state_write_failed"
+assert_eq "could not record target_version; refusing to proceed" \
+    "$(sed -n '3p' "$_c4_terminal_args_file" 2>/dev/null)" \
+    "a failed state_set target_version pins the specific abort message"
+rm -f "$_c4_migration_called_file" "$_c4_terminal_args_file"
+rm -rf "$PDC4" "$STATUS_DIR"
+
+# review round 2: the deployed_set target_* guard has its own test.
+PDC5=$(mktemp -d); mkdir -p "$PDC5/deploy" "$PDC5/secrets"; touch "$PDC5/docker-compose.yml"
+COMPOSE_PROJECT_DIR=$PDC5; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
+
+_c5_migration_called_file=$(mktemp)
+_c5_terminal_args_file=$(mktemp)
+_c5_deployed_set_target_fails() (
+    acquire_images() { printf '%s' "$PDC5/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'new-backend' ;;
+            *caddy*)   printf 'new-caddy' ;;
+        esac
+    }
+    run_migration() { printf 'called' > "$_c5_migration_called_file"; return 0; }
+    # Same delegation hazard as the state_set case above: `command
+    # deployed_set "$@"` bypasses the shell function, so it never actually
+    # wrote anything. Fail only the target_* call under test and capture
+    # state_terminal's arguments directly instead of relying on a real write.
+    # deployed_get reads in run_update before this point
+    # (current_version/current_backend_ref/current_caddy_ref) go through the
+    # real function untouched.
+    deployed_set() {
+        [ "$1" = "target_backend_ref" ] && return 1
+        return 0
+    }
+    state_terminal() { printf '%s\n' "$@" > "$_c5_terminal_args_file"; }
+    run_update v2.0.0
+)
+_c5_deployed_set_target_fails
+RC=$?
+assert_ok "run_update returns non-zero when deployed_set target_* fails" [ "$RC" -ne 0 ]
+assert_eq "" "$(cat "$_c5_migration_called_file" 2>/dev/null)" \
+    "run_update never reaches run_migration when deployed_set target_* fails"
+assert_eq "state_write_failed" "$(sed -n '2p' "$_c5_terminal_args_file" 2>/dev/null)" \
+    "a failed deployed_set target_* records state_write_failed"
+assert_eq "could not record target image refs; refusing to proceed" \
+    "$(sed -n '3p' "$_c5_terminal_args_file" 2>/dev/null)" \
+    "a failed deployed_set target_* pins the specific abort message"
+rm -f "$_c5_migration_called_file" "$_c5_terminal_args_file"
+rm -rf "$PDC5" "$STATUS_DIR"
+
 # ── Important 2 fix: a failed deployed_set current_* must never be followed
 # by a recorded success -- the deploy is real and healthy, but the
 # bookkeeping is stale, so this must surface as a failure, not silently as
