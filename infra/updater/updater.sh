@@ -19,6 +19,16 @@ POLL_INTERVAL="${POLL_INTERVAL:-5}"
 main() {
     validate_startup
     state_init
+
+    # One process runs per container: any lock directory found here was left
+    # by a process that no longer exists. A restart reuses pids, so judging
+    # staleness from the recorded pid is unsafe -- clearing unconditionally,
+    # before the poll loop begins, is correct here.
+    release_lock
+    # Release on every exit path, including die() and signals, so the common
+    # case is clean without relying on the next boot to recover.
+    trap release_lock TERM INT EXIT
+
     log "updater started (project=$COMPOSE_PROJECT_NAME dir=$COMPOSE_PROJECT_DIR)"
 
     # Recovery runs before the first poll (Task 8 fills this in).
@@ -73,4 +83,6 @@ run_update()             { log "run_update stub: $1"; state_terminal failed not_
 run_rollback()           { log "run_rollback stub: $1 ($2)"; state_terminal failed not_implemented "stub"; }
 recover_if_interrupted() { :; }
 
-main "$@"
+# UPDATER_NO_MAIN lets the self-check source this file to get its functions
+# (handle_request, the stubs) without launching the infinite poll loop.
+[ "${UPDATER_NO_MAIN:-}" ] || main "$@"

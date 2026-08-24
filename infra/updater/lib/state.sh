@@ -71,7 +71,10 @@ lock_file()     { printf '%s/updater.lock' "$STATUS_DIR"; }
 
 state_init() {
     mkdir -p "$STATUS_DIR"
-    [ -f "$(state_file)" ] && return 0
+    # Test validity, not mere existence: a truncated or corrupt file must be
+    # replaced, or the sidecar boots blank forever -- the exact failure this
+    # guard exists to prevent.
+    [ -f "$(state_file)" ] && jq -e . "$(state_file)" >/dev/null 2>&1 && return 0
     printf '%s' '{"stage":"idle","action":null,"request_id":null,
 "last_processed_request_id":null,"requested_version":null,"target_version":null,
 "previous_version":null,"delivery_path":null,"trigger":null,"started_at":null,
@@ -95,16 +98,39 @@ state_get() {
 state_set() {
     _file=$(state_file)
     _now=$(date -u +%Y-%m-%dT%H:%M:%SZ)
-    _json=$(cat "$_file")
+
+    # An unpaired trailing key would otherwise be dropped silently. Tasks 4-8
+    # call this constantly on the critical path, so a typo losing a field
+    # must fail loudly instead.
+    [ "$(( $# % 2 ))" -eq 0 ] || {
+        log "state_set: odd argument count ($#), refusing"
+        return 1
+    }
+
+    # Refuse to write when the read or any merge step failed or produced
+    # nothing: a swallowed failure here would otherwise truncate state.json
+    # to empty, exactly what the merge-not-replace contract forbids.
+    _json=$(cat "$_file") && [ -n "$_json" ] || {
+        log "state_set: $_file missing or unreadable, refusing to write"
+        return 1
+    }
 
     while [ "$#" -ge 2 ]; do
         _json=$(printf '%s' "$_json" \
-            | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v')
+            | jq -c --arg k "$1" --arg v "$2" '.[$k] = $v') && [ -n "$_json" ] || {
+            log "state_set: jq failed merging key '$1', refusing to write"
+            return 1
+        }
         shift 2
     done
 
-    printf '%s' "$_json" | jq -c --arg t "$_now" '.updated_at = $t' \
-        | atomic_write "$_file"
+    _json=$(printf '%s' "$_json" | jq -c --arg t "$_now" '.updated_at = $t') \
+        && [ -n "$_json" ] || {
+        log "state_set: jq failed stamping updated_at, refusing to write"
+        return 1
+    }
+
+    printf '%s' "$_json" | atomic_write "$_file"
 }
 
 state_stage() {

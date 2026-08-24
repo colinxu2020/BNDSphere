@@ -212,5 +212,109 @@ release_lock
 
 rm -rf "$STATUS_DIR"
 
+# ── review round 1: state_set must never blank state.json (Critical 1) ──
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+. /updater/lib/state.sh
+state_init
+
+printf 'not json' > "$(state_file)"
+assert_fail "state_set refuses to write when state.json is corrupt" \
+    state_set stage checking
+assert_eq "not json" "$(cat "$(state_file)")" \
+    "state_set left the corrupt file untouched rather than writing empty output"
+
+: > "$(state_file)"
+assert_fail "state_set refuses to write when state.json is empty" \
+    state_set stage checking
+assert_eq "" "$(cat "$(state_file)")" \
+    "state_set made no write at all against an empty file"
+
+# ── review round 1: state_init repairs an invalid state.json (Critical 2) ──
+printf 'not json' > "$(state_file)"
+state_init
+assert_ok "state_init repairs a corrupt state.json" jq -e . "$(state_file)"
+assert_eq "idle" "$(state_get stage)" "state_init resets a corrupt file back to idle"
+
+: > "$(state_file)"
+state_init
+assert_ok "state_init repairs an empty state.json" jq -e . "$(state_file)"
+assert_eq "idle" "$(state_get stage)" "state_init resets an empty file back to idle"
+
+# ── review round 1: odd argument count is a hard failure (promoted Minor 6) ──
+state_init
+assert_fail "state_set rejects an odd argument count" \
+    state_set stage checking target_version
+assert_eq "idle" "$(state_get stage)" "state_set made no partial write on odd args"
+
+# ── review round 1: updated_at actually moves (Important 4) ──
+state_init
+state_set stage checking
+T1=$(state_get updated_at)
+assert_ok "updated_at is stamped after state_set" [ -n "$T1" ]
+sleep 1
+state_set stage downloading
+T2=$(state_get updated_at)
+assert_ok "updated_at is stamped after a second state_set" [ -n "$T2" ]
+assert_fail "updated_at changes across state_set calls" [ "$T1" = "$T2" ]
+
+rm -rf "$STATUS_DIR"
+
+# ── review round 1: handle_request dispatch invariants (Important 5) ──
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+REQUEST_DIR=$(mktemp -d); export REQUEST_DIR
+export UPDATER_NO_MAIN=1
+. /updater/updater.sh
+state_init
+
+ID1=11111111-1111-1111-1111-111111111111
+ID2=22222222-2222-2222-2222-222222222222
+
+# (a) the id must be recorded as processed BEFORE the action is dispatched,
+# so a crash inside run_update/run_rollback cannot cause a re-run.
+SEEN_AT_DISPATCH=""
+run_update()   { SEEN_AT_DISPATCH=$(state_get last_processed_request_id); }
+run_rollback() { :; }
+
+cat > "$REQUEST_DIR/request.json" <<JSON
+{"id":"$ID1","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
+JSON
+handle_request
+assert_eq "$ID1" "$SEEN_AT_DISPATCH" \
+    "handle_request records the request id before dispatching the action"
+assert_ok "lock is released after a successful dispatch" acquire_lock
+release_lock
+
+# (b) the lock must be released on every exit path that never dispatches...
+rm -f "$REQUEST_DIR/request.json"
+handle_request
+assert_ok "lock is free when there was no request file" acquire_lock
+release_lock
+
+printf 'not json' > "$REQUEST_DIR/request.json"
+handle_request
+assert_ok "lock is free after an unparseable request" acquire_lock
+release_lock
+
+cat > "$REQUEST_DIR/request.json" <<JSON
+{"id":"$ID1","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
+JSON
+handle_request
+assert_ok "lock is free after a duplicate/already-processed request" acquire_lock
+release_lock
+
+# ...but NOT released when acquisition itself failed: handle_request never
+# owned that lock, so it must not be the one to give it up.
+acquire_lock
+cat > "$REQUEST_DIR/request.json" <<JSON
+{"id":"$ID2","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
+JSON
+handle_request
+assert_fail "a pre-existing lock survives when handle_request could not acquire it" \
+    acquire_lock
+release_lock
+
+unset UPDATER_NO_MAIN
+rm -rf "$STATUS_DIR" "$REQUEST_DIR"
+
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"
 [ "$FAILURES" -eq 0 ]
