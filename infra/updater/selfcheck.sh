@@ -116,6 +116,11 @@ assert_fail "valid_action rejects empty"      valid_action ''
 assert_ok   "valid_uuid accepts a uuid" \
     valid_uuid '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
 assert_fail "valid_uuid rejects junk" valid_uuid 'not-a-uuid'
+# Same per-line grep hazard as valid_version: a multi-line id could otherwise
+# satisfy the anchors on one line while carrying a tab-smuggled field on another.
+assert_fail "valid_uuid rejects an embedded newline" valid_uuid \
+    '3f2504e0-4f89-41d3-9a0c-0305e82c3301
+extra-line'
 
 # ── version comparison ───────────────────────────────────────────────
 assert_ok   "1.5.0 newer than 1.4.3"      version_newer v1.5.0 v1.4.3
@@ -126,6 +131,7 @@ assert_fail "1.4.3 not newer than 1.5.0"  version_newer v1.4.3 v1.5.0
 assert_fail "equal is not newer"          version_newer v1.5.0 v1.5.0
 assert_fail "v-prefix is not significant" version_newer v1.5.0 1.5.0
 assert_fail "dev is never newer"          version_newer dev v1.0.0
+assert_ok   "real version newer than dev" version_newer v1.0.0 dev
 
 # ── read_request ─────────────────────────────────────────────────────
 RD=$(mktemp -d)
@@ -152,6 +158,15 @@ cat > "$RD/request.json" <<'JSON'
 JSON
 assert_eq "3f2504e0-4f89-41d3-9a0c-0305e82c3301	update	v1.5.0" \
     "$(read_request "$RD/request.json")" "read_request ignores unknown fields"
+
+# A multi-line id must not slip through: read_request returns a single
+# tab-separated line, and a smuggled newline+tab in id would shift action
+# and version into the wrong fields for any caller splitting on tabs.
+cat > "$RD/request.json" <<'JSON'
+{"id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301\nrollback\tv9.9.9","action":"update",
+ "version":"v1.5.0","requested_at":"2026-08-24T10:00:00Z"}
+JSON
+assert_fail "read_request rejects a multi-line id" read_request "$RD/request.json"
 
 printf 'not json' > "$RD/request.json"
 assert_fail "read_request rejects malformed json" read_request "$RD/request.json"

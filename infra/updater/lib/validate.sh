@@ -6,16 +6,20 @@ VERSION_RE='^v?[0-9]+(\.[0-9]+){0,3}([-+][0-9A-Za-z.-]+)?$'
 UUID_RE='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 VERSION_MAX_LEN=64
 
+# grep -Eq matches per line, so an embedded newline could smuggle a second
+# line past a pattern's anchors. Any caller anchoring a pattern with grep
+# must reject multi-line input outright first.
+_is_single_line() {
+    [ "$(printf '%s' "${1:-}" | wc -l)" -eq 0 ]
+}
+
 valid_version() {
     _v=${1:-}
     [ -n "$_v" ] || return 1
     [ "${#_v}" -le "$VERSION_MAX_LEN" ] || return 1
+    _is_single_line "$_v" || return 1
     # printf '%s' (not echo) so a leading '-' is data, never an option.
-    printf '%s' "$_v" | grep -Eq "$VERSION_RE" || return 1
-    # grep -q matches per line, so an embedded newline could smuggle a second
-    # line past the anchors. Reject any multi-line input outright.
-    [ "$(printf '%s' "$_v" | wc -l)" -eq 0 ] || return 1
-    return 0
+    printf '%s' "$_v" | grep -Eq "$VERSION_RE"
 }
 
 valid_action() {
@@ -26,7 +30,9 @@ valid_action() {
 }
 
 valid_uuid() {
-    printf '%s' "${1:-}" | grep -Eq "$UUID_RE"
+    _u=${1:-}
+    _is_single_line "$_u" || return 1
+    printf '%s' "$_u" | grep -Eq "$UUID_RE"
 }
 
 # Strip a leading 'v' and compare dotted numeric segments, longest-wins.
