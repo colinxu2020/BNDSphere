@@ -1393,10 +1393,17 @@ rm -rf "$PDE2" "$STATUS_DIR"
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 state_init
 
-# A terminal stage means nothing was interrupted — leave it untouched.
+# A terminal stage means nothing was interrupted — leave it untouched. Not
+# just the stage field: no interrupted_stage bookkeeping and no restart log
+# line either, or a build that logs a misleading restart line and reaps
+# containers on every terminal-stage boot would still read as "untouched".
 state_set stage success
 recover_if_interrupted
 assert_eq "success" "$(state_get stage)" "recovery leaves a terminal stage alone"
+assert_eq "" "$(state_get interrupted_stage)" \
+    "recovery leaves a terminal stage without writing interrupted_stage"
+assert_fail "recovery leaves a terminal stage without logging a restart line" \
+    grep -q 'marking interrupted, not resuming' "$STATUS_DIR/update.log"
 
 # Every non-terminal stage must land on failed/interrupted, never resume.
 for stg in checking downloading verifying migrating deploying rolling_back health_checking; do
@@ -1412,10 +1419,36 @@ for stg in checking downloading verifying migrating deploying rolling_back healt
         "recovery from $stg marks the request processed"
 done
 
-# Recovery must never act on the deployment itself.
+# Recovery must never act on the deployment itself. Widened beyond
+# "compose up": deploy.sh's `compose` wrapper is in scope at runtime
+# (sourced before recover.sh), so any compose invocation -- e.g. a
+# `compose down --remove-orphans` swapped in for the orphan reap -- is a
+# reachable violation of "never touches the deployment", not just an "up".
+# `(^|[^.])compose[[:space:]]` matches a compose CALL (word followed by a
+# space) while leaving the label filters ("com.docker.compose.project=...")
+# alone, since those instances are preceded by a dot.
 RECOVER_SRC=$(cat /updater/lib/recover.sh)
-assert_eq "" "$(printf '%s' "$RECOVER_SRC" | grep -nE 'run_update|run_rollback|recreate_services|compose up')" \
-    "recovery never invokes update, rollback, or a compose recreate"
+assert_eq "" "$(printf '%s' "$RECOVER_SRC" \
+        | grep -nE 'run_update|run_rollback|recreate_services|(^|[^.])compose[[:space:]]')" \
+    "recovery never invokes update, rollback, or any compose command"
+
+# Recovery must actually run before the poll loop can dispatch a new
+# request -- unwiring the call from main, or moving it below `while true`,
+# must fail here even though every behavioural test above sources
+# lib/recover.sh directly and would stay green either way.
+assert_eq "1" "$(grep -c '^    recover_if_interrupted$' /updater/updater.sh)" \
+    "main calls recover_if_interrupted exactly once"
+
+_recover_call_line=$(grep -n '^    recover_if_interrupted$' /updater/updater.sh \
+    | head -1 | cut -d: -f1)
+_poll_loop_line=$(grep -n 'while true; do' /updater/updater.sh | head -1 | cut -d: -f1)
+_recover_runs_before_poll_loop() {
+    [ -n "$_recover_call_line" ] || return 1
+    [ -n "$_poll_loop_line" ] || return 1
+    [ "$_recover_call_line" -lt "$_poll_loop_line" ]
+}
+assert_ok "recover_if_interrupted is called before the poll loop begins" \
+    _recover_runs_before_poll_loop
 
 rm -rf "$STATUS_DIR"
 
