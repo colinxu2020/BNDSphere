@@ -10,8 +10,4 @@ def escape_like(value: str) -> str:
     escapes added for ``%`` and ``_`` could themselves be interpreted as
     escaping the following character.
     """
-    return (
-        value.replace("\\", "\\\\")
-        .replace("%", "\\%")
-        .replace("_", "\\_")
-    )
+    return value.replace("\\", "\\\\").replace("%", "\%").replace("_", "\_")
