@@ -11,6 +11,7 @@ from app.repositories.base import RepositoryBase
 from app.schemas.moderations.moderation_common import RequestModerate
 from app.schemas.moderations.user_update_request import UserUpdateRequestCreate
 from app.schemas.user import AdminUserUpdate, UserCreate
+from app.utils.like import escape_like
 
 
 class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
@@ -47,12 +48,12 @@ class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
     ) -> Page[User]:
         stmt = select(User).order_by(User.created_at.desc(), User.id.desc())
         if search is not None:
-            like_search = f"%{search}%"
+            like_search = f"%{escape_like(search)}%"
             stmt = stmt.where(
                 or_(
-                    User.username.ilike(like_search),
-                    User.email.ilike(like_search),
-                    User.real_name.ilike(like_search),
+                    User.username.ilike(like_search, escape="\\"),
+                    User.email.ilike(like_search, escape="\\"),
+                    User.real_name.ilike(like_search, escape="\\"),
                 ),
             )
         if role is not None:
