@@ -132,7 +132,7 @@ class DeploymentService:
         github_token: str | None,
         status_dir: Path,
         deploy_workflow: str = "deploy.yml",
-        ) -> None:
+    ) -> None:
         self.app_version = app_version
         self.github_repo = github_repo
         self.github_token = github_token
