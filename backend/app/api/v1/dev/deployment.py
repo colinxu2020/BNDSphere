@@ -1,22 +1,11 @@
 from datetime import UTC, datetime, timedelta
 from typing import Any
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter
 
 from app.api.dependencies import DeploymentServiceDep
-from app.schemas.deployment import (
-    DeploymentStatusResponse,
-    DispatchResponse,
-    UpdateRequestBody,
-    VersionCheckResponse,
-)
-from app.services.deployment import (
-    DeploymentAlreadyCurrentError,
-    DeploymentInProgressError,
-    DeploymentNoPreviousVersionError,
-    DeploymentService,
-    version_newer,
-)
+from app.schemas.deployment import DeploymentStatusResponse, VersionCheckResponse
+from app.services.deployment import DeploymentService, version_newer
 
 router = APIRouter(tags=["Dev: Deployment"])
 
@@ -37,6 +26,8 @@ async def _version_check(service: DeploymentService) -> dict[str, Any]:
 
     return {
         "github_repo": service.github_repo,
+        # The panel does not deploy; it links to where a developer can.
+        "workflow_runs_url": service.workflow_runs_url,
         "installed_version": current,
         "latest_version": latest_tag,
         "latest_notes": release.notes if release else None,
@@ -76,36 +67,3 @@ async def get_status(service: DeploymentServiceDep) -> DeploymentStatusResponse:
 async def check_for_update(service: DeploymentServiceDep) -> VersionCheckResponse:
     """Cheap, cached (5 min) GitHub lookup — never touches the updater."""
     return VersionCheckResponse(**await _version_check(service))
-
-
-@router.post("/update", status_code=status.HTTP_202_ACCEPTED)
-async def request_update(
-    body: UpdateRequestBody,
-    service: DeploymentServiceDep,
-) -> DispatchResponse:
-    """Dispatch the deploy workflow. GitHub Actions performs the update."""
-    if service.is_busy():
-        raise DeploymentInProgressError(service.updater_state().get("stage", "unknown"))
-    if body.version == service.current_version():
-        raise DeploymentAlreadyCurrentError(body.version)
-
-    url = await service.dispatch_deploy("update", body.version)
-    return DispatchResponse(workflow_runs_url=url)
-
-
-@router.post("/rollback", status_code=status.HTTP_202_ACCEPTED)
-async def request_rollback(service: DeploymentServiceDep) -> DispatchResponse:
-    """Roll back to the version the host itself recorded as previous.
-
-    The target is never taken from the client — that would just be an image
-    selector by another name.
-    """
-    if service.is_busy():
-        raise DeploymentInProgressError(service.updater_state().get("stage", "unknown"))
-
-    previous = service.previous_version()
-    if not previous:
-        raise DeploymentNoPreviousVersionError
-
-    url = await service.dispatch_deploy("rollback", previous)
-    return DispatchResponse(workflow_runs_url=url)

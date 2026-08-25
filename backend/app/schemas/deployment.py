@@ -2,8 +2,6 @@ from datetime import datetime
 
 from pydantic import BaseModel, Field
 
-from app.services.deployment import VERSION_MAX_LEN, VERSION_PATTERN
-
 
 class VersionCheckResponse(BaseModel):
     """Discourse-shaped version check: flat, cheap, cached, separate from execution."""
@@ -12,6 +10,8 @@ class VersionCheckResponse(BaseModel):
     # before any release has ever been seen. Deriving it from a release URL
     # leaves the card blank on a fresh install, which is when it matters most.
     github_repo: str
+    # Deploys are run from GitHub, not from here — this is the link there.
+    workflow_runs_url: str
     installed_version: str
     latest_version: str | None = None
     latest_notes: str | None = None
@@ -38,21 +38,3 @@ class DeploymentStatusResponse(VersionCheckResponse):
     is_busy: bool
     record_diverged: bool
     log_tail: list[str] = Field(default_factory=list)
-
-
-class UpdateRequestBody(BaseModel):
-    version: str = Field(
-        ...,
-        pattern=VERSION_PATTERN.pattern,
-        max_length=VERSION_MAX_LEN,
-    )
-
-
-class DispatchResponse(BaseModel):
-    """workflow_dispatch answers 204 with no body, so there is no run id here.
-
-    The run records its own id into state.json as ``request_id`` once it
-    starts; this URL is the operator's way to watch it in the meantime.
-    """
-
-    workflow_runs_url: str

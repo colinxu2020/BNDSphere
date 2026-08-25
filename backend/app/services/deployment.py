@@ -7,15 +7,15 @@ Mirrors two reference designs:
   array, where a missing or unreadable status file is a normal state, not
   an error.
 
-This module never talks to Docker and never runs a deploy itself. It reads
-the files the deploy workflow writes on the host (``state.json``,
-``deployed.json``, ``update.log``, bind-mounted read-only), and its only
-write path is a ``workflow_dispatch`` call to the GitHub Actions API — so a
-compromised backend can start a deploy of a published release, but cannot
-run a command on the host and cannot forge the status it reports.
+This module is **read-only**. It has no write path of any kind: deploys are
+triggered by a developer running the ``Deploy`` workflow from GitHub, so the
+backend never starts one, and cannot. It reads the files that workflow writes
+on the host (``state.json``, ``deployed.json``, ``update.log``, bind-mounted
+read-only) and reports them.
 
-The workflow's ``concurrency:`` group is what actually serialises deploys;
-the ``is_busy()`` check here is advisory only.
+Consequence worth stating plainly: a fully compromised backend cannot cause a
+deployment. It can lie to the panel about nothing, because it owns nothing —
+the status it serves is written by the host and mounted read-only.
 """
 
 import json
@@ -28,8 +28,6 @@ from typing import Any, Final, cast
 
 import httpx
 
-from app.services.errors import BusinessError
-
 GITHUB_API_BASE: Final[str] = "https://api.github.com"
 
 # Must agree with infra/updater/lib/validate.sh's VERSION_RE and VERSION_MAX_LEN.
@@ -39,8 +37,6 @@ VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(
 VERSION_MAX_LEN: Final[int] = 64
 
 _NUMERIC_RE: Final[re.Pattern[str]] = re.compile(r"^[0-9]+(\.[0-9]+)*$")
-
-ACTIONS: Final[frozenset[str]] = frozenset({"update", "rollback"})
 
 # Same set as infra/updater/lib/state.sh's TERMINAL_STAGES.
 TERMINAL_STAGES: Final[frozenset[str]] = frozenset(
@@ -105,53 +101,6 @@ def version_newer(candidate: str, current: str) -> bool:
     return False  # equal is not newer
 
 
-class DeploymentDispatchError(BusinessError):
-    """The GitHub Actions dispatch could not be made."""
-
-    def __init__(self, reason: str) -> None:
-        super().__init__(
-            "error.deployment.dispatch_failed",
-            502,
-            "DEPLOYMENT_DISPATCH_FAILED",
-            {"reason": reason},
-        )
-
-
-class DeploymentInProgressError(BusinessError):
-    """An updater run is already in flight; refuse to queue another."""
-
-    def __init__(self, stage: str) -> None:
-        super().__init__(
-            "error.deployment.in_progress",
-            409,
-            "DEPLOYMENT_IN_PROGRESS",
-            {"stage": stage},
-        )
-
-
-class DeploymentAlreadyCurrentError(BusinessError):
-    """The requested version is already what's running."""
-
-    def __init__(self, version: str) -> None:
-        super().__init__(
-            "error.deployment.already_current",
-            400,
-            "DEPLOYMENT_ALREADY_CURRENT",
-            {"version": version},
-        )
-
-
-class DeploymentNoPreviousVersionError(BusinessError):
-    """Rollback was requested but the updater has no previous_version recorded."""
-
-    def __init__(self) -> None:
-        super().__init__(
-            "error.deployment.no_previous_version",
-            400,
-            "DEPLOYMENT_NO_PREVIOUS_VERSION",
-        )
-
-
 def _read_json(path: Path, default: dict[str, Any]) -> dict[str, Any]:
     """Read a JSON object file, degrading instead of raising.
 
@@ -183,14 +132,12 @@ class DeploymentService:
         github_token: str | None,
         status_dir: Path,
         deploy_workflow: str = "deploy.yml",
-        deploy_ref: str = "master",
-    ) -> None:
+        ) -> None:
         self.app_version = app_version
         self.github_repo = github_repo
         self.github_token = github_token
         self.status_dir = status_dir
         self.deploy_workflow = deploy_workflow
-        self.deploy_ref = deploy_ref
 
     # ── version check (Discourse-shaped: cheap, cached, separate from execution) ──
 
@@ -297,56 +244,12 @@ class DeploymentService:
         recorded = self.deployed().get("current_version")
         return isinstance(recorded, str) and recorded != self.app_version
 
-    # ── dispatch (the only way this side can cause anything to happen) ──
+    # ── the workflow lives on GitHub; this is just the link to it ──
 
     @property
     def workflow_runs_url(self) -> str:
+        """Where a developer goes to actually run a deploy."""
         return (
             f"https://github.com/{self.github_repo}"
             f"/actions/workflows/{self.deploy_workflow}"
         )
-
-    async def dispatch_deploy(self, action: str, version: str) -> str:
-        """Ask GitHub to run the deploy workflow. Returns the runs page URL.
-
-        Validation here is the trust boundary this side owns; the workflow
-        re-validates the same grammar in ``infra/updater/lib/validate.sh``,
-        because anyone holding a token with ``actions:write`` can dispatch it
-        without going through this API at all.
-
-        ``workflow_dispatch`` answers 204 with no body, so there is no run id
-        to return — the run records its own id into ``state.json`` as
-        ``request_id`` once it starts, which is what the panel polls for.
-        """
-        if action not in ACTIONS:
-            raise ValueError(f"invalid action: {action!r}")
-        if len(version) > VERSION_MAX_LEN or not VERSION_PATTERN.fullmatch(version):
-            raise ValueError(f"invalid version: {version!r}")
-
-        if not self.github_token:
-            raise DeploymentDispatchError("no github_token configured")
-
-        url = (
-            f"{GITHUB_API_BASE}/repos/{self.github_repo}"
-            f"/actions/workflows/{self.deploy_workflow}/dispatches"
-        )
-        try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
-                resp = await client.post(
-                    url,
-                    headers={
-                        "Accept": "application/vnd.github+json",
-                        "Authorization": f"Bearer {self.github_token}",
-                    },
-                    json={
-                        "ref": self.deploy_ref,
-                        "inputs": {"action": action, "version": version},
-                    },
-                )
-        except httpx.HTTPError as exc:
-            raise DeploymentDispatchError(f"github unreachable: {exc}") from exc
-
-        if resp.status_code != httpx.codes.NO_CONTENT:
-            raise DeploymentDispatchError(f"github returned {resp.status_code}")
-
-        return self.workflow_runs_url

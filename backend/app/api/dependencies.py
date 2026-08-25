@@ -194,7 +194,6 @@ def get_deployment_service() -> DeploymentService:
         github_token=settings.github_token,
         status_dir=settings.status_dir,
         deploy_workflow=settings.deploy_workflow,
-        deploy_ref=settings.deploy_ref,
     )
 
 

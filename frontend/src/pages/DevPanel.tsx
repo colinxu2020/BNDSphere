@@ -5,7 +5,6 @@ import {
   Clock,
   ExternalLink,
   GitBranch,
-  History,
   Loader2,
   RefreshCw,
   Rocket,
@@ -16,8 +15,6 @@ import {
   DeploymentHttpError,
   checkDeploymentUpdate,
   getDeploymentStatus,
-  requestDeploymentRollback,
-  requestDeploymentUpdate,
   type DeploymentErrorCode,
   type DeploymentStage,
   type DeploymentStatus,
@@ -26,7 +23,6 @@ import { formatDate } from "../lib/format";
 import {
   Badge,
   PageHeader,
-  PrimaryButton,
   SecondaryButton,
   StatusMessage,
   Surface,
@@ -119,7 +115,6 @@ export function DevPanel() {
   const [httpError, setHttpError] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
   const [checking, setChecking] = useState(false);
-  const [busyAction, setBusyAction] = useState<"update" | "rollback" | null>(null);
   const [actionMessage, setActionMessage] = useState<unknown>(null);
   const [actionTone, setActionTone] = useState<"error" | "success" | "info">("info");
 
@@ -193,43 +188,6 @@ export function DevPanel() {
     }
   };
 
-  const runUpdate = async () => {
-    if (!status?.latest_version) return;
-    setBusyAction("update");
-    setActionTone("info");
-    setActionMessage(null);
-    try {
-      await requestDeploymentUpdate(status.latest_version);
-      setActionTone("success");
-      setActionMessage("更新请求已提交，正在部署中…");
-      pollNowRef.current();
-    } catch (error) {
-      setActionTone("error");
-      setActionMessage(error);
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
-  const runRollback = async () => {
-    if (!status?.previous_version) return;
-    if (!window.confirm(`确认回滚到 ${status.previous_version}？`)) return;
-    setBusyAction("rollback");
-    setActionTone("info");
-    setActionMessage(null);
-    try {
-      await requestDeploymentRollback();
-      setActionTone("success");
-      setActionMessage("回滚请求已提交，正在处理中…");
-      pollNowRef.current();
-    } catch (error) {
-      setActionTone("error");
-      setActionMessage(error);
-    } finally {
-      setBusyAction(null);
-    }
-  };
-
   if (loading && !status) {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-slate-500">
@@ -239,7 +197,6 @@ export function DevPanel() {
     );
   }
 
-  const isBusy = Boolean(status?.is_busy) || unreachable;
   // github_repo comes straight from the API so the card is never blank on an
   // install that has no releases yet; the URL derivation is only a fallback.
   const repoInfo = status?.github_repo
@@ -254,7 +211,11 @@ export function DevPanel() {
       animate={{ opacity: 1, y: 0 }}
       className="grid min-w-0 gap-6 pb-20"
     >
-      <PageHeader eyebrow="Dev" title="部署面板" description="查看并管理当前环境的发布与回滚状态" />
+      <PageHeader
+        eyebrow="Dev"
+        title="部署面板"
+        description="查看当前环境的版本与最近一次部署状态；部署在 GitHub 上执行"
+      />
 
       {httpError !== null && (
         <StatusMessage
@@ -382,34 +343,37 @@ export function DevPanel() {
             </Surface>
           )}
 
+          {/* This panel reports; it does not deploy. Updates and rollbacks are
+              run from the Deploy workflow on GitHub, so the only action here is
+              a link to it — there is no request this page can send that would
+              start one. */}
           <div className="flex flex-wrap items-center gap-3">
-            <PrimaryButton
-              onClick={runUpdate}
-              disabled={!status.has_update || isBusy || busyAction !== null}
-              loading={busyAction === "update"}
+            <a
+              href={status.workflow_runs_url}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-5 py-3 font-semibold text-white shadow-md shadow-primary-500/20 transition-all hover:bg-primary-600 active:scale-[0.98]"
             >
               <Rocket size={16} />
-              {status.has_update && status.latest_version
-                ? `更新到 ${status.latest_version}`
-                : status.latest_version
-                  ? "已是最新版本"
-                  : "暂无可用发布"}
-            </PrimaryButton>
+              在 GitHub 上运行部署
+              <ExternalLink size={14} />
+            </a>
             <SecondaryButton onClick={runCheck} disabled={checking}>
               <RefreshCw size={16} className={cn(checking && "animate-spin")} />
               检查更新
             </SecondaryButton>
-            {status.previous_version && !isBusy && !status.record_diverged && (
-              <SecondaryButton
-                onClick={runRollback}
-                disabled={busyAction !== null}
-                className="text-red-700 hover:bg-red-50"
-              >
-                <History size={16} />
-                回滚到 {status.previous_version}
-              </SecondaryButton>
-            )}
           </div>
+          <p className="text-xs text-slate-500">
+            部署与回滚均在 GitHub Actions 的 Deploy 工作流中手动触发：
+            {status.has_update && status.latest_version
+              ? ` action=update，version=${status.latest_version}`
+              : status.latest_version
+                ? " 当前已是最新版本"
+                : " 暂无可用发布"}
+            {status.previous_version && !status.record_diverged
+              ? `；如需回滚，使用 action=rollback，version=${status.previous_version}`
+              : ""}
+          </p>
 
           <Surface className="p-5">
             <h2 className="mb-2 text-xs font-bold uppercase tracking-wider text-slate-500">

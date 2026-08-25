@@ -1,8 +1,8 @@
 name: Deploy
 
-# Dispatched by the dev deployment panel (backend: app/services/deployment.py),
-# or by hand from the Actions tab. Never runs on push — a deploy is always an
-# explicit act.
+# Run by a developer from the Actions tab (or `gh workflow run deploy.yml`).
+# Nothing in the application can trigger it: the dev panel is read-only and
+# only links here. Never runs on push — a deploy is always an explicit act.
 on:
   workflow_dispatch:
     inputs:

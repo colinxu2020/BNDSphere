@@ -764,22 +764,28 @@ across releases, which does not matter when updates are infrequent.
 
 ## 21. Amendment: the executor is GitHub Actions, not a sidecar
 
-**Superseded: §2's polling sidecar, §7's shared-state channel, §4's boundary.**
-The updater no longer exists as a long-running container holding
-`/var/run/docker.sock`. `.github/workflows/deploy.yml` runs the same shell
-libraries on a **self-hosted runner on the deploy host**, dispatched by the
-panel through the GitHub Actions API.
+**Superseded: §2's polling sidecar, §7's shared-state channel, §4's boundary,
+and §9's request channel.** The updater no longer exists as a long-running
+container holding `/var/run/docker.sock`. `.github/workflows/deploy.yml` runs
+the same shell libraries on a **self-hosted runner on the deploy host**, and a
+developer runs it from GitHub.
 
-Unchanged: tag → release (§6), the developer clicking a button to start a
-deploy, and rollback (§12) — including its single shared executor, its
-health gate, and its refusal to migrate backwards.
+Unchanged: tag → release (§6), and rollback (§12) — including its single
+shared executor, its health gate, and its refusal to migrate backwards.
+
+**The panel is read-only.** It reports the running version, whether a newer
+release exists, the last deploy's stage and log, and links to the workflow.
+It has no write path at all — not a file, not an API call. The
+`POST /update` and `POST /rollback` endpoints, `write_request`,
+`dispatch_deploy`, and the four errors that only ever guarded them are gone.
 
 What the boundary becomes:
 
-- **Backend compromised ≠ host compromised, still, and by a wider margin.**
-  The backend's entire write capability is one `workflow_dispatch` call with
-  an `action` and a `version`, both validated on both sides. It can start a
-  deploy of a published release. It cannot express a command.
+- **A compromised backend cannot cause a deployment at all.** Not a
+  restricted one, not a deploy of a published release only — none. It holds
+  no token with write scope, exposes no endpoint that starts work, and owns
+  nothing under `deploy/status/`. This is the strongest form of the property
+  §4 was written to protect, and it costs the panel only its buttons.
 - **`docker.sock` is no longer mounted anywhere in `docker-compose.yml`.**
   The daemon privilege moved into the runner, where it exists for the
   seconds a deploy takes rather than permanently.
@@ -797,7 +803,10 @@ What the boundary becomes:
 Removed with the sidecar: `infra/Dockerfile.Updater`, the `updater` and
 `state-init` compose services, the `updater_request`/`updater_status`
 volumes, the request-file channel (`request.json`, `read_request`,
-`write_request`), and the poll loop with its signal handling.
+`write_request`), and the poll loop with its signal handling. Removed with
+the panel's write path: `dispatch_deploy`, `POST /update`, `POST /rollback`,
+`UpdateRequestBody`, and `deploy_ref`. `github_token` is now optional and
+read-only — it only raises the rate limit on the public release lookup.
 
 ## 22. Open items
 

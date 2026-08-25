@@ -6,6 +6,7 @@ import { client } from "./client";
 
 export interface VersionCheck {
   github_repo: string;
+  workflow_runs_url: string;
   installed_version: string;
   latest_version: string | null;
   latest_notes: string | null;
@@ -59,10 +60,6 @@ export interface DeploymentStatus extends VersionCheck {
   log_tail: string[];
 }
 
-export interface DispatchResponse {
-  workflow_runs_url: string;
-}
-
 // Same set as backend's DeploymentService.TERMINAL_STAGES / the updater's
 // state.sh — lets the page tell a finished operation from a running one.
 export const TERMINAL_STAGES: readonly DeploymentStage[] = [
@@ -109,34 +106,6 @@ export async function checkDeploymentUpdate(): Promise<VersionCheck> {
   }
   if (!data) {
     throw new Error("Deployment check response is empty.");
-  }
-
-  return data;
-}
-
-export async function requestDeploymentUpdate(version: string): Promise<DispatchResponse> {
-  const { data, error } = await (client.POST as any)("/api/v1/dev/deployment/update", {
-    body: { version },
-  });
-
-  if (error) {
-    throw error;
-  }
-  if (!data) {
-    throw new Error("Deployment update response is empty.");
-  }
-
-  return data;
-}
-
-export async function requestDeploymentRollback(): Promise<DispatchResponse> {
-  const { data, error } = await (client.POST as any)("/api/v1/dev/deployment/rollback");
-
-  if (error) {
-    throw error;
-  }
-  if (!data) {
-    throw new Error("Deployment rollback response is empty.");
   }
 
   return data;

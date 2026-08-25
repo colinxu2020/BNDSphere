@@ -5,7 +5,6 @@ layer already covers the GitHub-parsing paths in test_deployment_service.py,
 what matters here is the role gate and the request/response wiring.
 """
 
-import json
 from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import ClassVar, Self
@@ -59,11 +58,11 @@ class _Resp:
 
 
 class _StubClient:
-    """No real GitHub call. Dispatch answers 204 and is recorded; the version
-    check raises, which is the "unreachable" branch the status tests assert on.
+    """No real GitHub call. The lookup raises, which is the "unreachable"
+    branch the status tests assert on. There is no post(): the panel has no
+    write path, so any attempt to make one would fail here with AttributeError
+    rather than quietly reaching the network.
     """
-
-    dispatches: ClassVar[list[dict[str, object]]] = []
 
     def __init__(self, *_a: object, **_kw: object) -> None: ...
     async def __aenter__(self) -> Self:
@@ -71,17 +70,12 @@ class _StubClient:
 
     async def __aexit__(self, *_a: object) -> None: ...
 
-    async def post(self, url: str, **kwargs: object) -> _Resp:
-        _StubClient.dispatches.append({"url": url, **kwargs})
-        return _Resp(204)
-
     async def get(self, *_a: object, **_kw: object) -> _Resp:
         raise httpx.ConnectError("stubbed: github unreachable")
 
 
 @pytest.fixture(autouse=True)
 def _stub_github(monkeypatch: pytest.MonkeyPatch) -> None:
-    _StubClient.dispatches = []
     monkeypatch.setattr(httpx, "AsyncClient", _StubClient)
 
 
@@ -93,7 +87,7 @@ def _override_deployment_service(tmp_path: Path) -> AsyncGenerator[None]:
         return DeploymentService(
             app_version="1.2.3",
             github_repo="colinxu2020/BNDSphere",
-            github_token="tok",  # noqa: S106
+            github_token=None,
             status_dir=tmp_path / "status",
         )
 
@@ -201,117 +195,42 @@ class TestDeploymentStatusShape:
         assert body["log_tail"] == []
 
 
-class TestDeploymentUpdateRequest:
+class TestDeploymentIsReadOnly:
+    """No write path exists. These are the assertions that keep it that way."""
+
     USER_SPECS: ClassVar[list[dict[str, object]]] = [
         {
-            "username": "upd_dev_user",
+            "username": "ro_dev_user",
             "password": "ada8d837f6b62e24",
             "role": RoleEnum.dev,
         },
     ]
 
-    async def test_malformed_version_is_rejected_and_writes_nothing(
+    @pytest.mark.parametrize(
+        "path",
+        ["/dev/deployment/update", "/dev/deployment/rollback"],
+    )
+    async def test_the_old_write_endpoints_are_gone(
         self,
         client: AsyncClient,
         setup_class_users: None,
-        tmp_path: Path,
+        path: str,
     ) -> None:
-        headers = self.configured_users["upd_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post(
-            "/dev/deployment/update",
-            json={"version": "1.2.3; rm -rf /"},
-            headers=headers,
+        headers = self.configured_users["ro_dev_user"]["headers"]  # type: ignore[attr-defined]
+        resp = await client.post(path, json={"version": "9.9.9"}, headers=headers)
+        # 405 (not 404): /check is a POST on the same prefix, so the router
+        # exists — it simply has no update or rollback verb any more.
+        assert resp.status_code in {404, 405}
+
+    async def test_status_links_to_the_workflow_instead_of_deploying(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        headers = self.configured_users["ro_dev_user"]["headers"]  # type: ignore[attr-defined]
+        resp = await client.get(DEPLOYMENT_STATUS_URL, headers=headers)
+
+        assert resp.status_code == 200
+        assert resp.json()["workflow_runs_url"] == (
+            "https://github.com/colinxu2020/BNDSphere/actions/workflows/deploy.yml"
         )
-
-        assert resp.status_code == 422
-        assert not (tmp_path / "request" / "request.json").exists()
-
-    async def test_valid_update_queues_a_request(
-        self,
-        client: AsyncClient,
-        setup_class_users: None,
-        tmp_path: Path,
-    ) -> None:
-        headers = self.configured_users["upd_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post(
-            "/dev/deployment/update",
-            json={"version": "9.9.9"},
-            headers=headers,
-        )
-
-        assert resp.status_code == 202
-        url = resp.json()["workflow_runs_url"]
-        assert url.endswith("/actions/workflows/deploy.yml")
-        (call,) = _StubClient.dispatches
-        assert call["json"]["inputs"] == {"action": "update", "version": "9.9.9"}
-
-    async def test_update_already_current_is_rejected(
-        self,
-        client: AsyncClient,
-        setup_class_users: None,
-    ) -> None:
-        headers = self.configured_users["upd_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post(
-            "/dev/deployment/update",
-            json={"version": "1.2.3"},  # matches the overridden app_version
-            headers=headers,
-        )
-        assert resp.status_code == 400
-
-    async def test_update_while_busy_is_conflict(
-        self,
-        client: AsyncClient,
-        setup_class_users: None,
-        tmp_path: Path,
-    ) -> None:
-        status_dir = tmp_path / "status"
-        status_dir.mkdir(parents=True)
-        (status_dir / "state.json").write_text(json.dumps({"stage": "deploying"}))
-
-        headers = self.configured_users["upd_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post(
-            "/dev/deployment/update",
-            json={"version": "9.9.9"},
-            headers=headers,
-        )
-        assert resp.status_code == 409
-
-
-class TestDeploymentRollbackRequest:
-    USER_SPECS: ClassVar[list[dict[str, object]]] = [
-        {
-            "username": "rb_dev_user",
-            "password": "ada8d837f6b62e24",
-            "role": RoleEnum.dev,
-        },
-    ]
-
-    async def test_rollback_without_previous_version_is_rejected(
-        self,
-        client: AsyncClient,
-        setup_class_users: None,
-    ) -> None:
-        headers = self.configured_users["rb_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post("/dev/deployment/rollback", headers=headers)
-        assert resp.status_code == 400
-
-    async def test_rollback_targets_the_updaters_own_recorded_version(
-        self,
-        client: AsyncClient,
-        setup_class_users: None,
-        tmp_path: Path,
-    ) -> None:
-        # The client sends no version at all — the target can only come from
-        # deployed.json, never from the request body (there is no field for it).
-        status_dir = tmp_path / "status"
-        status_dir.mkdir(parents=True)
-        (status_dir / "deployed.json").write_text(
-            json.dumps({"previous_version": "1.1.0"}),
-        )
-
-        headers = self.configured_users["rb_dev_user"]["headers"]  # type: ignore[attr-defined]
-        resp = await client.post("/dev/deployment/rollback", headers=headers)
-
-        assert resp.status_code == 202
-        (call,) = _StubClient.dispatches
-        assert call["json"]["inputs"] == {"action": "rollback", "version": "1.1.0"}

@@ -49,11 +49,12 @@ class DeploymentSettings(_AppBaseSettings):
     # on disk, which an updater crash could leave stale (spec §7).
     app_version: str = "dev"
     github_repo: str = "colinxu2020/BNDSphere"
-    # Needs actions:write on this repo — without it the panel can report status
-    # but cannot dispatch a deploy.
+    # Optional, and read-only: it only raises the rate limit on the public
+    # release lookup. The panel cannot start a deploy, so no write scope is
+    # needed or wanted here.
     github_token: str | None = None
+    # Only used to build the link to the workflow on GitHub.
     deploy_workflow: str = "deploy.yml"
-    deploy_ref: str = "master"
     # Bind-mounted read-only: written on the host by the deploy workflow, so
     # the backend can report deploy state but never forge it.
     status_dir: Path = Path("/srv/status")
