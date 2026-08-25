@@ -8,6 +8,7 @@ on:
       - "backend/**"
       - "infra/**"
       - "frontend/**"
+      - "scripts/**"
       - ".github/workflows/docker.yml"
 
   push:
@@ -19,6 +20,7 @@ on:
       - "backend/**"
       - "infra/**"
       - "frontend/**"
+      - "scripts/**"
       - ".github/workflows/docker.yml"
 
   workflow_dispatch:
@@ -122,6 +124,7 @@ jobs:
           docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test run --rm test
 
       - name: Scan postgres image with Trivy
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: bndsphere-postgres
