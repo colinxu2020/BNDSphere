@@ -56,11 +56,19 @@ jobs:
             echo "secret_key=${SECRET_KEY}"
           } > .env.backend
 
-          # The updater service's bind mounts key off COMPOSE_PROJECT_DIR
+          # backend's status bind mount keys off COMPOSE_PROJECT_DIR
           # (must be an absolute host path — see infra/updater/lib/state.sh's
           # validate_startup). $GITHUB_WORKSPACE is the checkout root, which
           # already has docker-compose.yml and the secrets/ dir created above.
           echo "COMPOSE_PROJECT_DIR=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
+
+      # The deploy scripts no longer ship in an image, so this is the only
+      # place they get exercised. Runs on the same GNU coreutils the deploy
+      # host has (busybox `wc -l` pads its output and breaks the guards).
+      - name: Run the deploy script self-check
+        env:
+          UPDATER_DIR: ${{ github.workspace }}/infra/updater
+        run: sh infra/updater/selfcheck.sh
 
       - name: Validate Docker Compose file
         run: docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet
@@ -81,12 +89,6 @@ jobs:
         uses: hadolint/hadolint-action@v3.3.0
         with:
           dockerfile: infra/Dockerfile.Caddy
-          failure-threshold: warning
-
-      - name: Lint Updater Dockerfile with Hadolint
-        uses: hadolint/hadolint-action@v3.3.0
-        with:
-          dockerfile: infra/Dockerfile.Updater
           failure-threshold: warning
 
       - name: Scan Dockerfiles with Checkov
@@ -127,7 +129,7 @@ jobs:
 
       - name: Build Docker Compose images
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull postgres backend caddy updater
+          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull postgres backend caddy
 
       - name: Scan postgres image with Trivy
         uses: aquasecurity/trivy-action@v0.36.0
@@ -187,22 +189,3 @@ jobs:
           sarif_file: trivy-caddy-results.sarif
           category: trivy-caddy
 
-      - name: Scan updater image with Trivy
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: bndsphere-updater
-          scanners: vuln,secret
-          vuln-type: os,library
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          format: sarif
-          output: trivy-updater-results.sarif
-
-      - name: Upload updater Trivy SARIF
-        if: always()
-        uses: github/codeql-action/upload-sarif@v4
-        continue-on-error: true
-        with:
-          sarif_file: trivy-updater-results.sarif
-          category: trivy-updater

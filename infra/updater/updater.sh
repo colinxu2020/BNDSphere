@@ -1,100 +1,58 @@
 #!/bin/sh
-# BNDSphere deployment updater.
+# One-shot deploy executor. Invoked by .github/workflows/deploy.yml on a
+# self-hosted runner that lives on the deploy host.
 #
-# SECURITY BOUNDARY (spec §4): this process has /var/run/docker.sock. Docker
-# socket access is equivalent to root on the host. If this process is
-# compromised, assume the host is compromised. The hardening on this container
-# reduces the attack surface; it does NOT remove the daemon privilege boundary.
+# SECURITY BOUNDARY: this talks to the Docker daemon, which is root-equivalent
+# on the host. The privilege is no longer held permanently by a container with
+# /var/run/docker.sock mounted — it exists for the seconds a deploy takes — but
+# it has not vanished: anyone who can dispatch this workflow, or who can push
+# to the files it runs, gets it. The runner is the trust boundary now.
 #
-# Consequently this process has no listener, no published port, and accepts no
-# commands — only a validated version identifier from $REQUEST_DIR.
+# Inputs are two positional arguments, both validated below. They arrive from
+# workflow_dispatch, so they are attacker-controlled by anyone holding a token
+# with actions:write.
 set -u
 
-. /updater/lib/state.sh
-. /updater/lib/validate.sh
-. /updater/lib/artifact.sh
-. /updater/lib/deploy.sh
-. /updater/lib/recover.sh
+UPDATER_DIR="${UPDATER_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
+
+. "$UPDATER_DIR"/lib/state.sh
+. "$UPDATER_DIR"/lib/validate.sh
+. "$UPDATER_DIR"/lib/artifact.sh
+. "$UPDATER_DIR"/lib/deploy.sh
+. "$UPDATER_DIR"/lib/recover.sh
 
 COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-bndsphere}"
-POLL_INTERVAL="${POLL_INTERVAL:-5}"
 
 main() {
-    # Installed before ANY other work, including validate_startup. This
-    # process runs as PID 1, and the kernel does not queue signals with
-    # default disposition for PID 1 -- it drops them. A TERM arriving before
-    # a trap is installed is simply lost, and nothing later in the function
-    # can ever catch up on it. release_lock (from lib/state.sh, sourced at
-    # the top of this file) is already defined by the time main() is ever
-    # called, so it is safe to trap here regardless of where in main() this
-    # sits.
-    #
-    # A signal trap that returns normally RESUMES the interrupted code in
-    # POSIX sh (busybox ash) -- it does not exit. TERM/INT must therefore
-    # exit explicitly (143 = 128+SIGTERM, 130 = 128+SIGINT), or the sidecar
-    # ignores shutdown signals, `docker stop` burns the full grace period
-    # into a SIGKILL, and the lock is freed while the loop keeps polling and
-    # can still dispatch a deploy after being told to stop. release_lock is
-    # `rm -rf`, so it tolerates the EXIT trap running it again afterward.
-    trap 'release_lock; exit 143' TERM
-    trap 'release_lock; exit 130' INT
-    trap release_lock EXIT
+    _action=${1:-}
+    _version=${2:-}
+
+    valid_action "$_action"   || die "invalid action: $_action"
+    valid_version "$_version" || die "invalid version: $_version"
 
     validate_startup
     state_init
 
-    # One process runs per container: any lock directory found here was left
-    # by a process that no longer exists. A restart reuses pids, so judging
-    # staleness from the recorded pid is unsafe -- clearing unconditionally,
-    # before anything can acquire the lock (the poll loop below), is correct
-    # here.
+    # One job runs at a time (the workflow's `concurrency:` group), so a lock
+    # directory found at startup was left by a process that no longer exists.
+    # Clearing it unconditionally before recovery is correct here; judging
+    # staleness from a recorded pid is not, because pids get reused.
     release_lock
 
-    log "updater started (project=$COMPOSE_PROJECT_NAME dir=$COMPOSE_PROJECT_DIR)"
-
-    # Recovery runs before the first poll: a restart mid-operation must be
-    # marked interrupted before this process ever considers a new request.
+    # A cancelled job or a dead runner leaves state.json non-terminal, which
+    # the panel would read as "busy" forever. Mark it interrupted first. This
+    # calls release_lock itself, hence its position before acquire_lock.
     recover_if_interrupted
 
-    while true; do
-        handle_request
-        # A foreground `sleep` blocks trap delivery until it returns: POSIX
-        # shells only run a pending trap once the current foreground command
-        # completes, so a plain `sleep "$POLL_INTERVAL"` would leave SIGTERM
-        # sitting unhandled for up to a whole poll interval. Backgrounding
-        # the sleep and waiting on it explicitly lets the trap interrupt
-        # `wait` immediately instead.
-        sleep "$POLL_INTERVAL" &
-        wait "$!"
-    done
-}
+    acquire_lock || die "another deploy already holds the lock"
+    trap release_lock EXIT
 
-handle_request() {
-    _req="$REQUEST_DIR/request.json"
-    [ -f "$_req" ] || return 0
+    log "deploy started (action=$_action version=$_version run=${GITHUB_RUN_ID:-local})"
 
-    _parsed=$(read_request "$_req") || {
-        # Do not mark anything processed here: an unparseable file has no id to
-        # record. Log and ignore, so a malformed write cannot wedge the loop.
-        log "rejected malformed request"
-        return 0
-    }
-
-    _id=$(printf '%s' "$_parsed" | cut -f1)
-    _action=$(printf '%s' "$_parsed" | cut -f2)
-    _version=$(printf '%s' "$_parsed" | cut -f3)
-
-    [ "$_id" = "$(state_get last_processed_request_id)" ] && return 0
-
-    if ! acquire_lock; then
-        log "request $_id rejected: an operation is already in flight"
-        return 0
-    fi
-
-    # Mark processed BEFORE doing the work. A crash mid-operation then leaves a
-    # request that did nothing (visible, re-requestable) rather than one that
-    # silently runs twice (spec §19.6).
-    state_set last_processed_request_id "$_id" request_id "$_id" \
+    # request_id is the Actions run id: it is what the panel's log line and an
+    # operator both need to find this deploy in the workflow history.
+    state_set request_id "${GITHUB_RUN_ID:-local}" \
+        last_processed_request_id "${GITHUB_RUN_ID:-local}" \
         action "$_action" requested_version "$_version" \
         started_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
         error_code "" error_message ""
@@ -103,16 +61,12 @@ handle_request() {
         update)   run_update "$_version" ;;
         rollback) run_rollback "$_version" manual ;;
     esac
-
-    release_lock
 }
 
-# run_rollback and run_update are defined in lib/deploy.sh, and
-# recover_if_interrupted is defined in lib/recover.sh (both sourced above) --
-# none of them may be redefined here. A stub sitting after the library
-# sourcing would shadow the real implementation and make it a silent no-op;
-# that exact trap already bit run_update in Task 5 and run_rollback in Task 6.
+# run_update, run_rollback and recover_if_interrupted live in lib/ and are
+# sourced above — never redefine them here. A stub defined after the sourcing
+# would shadow the real implementation and silently no-op the deploy.
 
-# UPDATER_NO_MAIN lets the self-check source this file to get its functions
-# (handle_request) without launching the infinite poll loop.
+# UPDATER_NO_MAIN lets the self-check source this file for its functions
+# without executing a deploy.
 [ "${UPDATER_NO_MAIN:-}" ] || main "$@"

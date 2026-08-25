@@ -49,10 +49,13 @@ class DeploymentSettings(_AppBaseSettings):
     # on disk, which an updater crash could leave stale (spec §7).
     app_version: str = "dev"
     github_repo: str = "colinxu2020/BNDSphere"
+    # Needs actions:write on this repo — without it the panel can report status
+    # but cannot dispatch a deploy.
     github_token: str | None = None
-    # Mounted read-write / read-only respectively into the backend container;
-    # the updater sidecar owns everything under status_dir.
-    request_dir: Path = Path("/srv/request")
+    deploy_workflow: str = "deploy.yml"
+    deploy_ref: str = "master"
+    # Bind-mounted read-only: written on the host by the deploy workflow, so
+    # the backend can report deploy state but never forge it.
     status_dir: Path = Path("/srv/status")
 
 

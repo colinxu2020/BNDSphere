@@ -131,5 +131,6 @@ secrets
 .DS_Store
 .codegraph/
 
-# Host deployment state — owned by the updater, never committed (spec §18.2)
+# Host deployment state — written by the deploy workflow, never committed
 deploy/versions.env
+deploy/status/

@@ -37,7 +37,7 @@ assert_fail() {
     fi
 }
 
-. /updater/lib/state.sh
+. "$UPDATER_DIR"/lib/state.sh
 
 # ── atomic_write ─────────────────────────────────────────────────────
 TMPD=$(mktemp -d)
@@ -74,18 +74,18 @@ rm -rf "$STATUS_DIR"
 GOOD=$(mktemp -d); mkdir -p "$GOOD/secrets"; touch "$GOOD/docker-compose.yml"
 
 assert_fail "startup rejects unset COMPOSE_PROJECT_DIR" \
-    env -u COMPOSE_PROJECT_DIR sh -c '. /updater/lib/state.sh; validate_startup'
+    env -u COMPOSE_PROJECT_DIR sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 assert_fail "startup rejects relative COMPOSE_PROJECT_DIR" \
-    env COMPOSE_PROJECT_DIR=relative/path sh -c '. /updater/lib/state.sh; validate_startup'
+    env COMPOSE_PROJECT_DIR=relative/path sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 assert_fail "startup rejects missing directory" \
-    env COMPOSE_PROJECT_DIR=/nonexistent sh -c '. /updater/lib/state.sh; validate_startup'
+    env COMPOSE_PROJECT_DIR=/nonexistent sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 assert_fail "startup rejects dir without docker-compose.yml" \
-    env COMPOSE_PROJECT_DIR="$(mktemp -d)" sh -c '. /updater/lib/state.sh; validate_startup'
+    env COMPOSE_PROJECT_DIR="$(mktemp -d)" sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 assert_ok "startup accepts a well-formed project dir" \
-    env COMPOSE_PROJECT_DIR="$GOOD" sh -c '. /updater/lib/state.sh; validate_startup'
+    env COMPOSE_PROJECT_DIR="$GOOD" sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 rm -rf "$GOOD"
 
-. /updater/lib/validate.sh
+. "$UPDATER_DIR"/lib/validate.sh
 
 # ── version grammar ──────────────────────────────────────────────────
 for v in v1.5.0 1.5.0 v1.5 v1 v1.2.3.4 v1.5.0-rc.1 v1.5.0+build.7; do
@@ -107,20 +107,11 @@ v2.0.0'
 assert_fail "rejects over-length input"     valid_version "v1.$(printf '9%.0s' $(seq 1 80))"
 assert_fail "rejects a leading dash"        valid_version '-rf'
 
-# ── action and id ────────────────────────────────────────────────────
+# ── action ───────────────────────────────────────────────────────────
 assert_ok   "valid_action accepts update"     valid_action update
 assert_ok   "valid_action accepts rollback"   valid_action rollback
 assert_fail "valid_action rejects arbitrary"  valid_action 'shell'
 assert_fail "valid_action rejects empty"      valid_action ''
-
-assert_ok   "valid_uuid accepts a uuid" \
-    valid_uuid '3f2504e0-4f89-41d3-9a0c-0305e82c3301'
-assert_fail "valid_uuid rejects junk" valid_uuid 'not-a-uuid'
-# Same per-line grep hazard as valid_version: a multi-line id could otherwise
-# satisfy the anchors on one line while carrying a tab-smuggled field on another.
-assert_fail "valid_uuid rejects an embedded newline" valid_uuid \
-    '3f2504e0-4f89-41d3-9a0c-0305e82c3301
-extra-line'
 
 # ── version comparison ───────────────────────────────────────────────
 assert_ok   "1.5.0 newer than 1.4.3"      version_newer v1.5.0 v1.4.3
@@ -133,49 +124,9 @@ assert_fail "v-prefix is not significant" version_newer v1.5.0 1.5.0
 assert_fail "dev is never newer"          version_newer dev v1.0.0
 assert_ok   "real version newer than dev" version_newer v1.0.0 dev
 
-# ── read_request ─────────────────────────────────────────────────────
-RD=$(mktemp -d)
-cat > "$RD/request.json" <<'JSON'
-{"id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","action":"update",
- "version":"v1.5.0","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-assert_eq "3f2504e0-4f89-41d3-9a0c-0305e82c3301	update	v1.5.0" \
-    "$(read_request "$RD/request.json")" "read_request parses a valid request"
-
-# A malicious version must be rejected at the parse boundary, not downstream.
-cat > "$RD/request.json" <<'JSON'
-{"id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","action":"update",
- "version":"v1.5.0; docker run -v /:/host alpine","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-assert_fail "read_request rejects an injected version" read_request "$RD/request.json"
-
-# Extra fields are ignored, never honoured — the backend cannot smuggle in an
-# image name, service list, or URL (spec §8).
-cat > "$RD/request.json" <<'JSON'
-{"id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301","action":"update","version":"v1.5.0",
- "requested_at":"2026-08-24T10:00:00Z","image":"evil/img","services":["postgres"],
- "command":"rm -rf /"}
-JSON
-assert_eq "3f2504e0-4f89-41d3-9a0c-0305e82c3301	update	v1.5.0" \
-    "$(read_request "$RD/request.json")" "read_request ignores unknown fields"
-
-# A multi-line id must not slip through: read_request returns a single
-# tab-separated line, and a smuggled newline+tab in id would shift action
-# and version into the wrong fields for any caller splitting on tabs.
-cat > "$RD/request.json" <<'JSON'
-{"id":"3f2504e0-4f89-41d3-9a0c-0305e82c3301\nrollback\tv9.9.9","action":"update",
- "version":"v1.5.0","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-assert_fail "read_request rejects a multi-line id" read_request "$RD/request.json"
-
-printf 'not json' > "$RD/request.json"
-assert_fail "read_request rejects malformed json" read_request "$RD/request.json"
-assert_fail "read_request rejects a missing file" read_request "$RD/nope.json"
-rm -rf "$RD"
-
 # ── state machine ────────────────────────────────────────────────────
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-. /updater/lib/state.sh
+. "$UPDATER_DIR"/lib/state.sh
 
 state_init
 assert_eq "idle" "$(state_get stage)" "state initialises to idle"
@@ -214,7 +165,7 @@ rm -rf "$STATUS_DIR"
 
 # ── review round 1: state_set must never blank state.json (Critical 1) ──
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-. /updater/lib/state.sh
+. "$UPDATER_DIR"/lib/state.sh
 state_init
 
 printf 'not json' > "$(state_file)"
@@ -271,62 +222,41 @@ assert_fail "updated_at changes across state_set calls" [ "$T1" = "$T2" ]
 
 rm -rf "$STATUS_DIR"
 
-# ── review round 1: handle_request dispatch invariants (Important 5) ──
+# ── main() dispatch invariants ──
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-REQUEST_DIR=$(mktemp -d); export REQUEST_DIR
 export UPDATER_NO_MAIN=1
-. /updater/updater.sh
+. $UPDATER_DIR/updater.sh
+COMPOSE_PROJECT_DIR=$(mktemp -d); export COMPOSE_PROJECT_DIR
+mkdir -p "$COMPOSE_PROJECT_DIR/secrets"
+: > "$COMPOSE_PROJECT_DIR/docker-compose.yml"
 state_init
 
-ID1=11111111-1111-1111-1111-111111111111
-ID2=22222222-2222-2222-2222-222222222222
-
-# (a) the id must be recorded as processed BEFORE the action is dispatched,
-# so a crash inside run_update/run_rollback cannot cause a re-run.
+# (a) the run must be recorded as processed BEFORE the action is dispatched,
+# so a runner death inside run_update/run_rollback cannot cause a re-run.
 SEEN_AT_DISPATCH=""
 run_update()   { SEEN_AT_DISPATCH=$(state_get last_processed_request_id); }
 run_rollback() { :; }
+GITHUB_RUN_ID=98765; export GITHUB_RUN_ID
 
-cat > "$REQUEST_DIR/request.json" <<JSON
-{"id":"$ID1","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-handle_request
-assert_eq "$ID1" "$SEEN_AT_DISPATCH" \
-    "handle_request records the request id before dispatching the action"
-assert_ok "lock is released after a successful dispatch" acquire_lock
+( main update v1.0.0 ) >/dev/null 2>&1
+assert_eq "98765" "$(state_get last_processed_request_id)" \
+    "main records the run id before dispatching the action"
+assert_eq "v1.0.0" "$(state_get requested_version)" \
+    "main records the requested version"
+
+# (b) a bad action or version must be refused before anything is dispatched,
+# and must not leave the lock held. These arrive from workflow_dispatch, so
+# they are attacker-controlled by anyone holding an actions:write token.
+assert_fail "main refuses an unknown action" \
+    sh -c '. $UPDATER_DIR/updater.sh 2>/dev/null; main deleteEverything v1.0.0'
+assert_fail "main refuses a malformed version" \
+    sh -c '. $UPDATER_DIR/updater.sh 2>/dev/null; main update "v1.0.0; rm -rf /"'
+assert_ok "lock is free after a refused dispatch" acquire_lock
 release_lock
 
-# (b) the lock must be released on every exit path that never dispatches...
-rm -f "$REQUEST_DIR/request.json"
-handle_request
-assert_ok "lock is free when there was no request file" acquire_lock
-release_lock
-
-printf 'not json' > "$REQUEST_DIR/request.json"
-handle_request
-assert_ok "lock is free after an unparseable request" acquire_lock
-release_lock
-
-cat > "$REQUEST_DIR/request.json" <<JSON
-{"id":"$ID1","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-handle_request
-assert_ok "lock is free after a duplicate/already-processed request" acquire_lock
-release_lock
-
-# ...but NOT released when acquisition itself failed: handle_request never
-# owned that lock, so it must not be the one to give it up.
-acquire_lock
-cat > "$REQUEST_DIR/request.json" <<JSON
-{"id":"$ID2","action":"update","version":"v1.0.0","requested_at":"2026-08-24T10:00:00Z"}
-JSON
-handle_request
-assert_fail "a pre-existing lock survives when handle_request could not acquire it" \
-    acquire_lock
-release_lock
-
-unset UPDATER_NO_MAIN
-rm -rf "$STATUS_DIR" "$REQUEST_DIR"
+unset UPDATER_NO_MAIN GITHUB_RUN_ID
+rm -rf "$STATUS_DIR" "$COMPOSE_PROJECT_DIR"
+unset COMPOSE_PROJECT_DIR
 
 # ── review round 2: deployed_set has the same guards as state_set (Important) ──
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
@@ -356,61 +286,41 @@ assert_eq "v1.0.0" "$(deployed_get current_version)" \
 
 rm -rf "$STATUS_DIR"
 
-# ── review round 2: main's startup lock-clear and signal handling ──────
-# main() loops forever, so it cannot be sourced in-process like
-# handle_request above. Instead this drives the real script as a child
-# process (UPDATER_NO_MAIN left unset) and signals it -- the same shape as
-# the container-level `docker kill`/`docker stop` checks in the report, just
-# without a container. This proves the startup lock-clear runs and that
-# SIGTERM makes the process exit promptly; it does NOT prove docker's exit
-# code or that no request can slip in during shutdown -- see the report for
-# the container-level evidence covering that.
+# ── startup lock-clear and interrupted-run marking ────────────────────
+# One job runs at a time (the workflow's `concurrency:` group), so a lock
+# directory present at startup was left by a process that is already gone.
+# Without the unconditional clear in main(), acquire_lock would fail and
+# every subsequent deploy would die -- permanently, with no process left to
+# free it. This drives the real main() with a stubbed action.
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-REQUEST_DIR=$(mktemp -d); export REQUEST_DIR
 PROJ=$(mktemp -d); mkdir -p "$PROJ/secrets"; touch "$PROJ/docker-compose.yml"
 export COMPOSE_PROJECT_DIR="$PROJ"
-export POLL_INTERVAL=5
 
-# A lock left behind by a killed prior process.
-mkdir -p "$STATUS_DIR"
 mkdir "$STATUS_DIR/updater.lock"
 printf '99999' > "$STATUS_DIR/updater.lock/pid"
 
-sh /updater/updater.sh &
-MAIN_PID=$!
-sleep 1
+export UPDATER_NO_MAIN=1
+. $UPDATER_DIR/updater.sh
+run_update()   { :; }
+run_rollback() { :; }
 
-assert_fail "startup clears a lock left by a previous, killed process" \
-    [ -d "$STATUS_DIR/updater.lock" ]
+assert_ok "a lock left by a dead process does not wedge the next deploy" \
+    sh -c 'UPDATER_NO_MAIN=1 . $UPDATER_DIR/updater.sh; run_update() { :; }; main update v1.0.0'
 
-# A process that crashed on boot would still be "gone" a moment after TERM,
-# which would make the termination check below pass for the wrong reason.
-# Confirm it is actually alive first, so "it was never running" cannot
-# masquerade as "it terminated correctly".
-assert_ok "the child is alive before it is signaled" kill -0 "$MAIN_PID"
+# A cancelled job leaves state.json non-terminal, which the panel reads as
+# "busy" forever. main() must mark it interrupted before starting new work.
+state_init_force
+state_set stage deploying
+( main update v1.0.0 ) >/dev/null 2>&1
+assert_eq "deploying" "$(state_get interrupted_stage)" \
+    "main records which stage the previous run was interrupted in"
 
-kill -TERM "$MAIN_PID"
-
-# Capture the real exit status rather than just checking liveness: only the
-# status distinguishes a clean, handled exit (143) from any other way of
-# dying (crash, hang, or a SIGKILL after a timeout). A background watchdog
-# bounds the wait so a regression that makes TERM unhandled again fails this
-# assertion instead of hanging the suite forever.
-( sleep 5; kill -9 "$MAIN_PID" 2>/dev/null ) &
-WATCHDOG=$!
-wait "$MAIN_PID"
-MAIN_STATUS=$?
-kill "$WATCHDOG" 2>/dev/null
-wait "$WATCHDOG" 2>/dev/null
-
-assert_eq "143" "$MAIN_STATUS" \
-    "a SIGTERM'd process exits with status 143 (handled), not left running or SIGKILLed"
-
-unset COMPOSE_PROJECT_DIR POLL_INTERVAL
-rm -rf "$STATUS_DIR" "$REQUEST_DIR" "$PROJ"
+unset UPDATER_NO_MAIN
+rm -rf "$STATUS_DIR" "$PROJ"
+unset COMPOSE_PROJECT_DIR
 
 # ── artifact acquisition ─────────────────────────────────────────────
-. /updater/lib/artifact.sh
+. "$UPDATER_DIR"/lib/artifact.sh
 
 # Checksum verification is the gate that stands between a downloaded blob and
 # `docker load`. Test it directly.
@@ -471,8 +381,8 @@ printf 'irrelevant' > "$DWD/bndsphere-images-amd64.tar.gz"
 printf '{"images":{}}' > "$DWD/release-manifest.json"
 assert_fail "fetch_and_load_tarball refuses when manifest image fields are missing, instead of a vacuous pass" \
     env WORK_DIR="$DWD" STATUS_DIR="$(mktemp -d)" sh -c '
-        . /updater/lib/state.sh
-        . /updater/lib/artifact.sh
+        . $UPDATER_DIR/lib/state.sh
+        . $UPDATER_DIR/lib/artifact.sh
         download_asset() { return 0; }
         docker() { case "$1" in load) return 0 ;; image) return 1 ;; esac; }
         fetch_and_load_tarball v1.0.0 "'"$DWD"'/release-manifest.json"
@@ -489,8 +399,8 @@ printf '{"images":{}}' > "$MWD/release-manifest.json"
 printf 'deadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeefdeadbeef  release-manifest.json\n' \
     > "$MWD/SHA256SUMS"
 FM_OUT=$(env WORK_DIR="$MWD" STATUS_DIR="$(mktemp -d)" sh -c '
-    . /updater/lib/state.sh
-    . /updater/lib/artifact.sh
+    . $UPDATER_DIR/lib/state.sh
+    . $UPDATER_DIR/lib/artifact.sh
     download_asset() { return 0; }
     fetch_manifest v1.0.0
 ')
@@ -502,7 +412,7 @@ assert_eq "" "$FM_OUT" \
 rm -rf "$MWD"
 
 # ── deploy: migration, recreation, health verification ──────────────
-. /updater/lib/deploy.sh
+. "$UPDATER_DIR"/lib/deploy.sh
 
 # versions.env must be rewritten atomically and completely. A partial write
 # here makes the stack unstartable by any means, including rollback.
@@ -926,7 +836,7 @@ rm -rf "$PD3" "$STATUS_DIR"
 # The unification guarantee, asserted mechanically: `trigger` may be
 # recorded, but it must never appear in a conditional. If someone later
 # writes `if [ "$trigger" = automatic ]`, this fails.
-ROLLBACK_BODY=$(sed -n '/^run_rollback()/,/^}/p' /updater/lib/deploy.sh)
+ROLLBACK_BODY=$(sed -n '/^run_rollback()/,/^}/p' $UPDATER_DIR/lib/deploy.sh)
 assert_eq "" \
     "$(printf '%s' "$ROLLBACK_BODY" | grep -nE '(if|case|&&|\|\|).*(_trigger|automatic|manual)')" \
     "run_rollback never branches on trigger"
@@ -955,16 +865,16 @@ assert_eq "" "$(printf '%s' "$ROLLBACK_BODY" | grep -niE 'run_migration|alembic|
 # before a single rollback test ran -- masking the exact defect this
 # assertion exists to catch in the real container, where deploy.sh is
 # sourced only once, from inside updater.sh, in the shadowed order.
-assert_eq "" "$(grep -n '^run_rollback()' /updater/updater.sh)" \
+assert_eq "" "$(grep -n '^run_rollback()' $UPDATER_DIR/updater.sh)" \
     "updater.sh does not itself define run_rollback"
-assert_eq "" "$(grep -n '^run_update()' /updater/updater.sh)" \
+assert_eq "" "$(grep -n '^run_update()' $UPDATER_DIR/updater.sh)" \
     "updater.sh does not itself define run_update"
 # Same trap, same fix, for recover_if_interrupted (lib/recover.sh, Task 7):
 # a stub reintroduced after the sourcing block would shadow the real function
 # and make every restart-time recovery a silent no-op. Same masking caveat as
 # above -- selfcheck.sh also re-sources lib/recover.sh later for the recovery
 # tests below, which would overwrite any such shadow before those tests ran.
-assert_eq "" "$(grep -n '^recover_if_interrupted()' /updater/updater.sh)" \
+assert_eq "" "$(grep -n '^recover_if_interrupted()' $UPDATER_DIR/updater.sh)" \
     "updater.sh does not itself define recover_if_interrupted"
 
 # Both call sites must exist and both must reach the same function. The
@@ -973,9 +883,9 @@ assert_eq "" "$(grep -n '^recover_if_interrupted()' /updater/updater.sh)" \
 # sites (recreate_services failure and wait_healthy failure), so the
 # accurate total is 3. Asserted precisely per site instead of as a vague
 # sum, so a regression in either file is unambiguous about which broke.
-assert_eq "2" "$(grep -c 'run_rollback "\$_current" automatic' /updater/lib/deploy.sh)" \
+assert_eq "2" "$(grep -c 'run_rollback "\$_current" automatic' $UPDATER_DIR/lib/deploy.sh)" \
     "run_update has exactly two automatic rollback call sites"
-assert_eq "1" "$(grep -c 'run_rollback "\$_version" manual' /updater/updater.sh)" \
+assert_eq "1" "$(grep -c 'run_rollback "\$_version" manual' $UPDATER_DIR/updater.sh)" \
     "updater.sh has exactly one manual rollback call site"
 
 # postgres must never appear anywhere run_rollback's function definition
@@ -1388,7 +1298,7 @@ assert_eq "v1.0.0" "$(deployed_get current_version)" \
 rm -rf "$PDE2" "$STATUS_DIR"
 
 # ── recovery: interrupted operations are marked, never resumed ─────────
-. /updater/lib/recover.sh
+. "$UPDATER_DIR"/lib/recover.sh
 
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
 state_init
@@ -1427,28 +1337,32 @@ done
 # `(^|[^.])compose[[:space:]]` matches a compose CALL (word followed by a
 # space) while leaving the label filters ("com.docker.compose.project=...")
 # alone, since those instances are preceded by a dot.
-RECOVER_SRC=$(cat /updater/lib/recover.sh)
+RECOVER_SRC=$(cat $UPDATER_DIR/lib/recover.sh)
 assert_eq "" "$(printf '%s' "$RECOVER_SRC" \
         | grep -nE 'run_update|run_rollback|recreate_services|(^|[^.])compose[[:space:]]')" \
     "recovery never invokes update, rollback, or any compose command"
 
-# Recovery must actually run before the poll loop can dispatch a new
-# request -- unwiring the call from main, or moving it below `while true`,
+# Recovery must actually run before main can dispatch a new
+# deploy -- unwiring the call from main, or moving it below the dispatch,
 # must fail here even though every behavioural test above sources
 # lib/recover.sh directly and would stay green either way.
-assert_eq "1" "$(grep -c '^    recover_if_interrupted$' /updater/updater.sh)" \
+assert_eq "1" "$(grep -c '^    recover_if_interrupted$' $UPDATER_DIR/updater.sh)" \
     "main calls recover_if_interrupted exactly once"
 
-_recover_call_line=$(grep -n '^    recover_if_interrupted$' /updater/updater.sh \
+# ...and before the deploy it is about to run: marking a cancelled run
+# interrupted AFTER dispatching the new one would overwrite the new run's own
+# state with a failure.
+_recover_call_line=$(grep -n '^    recover_if_interrupted$' $UPDATER_DIR/updater.sh \
     | head -1 | cut -d: -f1)
-_poll_loop_line=$(grep -n 'while true; do' /updater/updater.sh | head -1 | cut -d: -f1)
-_recover_runs_before_poll_loop() {
+_dispatch_line=$(grep -n '^    case "\$_action" in' $UPDATER_DIR/updater.sh \
+    | head -1 | cut -d: -f1)
+_recover_runs_before_dispatch() {
     [ -n "$_recover_call_line" ] || return 1
-    [ -n "$_poll_loop_line" ] || return 1
-    [ "$_recover_call_line" -lt "$_poll_loop_line" ]
+    [ -n "$_dispatch_line" ] || return 1
+    [ "$_recover_call_line" -lt "$_dispatch_line" ]
 }
-assert_ok "recover_if_interrupted is called before the poll loop begins" \
-    _recover_runs_before_poll_loop
+assert_ok "recover_if_interrupted is called before the action is dispatched" \
+    _recover_runs_before_dispatch
 
 rm -rf "$STATUS_DIR"
 printf '\n%s passed, %s failed\n' "$PASSES" "$FAILURES"

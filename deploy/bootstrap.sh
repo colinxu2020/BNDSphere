@@ -56,4 +56,11 @@ else
     printf 'Created deploy/versions.env from the template.\n'
 fi
 
+# The deploy workflow writes state.json / deployed.json / update.log here and
+# the backend container bind-mounts it read-only. Create it before first `up`,
+# or Docker creates it root-owned and the runner cannot write into it.
+mkdir -p "$PROJECT_DIR/deploy/status"
+chmod 0755 "$PROJECT_DIR/deploy/status"
+printf 'Ensured deploy/status/ exists for deploy state.\n'
+
 printf 'Bootstrap complete.\n'

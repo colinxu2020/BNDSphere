@@ -192,8 +192,9 @@ def get_deployment_service() -> DeploymentService:
         app_version=settings.app_version,
         github_repo=settings.github_repo,
         github_token=settings.github_token,
-        request_dir=settings.request_dir,
         status_dir=settings.status_dir,
+        deploy_workflow=settings.deploy_workflow,
+        deploy_ref=settings.deploy_ref,
     )
 
 

@@ -60,34 +60,6 @@ services:
       - source: migration_password
         target: postgres_password
 
-  # One-off, runs once and exits. Fresh named volumes are created root:root
-  # 0755 by the docker daemon, but backend runs as uid 1000 (backend/Dockerfile)
-  # and updater runs as root (infra/Dockerfile.Updater) -- without this, backend
-  # can never write into updater_request despite the mount being read-write.
-  # Chowns only; the trust split itself (which service gets :ro) lives on each
-  # service's own volume mount below, not here.
-  state-init:
-    image: busybox:1.36
-    command:
-      - sh
-      - -c
-      - |
-        set -e
-        chown 1000:1000 /srv/request && chmod 0755 /srv/request
-        chown 0:0 /srv/status && chmod 0755 /srv/status
-    volumes:
-      - updater_request:/srv/request
-      - updater_status:/srv/status
-    network_mode: "none"
-    cap_drop:
-      - ALL
-    cap_add:
-      - CHOWN
-      - FOWNER
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-
   backend:
     image: ${BACKEND_IMAGE:-bndsphere-backend}
     environment:
@@ -102,8 +74,6 @@ services:
       postgres:
         condition: service_healthy
       alembic-migration:
-        condition: service_completed_successfully
-      state-init:
         condition: service_completed_successfully
     networks:
       - postgres-network
@@ -122,8 +92,10 @@ services:
     tmpfs:
       - /tmp:noexec,nosuid,nodev
     volumes:
-      - updater_request:/srv/request
-      - updater_status:/srv/status:ro
+      # Read-only, and written by the deploy workflow running on the host —
+      # so the backend still cannot forge deploy status, and the backend's
+      # only write path to a deploy is a workflow_dispatch call to GitHub.
+      - ${COMPOSE_PROJECT_DIR}/deploy/status:/srv/status:ro
 
   caddy:
     image: ${CADDY_IMAGE:-bndsphere-caddy}
@@ -146,48 +118,6 @@ services:
       - /tmp:noexec,nosuid,nodev
     environment:
       - NO_PROXY=backend
-
-  updater:
-    image: ${UPDATER_IMAGE:-bndsphere-updater}
-    restart: unless-stopped
-    # No `ports:` — this service has no listener by design (spec §7,
-    # infra/Dockerfile.Updater). It only makes outbound calls: to the Docker
-    # daemon over the socket below, to GHCR/GitHub for release artifacts, and
-    # to backend/caddy on backend-network for readiness probes.
-    depends_on:
-      state-init:
-        condition: service_completed_successfully
-    environment:
-      - COMPOSE_PROJECT_DIR=${COMPOSE_PROJECT_DIR}
-    volumes:
-      # The ONLY service with the Docker socket. Equivalent to root on the
-      # host (spec §4) — nothing else in this file may reference it.
-      - /var/run/docker.sock:/var/run/docker.sock
-      # Bind-mounted at its own absolute host path, read-only: Compose
-      # resolves bind-mount sources for backend/caddy/postgres via the HOST
-      # daemon when this container issues `docker compose` over the socket
-      # above, so a mismatched path here would silently break those mounts
-      # rather than failing loudly (see lib/state.sh's validate_startup).
-      - ${COMPOSE_PROJECT_DIR}:${COMPOSE_PROJECT_DIR}:ro
-      # deploy/ is where the updater persists version pins (deploy/versions.env)
-      # and needs to be writable even though the rest of the project dir is ro.
-      - ${COMPOSE_PROJECT_DIR}/deploy:${COMPOSE_PROJECT_DIR}/deploy
-      # Trust split: the request path is backend's to write, read-only here.
-      - updater_request:/srv/request:ro
-      # Trust split: the status path is this service's to write; backend gets
-      # it read-only. Backend must never be able to forge updater status.
-      - updater_status:/srv/status
-    networks:
-      # For readiness probes against backend/caddy and their egress to the
-      # internet (GHCR, GitHub). Never joins postgres-network.
-      - backend-network
-    cap_drop:
-      - ALL
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp:noexec,nosuid,nodev
 
   alembic-autorevision:
     image: ${BACKEND_IMAGE:-bndsphere-backend}
@@ -227,8 +157,6 @@ networks:
 volumes:
   pgdata:
   caddy_data:
-  updater_request:
-  updater_status:
 
 secrets:
   postgres_password:

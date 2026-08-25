@@ -48,5 +48,11 @@ class UpdateRequestBody(BaseModel):
     )
 
 
-class WriteRequestResponse(BaseModel):
-    request_id: str
+class DispatchResponse(BaseModel):
+    """workflow_dispatch answers 204 with no body, so there is no run id here.
+
+    The run records its own id into state.json as ``request_id`` once it
+    starts; this URL is the operator's way to watch it in the meantime.
+    """
+
+    workflow_runs_url: str

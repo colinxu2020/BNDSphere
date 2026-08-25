@@ -8,7 +8,7 @@ what matters here is the role gate and the request/response wiring.
 import json
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from typing import ClassVar
+from typing import ClassVar, Self
 
 import httpx
 import pytest
@@ -53,6 +53,38 @@ def _github_unreachable(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(httpx.AsyncClient, "get", _raise_for_github)
 
 
+class _Resp:
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+
+
+class _StubClient:
+    """No real GitHub call. Dispatch answers 204 and is recorded; the version
+    check raises, which is the "unreachable" branch the status tests assert on.
+    """
+
+    dispatches: ClassVar[list[dict[str, object]]] = []
+
+    def __init__(self, *_a: object, **_kw: object) -> None: ...
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_a: object) -> None: ...
+
+    async def post(self, url: str, **kwargs: object) -> _Resp:
+        _StubClient.dispatches.append({"url": url, **kwargs})
+        return _Resp(204)
+
+    async def get(self, *_a: object, **_kw: object) -> _Resp:
+        raise httpx.ConnectError("stubbed: github unreachable")
+
+
+@pytest.fixture(autouse=True)
+def _stub_github(monkeypatch: pytest.MonkeyPatch) -> None:
+    _StubClient.dispatches = []
+    monkeypatch.setattr(httpx, "AsyncClient", _StubClient)
+
+
 @pytest.fixture(autouse=True)
 def _override_deployment_service(tmp_path: Path) -> AsyncGenerator[None]:
     """Point the router at a throwaway tmp_path instead of real /srv paths."""
@@ -61,8 +93,7 @@ def _override_deployment_service(tmp_path: Path) -> AsyncGenerator[None]:
         return DeploymentService(
             app_version="1.2.3",
             github_repo="colinxu2020/BNDSphere",
-            github_token=None,
-            request_dir=tmp_path / "request",
+            github_token="tok",  # noqa: S106
             status_dir=tmp_path / "status",
         )
 
@@ -209,10 +240,10 @@ class TestDeploymentUpdateRequest:
         )
 
         assert resp.status_code == 202
-        written = json.loads((tmp_path / "request" / "request.json").read_text())
-        assert set(written.keys()) == {"id", "action", "version", "requested_at"}
-        assert written["action"] == "update"
-        assert written["version"] == "9.9.9"
+        url = resp.json()["workflow_runs_url"]
+        assert url.endswith("/actions/workflows/deploy.yml")
+        (call,) = _StubClient.dispatches
+        assert call["json"]["inputs"] == {"action": "update", "version": "9.9.9"}
 
     async def test_update_already_current_is_rejected(
         self,
@@ -282,6 +313,5 @@ class TestDeploymentRollbackRequest:
         resp = await client.post("/dev/deployment/rollback", headers=headers)
 
         assert resp.status_code == 202
-        written = json.loads((tmp_path / "request" / "request.json").read_text())
-        assert written["action"] == "rollback"
-        assert written["version"] == "1.1.0"
+        (call,) = _StubClient.dispatches
+        assert call["json"]["inputs"] == {"action": "rollback", "version": "1.1.0"}

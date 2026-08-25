@@ -6,9 +6,9 @@ from fastapi import APIRouter, status
 from app.api.dependencies import DeploymentServiceDep
 from app.schemas.deployment import (
     DeploymentStatusResponse,
+    DispatchResponse,
     UpdateRequestBody,
     VersionCheckResponse,
-    WriteRequestResponse,
 )
 from app.services.deployment import (
     DeploymentAlreadyCurrentError,
@@ -82,20 +82,20 @@ async def check_for_update(service: DeploymentServiceDep) -> VersionCheckRespons
 async def request_update(
     body: UpdateRequestBody,
     service: DeploymentServiceDep,
-) -> WriteRequestResponse:
-    """Queue an update. The updater sidecar polls and performs it."""
+) -> DispatchResponse:
+    """Dispatch the deploy workflow. GitHub Actions performs the update."""
     if service.is_busy():
         raise DeploymentInProgressError(service.updater_state().get("stage", "unknown"))
     if body.version == service.current_version():
         raise DeploymentAlreadyCurrentError(body.version)
 
-    request_id = service.write_request("update", body.version)
-    return WriteRequestResponse(request_id=request_id)
+    url = await service.dispatch_deploy("update", body.version)
+    return DispatchResponse(workflow_runs_url=url)
 
 
 @router.post("/rollback", status_code=status.HTTP_202_ACCEPTED)
-async def request_rollback(service: DeploymentServiceDep) -> WriteRequestResponse:
-    """Queue a rollback to the updater's own recorded previous version.
+async def request_rollback(service: DeploymentServiceDep) -> DispatchResponse:
+    """Roll back to the version the host itself recorded as previous.
 
     The target is never taken from the client — that would just be an image
     selector by another name.
@@ -107,5 +107,5 @@ async def request_rollback(service: DeploymentServiceDep) -> WriteRequestRespons
     if not previous:
         raise DeploymentNoPreviousVersionError
 
-    request_id = service.write_request("rollback", previous)
-    return WriteRequestResponse(request_id=request_id)
+    url = await service.dispatch_deploy("rollback", previous)
+    return DispatchResponse(workflow_runs_url=url)

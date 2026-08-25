@@ -59,8 +59,8 @@ export interface DeploymentStatus extends VersionCheck {
   log_tail: string[];
 }
 
-export interface WriteRequestResponse {
-  request_id: string;
+export interface DispatchResponse {
+  workflow_runs_url: string;
 }
 
 // Same set as backend's DeploymentService.TERMINAL_STAGES / the updater's
@@ -114,7 +114,7 @@ export async function checkDeploymentUpdate(): Promise<VersionCheck> {
   return data;
 }
 
-export async function requestDeploymentUpdate(version: string): Promise<WriteRequestResponse> {
+export async function requestDeploymentUpdate(version: string): Promise<DispatchResponse> {
   const { data, error } = await (client.POST as any)("/api/v1/dev/deployment/update", {
     body: { version },
   });
@@ -129,7 +129,7 @@ export async function requestDeploymentUpdate(version: string): Promise<WriteReq
   return data;
 }
 
-export async function requestDeploymentRollback(): Promise<WriteRequestResponse> {
+export async function requestDeploymentRollback(): Promise<DispatchResponse> {
   const { data, error } = await (client.POST as any)("/api/v1/dev/deployment/rollback");
 
   if (error) {

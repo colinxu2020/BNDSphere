@@ -29,15 +29,6 @@ valid_action() {
     esac
 }
 
-valid_uuid() {
-    _u=${1:-}
-    _is_single_line "$_u" || return 1
-    printf '%s' "$_u" | grep -Eq "$UUID_RE"
-}
-
-# Strip a leading 'v' and compare dotted numeric segments, longest-wins.
-# Pre-release suffixes are ignored for ordering: the updater only needs "is
-# this different and newer", and full semver precedence is not worth the shell.
 _version_key() {
     printf '%s' "${1#v}" | sed 's/[-+].*$//'
 }
@@ -59,24 +50,4 @@ version_newer() {
         _i=$((_i + 1))
     done
     return 1   # equal is not newer
-}
-
-# Echo "id<TAB>action<TAB>version" or fail. Unknown fields are ignored: the
-# request schema is closed, so a compromised backend cannot widen it (spec §8).
-read_request() {
-    _path=${1:-}
-    [ -f "$_path" ] || return 1
-
-    _json=$(cat "$_path") || return 1
-    printf '%s' "$_json" | jq -e . >/dev/null 2>&1 || return 1
-
-    _id=$(printf '%s' "$_json" | jq -r '.id // empty')
-    _action=$(printf '%s' "$_json" | jq -r '.action // empty')
-    _version=$(printf '%s' "$_json" | jq -r '.version // empty')
-
-    valid_uuid "$_id" || return 1
-    valid_action "$_action" || return 1
-    valid_version "$_version" || return 1
-
-    printf '%s\t%s\t%s\n' "$_id" "$_action" "$_version"
 }

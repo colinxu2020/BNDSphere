@@ -762,6 +762,45 @@ and a manual step, and drops the delivery path least likely to be reachable
 from the deployment's network. The only thing lost is layer deduplication
 across releases, which does not matter when updates are infrequent.
 
-## 21. Open items
+## 21. Amendment: the executor is GitHub Actions, not a sidecar
 
-None.
+**Superseded: §2's polling sidecar, §7's shared-state channel, §4's boundary.**
+The updater no longer exists as a long-running container holding
+`/var/run/docker.sock`. `.github/workflows/deploy.yml` runs the same shell
+libraries on a **self-hosted runner on the deploy host**, dispatched by the
+panel through the GitHub Actions API.
+
+Unchanged: tag → release (§6), the developer clicking a button to start a
+deploy, and rollback (§12) — including its single shared executor, its
+health gate, and its refusal to migrate backwards.
+
+What the boundary becomes:
+
+- **Backend compromised ≠ host compromised, still, and by a wider margin.**
+  The backend's entire write capability is one `workflow_dispatch` call with
+  an `action` and a `version`, both validated on both sides. It can start a
+  deploy of a published release. It cannot express a command.
+- **`docker.sock` is no longer mounted anywhere in `docker-compose.yml`.**
+  The daemon privilege moved into the runner, where it exists for the
+  seconds a deploy takes rather than permanently.
+- **The runner is now the trust boundary.** A self-hosted runner executes
+  whatever the workflow file says, so anyone who can push to
+  `.github/workflows/deploy.yml`, or who holds a token with
+  `actions:write`, has host-level privilege. This is *not* smaller than the
+  sidecar's boundary in every direction — it is a different shape: narrower
+  at runtime, wider at the repository. It must not be described as "safe".
+- **Status is still unforgeable by the backend.** The workflow writes
+  `deploy/status/` on the host; the backend bind-mounts it read-only.
+  Concurrency is the workflow's `concurrency: group: deploy`, with the
+  script's own lock as a second belt.
+
+Removed with the sidecar: `infra/Dockerfile.Updater`, the `updater` and
+`state-init` compose services, the `updater_request`/`updater_status`
+volumes, the request-file channel (`request.json`, `read_request`,
+`write_request`), and the poll loop with its signal handling.
+
+## 22. Open items
+
+- The self-hosted runner is unproven: no deploy has been executed through
+  this path. `vars.DEPLOY_DIR` must be set, and a runner registered on the
+  deploy host, before the panel's button does anything.

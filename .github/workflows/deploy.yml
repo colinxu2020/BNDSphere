@@ -1,0 +1,69 @@
+name: Deploy
+
+# Dispatched by the dev deployment panel (backend: app/services/deployment.py),
+# or by hand from the Actions tab. Never runs on push — a deploy is always an
+# explicit act.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to deploy, or to roll back to (e.g. v1.5.0)"
+        required: true
+        type: string
+      action:
+        description: "update or rollback"
+        required: true
+        default: update
+        type: choice
+        options: [update, rollback]
+
+permissions:
+  contents: read
+
+# Serialises deploys without cancelling one mid-flight. This replaces the
+# sidecar's poll-loop lock as the primary concurrency guard; the script keeps
+# its own lock as a second belt.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: ${{ inputs.action }} to ${{ inputs.version }}
+    # Runs on the deploy host. A GitHub-hosted runner cannot reach a box behind
+    # NAT, and this needs the host's Docker daemon regardless.
+    runs-on: self-hosted
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Deploy
+        env:
+          # Absolute path of the live deployment on this host — the directory
+          # holding docker-compose.yml, secrets/ and deploy/. Compose resolves
+          # bind-mount sources against it, so a wrong value breaks secrets
+          # silently; the script fails closed instead (lib/state.sh's
+          # validate_startup). Set it as a repository variable.
+          #
+          # NOTE: this workflow deploys release *images*; it does not update
+          # the compose file at DEPLOY_DIR. Changes to docker-compose.yml are
+          # an operator step on the host.
+          COMPOSE_PROJECT_DIR: ${{ vars.DEPLOY_DIR }}
+          STATUS_DIR: ${{ vars.DEPLOY_DIR }}/deploy/status
+          COMPOSE_PROJECT_NAME: bndsphere
+          GITHUB_REPO: ${{ github.repository }}
+          # Via env, never interpolated into the script body: `${{ }}` is
+          # substituted by the Actions expression engine BEFORE the shell
+          # parses the line, so a crafted input would execute ahead of any
+          # validation. The script validates these itself (lib/validate.sh).
+          INPUT_ACTION: ${{ inputs.action }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          sh infra/updater/updater.sh "$INPUT_ACTION" "$INPUT_VERSION"
+
+      - name: Show the deploy log on failure
+        if: failure()
+        run: tail -n 100 "${{ vars.DEPLOY_DIR }}/deploy/status/update.log" || true

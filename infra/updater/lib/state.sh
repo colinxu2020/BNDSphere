@@ -7,7 +7,6 @@
 # including rollback — so partial files must be unobservable, not merely rare.
 
 STATUS_DIR="${STATUS_DIR:-/srv/status}"
-REQUEST_DIR="${REQUEST_DIR:-/srv/request}"
 LOG_MAX_LINES=2000
 
 atomic_write() {
@@ -81,7 +80,7 @@ _state_write_initial() {
 state_init() {
     mkdir -p "$STATUS_DIR"
     # Test validity, not mere existence: a truncated or corrupt file must be
-    # replaced, or the sidecar boots blank forever -- the exact failure this
+    # replaced, or the deploy starts from blank state -- the exact failure this
     # guard exists to prevent.
     [ -f "$(state_file)" ] && jq -e . "$(state_file)" >/dev/null 2>&1 && return 0
     _state_write_initial

@@ -1,19 +1,20 @@
 """Unit tests for app.services.deployment.
 
 No DB, no HTTP — httpx calls are monkeypatched. Exercises the shell/python
-version_newer parity, the read-degrades-not-raises contract for the
-updater's status files, and the request.json write path.
+version_newer parity, the read-degrades-not-raises contract for the deploy
+workflow's status files, and the workflow_dispatch path.
 """
 
 import json
-import uuid
 from collections.abc import AsyncGenerator
 from pathlib import Path
+from typing import ClassVar, Self
 
 import httpx
 import pytest
 
 from app.services.deployment import (
+    DeploymentDispatchError,
     DeploymentService,
     reset_release_cache,
     version_newer,
@@ -32,8 +33,7 @@ def _service(tmp_path: Path, **overrides: object) -> DeploymentService:
     defaults: dict[str, object] = {
         "app_version": "1.2.3",
         "github_repo": "colinxu2020/BNDSphere",
-        "github_token": None,
-        "request_dir": tmp_path / "request",
+        "github_token": "tok",
         "status_dir": tmp_path / "status",
     }
     defaults.update(overrides)
@@ -169,38 +169,105 @@ def test_log_tail_caps_to_limit(tmp_path: Path) -> None:
     assert service.log_tail(limit=2) == lines[-2:]
 
 
-# ── write_request ──
+# ── dispatch_deploy ──
 
 
-def test_write_request_writes_exactly_four_keys(tmp_path: Path) -> None:
+class _Resp:
+    def __init__(self, status_code: int) -> None:
+        self.status_code = status_code
+
+
+class _Client:
+    """Records the one POST the service is allowed to make."""
+
+    calls: ClassVar[list[dict[str, object]]] = []
+
+    def __init__(self, *_a: object, **_kw: object) -> None: ...
+    async def __aenter__(self) -> Self:
+        return self
+
+    async def __aexit__(self, *_a: object) -> None: ...
+
+    async def post(self, url: str, **kwargs: object) -> _Resp:
+        _Client.calls.append({"url": url, **kwargs})
+        return _Resp(204)
+
+
+@pytest.fixture
+def capture_post(monkeypatch: pytest.MonkeyPatch) -> type[_Client]:
+    _Client.calls = []
+    monkeypatch.setattr(httpx, "AsyncClient", _Client)
+    return _Client
+
+
+async def test_dispatch_sends_action_and_version_as_inputs(
+    tmp_path: Path,
+    capture_post: type[_Client],
+) -> None:
     service = _service(tmp_path)
-    request_id = service.write_request("update", "1.2.4")
+    url = await service.dispatch_deploy("update", "1.2.4")
 
-    written = json.loads((service.request_dir / "request.json").read_text())
-    assert set(written.keys()) == {"id", "action", "version", "requested_at"}
-    assert written["id"] == request_id
-    assert written["action"] == "update"
-    assert written["version"] == "1.2.4"
-    uuid.UUID(written["id"])  # raises ValueError if not a real UUID
+    (call,) = capture_post.calls
+    assert call["url"].endswith(  # type: ignore[union-attr]
+        "/repos/colinxu2020/BNDSphere/actions/workflows/deploy.yml/dispatches",
+    )
+    assert call["json"] == {
+        "ref": "master",
+        "inputs": {"action": "update", "version": "1.2.4"},
+    }
+    assert url.endswith("/actions/workflows/deploy.yml")
 
 
 @pytest.mark.parametrize("action", ["deploy", "", "UPDATE", "rollback;rm -rf /"])
-def test_write_request_rejects_bad_action(tmp_path: Path, action: str) -> None:
+async def test_dispatch_rejects_bad_action(
+    tmp_path: Path,
+    capture_post: type[_Client],
+    action: str,
+) -> None:
     service = _service(tmp_path)
     with pytest.raises(ValueError, match="invalid action"):
-        service.write_request(action, "1.2.4")
-    assert not (service.request_dir / "request.json").exists()
+        await service.dispatch_deploy(action, "1.2.4")
+    assert capture_post.calls == []
 
 
 @pytest.mark.parametrize(
     "version",
     ["", "not-a-version", "1.2.3; rm -rf /", "v" * 70, "1.2.3\nrollback"],
 )
-def test_write_request_rejects_bad_version(tmp_path: Path, version: str) -> None:
+async def test_dispatch_rejects_bad_version(
+    tmp_path: Path,
+    capture_post: type[_Client],
+    version: str,
+) -> None:
     service = _service(tmp_path)
     with pytest.raises(ValueError, match="invalid version"):
-        service.write_request("update", version)
-    assert not (service.request_dir / "request.json").exists()
+        await service.dispatch_deploy("update", version)
+    assert capture_post.calls == []
+
+
+async def test_dispatch_without_a_token_is_an_error_not_a_silent_noop(
+    tmp_path: Path,
+    capture_post: type[_Client],
+) -> None:
+    service = _service(tmp_path, github_token=None)
+    with pytest.raises(DeploymentDispatchError):
+        await service.dispatch_deploy("update", "1.2.4")
+    assert capture_post.calls == []
+
+
+async def test_dispatch_raises_when_github_refuses(
+    tmp_path: Path,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    class _Refuse(_Client):
+        async def post(self, url: str, **kwargs: object) -> _Resp:
+            return _Resp(403)
+
+    monkeypatch.setattr(httpx, "AsyncClient", _Refuse)
+    service = _service(tmp_path)
+    with pytest.raises(DeploymentDispatchError) as exc:
+        await service.dispatch_deploy("update", "1.2.4")
+    assert "403" in exc.value.details["reason"]
 
 
 # ── latest_release: no real network, httpx is monkeypatched ──
