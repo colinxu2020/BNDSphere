@@ -42,7 +42,11 @@ main() {
     # A cancelled job or a dead runner leaves state.json non-terminal, which
     # the panel would read as "busy" forever. Mark it interrupted first. This
     # calls release_lock itself, hence its position before acquire_lock.
-    recover_if_interrupted
+    # Non-zero here means recovery found something it could not reconcile --
+    # in practice an orphaned one-off that would not die, possibly a migration
+    # still writing to the database. It has already recorded a terminal failed
+    # state; starting a deploy beside it is the one thing we must not do.
+    recover_if_interrupted || die "recovery could not reconcile the previous run"
 
     acquire_lock || die "another deploy already holds the lock"
     trap release_lock EXIT

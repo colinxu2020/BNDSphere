@@ -42,7 +42,10 @@ export type DeploymentErrorCode =
   | "rollback_unavailable"
   | "interrupted"
   | "already_current"
-  | "state_write_failed";
+  | "state_write_failed"
+  | "deploy_failed"
+  | "record_diverged"
+  | "orphan_reap_failed";
 
 export interface DeploymentStatus extends VersionCheck {
   stage: DeploymentStage;

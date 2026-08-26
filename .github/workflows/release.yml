@@ -14,6 +14,16 @@ on:
 permissions:
   contents: write
 
+# A tag push and a manual rerun of the same version must not publish at once.
+# `gh release upload --clobber` DELETES an asset before uploading its
+# replacement, so two interleaved runs can leave the tarball, manifest and
+# SHA256SUMS from different builds — a release the updater's checksum gate
+# then refuses, and that no redeploy can repair without deleting assets by
+# hand. Keyed by version so unrelated releases still run in parallel.
+concurrency:
+  group: release-${{ inputs.version || github.ref }}
+  cancel-in-progress: false
+
 jobs:
   release:
     name: Build once, publish to Release
@@ -35,6 +45,19 @@ jobs:
             version="$INPUT_VERSION"
           else
             version="${GITHUB_REF#refs/tags/}"
+          fi
+
+          # grep -Eq matches PER LINE, so "v1.0.0\nbackend_ref=x" satisfies the
+          # anchored pattern below and then injects a SECOND key=value pair
+          # into $GITHUB_OUTPUT — where the last occurrence wins, and where
+          # backend_ref is interpolated straight into `docker build -t` and
+          # `docker save` in a job holding contents: write. The dispatch UI box
+          # is single-line; the REST API is not. Reject multi-line input before
+          # writing anything, the same guard lib/validate.sh applies for the
+          # same reason.
+          if [ "$(printf '%s' "$version" | wc -l)" -ne 0 ]; then
+            echo "::error::Version must be a single line"
+            exit 1
           fi
 
           # Same grammar the updater enforces (spec §8). Rejecting here means a
@@ -130,10 +153,14 @@ jobs:
         run: |
           set -euo pipefail
 
+          # HEAD, not $GITHUB_SHA: checkout above moved the worktree to the
+          # requested tag, but GITHUB_SHA still names the ref the run was
+          # STARTED from. On a dispatch from master for v1.5.0 that would
+          # record master's commit for images built from the tag.
           jq -n \
             --arg version        "${{ steps.meta.outputs.version }}" \
             --arg built_at       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg commit         "$GITHUB_SHA" \
+            --arg commit         "$(git rev-parse HEAD)" \
             --arg backend_ref    "${{ steps.meta.outputs.backend_ref }}" \
             --arg backend_cdig   "${{ steps.digest.outputs.backend_config_digest }}" \
             --arg caddy_ref      "${{ steps.meta.outputs.caddy_ref }}" \

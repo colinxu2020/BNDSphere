@@ -863,3 +863,63 @@ root: the script kept reasoning about an environment it no longer runs in.
 Every fix is pinned by `selfcheck.sh` (226 assertions), each verified to
 fail when its fix is reverted.
 
+## 24. Amendment: second review round
+
+Ten more defects. Two were introduced by §23's own fixes, which is the
+finding that matters most: the deploy path is being corrected faster than it
+is being exercised, and nothing here has run against a real host yet.
+
+**Regressions from §23.** Checking out the tag moved the worktree but not
+`GITHUB_SHA`, so the manifest's `commit` recorded the ref the run started
+from while the images came from the tag — a build-the-wrong-source bug traded
+for a record-the-wrong-source bug. Now `git rev-parse HEAD`. And widening
+`reap_orphans` to match running containers made its discarded `docker rm`
+status load-bearing: recovery would log a clean reap while an interrupted
+migration was still writing. It now verifies, and `main()` refuses to deploy
+when it cannot.
+
+**Command injection in Release.** `grep -Eq` matches per line, so
+`v1.0.0\nbackend_ref=…` passed validation and injected a second key into
+`$GITHUB_OUTPUT`, where the last occurrence wins — and `backend_ref` is
+interpolated raw into `docker build -t` in a job holding `contents: write`.
+The dispatch UI box is single-line; the REST API is not. `validate.sh` had
+carried `_is_single_line` for this exact reason since the beginning; the
+workflow's copy of the grammar didn't. Rejected before any output is written.
+
+**Holes in the deploy logic.**
+
+- The `health_checking` stage write was treated as a refuse-and-return guard
+  like the ones above it, but it runs *after* `recreate_services`: the new
+  containers are already live, so bailing left an unverified release serving
+  with no rollback. It now logs and verifies regardless.
+- A fresh host has no `deployed.json`, so the first release had no rollback
+  at all — even though the images pinned by `versions.env.example` were
+  running and were a valid target. Previous refs are now seeded from the
+  daemon when the record is empty.
+- Nothing stopped an update from trusting a record it could see was stale. A
+  deploy whose final `deployed_set` failed leaves v2 running while the record
+  says v1; the next update would then write v1 as its rollback target, so a
+  failure would restore N-2 and skip a schema generation — through the §11
+  boundary the design rests on. `run_update` now refuses on divergence,
+  before downloading anything.
+- A successful rollback left `previous_*` naming the version it had just
+  restored, so the panel advertised the running version as its own rollback
+  target and a second rollback to it reported success having done nothing.
+  Cleared, not rewritten: the rolled-back-*from* version is the release that
+  just failed, and offering it would be a roll-forward into a known-bad
+  version.
+- `release.yml` had no `concurrency` group, so a tag push racing a manual
+  rerun could interleave `--clobber` delete/upload across the tarball,
+  manifest and `SHA256SUMS`. Serialised per version.
+
+**Diagnostics the panel existed to show and couldn't.** An automatic rollback
+blanked `error_code`, so `health_check_failed` never reached the panel —
+the frontend had carried a label for it that nothing could produce. The
+cause now rides through to the terminal write. Alembic's output went to the
+Actions step stream only, leaving `update.log` (what `log_tail` renders) with
+generic lines in the one failure where the failing revision is the whole
+answer; it is now captured, tail-bounded, and still echoed to the workflow.
+
+`selfcheck.sh` is 226 → 249 assertions, every new one verified to fail when
+its fix is reverted. Three new error codes (`deploy_failed`,
+`record_diverged`, `orphan_reap_failed`) are modelled in the frontend.

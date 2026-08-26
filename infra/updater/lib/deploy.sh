@@ -67,7 +67,24 @@ run_migration() {
     # holds the OLD pins at this point — deliberately, so an abort here leaves
     # the durable pins on the running version. Compose ranks shell env above
     # --env-file. Reversed, this would run the OLD migrations and report success.
-    BACKEND_IMAGE="$_backend_ref" compose run --rm "$MIGRATION_SERVICE"
+    #
+    # Output is captured, not streamed: Alembic's stderr is the only thing that
+    # names the failing revision, and it was reaching the Actions step log
+    # only -- invisible to update.log, which is what the panel's log_tail
+    # shows. That made the panel blindest in exactly the failure it exists to
+    # explain. Tail-bounded so a chatty migration cannot push every other line
+    # out of the (already capped) log.
+    _mig_log="${WORK_DIR:-/tmp/updater}/migration.log"
+    mkdir -p "${WORK_DIR:-/tmp/updater}"
+    BACKEND_IMAGE="$_backend_ref" compose run --rm "$MIGRATION_SERVICE" \
+        >"$_mig_log" 2>&1
+    _mig_rc=$?
+    tail -n 100 "$_mig_log" 2>/dev/null | while IFS= read -r _mig_line; do
+        log "migration: $_mig_line"
+    done
+    cat "$_mig_log" 2>/dev/null   # still show it in the workflow log
+    rm -f "$_mig_log"
+    return "$_mig_rc"
 }
 
 recreate_services() {
@@ -169,6 +186,44 @@ app_ready() {
     curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:${_hostport##*:}/"
 }
 
+# The image ref a service is ACTUALLY running, straight from the daemon.
+# Empty (non-zero) when the service is not up.
+running_ref() {
+    _rr_cid=$(compose ps -q "$1" 2>/dev/null)
+    [ -n "$_rr_cid" ] || return 1
+    docker inspect --format '{{.Config.Image}}' "$_rr_cid" 2>/dev/null
+}
+
+# deployed.json's current_* refs must still describe what is running.
+#
+# They can drift: a deploy whose FINAL deployed_set failed leaves the new
+# containers live while the record still names the old version. That case is
+# already reported (state_write_failed, and the panel's record_diverged), but
+# nothing stopped the NEXT update from trusting the stale record — and it
+# would then write the two-versions-back version as its rollback target. A
+# failed deploy would restore N-2, skipping a schema generation, straight
+# through the N-1 compatibility boundary the whole design rests on (spec §11).
+#
+# Nothing recorded (first deploy) and nothing running (stack down) are both
+# "no evidence of divergence", not divergence.
+deployed_matches_running() {
+    for _dm_svc in $MANAGED_SERVICES; do
+        case "$_dm_svc" in
+            backend) _dm_want=$(deployed_get current_backend_ref) ;;
+            caddy)   _dm_want=$(deployed_get current_caddy_ref) ;;
+            *)       continue ;;
+        esac
+        [ -n "$_dm_want" ] || continue
+        _dm_got=$(running_ref "$_dm_svc") || continue
+        [ -n "$_dm_got" ] || continue
+        if [ "$_dm_want" != "$_dm_got" ]; then
+            log "deployed.json records $_dm_svc=$_dm_want but $_dm_got is running"
+            return 1
+        fi
+    done
+    return 0
+}
+
 run_update() {
     _version=$1
 
@@ -178,12 +233,30 @@ run_update() {
         return 1
     fi
 
+    # Before anything is downloaded: refuse to build on a record we can see is
+    # wrong. Reconciling automatically would mean guessing which of the two
+    # the operator meant; refusing names the discrepancy and stops.
+    if ! deployed_matches_running; then
+        state_terminal failed record_diverged \
+            "deployed.json disagrees with the running containers; reconcile it before deploying"
+        return 1
+    fi
+
     _manifest=$(acquire_images "$_version") || return 1
 
     _backend_ref=$(manifest_field "$_manifest" '.images.backend.ref')
     _caddy_ref=$(manifest_field "$_manifest" '.images.caddy.ref')
     _prev_backend=$(deployed_get current_backend_ref)
     _prev_caddy=$(deployed_get current_caddy_ref)
+
+    # First deploy on a freshly bootstrapped host: deployed.json does not exist
+    # yet, so both refs are empty -- but the untagged images pinned by
+    # versions.env.example ARE running, and ARE a perfectly good rollback
+    # target. Without this the very first release is the one deploy with no
+    # rollback at all: run_rollback would report rollback_unavailable and leave
+    # the host on a version that just failed its health check.
+    [ -n "$_prev_backend" ] || _prev_backend=$(running_ref backend) || true
+    [ -n "$_prev_caddy" ] || _prev_caddy=$(running_ref caddy) || true
 
     # Every write below is checked: an unnoticed refusal here is exactly the
     # kind of silent failure state_set/deployed_set/state_stage/state_terminal
@@ -245,18 +318,23 @@ run_update() {
     fi
     if ! recreate_services "$_backend_ref" "$_caddy_ref"; then
         state_stage rolling_back
-        run_rollback "$_current" automatic
+        run_rollback "$_current" automatic deploy_failed \
+            "could not recreate services on $_version; rolled back"
         return 1
     fi
 
-    if ! state_stage health_checking; then
-        state_terminal failed state_write_failed \
-            "could not record health_checking stage; refusing to proceed"
-        return 1
-    fi
+    # NOT a refuse-and-return guard like the ones above, and deliberately so:
+    # every one of those sits BEFORE the side effect it protects, but the new
+    # containers are already live by this point. Bailing here would leave an
+    # unverified release serving with no rollback and deployed.json still
+    # naming the old version -- the exact outcome the health gate exists to
+    # prevent. Record what we can, then verify regardless.
+    state_stage health_checking \
+        || log "could not record the health_checking stage; verifying anyway"
     if ! wait_healthy; then
         log "new version $_version failed its health check — rolling back"
-        run_rollback "$_current" automatic
+        run_rollback "$_current" automatic health_check_failed \
+            "$_version failed its health check and was rolled back"
         return 1
     fi
 
@@ -294,9 +372,18 @@ run_update() {
 # THE rollback path. Both triggers land here; there is no second
 # implementation (spec §12.1). `_trigger` is recorded for the panel and the
 # audit log and is deliberately never used in a conditional.
+# $3/$4 (optional): the error code and message of the failure that CAUSED an
+# automatic rollback. Carried through to the terminal write so a successful
+# rollback still says why it happened -- the plain `state_terminal
+# rollback_success ""` blanked error_code, leaving the panel with a green
+# rollback and no cause, and the frontend's health_check_failed label with
+# nothing that could ever produce it. Empty for a manual rollback, which has
+# no antecedent failure.
 run_rollback() {
     _target=$1
     _trigger=$2
+    _cause_code=${3:-}
+    _cause_message=${4:-}
 
     state_set stage rolling_back trigger "$_trigger" target_version "$_target"
     _stage_write_rc=$?
@@ -359,10 +446,21 @@ run_rollback() {
         return 1
     fi
 
+    # previous_* is CLEARED, not rewritten. Left as-is it still named the
+    # version just restored, so the panel advertised the running version as
+    # its own rollback target and a second `rollback v1.0.0` would sail
+    # through the target check and report success having done nothing. Nor is
+    # the rolled-back-FROM version the right value: that is the release that
+    # just failed, and offering it as a rollback target is a roll-forward into
+    # a known-bad version. After a rollback there is simply nothing further
+    # back to go.
     if ! deployed_set \
         current_version "$_target" \
         current_backend_ref "$_backend_ref" \
-        current_caddy_ref "$_caddy_ref"; then
+        current_caddy_ref "$_caddy_ref" \
+        previous_version "" \
+        previous_backend_ref "" \
+        previous_caddy_ref ""; then
         # The application IS back on the previous version at this point --
         # only the bookkeeping failed. Recording a clean success here would
         # be exactly the lie the equivalent guard in run_update refuses to
@@ -375,7 +473,9 @@ run_rollback() {
         return 1
     fi
 
-    # Same reasoning as the success write in run_update above.
-    state_terminal rollback_success "" "rolled back to $_target" || return 1
+    # Same reasoning as the success write in run_update above. rollback_success
+    # is the OUTCOME; the error fields keep naming why the rollback happened.
+    state_terminal rollback_success "$_cause_code" \
+        "${_cause_message:-rolled back to $_target}" || return 1
     return 0
 }

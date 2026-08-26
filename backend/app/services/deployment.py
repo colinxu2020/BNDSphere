@@ -231,8 +231,14 @@ class DeploymentService:
         return lines[-limit:] if limit > 0 else []
 
     def previous_version(self) -> str | None:
+        """Report the version a rollback would restore, or None if there is none.
+
+        An empty string is None, not a version: a successful rollback clears
+        previous_* (there is nothing further back to go), and "" reaching the
+        panel would render a rollback target with no name.
+        """
         value = self.deployed().get("previous_version")
-        return cast("str | None", value) if isinstance(value, str) else None
+        return value if isinstance(value, str) and value else None
 
     def is_busy(self) -> bool:
         stage = self.updater_state().get("stage", "idle")

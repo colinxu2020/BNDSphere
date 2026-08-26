@@ -839,6 +839,220 @@ assert_ok "run_rollback returns non-zero when the rollback_success write fails" 
 unset RC
 rm -rf "$PDT" "$STATUS_DIR"
 
+# ── release workflow invariants ──────────────────────────────────────
+#
+# Structural, not behavioural: release.yml runs on GitHub's runner and cannot
+# be sourced here. These pin properties whose absence is invisible until a
+# release is already corrupt or already compromised.
+REL="$UPDATER_DIR/../../.github/workflows/release.yml"
+
+# grep -Eq matches PER LINE, so "v1.0.0\nbackend_ref=x" passes the version
+# pattern and injects a second key=value into $GITHUB_OUTPUT -- last one wins,
+# and backend_ref is interpolated straight into `docker build -t` in a job
+# holding contents: write.
+assert_ok "release.yml rejects multi-line versions before writing outputs" \
+    grep -q 'Version must be a single line' "$REL"
+
+# `gh release upload --clobber` deletes before it uploads, so a tag push
+# racing a manual rerun can leave the tarball, manifest and SHA256SUMS from
+# different builds -- a release the checksum gate then refuses.
+assert_ok "release.yml serialises publication per version" \
+    grep -q 'group: release-' "$REL"
+
+# GITHUB_SHA names the ref the run STARTED from, not the tag checkout moved
+# the worktree to: on a dispatch from master for v1.5.0 it records master's
+# commit for images built from the tag.
+assert_fail "release.yml does not record GITHUB_SHA as the built commit" \
+    grep -q 'arg commit .*GITHUB_SHA' "$REL"
+assert_ok "release.yml records the checked-out HEAD as the built commit" \
+    grep -q 'arg commit .*git rev-parse HEAD' "$REL"
+
+# Checkout must follow validation and pin the tag, or a dispatch from master
+# builds master's sources and --clobbers the real release's assets.
+assert_ok "release.yml checks out the requested tag" \
+    grep -q 'ref: refs/tags/' "$REL"
+
+# ── divergence, first-deploy rollback, and the health gate ───────────
+PDD=$(mktemp -d); mkdir -p "$PDD/deploy" "$PDD/secrets"
+touch "$PDD/docker-compose.yml" "$PDD/.env"
+COMPOSE_PROJECT_DIR=$PDD; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 \
+    current_backend_ref "backend:v1.0.0" current_caddy_ref "caddy:v1.0.0"
+
+# A deploy whose FINAL deployed_set failed leaves the containers on the new
+# version while the record still names the old one. Trusting that record makes
+# the next update write an N-2 rollback target, so a failed deploy would skip
+# a schema generation -- straight through the N-1 boundary (spec §11).
+_d1_diverged() (
+    compose() { case "$1" in ps) printf 'cid-%s' "$3" ;; esac; }
+    docker() { case "$*" in *cid-backend*) printf 'backend:v2.0.0' ;; esac; }
+    deployed_matches_running
+)
+assert_fail "deployed_matches_running detects a stale record" _d1_diverged
+
+_d2_agrees() (
+    compose() { case "$1" in ps) printf 'cid-%s' "$3" ;; esac; }
+    docker() {
+        case "$*" in
+            *cid-backend*) printf 'backend:v1.0.0' ;;
+            *cid-caddy*)   printf 'caddy:v1.0.0' ;;
+        esac
+    }
+    deployed_matches_running
+)
+assert_ok "deployed_matches_running passes when the record agrees" _d2_agrees
+
+# Stack down: nothing running to compare against is not divergence.
+_d3_stack_down() (
+    compose() { printf ''; }
+    deployed_matches_running
+)
+assert_ok "deployed_matches_running tolerates a stopped stack" _d3_stack_down
+
+# run_update must refuse before downloading anything.
+_d4_update_refuses() (
+    compose() { case "$1" in ps) printf 'cid-%s' "$3" ;; esac; }
+    docker() { case "$*" in *cid-backend*) printf 'backend:v9.9.9' ;; esac; }
+    acquire_images() { printf 'ACQUIRED' >"$PDD/acquired"; return 1; }
+    run_update v2.0.0
+)
+rm -f "$PDD/acquired"
+_d4_update_refuses
+assert_eq "record_diverged" "$(state_get error_code)" \
+    "run_update refuses a divergent record with record_diverged"
+assert_fail "run_update never downloads when the record diverged" \
+    [ -f "$PDD/acquired" ]
+rm -rf "$PDD" "$STATUS_DIR"
+
+# First deploy on a fresh host: no deployed.json, but the untagged images from
+# versions.env.example ARE running and ARE a valid rollback target. Without
+# seeding from the daemon, the very first release is the one deploy with no
+# rollback at all.
+PDF=$(mktemp -d); mkdir -p "$PDF/deploy" "$PDF/secrets"
+touch "$PDF/docker-compose.yml" "$PDF/.env"
+COMPOSE_PROJECT_DIR=$PDF; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+_f1_first_deploy_seeds_refs() (
+    compose() { case "$1" in ps) printf 'cid-%s' "$3" ;; esac; }
+    docker() {
+        case "$*" in
+            *cid-backend*) printf 'bndsphere-backend' ;;
+            *cid-caddy*)   printf 'bndsphere-caddy' ;;
+        esac
+    }
+    acquire_images() { printf '%s' "$PDF/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:v1.0.0' ;;
+            *caddy*)   printf 'caddy:v1.0.0' ;;
+        esac
+    }
+    run_migration() { return 0; }
+    # Fail the recreate so the run takes the automatic-rollback path, which is
+    # where the seeded refs have to be present.
+    recreate_services() { return 1; }
+    run_rollback() { printf '%s' "$(deployed_get previous_backend_ref)" \
+        >"$PDF/rollback_ref"; return 1; }
+    run_update v1.0.0
+)
+_f1_first_deploy_seeds_refs
+assert_eq "bndsphere-backend" "$(cat "$PDF/rollback_ref" 2>/dev/null)" \
+    "the first deploy seeds previous refs from the running containers"
+rm -rf "$PDF" "$STATUS_DIR"
+
+# The health_checking stage write is NOT a refuse-and-return guard: the new
+# containers are already live when it runs, so bailing would leave an
+# unverified release serving with no rollback.
+PDH=$(mktemp -d); mkdir -p "$PDH/deploy" "$PDH/secrets"
+touch "$PDH/docker-compose.yml" "$PDH/.env"
+COMPOSE_PROJECT_DIR=$PDH; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 \
+    current_backend_ref "backend:v1.0.0" current_caddy_ref "caddy:v1.0.0"
+_h1_health_gate_runs_anyway() (
+    compose() { case "$1" in ps) printf 'cid-%s' "$3" ;; esac; }
+    docker() {
+        case "$*" in
+            *cid-backend*) printf 'backend:v1.0.0' ;;
+            *cid-caddy*)   printf 'caddy:v1.0.0' ;;
+        esac
+    }
+    acquire_images() { printf '%s' "$PDH/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'backend:v2.0.0' ;;
+            *caddy*)   printf 'caddy:v2.0.0' ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    state_stage() { [ "$1" = "health_checking" ] && return 1; return 0; }
+    wait_healthy() { printf 'REACHED' >"$PDH/gate"; return 1; }
+    run_rollback() { return 0; }
+    run_update v2.0.0
+)
+rm -f "$PDH/gate"
+_h1_health_gate_runs_anyway
+assert_eq "REACHED" "$(cat "$PDH/gate" 2>/dev/null)" \
+    "the health gate still runs when its own stage write fails"
+rm -rf "$PDH" "$STATUS_DIR"
+
+# ── alembic's own output must reach the panel's log ──────────────────
+#
+# It was going to the Actions step stream only, so update.log -- which is what
+# log_tail renders -- got nothing but the generic `log` lines. The panel was
+# blindest in precisely the failure it exists to explain: only alembic names
+# the revision that would not apply.
+PDM=$(mktemp -d); mkdir -p "$PDM/deploy" "$PDM/secrets"
+touch "$PDM/docker-compose.yml" "$PDM/.env"
+COMPOSE_PROJECT_DIR=$PDM; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+WORK_DIR="$PDM/work"; export WORK_DIR
+_m1_migration_output_logged() (
+    compose() { printf "ERROR [alembic] Can't locate revision abc123\n"; return 1; }
+    run_migration "backend:v2.0.0"
+)
+assert_fail "run_migration still propagates alembic's exit status" \
+    _m1_migration_output_logged
+assert_ok "alembic's output reaches update.log, not just the workflow stream" \
+    grep -q "Can't locate revision abc123" "$STATUS_DIR/update.log"
+unset WORK_DIR
+rm -rf "$PDM" "$STATUS_DIR"
+
+# ── a successful rollback keeps its cause and clears its history ─────
+PDB=$(mktemp -d); mkdir -p "$PDB/deploy" "$PDB/secrets"
+touch "$PDB/docker-compose.yml" "$PDB/.env"
+COMPOSE_PROJECT_DIR=$PDB; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v2.0.0 previous_version v1.0.0 \
+    previous_backend_ref "backend:v1.0.0" previous_caddy_ref "caddy:v1.0.0"
+_b1_rollback_keeps_cause() (
+    docker() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    run_rollback v1.0.0 automatic health_check_failed "v2.0.0 failed its health check"
+)
+assert_ok "an automatic rollback with a cause succeeds" _b1_rollback_keeps_cause
+assert_eq "rollback_success" "$(state_get stage)" "rollback_success is the outcome"
+# Blanking error_code left the panel with a green rollback and no cause -- and
+# the frontend's health_check_failed label with nothing that could produce it.
+assert_eq "health_check_failed" "$(state_get error_code)" \
+    "a successful rollback still reports why it happened"
+# previous_* must be CLEARED: left naming the just-restored version, the panel
+# advertises the running version as its own rollback target, and a second
+# rollback to it passes the target check and reports a misleading success.
+assert_eq "" "$(deployed_get previous_version)" \
+    "a successful rollback clears previous_version"
+assert_eq "" "$(deployed_get previous_backend_ref)" \
+    "a successful rollback clears the previous image refs"
+rm -rf "$PDB" "$STATUS_DIR"
+
 # ── app_ready probes the HOST, not backend-network ───────────────────
 #
 # The deploy script runs on the Actions runner now, not in a container on
@@ -904,7 +1118,42 @@ assert_ok "reap_orphans force-removes, covering running one-offs" \
     grep -q 'rm -f cid1' "$REAP_OUT"
 assert_ok "reap_orphans still scopes to this project's one-off containers" \
     grep -q 'com.docker.compose.oneoff=True' "$REAP_OUT"
-rm -rf "$PDR" "$STATUS_DIR"
+
+# ...and must VERIFY the removal rather than assume it. Discarding `docker rm`
+# status was harmless while this only matched corpses; now that it matches
+# running containers, a silent failure means recovery reports a clean reap
+# while an interrupted migration is still writing to the database.
+_r2_reap_rm_fails() (
+    docker() {
+        case "$1" in
+            ps) printf 'cid1\n' ;;    # the orphan is still there, every time
+            rm) return 1 ;;
+        esac
+        return 0
+    }
+    reap_orphans
+)
+assert_fail "reap_orphans fails when the orphan survives removal" _r2_reap_rm_fails
+
+# ...and recovery must refuse to hand control back to main(), which would
+# otherwise start a deploy beside the surviving migration.
+PDR2=$(mktemp -d); STATUS_DIR=$(mktemp -d); export STATUS_DIR
+COMPOSE_PROJECT_DIR=$PDR2; export COMPOSE_PROJECT_DIR
+state_init
+state_set stage deploying
+_r3_recover_aborts() (
+    reap_orphans() { return 1; }
+    recover_if_interrupted
+)
+assert_fail "recover_if_interrupted fails when an orphan could not be reaped" \
+    _r3_recover_aborts
+assert_eq "orphan_reap_failed" "$(state_get error_code)" \
+    "an unreapable orphan is recorded as orphan_reap_failed, not interrupted"
+# main() must propagate that refusal rather than deploy anyway.
+assert_ok "main aborts when recovery cannot reconcile the previous run" \
+    grep -q 'recover_if_interrupted || die' "$UPDATER_DIR/updater.sh"
+rm -rf "$PDR" "$PDR2" "$STATUS_DIR"
+unset COMPOSE_PROJECT_DIR
 
 # The migration must run against the NEW image, exposed as an environment
 # override, NOT the old pin still on disk in versions.env. Compose ranks
@@ -1262,7 +1511,10 @@ _rollback_via() (
 _rollback_via automatic
 assert_eq "automatic" "$(state_get trigger)" "an automatic rollback records trigger=automatic"
 assert_eq "rollback_success" "$(state_get stage)" "an automatic rollback reaches rollback_success"
-deployed_set current_version v2.0.0 previous_version v1.0.0
+# A successful rollback now clears previous_* (there is nothing further
+# back to go), so re-seed the whole history, not just the version.
+deployed_set current_version v2.0.0 previous_version v1.0.0 \
+    previous_backend_ref "old-backend:v1" previous_caddy_ref "old-caddy:v1"
 _rollback_via manual
 assert_eq "manual" "$(state_get trigger)" "a manual rollback records trigger=manual"
 assert_eq "rollback_success" "$(state_get stage)" "a manual rollback reaches rollback_success"
@@ -1495,13 +1747,13 @@ assert_eq "" "$(printf '%s' "$RECOVER_SRC" \
 # deploy -- unwiring the call from main, or moving it below the dispatch,
 # must fail here even though every behavioural test above sources
 # lib/recover.sh directly and would stay green either way.
-assert_eq "1" "$(grep -c '^    recover_if_interrupted$' $UPDATER_DIR/updater.sh)" \
+assert_eq "1" "$(grep -c '^    recover_if_interrupted ' $UPDATER_DIR/updater.sh)" \
     "main calls recover_if_interrupted exactly once"
 
 # ...and before the deploy it is about to run: marking a cancelled run
 # interrupted AFTER dispatching the new one would overwrite the new run's own
 # state with a failure.
-_recover_call_line=$(grep -n '^    recover_if_interrupted$' $UPDATER_DIR/updater.sh \
+_recover_call_line=$(grep -n '^    recover_if_interrupted ' $UPDATER_DIR/updater.sh \
     | head -1 | cut -d: -f1)
 _dispatch_line=$(grep -n '^    case "\$_action" in' $UPDATER_DIR/updater.sh \
     | head -1 | cut -d: -f1)

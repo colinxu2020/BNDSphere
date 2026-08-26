@@ -59,6 +59,9 @@ const ERROR_CODE_LABELS: Record<DeploymentErrorCode, string> = {
   interrupted: "操作被中断",
   already_current: "已经是当前版本",
   state_write_failed: "状态写入失败",
+  deploy_failed: "容器重建失败",
+  record_diverged: "部署记录与运行中的容器不一致",
+  orphan_reap_failed: "残留的一次性容器无法清除",
 };
 
 const ACTION_LABELS: Record<string, string> = {

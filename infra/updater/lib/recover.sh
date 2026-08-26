@@ -20,13 +20,27 @@
 # starts a SECOND `alembic upgrade head` concurrently against the same
 # database. We have already decided not to resume, so killing it is the
 # correct reconciliation; `rm -f` covers running and exited alike.
-reap_orphans() {
-    _ids=$(docker ps -aq \
+oneoff_ids() {
+    docker ps -aq \
         --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
-        --filter "label=com.docker.compose.oneoff=True" 2>/dev/null)
+        --filter "label=com.docker.compose.oneoff=True" 2>/dev/null
+}
+
+reap_orphans() {
+    _ids=$(oneoff_ids)
     [ -n "$_ids" ] || return 0
     # shellcheck disable=SC2086 # deliberate word splitting over an id list
     docker rm -f $_ids >/dev/null 2>&1 || true
+    # Verify, never assume. Discarding the removal status was harmless while
+    # this only matched exited containers; now that it matches RUNNING ones it
+    # is the whole hazard -- recovery would log a clean reap while an
+    # interrupted migration is still live, and the next deploy would start a
+    # second `alembic upgrade head` beside it.
+    _left=$(oneoff_ids)
+    if [ -n "$_left" ]; then
+        log "orphaned one-off containers could not be removed: $_left"
+        return 1
+    fi
     log "reaped orphaned one-off containers"
 }
 
@@ -37,12 +51,23 @@ recover_if_interrupted() {
 
     log "updater restarted while in stage '$_stage' — marking interrupted, not resuming"
 
-    reap_orphans
+    _reaped=0
+    reap_orphans || _reaped=1
     release_lock
 
     # Mark the request processed so a crash can never cause a silent re-run.
     state_set interrupted_stage "$_stage" \
         last_processed_request_id "$(state_get request_id)" || true
+
+    # A surviving one-off is not just an untidy state to report -- it may be a
+    # migration still writing to the database. Refuse to hand control back to
+    # main(), which would otherwise go on to start a deploy beside it.
+    if [ "$_reaped" -ne 0 ]; then
+        state_terminal failed orphan_reap_failed \
+            "an orphaned one-off container is still present; refusing to start new work"
+        return 1
+    fi
+
     state_terminal failed interrupted \
         "updater restarted during '$_stage'; no work was resumed"
 }
