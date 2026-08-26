@@ -6,8 +6,11 @@ import {
   ArrowLeft,
   Settings,
   Check,
+  QrCode,
   Share3,
+  X,
 } from "@/src/components/ui/Icons";
+import { QRCodeSVG } from "qrcode.react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -57,6 +60,8 @@ export function ClubDetail() {
   const [hasSubmittedJoinRequest, setHasSubmittedJoinRequest] = useState(false);
   const [highlightedActivityId, setHighlightedActivityId] = useState<number | null>(null);
   const [copiedActivityId, setCopiedActivityId] = useState<number | null>(null);
+  const [isQrShareOpen, setIsQrShareOpen] = useState(false);
+  const [isClubLinkCopied, setIsClubLinkCopied] = useState(false);
 
   useEffect(() => {
     const fetchClubInfo = async () => {
@@ -145,6 +150,48 @@ export function ClubDetail() {
     const timer = window.setTimeout(() => setCopiedActivityId(null), 2200);
     return () => window.clearTimeout(timer);
   }, [copiedActivityId]);
+  const clubShareUrl = club ? new URL(`/club/${club.id}`, window.location.origin).toString() : "";
+
+  const copyClubShareLink = async () => {
+    try {
+      await navigator.clipboard.writeText(clubShareUrl);
+      setIsClubLinkCopied(true);
+    } catch {
+      setActionTone("error");
+      setActionMessage("复制链接失败，请稍后重试");
+    }
+  };
+
+  const downloadClubQrCode = () => {
+    const svg = document.getElementById("club-share-qr-code");
+    if (!(svg instanceof SVGElement)) return;
+
+    const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
+      type: "image/svg+xml;charset=utf-8",
+    });
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${club?.name || "社团"}-二维码.svg`;
+    link.click();
+    URL.revokeObjectURL(downloadUrl);
+  };
+
+  useEffect(() => {
+    if (!isClubLinkCopied) return;
+    const timer = window.setTimeout(() => setIsClubLinkCopied(false), 2200);
+    return () => window.clearTimeout(timer);
+  }, [isClubLinkCopied]);
+
+  useEffect(() => {
+    if (!isQrShareOpen) return;
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setIsQrShareOpen(false);
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [isQrShareOpen]);
+
   const currentMembership = useMemo(
     () =>
       club?.members.find((member) => member.user_id === user?.id && member.membership !== "left")
@@ -273,6 +320,13 @@ export function ClubDetail() {
           </div>
 
           <div className="flex md:flex-col gap-3 w-full md:w-auto">
+            <button
+              type="button"
+              onClick={() => setIsQrShareOpen(true)}
+              className="flex-1 md:flex-none px-6 py-3 bg-slate-50 hover:bg-primary-50 border border-slate-200 hover:border-primary-200 active:scale-95 text-slate-700 hover:text-primary-700 font-semibold rounded-md transition-all text-center inline-flex items-center justify-center gap-2"
+            >
+              <QrCode size={17} /> 分享社团
+            </button>
             {canJoin && (
               <button
                 onClick={joinClub}
@@ -304,6 +358,88 @@ export function ClubDetail() {
       </div>
 
       {actionMessage && <StatusMessage value={actionMessage} tone={actionTone} />}
+
+      {isQrShareOpen && (
+        <div
+          className="fixed inset-0 z-[60] flex items-center justify-center bg-slate-950/45 p-4 backdrop-blur-sm"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setIsQrShareOpen(false);
+          }}
+        >
+          <motion.section
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="club-share-title"
+            initial={{ opacity: 0, scale: 0.96, y: 12 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.96, y: 12 }}
+            className="relative w-full max-w-sm overflow-hidden rounded-md border border-slate-100 bg-white p-6 shadow-2xl shadow-slate-950/20"
+          >
+            <div className="absolute inset-x-0 top-0 h-1 bg-primary-500" />
+            <button
+              type="button"
+              onClick={() => setIsQrShareOpen(false)}
+              aria-label="关闭社团分享二维码"
+              className="absolute right-4 top-4 rounded-md p-2 text-slate-400 transition hover:bg-slate-100 hover:text-slate-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500/30"
+            >
+              <X size={18} />
+            </button>
+            <div className="pr-10">
+              <p className="text-xs font-bold uppercase tracking-[0.2em] text-primary-600">
+                Share club
+              </p>
+              <h2
+                id="club-share-title"
+                className="mt-1 font-display text-2xl font-bold text-slate-900"
+              >
+                分享 {club.name}
+              </h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                扫码即可打开社团详情，了解社团介绍和近期活动。
+              </p>
+            </div>
+
+            <div className="mt-6 flex justify-center rounded-md border border-slate-100 bg-slate-50 p-5">
+              <div className="rounded-md bg-white p-3 shadow-sm">
+                <QRCodeSVG
+                  id="club-share-qr-code"
+                  value={clubShareUrl}
+                  size={208}
+                  level="M"
+                  includeMargin={false}
+                  fgColor="#0f172a"
+                  bgColor="#ffffff"
+                  title={`${club.name} 社团分享二维码`}
+                />
+              </div>
+            </div>
+
+            <div className="mt-5 rounded-md border border-slate-100 bg-slate-50 p-3">
+              <p className="truncate text-xs text-slate-500" title={clubShareUrl}>
+                {clubShareUrl}
+              </p>
+            </div>
+            <div className="mt-4 grid grid-cols-2 gap-3">
+              <button
+                type="button"
+                onClick={copyClubShareLink}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-semibold text-slate-700 transition hover:bg-slate-100 active:scale-[0.98]"
+              >
+                {isClubLinkCopied ? <Check size={17} /> : <Share3 size={17} />}
+                {isClubLinkCopied ? "已复制" : "复制链接"}
+              </button>
+              <button
+                type="button"
+                onClick={downloadClubQrCode}
+                className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-4 py-3 text-sm font-semibold text-white shadow-md shadow-primary-500/20 transition hover:bg-primary-600 active:scale-[0.98]"
+              >
+                <QrCode size={17} /> 下载二维码
+              </button>
+            </div>
+          </motion.section>
+        </div>
+      )}
 
       {/* Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
