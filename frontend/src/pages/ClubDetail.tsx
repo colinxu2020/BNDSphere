@@ -150,48 +150,6 @@ export function ClubDetail() {
     const timer = window.setTimeout(() => setCopiedActivityId(null), 2200);
     return () => window.clearTimeout(timer);
   }, [copiedActivityId]);
-  const clubShareUrl = club ? new URL(`/club/${club.id}`, window.location.origin).toString() : "";
-
-  const copyClubShareLink = async () => {
-    try {
-      await navigator.clipboard.writeText(clubShareUrl);
-      setIsClubLinkCopied(true);
-    } catch {
-      setActionTone("error");
-      setActionMessage("复制链接失败，请稍后重试");
-    }
-  };
-
-  const downloadClubQrCode = () => {
-    const svg = document.getElementById("club-share-qr-code");
-    if (!(svg instanceof SVGElement)) return;
-
-    const blob = new Blob([new XMLSerializer().serializeToString(svg)], {
-      type: "image/svg+xml;charset=utf-8",
-    });
-    const downloadUrl = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = downloadUrl;
-    link.download = `${club?.name || "社团"}-二维码.svg`;
-    link.click();
-    URL.revokeObjectURL(downloadUrl);
-  };
-
-  useEffect(() => {
-    if (!isClubLinkCopied) return;
-    const timer = window.setTimeout(() => setIsClubLinkCopied(false), 2200);
-    return () => window.clearTimeout(timer);
-  }, [isClubLinkCopied]);
-
-  useEffect(() => {
-    if (!isQrShareOpen) return;
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") setIsQrShareOpen(false);
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [isQrShareOpen]);
-
   const currentMembership = useMemo(
     () =>
       club?.members.find((member) => member.user_id === user?.id && member.membership !== "left")
