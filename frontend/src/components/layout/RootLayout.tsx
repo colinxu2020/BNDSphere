@@ -43,9 +43,10 @@ export function RootLayout({ children }: { children: ReactNode }) {
 
     let cancelled = false;
     const fetchUser = async () => {
-      const { data, error } = await client.GET("/api/v1/users/me");
+      const { data, error, response } = await client.GET("/api/v1/users/me");
       if (cancelled) return;
       if (error || !data) {
+        if (response.status === 401) clearAuthToken();
         setUser(null);
         return;
       }

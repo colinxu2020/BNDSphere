@@ -8,6 +8,10 @@ Requires three secrets (env vars or files under ``/run/secrets/``):
     POSTGRES_PASSWORD     - superuser password (to create/drop test_db)
     APP_DB_PASSWORD       - ``app_user`` password
     MIGRATION_DB_PASSWORD - ``migration_user`` password
+
+The suite must run serially (no ``pytest-xdist``): every test shares a single
+session-scoped ``test_db`` plus class-scoped transactions, so parallel workers
+would step on each other's database state.
 """
 
 import asyncio
@@ -16,7 +20,7 @@ import secrets
 import sys
 from collections.abc import AsyncGenerator
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
 import psycopg
 import pytest
@@ -73,8 +77,11 @@ MIGRATION_PASSWORD = _read_secret("MIGRATION_DB_PASSWORD", "migration_password")
 
 # Passwords are URL-encoded (matches app.core.settings.database_url) so secrets
 # containing reserved characters (``@``, ``:``, ``/``) don't corrupt the URL.
-_SUPERUSER_PASSWORD_ENC = quote_plus(SUPERUSER_PASSWORD)
-_APP_PASSWORD_ENC = quote_plus(APP_PASSWORD)
+# ``quote`` (not ``quote_plus``) is used so a space encodes to ``%20`` rather
+# than ``+`` — ``+`` is not decoded back to a space in the userinfo component
+# of a URI, which would corrupt passwords containing spaces.
+_SUPERUSER_PASSWORD_ENC = quote(SUPERUSER_PASSWORD, safe="")
+_APP_PASSWORD_ENC = quote(APP_PASSWORD, safe="")
 
 SUPERUSER_ROOT_URL = (
     f"postgresql://postgres:{_SUPERUSER_PASSWORD_ENC}"
@@ -145,8 +152,20 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
                 ),
             )
         await cur.execute(
-            sql.SQL("GRANT CONNECT, CREATE ON DATABASE {} TO app_owner").format(
+            sql.SQL("GRANT CONNECT, CREATE ON DATABASE {} TO {}").format(
                 sql.Identifier(TEST_DB_NAME),
+                sql.Identifier("app_owner"),
+            ),
+        )
+
+        # migration_user must be able to ``SET ROLE app_owner`` (alembic env.py
+        # does this to create objects in the app/db_meta schemas). Re-assert the
+        # role membership here so the fixture is self-contained even when the
+        # cluster was not provisioned by infra/init-db.sh.
+        await cur.execute(
+            sql.SQL("GRANT {} TO {}").format(
+                sql.Identifier("app_owner"),
+                sql.Identifier("migration_user"),
             ),
         )
 
@@ -154,15 +173,25 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
         for schema_name in ("db_meta", "app", "extensions"):
             await cur.execute(
                 sql.SQL(
-                    "CREATE SCHEMA IF NOT EXISTS {} AUTHORIZATION app_owner",
-                ).format(sql.Identifier(schema_name)),
+                    "CREATE SCHEMA IF NOT EXISTS {} AUTHORIZATION {}",
+                ).format(
+                    sql.Identifier(schema_name),
+                    sql.Identifier("app_owner"),
+                ),
             )
 
-        # Lock down public
-        await cur.execute("REVOKE CREATE ON SCHEMA public FROM PUBLIC")
+        # Lock down public (app objects live in app/db_meta, pg_trgm in
+        # extensions — nothing app-facing uses public, so PUBLIC gets no
+        # privileges there at all).
+        await cur.execute(
+            sql.SQL("REVOKE ALL ON SCHEMA {} FROM PUBLIC").format(
+                sql.Identifier("public"),
+            ),
+        )
         for role in ("app_user", "migration_user"):
             await cur.execute(
-                sql.SQL("REVOKE ALL ON SCHEMA public FROM {}").format(
+                sql.SQL("REVOKE ALL ON SCHEMA {} FROM {}").format(
+                    sql.Identifier("public"),
                     sql.Identifier(role),
                 ),
             )
@@ -170,41 +199,62 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
         # Schema grants for app_user
         for schema_name in ("app", "extensions"):
             await cur.execute(
-                sql.SQL("GRANT USAGE ON SCHEMA {} TO app_user").format(
+                sql.SQL("GRANT USAGE ON SCHEMA {} TO {}").format(
                     sql.Identifier(schema_name),
+                    sql.Identifier("app_user"),
                 ),
             )
 
         # Default privileges (objects created by app_owner → app_user can use)
         for stmt in (
-            sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO app_user"),
-            sql.SQL("GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO app_user"),
-            sql.SQL("GRANT EXECUTE ON FUNCTIONS TO app_user"),
+            sql.SQL("GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO {}").format(
+                sql.Identifier("app_user"),
+            ),
+            sql.SQL("GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO {}").format(
+                sql.Identifier("app_user"),
+            ),
+            sql.SQL("GRANT EXECUTE ON FUNCTIONS TO {}").format(
+                sql.Identifier("app_user"),
+            ),
         ):
             await cur.execute(
                 sql.SQL(
-                    "ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA app {}",
-                ).format(stmt),
+                    "ALTER DEFAULT PRIVILEGES FOR ROLE {} IN SCHEMA {} {}",
+                ).format(
+                    sql.Identifier("app_owner"),
+                    sql.Identifier("app"),
+                    stmt,
+                ),
             )
         await cur.execute(
             sql.SQL(
-                "ALTER DEFAULT PRIVILEGES FOR ROLE app_owner IN SCHEMA extensions "
-                "GRANT EXECUTE ON FUNCTIONS TO app_user",
+                "ALTER DEFAULT PRIVILEGES FOR ROLE {} IN SCHEMA {} "
+                "GRANT EXECUTE ON FUNCTIONS TO {}",
+            ).format(
+                sql.Identifier("app_owner"),
+                sql.Identifier("extensions"),
+                sql.Identifier("app_user"),
             ),
         )
 
         # Search paths
         await cur.execute(
             sql.SQL(
-                "ALTER ROLE migration_user IN DATABASE {} "
+                "ALTER ROLE {} IN DATABASE {} "
                 "SET search_path = app, db_meta, extensions, public",
-            ).format(sql.Identifier(TEST_DB_NAME)),
+            ).format(
+                sql.Identifier("migration_user"),
+                sql.Identifier(TEST_DB_NAME),
+            ),
         )
         await cur.execute(
             sql.SQL(
-                "ALTER ROLE app_user IN DATABASE {} "
+                "ALTER ROLE {} IN DATABASE {} "
                 "SET search_path = app, extensions, public",
-            ).format(sql.Identifier(TEST_DB_NAME)),
+            ).format(
+                sql.Identifier("app_user"),
+                sql.Identifier(TEST_DB_NAME),
+            ),
         )
     await admin_conn.close()
 
@@ -279,9 +329,12 @@ async def db_session() -> AsyncGenerator[AsyncSession]:
 
             @event.listens_for(session.sync_session, "after_transaction_end")
             def _restart_savepoint(_session: object, _transaction: object) -> None:
-                # The session ended a (savepoint) transaction; reopen one so the
-                # next statements run inside a fresh savepoint rather than the
-                # bare outer transaction.
+                # SQLAlchemy fires this synchronously on the event loop thread
+                # (during an awaited commit/rollback), so only synchronous
+                # connection methods are safe here — no awaits. The session just
+                # ended a (savepoint) transaction; reopen one so the next
+                # statements run inside a fresh savepoint rather than the bare
+                # outer transaction.
                 sync_conn = conn.sync_connection
                 if sync_conn is None or conn.closed:
                     return
@@ -353,9 +406,11 @@ async def setup_class_users(
 
         class_users[username] = {"headers": headers, "user": user}
 
-    # Commit (release the savepoint) so the seeded users join the outer
-    # transaction before any test runs. A later rollback in the first test
-    # then only unwinds its own savepoint, never the seeded rows.
+    # ``AsyncSession.commit()`` here only releases the session-level savepoint
+    # (S1); it does NOT commit the class-level outer transaction (S0). Releasing
+    # S1 folds the seeded rows into S0 so they survive the request-time
+    # savepoints that later commits/rollbacks open and close. Without this, the
+    # first test's request-time rollback would unwind the seeded rows too.
     await db_session.commit()
 
     request.cls.configured_users = class_users

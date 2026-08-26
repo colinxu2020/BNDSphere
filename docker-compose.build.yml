@@ -14,6 +14,13 @@ services:
       network: host
       target: prod
 
+  backend-dev:
+    image: bndsphere-backend:dev
+    build:
+      context: ./backend
+      network: host
+      target: dev
+
   caddy:
     image: bndsphere-caddy
     build:

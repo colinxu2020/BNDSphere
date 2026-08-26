@@ -1,6 +1,6 @@
 from functools import cache
 from pathlib import Path
-from urllib.parse import quote_plus
+from urllib.parse import quote
 
 from pydantic import computed_field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -26,7 +26,10 @@ class DatabaseSettings(_AppBaseSettings):
     @computed_field  # type: ignore[prop-decorator]
     @property
     def database_url(self) -> str:
-        safe_password = quote_plus(self.postgres_password)
+        # ``quote`` (not ``quote_plus``) encodes a space as ``%20`` instead of
+        # ``+``; ``+`` is not decoded back to a space in the userinfo component
+        # of a URI, which would corrupt passwords containing spaces.
+        safe_password = quote(self.postgres_password, safe="")
 
         return f"postgresql+psycopg://{self.postgres_user}:{safe_password}@{self.postgres_host}:{self.postgres_port}/{self.postgres_db}"
 

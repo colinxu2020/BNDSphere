@@ -14,6 +14,7 @@ import {
   StatusMessage,
   Surface,
 } from "../components/ui/AppPrimitives";
+import { PageLoading } from "../components/ui/PageStates";
 
 type Club = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
@@ -108,9 +109,7 @@ export function Workspace() {
       {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
-        <Surface className="flex items-center justify-center py-16 text-slate-500">
-          正在加载你管理的社团...
-        </Surface>
+        <PageLoading compact />
       ) : managedClubs.length ? (
         <div className="grid gap-4 md:grid-cols-2">
           {managedClubs.map(({ club, membership }) => (
