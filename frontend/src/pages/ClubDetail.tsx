@@ -162,24 +162,24 @@ export function ClubDetail() {
     }
   };
 
-const downloadClubQrCode = () => {
-  const svg = document.getElementById("club-share-qr-code");
-  if (!(svg instanceof SVGElement)) return;
+  const downloadClubQrCode = () => {
+    const svg = document.getElementById("club-share-qr-code");
+    if (!(svg instanceof SVGElement)) return;
 
-  const svgText = new XMLSerializer().serializeToString(svg);
-  const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
-  const downloadUrl = URL.createObjectURL(blob);
+    const svgText = new XMLSerializer().serializeToString(svg);
+    const blob = new Blob([svgText], { type: "image/svg+xml;charset=utf-8" });
+    const downloadUrl = URL.createObjectURL(blob);
 
-  const safeName = (club?.name || "社团").replace(/[\\/:*?"<>|]/g, "_").trim() || "社团";
-  const link = document.createElement("a");
-  link.href = downloadUrl;
-  link.download = `${safeName}-二维码.svg`;
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
+    const safeName = (club?.name || "社团").replace(/[\\/:*?"<>|]/g, "_").trim() || "社团";
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = `${safeName}-二维码.svg`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
 
-  window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
-};
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+  };
 
   useEffect(() => {
     if (!isClubLinkCopied) return;
