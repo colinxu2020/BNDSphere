@@ -66,6 +66,7 @@ type StarApplication = components["schemas"]["StarLevelApplicationInfo"];
 type StarRating = components["schemas"]["StarRatingResponse"];
 type ParticipationType = components["schemas"]["ParticipationTypeEnum"];
 type UserInfo = components["schemas"]["UserInfo"];
+type PublicUserInfo = components["schemas"]["PublicUserInfo"];
 
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -78,7 +79,9 @@ export function ClubWorkspace() {
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
   const [membershipRequests, setMembershipRequests] = useState<ClubMembershipRequest[]>([]);
-  const [membershipApplicants, setMembershipApplicants] = useState<Record<number, UserInfo>>({});
+  const [membershipApplicants, setMembershipApplicants] = useState<Record<string, PublicUserInfo>>(
+    {},
+  );
   const [activities, setActivities] = useState<ClubActivity[]>([]);
   const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>([]);
   const [records, setRecords] = useState<ClubGeneralActivity[]>([]);

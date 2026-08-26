@@ -8,6 +8,7 @@ on:
       - "backend/**"
       - "infra/**"
       - "frontend/**"
+      - "scripts/**"
       - ".github/workflows/docker.yml"
 
   push:
@@ -19,6 +20,7 @@ on:
       - "backend/**"
       - "infra/**"
       - "frontend/**"
+      - "scripts/**"
       - ".github/workflows/docker.yml"
 
   workflow_dispatch:
@@ -40,14 +42,10 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      - name: Prepare dummy local files for Compose parsing
+      - name: Generate local secrets for Compose parsing and tests
         shell: bash
         run: |
-          mkdir -p secrets
-
-          printf 'ci-postgres-password\n' > secrets/postgres_password.txt
-          printf 'ci-app-password\n' > secrets/app_db_password.txt
-          printf 'ci-migration-password\n' > secrets/migration_db_password.txt
+          ./scripts/gen-secrets.sh
 
           {
             echo "debug=1"
@@ -117,7 +115,16 @@ jobs:
         run: |
           docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull postgres backend caddy
 
+      - name: Build backend dev image
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull backend-dev
+
+      - name: Run backend test suite (smoke)
+        run: |
+          docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test run --rm test
+
       - name: Scan postgres image with Trivy
+        if: always()
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: bndsphere-postgres
