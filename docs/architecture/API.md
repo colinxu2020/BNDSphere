@@ -1,6 +1,6 @@
 # BNDSphere API 参考
 
-所有端点挂载在 `/api/v1` 前缀下（`main.py:31`）。认证通过 `Authorization: Bearer <token>` 头（OAuth2PasswordBearer，`tokenUrl=/api/v1/auth/login`）。
+除健康检查 `GET /health`（直接注册在应用根，见 `main.py:51`）外，所有端点均挂载在 `/api/v1` 前缀下（`main.py:31`）。认证通过 `Authorization: Bearer <token>` 头（OAuth2PasswordBearer，`tokenUrl=/api/v1/auth/login`）。
 
 > 交互式文档：启动后端后访问 `/api/docs`（Swagger）或 `/api/redoc`（ReDoc）。
 
@@ -18,7 +18,7 @@
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
 | GET | `/users/me` | 登录 | 获取当前用户公开信息 |
-| GET | `/users/{user_id}` | 公开 | 获取指定用户公开信息（不含角色） |
+| GET | `/users/{user_id}` | 公开 | 获取指定用户公开信息，返回 `PublicUserInfo`（不含 `role`/`email`） |
 | POST | `/users/update-requests` | 登录 | 申请更新个人信息（待 moderator 审核） |
 
 ## 社团
@@ -195,4 +195,4 @@
 
 - **分页**：列表端点使用 `fastapi-pagination` 的 `Page[T]` 结构（`items` / `total` / `page` / `size`）。
 - **错误响应**：业务错误返回统一结构 `{ "message_key", "error_code", "details" }`（见 `main.py` 的 `BusinessError` 处理器）。
-- **幂等申请**：同一主体（用户/社团/活动）同一时刻最多存在一条 `pending` 申请，新申请会覆盖旧申请（数据库层用条件唯一索引保证，见 `docs/architecture/database.md`）。
+- **幂等申请**：仅「更新类」moderation 申请（社团信息更新、用户信息更新、社团活动修改）保证同一主体同一时刻最多一条 `pending` —— 新申请先把旧的 `pending` 标记为 `superseded`（作废）后新建（条件唯一索引保证，见 `docs/architecture/database.md`）。加入社团申请（`club_membership_requests`）已有 `pending` 时直接拒绝（`DUPLICATE_PENDING_REQUEST`），不覆盖；社团活动创建申请无「单条 pending」约束，可并列多条。

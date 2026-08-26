@@ -31,7 +31,7 @@ compose 的 `secrets:` 块从 `secrets/` 目录读取 6 个密钥文件（数据
 CORS_ORIGIN=http://localhost:5173
 OSS_ENDPOINT_URL=   # S3 兼容对象存储端点
 OSS_BUCKET=         # 桶名
-OSS_PUBLIC_BASE_URL= # 公开访问基地址
+OSS_PUBLIC_BASE_URL= # 上传对象对外访问的基地址（如 CDN 域名）；与仅用于签名的 OSS_ENDPOINT_URL 区分
 CADDY_PORT=80       # 可选，Caddy 对外端口
 ```
 
@@ -40,8 +40,10 @@ CADDY_PORT=80       # 可选，Caddy 对外端口
 ## 3. 启动开发环境（Docker Compose）
 
 ```bash
-docker compose -f docker-compose.yml -f docker-compose.dev.yml up --build
+docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml up --build
 ```
+
+> `docker-compose.build.yml` 提供 `postgres`/`backend`/`backend-dev`/`caddy` 等镜像的构建定义；首次运行（无预构建镜像）需带上它，后续增量启动可省略 `--build`。
 
 服务一览：
 
@@ -63,7 +65,7 @@ API 交互式文档：`/api/docs`（Swagger）、`/api/redoc`（ReDoc）。
 make test
 # 等价于：
 #   ./scripts/gen-secrets.sh
-#   docker compose -f docker-compose.yml -f docker-compose.build.yml build postgres backend
+#   docker compose -f docker-compose.yml -f docker-compose.build.yml build postgres backend-dev
 #   docker compose -f docker-compose.yml -f docker-compose.dev.yml --profile test run test
 ```
 

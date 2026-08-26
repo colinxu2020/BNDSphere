@@ -134,7 +134,7 @@ BNDSphere 的数据库围绕**学校社团管理**核心业务设计，涵盖以
 
 #### VerificationMixin（`models/verifications/verification_common.py`）
 
-为 verification 审核链的表（`club_membership_requests`、`joint_activities.final_status`）提供：
+为 verification 审核链的表（`club_membership_requests`）提供：
 
 | 列名 | 类型 | 说明 |
 | --- | --- | --- |
@@ -143,6 +143,8 @@ BNDSphere 的数据库围绕**学校社团管理**核心业务设计，涵盖以
 | `verify_at` | `datetime \| None` | 审核时间 |
 
 附带 `verifier` relationship。
+
+> 注：`joint_activities.final_status` 使用 `VerificationStatusEnum` 类型，但 `JointActivity` **不继承** `VerificationMixin`——它以内联方式声明 `final_status`/`final_auditor_id`/`final_reviewed_at` 列（见 §3.14），而非 mixin 提供的 `verification_status`/`verifier_id`/`verify_at`。
 
 #### ApplicantMixin（`models/verifications/verification_common.py`）
 
@@ -155,9 +157,27 @@ BNDSphere 的数据库围绕**学校社团管理**核心业务设计，涵盖以
 
 附带 `applicant` relationship。
 
+#### Moderation 与 Verification 的区别
+
+| 维度 | Moderation（moderation 审核链） | Verification（verification 验证链） |
+| --- | --- | --- |
+| 审批人 | 全局角色 `moderator`/`admin`/`dev`（`RoleChecker`） | 社团社长/副社长（`ClubRoleChecker`） |
+| 消费表 | `club_update_requests`、`user_update_requests`、`club_activity_create_requests`、`club_activity_update_requests` | `club_membership_requests` |
+| 状态枚举 | `ModerationStatusEnum`（含 `superseded`） | `VerificationStatusEnum`（仅 `pending`/`approved`/`rejected`） |
+| 审核人字段 | `moderator_id` / `moderate_at` | `verifier_id` / `verify_at` |
+| 路由前缀 | `/moderations/` | `/clubs/{club_id}/membership-requests` |
+| 幂等行为 | 更新类申请新申请会 supersede 旧 `pending` | 已有 `pending` 时直接拒绝重复申请 |
+
 ---
 
 ## 3. 数据表定义
+
+> **表名/枚举变更与弃用**：早期表名与枚举值经 Alembic 迁移改名，旧名称已弃用，本文档一律使用新名：
+> - `activities` → `club_activities`、`activity_participators` → `club_activity_participants`（`0d0985e9223c`、`ce5b0aba4d25`）
+> - `academic_term` → `academic_terms`（`5eee790bfb8f`）
+> - moderation 申请表单数 → 复数：`club_update_request`/`user_update_request`/`club_activity_create_request`/`club_activity_update_request` → 复数表名（`fcd858152ec0`）
+> - 列 `moderate_status` → `moderation_status`（`75546634f304`）
+> - 枚举值 `scf` → `federation_staff`、`vice` → `vice_president`（`e70c1b0c1e5c`）
 
 ### 3.1 `users` — 用户表
 
