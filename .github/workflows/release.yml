@@ -20,8 +20,16 @@ permissions:
 # SHA256SUMS from different builds — a release the updater's checksum gate
 # then refuses, and that no redeploy can repair without deleting assets by
 # hand. Keyed by version so unrelated releases still run in parallel.
+#
+# ref_name, NOT ref: a tag push's github.ref is "refs/tags/v1.5.0" while a
+# dispatch supplies "v1.5.0" — with `ref` those land in two different groups
+# and the tag-push-racing-a-manual-rerun case (the one this exists for) is
+# not serialised at all. ref_name is "v1.5.0" for a tag push, matching the
+# dispatch input exactly. Residual gap: a dispatch of "1.5.0" (no leading v)
+# for tag v1.5.0 still lands in its own group — expressions cannot normalise
+# that; dispatch with the tag's exact name.
 concurrency:
-  group: release-${{ inputs.version || github.ref }}
+  group: release-${{ inputs.version || github.ref_name }}
   cancel-in-progress: false
 
 jobs:

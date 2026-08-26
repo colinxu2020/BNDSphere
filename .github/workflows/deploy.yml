@@ -33,6 +33,15 @@ jobs:
     # Runs on the deploy host. A GitHub-hosted runner cannot reach a box behind
     # NAT, and this needs the host's Docker daemon regardless.
     runs-on: self-hosted
+    # The boundary is wider than "push to this file": workflow_dispatch runs
+    # the workflow definition FROM THE DISPATCHED REF, and checkout below then
+    # executes that ref's infra/updater/*.sh on the host. So push access to
+    # ANY branch containing this file, plus actions:write, is host code
+    # execution. Checkout pinning cannot close that (the workflow file itself
+    # already came from the branch); the real control is this environment's
+    # protection rules — set a deployment branch policy restricting
+    # `production` to master and tags, and optionally required reviewers.
+    # Repository settings, not YAML: Settings → Environments → production.
     environment: production
 
     steps:
@@ -66,4 +75,10 @@ jobs:
 
       - name: Show the deploy log on failure
         if: failure()
-        run: tail -n 100 "${{ vars.DEPLOY_DIR }}/deploy/status/update.log" || true
+        env:
+          # Same env-indirection discipline as the deploy step. A repository
+          # variable is admin-controlled, not attacker-controlled — but one
+          # inline `${{ }}` in a run: body is one exception to have to reason
+          # about, and this file is the security boundary.
+          DEPLOY_DIR: ${{ vars.DEPLOY_DIR }}
+        run: tail -n 100 "$DEPLOY_DIR/deploy/status/update.log" || true

@@ -923,3 +923,37 @@ answer; it is now captured, tail-bounded, and still echoed to the workflow.
 `selfcheck.sh` is 226 → 249 assertions, every new one verified to fail when
 its fix is reverted. Three new error codes (`deploy_failed`,
 `record_diverged`, `orphan_reap_failed`) are modelled in the frontend.
+
+## 25. Amendment: self-review findings
+
+A third pass, this time unprompted, over the surfaces the bot rounds had not
+touched. Verified clean: the dev endpoints require the `dev` role explicitly
+(admin deliberately excluded); release notes and log lines render as escaped
+React text (no `dangerouslySetInnerHTML` in the tree); `log_tail`'s bound is
+not caller-supplied; `updater.sh` runs `set -u` without `-e`, so the
+migration exit-status capture is sound; the checksum grep only ever sees the
+three fixed asset names.
+
+Two changes and one clarification:
+
+- **§24's concurrency fix did not serialise the race it was written for.** A
+  tag push's `github.ref` is `refs/tags/v1.5.0`; a dispatch supplies
+  `v1.5.0`. Keyed on `ref`, those land in two different groups, so a tag
+  push racing a manual rerun of the same version — the exact scenario the
+  group was added against — ran unserialised. Keyed on `ref_name` they
+  collide. Residual gap: dispatching `1.5.0` (no leading v) for tag
+  `v1.5.0` still gets its own group; expressions cannot normalise that, so
+  dispatch with the tag's exact name.
+- The failure-tail step interpolated `vars.DEPLOY_DIR` inline in its `run:`
+  body. Admin-controlled, so not an escalation — but this file is the
+  boundary, and one exception to the env-indirection rule is one exception
+  to reason about. Now env-indirected like everything else.
+- **The trust boundary is wider than §21/§23 stated.** `workflow_dispatch`
+  runs the workflow definition from the *dispatched ref*, and checkout then
+  executes that ref's `infra/updater/*.sh` on the host — so push access to
+  any branch containing the workflow, plus `actions:write`, is host code
+  execution, not just push access to `deploy.yml` on master. YAML cannot
+  close this; the control is the `production` environment's protection
+  rules. **Operator step: Settings → Environments → production → deployment
+  branch policy restricted to `master` and `v*` tags** (required reviewers
+  optional on top).

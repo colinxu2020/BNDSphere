@@ -858,6 +858,13 @@ assert_ok "release.yml rejects multi-line versions before writing outputs" \
 # different builds -- a release the checksum gate then refuses.
 assert_ok "release.yml serialises publication per version" \
     grep -q 'group: release-' "$REL"
+# ref_name, not ref: a tag push's github.ref is "refs/tags/v1.5.0" while a
+# dispatch supplies "v1.5.0" -- with `ref` those land in different groups and
+# the tag-push-vs-manual-rerun race is not serialised at all.
+assert_ok "release.yml keys the group on ref_name so push and dispatch collide" \
+    grep -q 'group: release-.*github\.ref_name' "$REL"
+assert_fail "release.yml does not key the group on the raw ref" \
+    grep -Eq 'group: release-.*github\.ref[^_]' "$REL"
 
 # GITHUB_SHA names the ref the run STARTED from, not the tag checkout moved
 # the worktree to: on a dispatch from master for v1.5.0 it records master's
