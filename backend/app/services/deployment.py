@@ -30,12 +30,11 @@ import httpx
 
 GITHUB_API_BASE: Final[str] = "https://api.github.com"
 
-# Must agree with infra/updater/lib/validate.sh's VERSION_RE and VERSION_MAX_LEN.
-VERSION_PATTERN: Final[re.Pattern[str]] = re.compile(
-    r"^v?[0-9]+(\.[0-9]+){0,3}([-+][0-9A-Za-z.-]+)?$",
-)
-VERSION_MAX_LEN: Final[int] = 64
-
+# No version grammar here on purpose. It lived here as a hand-synced copy of
+# infra/updater/lib/validate.sh's VERSION_RE, for the request body this module
+# used to accept; the panel is read-only now, nothing validated against it, and
+# a third unenforced copy only drifts — as it did, still accepting '+' build
+# metadata after release.yml learned that Docker tags cannot contain one.
 _NUMERIC_RE: Final[re.Pattern[str]] = re.compile(r"^[0-9]+(\.[0-9]+)*$")
 
 # Same set as infra/updater/lib/state.sh's TERMINAL_STAGES.

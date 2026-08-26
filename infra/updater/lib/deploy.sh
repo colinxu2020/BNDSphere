@@ -14,15 +14,23 @@ compose() {
     # Every flag explicit. Bind-mount sources in docker-compose.yml are
     # resolved by the HOST daemon, so guessing the project directory silently
     # breaks secrets rather than failing loudly (spec §13).
+    # BOTH env files, in this order. --env-file REPLACES the default .env, it
+    # does not add to it: with only the pins, CORS_ORIGIN/OSS_* interpolate to
+    # empty strings and CADDY_PORT falls back to its :-80 default, so every
+    # recreate would silently blank the backend's config and remap the public
+    # port. Passing .env first and the pins second keeps the deployment's real
+    # environment and still lets the pins win on BACKEND_IMAGE/CADDY_IMAGE
+    # (later --env-file takes precedence for overlapping keys).
     if [ "${COMPOSE_ECHO:-0}" = "1" ]; then
-        printf 'docker compose --project-directory %s -f %s --env-file %s -p %s %s\n' \
+        printf 'docker compose --project-directory %s -f %s --env-file %s --env-file %s -p %s %s\n' \
             "$COMPOSE_PROJECT_DIR" "$COMPOSE_PROJECT_DIR/docker-compose.yml" \
-            "$(versions_env)" "$COMPOSE_PROJECT_NAME" "$*"
+            "$COMPOSE_PROJECT_DIR/.env" "$(versions_env)" "$COMPOSE_PROJECT_NAME" "$*"
         return 0
     fi
     docker compose \
         --project-directory "$COMPOSE_PROJECT_DIR" \
         -f "$COMPOSE_PROJECT_DIR/docker-compose.yml" \
+        --env-file "$COMPOSE_PROJECT_DIR/.env" \
         --env-file "$(versions_env)" \
         -p "$COMPOSE_PROJECT_NAME" \
         "$@"
@@ -139,12 +147,26 @@ wait_healthy() {
     return 1
 }
 
-# Application-level readiness, beyond container health. Reached over
-# backend-network; the updater still has no listener of its own (spec §10.6).
+# Application-level readiness, beyond container health (spec §10.6).
+#
+# This runs on the deploy host, NOT inside backend-network — the Compose DNS
+# names `backend` and `caddy` do not resolve here. Probing them (as this did
+# while the updater was still a container on that network) fails every deploy,
+# times out, triggers the automatic rollback, and then fails the rollback's
+# health gate the same way.
+#
+# The published port is the right probe anyway: it is what a user actually
+# reaches, and it is the one thing wait_healthy does not already cover. The
+# in-network endpoints this used to curl are exactly what the backend and
+# caddy images' own HEALTHCHECKs hit, and wait_healthy reads those above.
 app_ready() {
-    curl -fsS --max-time 5 -o /dev/null http://backend:8000/health || return 1
-    curl -fsS --max-time 5 -o /dev/null http://caddy:8080/ || return 1
-    return 0
+    # Ask the daemon for the mapping rather than reading CADDY_PORT: this is
+    # authoritative, and it verifies the port publish itself.
+    _hostport=$(compose port caddy 8080 2>/dev/null) || return 1
+    [ -n "$_hostport" ] || return 1
+    # "0.0.0.0:8443" or "[::]:8443" -> 8443. Connect over loopback explicitly;
+    # curl to 0.0.0.0 is not portable.
+    curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:${_hostport##*:}/"
 }
 
 run_update() {
@@ -256,7 +278,12 @@ run_update() {
     # before recreate_services -- re-writing the same values here would be
     # redundant.
 
-    state_terminal success "" "updated to $_version"
+    # Checked like every other write in this function. Unchecked, a status
+    # filesystem that fills up here reports a green deploy while state.json is
+    # still at health_checking — and the NEXT run reads that non-terminal
+    # stage as "interrupted", so a completed deploy gets misfiled as a crash
+    # and the panel sits busy forever in between.
+    state_terminal success "" "updated to $_version" || return 1
     # Superseded images are deliberately never pruned: rollback restores the
     # previous images from the local store, so keeping them IS the feature.
     # Disk is cheaper than an impossible rollback. An operator can reclaim
@@ -348,6 +375,7 @@ run_rollback() {
         return 1
     fi
 
-    state_terminal rollback_success "" "rolled back to $_target"
+    # Same reasoning as the success write in run_update above.
+    state_terminal rollback_success "" "rolled back to $_target" || return 1
     return 0
 }

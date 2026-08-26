@@ -20,9 +20,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v6
-
+      # Resolve and validate the version BEFORE checkout: on workflow_dispatch
+      # the version is an input independent of the ref, and it decides what
+      # gets checked out below.
       - name: Resolve version and image references
         id: meta
         env:
@@ -39,8 +39,12 @@ jobs:
 
           # Same grammar the updater enforces (spec §8). Rejecting here means a
           # malformed tag fails at release time, not on someone's deploy host.
+          # No '+' build metadata: the version becomes a Docker tag verbatim
+          # below, and Docker's reference grammar allows only word characters,
+          # dots and dashes — v1.5.0+build.7 would pass this check and then
+          # fail `docker build` with "invalid reference format".
           if ! printf '%s' "$version" \
-             | grep -Eq '^v?[0-9]+(\.[0-9]+){0,3}([-+][0-9A-Za-z.-]+)?$'; then
+             | grep -Eq '^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::Invalid version tag: $version"
             exit 1
           fi
@@ -50,6 +54,18 @@ jobs:
             echo "backend_ref=bndsphere-backend:${version}"
             echo "caddy_ref=bndsphere-caddy:${version}"
           } >> "$GITHUB_OUTPUT"
+
+      # Check out the TAG, never the dispatch ref. actions/checkout defaults to
+      # the ref the run was started from, so dispatching from master with
+      # version=v1.5.0 would build master's sources, label them v1.5.0, and
+      # then --clobber the real v1.5.0 assets on the existing release. For a
+      # tag push refs/tags/$version is the pushed tag, so one ref serves both
+      # triggers. Safe in `ref:` because the step above already rejected
+      # anything outside ^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$.
+      - name: Checkout the released tag
+        uses: actions/checkout@v6
+        with:
+          ref: refs/tags/${{ steps.meta.outputs.version }}
 
       - name: Build backend and caddy images (exactly once)
         shell: bash

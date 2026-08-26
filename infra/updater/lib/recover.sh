@@ -12,14 +12,21 @@
 # success unless the running containers match the intended images.
 
 # Compose `run --rm` helpers can be orphaned if the updater dies mid-run.
+#
+# NO status filter, deliberately: a one-off that is still RUNNING is the
+# dangerous case, not the dead one. `--rm` only removes the container when it
+# exits, so a migration whose client disconnected keeps going, stays invisible
+# to a `status=exited` filter, and is never reaped — and the next deploy then
+# starts a SECOND `alembic upgrade head` concurrently against the same
+# database. We have already decided not to resume, so killing it is the
+# correct reconciliation; `rm -f` covers running and exited alike.
 reap_orphans() {
     _ids=$(docker ps -aq \
         --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
-        --filter "label=com.docker.compose.oneoff=True" \
-        --filter "status=exited" 2>/dev/null)
+        --filter "label=com.docker.compose.oneoff=True" 2>/dev/null)
     [ -n "$_ids" ] || return 0
     # shellcheck disable=SC2086 # deliberate word splitting over an id list
-    docker rm $_ids >/dev/null 2>&1 || true
+    docker rm -f $_ids >/dev/null 2>&1 || true
     log "reaped orphaned one-off containers"
 }
 

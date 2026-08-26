@@ -71,7 +71,8 @@ assert_eq "line 2499" "$(tail -n 1 "$STATUS_DIR/update.log" | cut -d' ' -f2-)" \
 rm -rf "$STATUS_DIR"
 
 # ── startup validation ───────────────────────────────────────────────
-GOOD=$(mktemp -d); mkdir -p "$GOOD/secrets"; touch "$GOOD/docker-compose.yml"
+GOOD=$(mktemp -d); mkdir -p "$GOOD/secrets"
+touch "$GOOD/docker-compose.yml" "$GOOD/.env"
 
 assert_fail "startup rejects unset COMPOSE_PROJECT_DIR" \
     env -u COMPOSE_PROJECT_DIR sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
@@ -81,6 +82,14 @@ assert_fail "startup rejects missing directory" \
     env COMPOSE_PROJECT_DIR=/nonexistent sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 assert_fail "startup rejects dir without docker-compose.yml" \
     env COMPOSE_PROJECT_DIR="$(mktemp -d)" sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
+# The compose wrapper passes .env explicitly; without it every recreate would
+# interpolate CORS_ORIGIN/OSS_* to empty strings and remap CADDY_PORT to its
+# :-80 default. Fail before touching containers, not after.
+NOENV=$(mktemp -d); mkdir -p "$NOENV/secrets"; touch "$NOENV/docker-compose.yml"
+assert_fail "startup rejects dir without .env" \
+    env COMPOSE_PROJECT_DIR="$NOENV" sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
+rm -rf "$NOENV"
+
 assert_ok "startup accepts a well-formed project dir" \
     env COMPOSE_PROJECT_DIR="$GOOD" sh -c '. $UPDATER_DIR/lib/state.sh; validate_startup'
 rm -rf "$GOOD"
@@ -88,9 +97,17 @@ rm -rf "$GOOD"
 . "$UPDATER_DIR"/lib/validate.sh
 
 # ── version grammar ──────────────────────────────────────────────────
-for v in v1.5.0 1.5.0 v1.5 v1 v1.2.3.4 v1.5.0-rc.1 v1.5.0+build.7; do
+for v in v1.5.0 1.5.0 v1.5 v1 v1.2.3.4 v1.5.0-rc.1; do
     assert_ok "valid_version accepts $v" valid_version "$v"
 done
+
+# '+' build metadata used to be accepted here and by release.yml's identical
+# grammar -- but the version becomes a Docker tag verbatim, and Docker's
+# reference grammar has no '+', so `docker build -t bndsphere-backend:v1.5.0+build.7`
+# fails with "invalid reference format". The release could never be built, so
+# accepting the tag downstream only bought a 404 on the assets.
+assert_fail "rejects '+' build metadata (not a legal Docker tag)" \
+    valid_version 'v1.5.0+build.7'
 
 # Injection and traversal attempts. These are the reason this function exists.
 assert_fail "rejects command chaining"      valid_version 'v1.5.0; rm -rf /'
@@ -229,6 +246,7 @@ export UPDATER_NO_MAIN=1
 COMPOSE_PROJECT_DIR=$(mktemp -d); export COMPOSE_PROJECT_DIR
 mkdir -p "$COMPOSE_PROJECT_DIR/secrets"
 : > "$COMPOSE_PROJECT_DIR/docker-compose.yml"
+: > "$COMPOSE_PROJECT_DIR/.env"
 state_init
 
 # (a) the run must be recorded as processed BEFORE the action is dispatched,
@@ -293,7 +311,7 @@ rm -rf "$STATUS_DIR"
 # every subsequent deploy would die -- permanently, with no process left to
 # free it. This drives the real main() with a stubbed action.
 STATUS_DIR=$(mktemp -d); export STATUS_DIR
-PROJ=$(mktemp -d); mkdir -p "$PROJ/secrets"; touch "$PROJ/docker-compose.yml"
+PROJ=$(mktemp -d); mkdir -p "$PROJ/secrets"; touch "$PROJ/docker-compose.yml" "$PROJ/.env"
 export COMPOSE_PROJECT_DIR="$PROJ"
 
 mkdir "$STATUS_DIR/updater.lock"
@@ -447,6 +465,17 @@ case "$_cmd" in
     *postgres*) FAILURES=$((FAILURES + 1))
         printf 'FAIL: compose wrapper named postgres\n' >&2 ;;
     *) PASSES=$((PASSES + 1)) ;;
+esac
+
+# --env-file REPLACES the default .env rather than adding to it, so the
+# wrapper must pass BOTH -- the deployment's .env first, the version pins
+# second so they win on BACKEND_IMAGE/CADDY_IMAGE. With only the pins,
+# CORS_ORIGIN and OSS_* interpolate empty and caddy is republished on :80.
+case "$_cmd" in
+    *"--env-file $PD/.env --env-file $PD/deploy/versions.env"*)
+        PASSES=$((PASSES + 1)) ;;
+    *) FAILURES=$((FAILURES + 1))
+       printf 'FAIL: compose wrapper must pass .env before the pins (got: %s)\n' "$_cmd" >&2 ;;
 esac
 unset COMPOSE_ECHO
 rm -rf "$PD"
@@ -756,6 +785,126 @@ assert_fail "a failed deployed_set current_* does not result in a recorded succe
 
 unset RC
 rm -rf "$PDC3" "$STATUS_DIR"
+
+# ── the terminal writes are writes too ───────────────────────────────
+#
+# `state_terminal success` was the one state write in run_update that went
+# unchecked, and `rollback_success` the same in run_rollback. Unchecked, a
+# status filesystem that fills up right there reports a GREEN deploy while
+# state.json is still at health_checking -- and the next run reads that
+# non-terminal stage as "interrupted", misfiling a completed deploy as a crash
+# while the panel sits busy in between.
+PDT=$(mktemp -d); mkdir -p "$PDT/deploy" "$PDT/secrets"
+touch "$PDT/docker-compose.yml" "$PDT/.env"
+COMPOSE_PROJECT_DIR=$PDT; export COMPOSE_PROJECT_DIR
+COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+state_init
+deployed_set current_version v1.0.0 current_backend_ref "old-backend" current_caddy_ref "old-caddy"
+
+_t1_update_terminal_write_fails() (
+    acquire_images() { printf '%s' "$PDT/manifest.json"; }
+    manifest_field() {
+        case "$2" in
+            *backend*) printf 'new-backend' ;;
+            *caddy*)   printf 'new-caddy' ;;
+        esac
+    }
+    run_migration() { return 0; }
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    # Everything up to and including the final deployed_set succeeds; only the
+    # terminal write is refused. Without the guard this returns 0.
+    state_terminal() { return 1; }
+    run_update v2.0.0
+)
+_t1_update_terminal_write_fails
+RC=$?
+assert_ok "run_update returns non-zero when the terminal success write fails" \
+    [ "$RC" -ne 0 ]
+
+deployed_set previous_version v1.0.0 \
+    previous_backend_ref "old-backend" previous_caddy_ref "old-caddy"
+_t2_rollback_terminal_write_fails() (
+    docker() { return 0; }            # image inspect: previous images present
+    recreate_services() { return 0; }
+    wait_healthy() { return 0; }
+    state_terminal() { return 1; }
+    run_rollback v1.0.0 manual
+)
+_t2_rollback_terminal_write_fails
+RC=$?
+assert_ok "run_rollback returns non-zero when the rollback_success write fails" \
+    [ "$RC" -ne 0 ]
+unset RC
+rm -rf "$PDT" "$STATUS_DIR"
+
+# ── app_ready probes the HOST, not backend-network ───────────────────
+#
+# The deploy script runs on the Actions runner now, not in a container on
+# backend-network, so `http://backend:8000/...` does not resolve. When it did,
+# app_ready could never return 0: every deploy timed out, triggered the
+# automatic rollback, and then failed the rollback's health gate identically.
+# Pinned structurally and behaviourally.
+assert_fail "app_ready does not probe a Compose DNS name" \
+    grep -Eq 'http://(backend|caddy):' "$UPDATER_DIR/lib/deploy.sh"
+
+PDA=$(mktemp -d); mkdir -p "$PDA/deploy" "$PDA/secrets"
+touch "$PDA/docker-compose.yml" "$PDA/.env"
+COMPOSE_PROJECT_DIR=$PDA; export COMPOSE_PROJECT_DIR
+STATUS_DIR=$(mktemp -d); export STATUS_DIR
+PROBE_OUT="$PDA/probe"; export PROBE_OUT
+
+_a1_app_ready_probe_url() (
+    compose() { [ "$1" = port ] && printf '0.0.0.0:8443'; }
+    curl() { printf '%s' "$*" >"$PROBE_OUT"; }
+    app_ready
+)
+assert_ok "app_ready succeeds when the published port answers" _a1_app_ready_probe_url
+# The port is taken from the daemon's mapping, and the request goes over
+# loopback -- curl to 0.0.0.0 is not portable.
+case "$(cat "$PROBE_OUT" 2>/dev/null)" in
+    *"http://127.0.0.1:8443/"*) PASSES=$((PASSES + 1)) ;;
+    *) FAILURES=$((FAILURES + 1))
+       printf 'FAIL: app_ready probed the wrong URL (got: %s)\n' \
+           "$(cat "$PROBE_OUT" 2>/dev/null)" >&2 ;;
+esac
+
+# Caddy not running, or its port not published: no mapping to probe. Must
+# fail, not curl a bare "http://127.0.0.1:/".
+_a2_app_ready_no_mapping() (
+    compose() { [ "$1" = port ] && printf ''; }
+    curl() { return 0; }
+    app_ready
+)
+assert_fail "app_ready fails when caddy has no published port" _a2_app_ready_no_mapping
+rm -rf "$PDA" "$STATUS_DIR"
+
+# ── reap_orphans must reap RUNNING one-offs, not just corpses ────────
+#
+# `run --rm` removes a container when it EXITS, so a migration whose client
+# disconnected keeps running and stays invisible to a status=exited filter --
+# and the next deploy then starts a second `alembic upgrade head` against the
+# same database. Recovery has already decided not to resume, so killing it is
+# the correct reconciliation.
+PDR=$(mktemp -d); STATUS_DIR=$(mktemp -d); export STATUS_DIR
+REAP_OUT="$PDR/argv"; export REAP_OUT
+_r1_reap_argv() (
+    docker() {
+        printf '%s\n' "$*" >>"$REAP_OUT"
+        [ "$1" = ps ] && printf 'cid1\n'
+        return 0
+    }
+    reap_orphans
+)
+_r1_reap_argv
+assert_fail "reap_orphans does not filter on status=exited" \
+    grep -q 'status=exited' "$REAP_OUT"
+assert_ok "reap_orphans force-removes, covering running one-offs" \
+    grep -q 'rm -f cid1' "$REAP_OUT"
+assert_ok "reap_orphans still scopes to this project's one-off containers" \
+    grep -q 'com.docker.compose.oneoff=True' "$REAP_OUT"
+rm -rf "$PDR" "$STATUS_DIR"
 
 # The migration must run against the NEW image, exposed as an environment
 # override, NOT the old pin still on disk in versions.env. Compose ranks

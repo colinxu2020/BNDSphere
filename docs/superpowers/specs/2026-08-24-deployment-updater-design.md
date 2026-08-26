@@ -813,3 +813,53 @@ read-only — it only raises the rate limit on the public release lookup.
 - The self-hosted runner is unproven: no deploy has been executed through
   this path. `vars.DEPLOY_DIR` must be set, and a runner registered on the
   deploy host, before the panel's button does anything.
+
+## 23. Amendment: moving to the runner broke assumptions the sidecar held
+
+Six defects surfaced in review of the CI-executor branch. All shared one
+root: the script kept reasoning about an environment it no longer runs in.
+
+- **`app_ready` probed Compose DNS names.** As a sidecar it sat on
+  `backend-network` and `http://backend:8000/health` resolved. On the runner
+  it does not, so `app_ready` could never return 0: every deploy would time
+  out, trigger the automatic rollback, and fail the rollback's health gate
+  identically. It now asks the daemon for caddy's published mapping
+  (`compose port caddy 8080`) and probes it over loopback — which also
+  covers the port publish, the one thing `wait_healthy` never checked. The
+  in-network endpoints it used to curl are exactly what the two images'
+  `HEALTHCHECK`s already hit.
+- **`--env-file` replaces `.env`, it does not add to it.** Passing only
+  `deploy/versions.env` meant `CORS_ORIGIN` and `OSS_*` interpolated to
+  empty strings and `CADDY_PORT` fell back to its `:-80` default on every
+  recreate. The wrapper now passes `.env` first and the pins second (later
+  file wins on overlapping keys), and `validate_startup` requires `.env` so
+  a missing one fails before any container is touched.
+- **Recovery only reaped exited one-offs.** `run --rm` removes a container
+  when it *exits*, so a migration whose client died keeps running, stays
+  invisible to a `status=exited` filter, and the next deploy starts a second
+  `alembic upgrade head` against the same database. The status filter is
+  gone and `rm -f` covers both — recovery has already decided not to resume,
+  so killing it is the correct reconciliation.
+- **The terminal `success` / `rollback_success` writes went unchecked** —
+  the only state writes in `run_update`/`run_rollback` that did. A full
+  status filesystem there reported a green deploy while `state.json` sat at
+  `health_checking`, which the *next* run reads as "interrupted": a
+  completed deploy misfiled as a crash, panel busy in between.
+- **`release.yml` checked out the dispatch ref, not the tag.** The `version`
+  input is independent of the ref, so dispatching from `master` with
+  `version=v1.5.0` built master's sources, labelled them v1.5.0, and
+  `--clobber`ed the real release's assets. Checkout now happens *after*
+  validation, pinned to `refs/tags/$version` — the same ref a tag push
+  produces, so one expression serves both triggers.
+- **The version grammar accepted `+` build metadata.** The version becomes a
+  Docker tag verbatim, and Docker's reference grammar has no `+`, so
+  `v1.5.0+build.7` passed validation and then failed `docker build` with
+  "invalid reference format". Rejected in `release.yml` and `VERSION_RE`
+  alike. The third copy — `VERSION_PATTERN` in the backend service — was
+  deleted rather than synced: nothing had validated against it since the
+  panel became read-only, and an unenforced copy only drifts, as this one
+  had. `UUID_RE` went with it, dead since the request channel was removed.
+
+Every fix is pinned by `selfcheck.sh` (226 assertions), each verified to
+fail when its fix is reverted.
+

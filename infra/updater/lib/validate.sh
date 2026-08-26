@@ -2,8 +2,11 @@
 # The trust boundary. Everything downstream assumes these rejected anything
 # dangerous, so these functions are deliberately strict and allow-list only.
 
-VERSION_RE='^v?[0-9]+(\.[0-9]+){0,3}([-+][0-9A-Za-z.-]+)?$'
-UUID_RE='^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
+# No '+' build metadata: release.yml uses the version verbatim as a Docker
+# tag, and Docker's reference grammar has no '+', so such a release can never
+# be built in the first place. Accepting one here would only let a deploy get
+# as far as a 404 on the release assets.
+VERSION_RE='^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$'
 VERSION_MAX_LEN=64
 
 # grep -Eq matches per line, so an embedded newline could smuggle a second

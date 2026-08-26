@@ -57,6 +57,12 @@ validate_startup() {
         || die "No docker-compose.yml in $COMPOSE_PROJECT_DIR"
     [ -d "$COMPOSE_PROJECT_DIR/secrets" ] \
         || die "No secrets/ in $COMPOSE_PROJECT_DIR"
+    # The compose wrapper passes this explicitly (lib/deploy.sh). Missing, it
+    # would be the deployment's whole interpolation environment going absent:
+    # CORS_ORIGIN and OSS_* blank, CADDY_PORT silently back to 80. Fail here
+    # instead, before anything has been recreated.
+    [ -f "$COMPOSE_PROJECT_DIR/.env" ] \
+        || die "No .env in $COMPOSE_PROJECT_DIR. Run deploy/bootstrap.sh first."
 
     mkdir -p "$STATUS_DIR"
     return 0
