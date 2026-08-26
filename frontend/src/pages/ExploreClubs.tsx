@@ -7,6 +7,7 @@ import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import { PageLoading } from "../components/ui/PageStates";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type Category = components["schemas"]["ClubCategoryEnum"];
@@ -125,21 +126,7 @@ export function ExploreClubs() {
       {error && <StatusMessage value={error} />}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div
-              key={i}
-              className="animate-pulse bg-white/50 h-32 rounded-md border border-slate-100 flex items-center p-6 gap-4"
-            >
-              <div className="w-16 h-16 bg-slate-200 rounded-md shrink-0"></div>
-              <div className="flex flex-col gap-2 w-full">
-                <div className="h-4 bg-slate-200 rounded-md w-1/3"></div>
-                <div className="h-5 bg-slate-200 rounded-md w-3/4"></div>
-                <div className="h-3 bg-slate-200 rounded-md w-full mt-2"></div>
-              </div>
-            </div>
-          ))}
-        </div>
+        <PageLoading compact />
       ) : clubs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
           {clubs.map((club, idx) => (

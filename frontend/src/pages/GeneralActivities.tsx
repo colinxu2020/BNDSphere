@@ -14,6 +14,7 @@ import {
   inputClassName,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { PageLoading } from "../components/ui/PageStates";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
@@ -110,14 +111,7 @@ export function GeneralActivities() {
       {error && <StatusMessage value={error} />}
 
       {isLoading ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-          {[...Array(4)].map((_, index) => (
-            <div
-              key={index}
-              className="animate-pulse bg-white h-40 rounded-md border border-slate-100"
-            />
-          ))}
-        </div>
+        <PageLoading compact />
       ) : items.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
           {items.map((activityItem, index) => (
