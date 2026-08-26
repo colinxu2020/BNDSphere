@@ -178,7 +178,7 @@ export function ClubDetail() {
     link.click();
     link.remove();
 
-    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 0);
+    window.setTimeout(() => URL.revokeObjectURL(downloadUrl), 1000);
   };
 
   useEffect(() => {
