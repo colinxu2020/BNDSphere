@@ -177,7 +177,7 @@ BNDSphere 的数据库围绕**学校社团管理**核心业务设计，涵盖以
 > - `academic_term` → `academic_terms`（`5eee790bfb8f`）
 > - moderation 申请表单数 → 复数：`club_update_request`/`user_update_request`/`club_activity_create_request`/`club_activity_update_request` → 复数表名（`fcd858152ec0`）
 > - 列 `moderate_status` → `moderation_status`（`75546634f304`）
-> - 枚举值 `scf` → `federation_staff`、`vice` → `vice_president`（`e70c1b0c1e5c`）
+> - 枚举值 `scf` → `federation_staff`（`RoleEnum`）、`vice president` → `vice_president`（`ClubMembershipEnum`）（`e70c1b0c1e5c`）
 
 ### 3.1 `users` — 用户表
 

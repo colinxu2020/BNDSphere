@@ -17,7 +17,7 @@
 
 | 方法 | 路径 | 权限 | 说明 |
 | --- | --- | --- | --- |
-| GET | `/users/me` | 登录 | 获取当前用户公开信息 |
+| GET | `/users/me` | 登录 | 获取当前用户信息，返回 `UserInfo`（含 `role`/`email`） |
 | GET | `/users/{user_id}` | 公开 | 获取指定用户公开信息，返回 `PublicUserInfo`（不含 `role`/`email`） |
 | POST | `/users/update-requests` | 登录 | 申请更新个人信息（待 moderator 审核） |
 
