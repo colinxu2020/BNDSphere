@@ -55,7 +55,7 @@ jobs:
           } > .env.backend
 
           # backend's status bind mount keys off COMPOSE_PROJECT_DIR
-          # (must be an absolute host path — see infra/updater/lib/state.sh's
+          # (must be an absolute host path — see infra/deploy/lib/state.sh's
           # validate_startup). $GITHUB_WORKSPACE is the checkout root, which
           # already has docker-compose.yml and the secrets/ dir created above.
           echo "COMPOSE_PROJECT_DIR=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
@@ -65,8 +65,8 @@ jobs:
       # host has (busybox `wc -l` pads its output and breaks the guards).
       - name: Run the deploy script self-check
         env:
-          UPDATER_DIR: ${{ github.workspace }}/infra/updater
-        run: sh infra/updater/selfcheck.sh
+          SCRIPT_DIR: ${{ github.workspace }}/infra/deploy
+        run: sh infra/deploy/selfcheck.sh
 
       - name: Validate Docker Compose file
         run: docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet

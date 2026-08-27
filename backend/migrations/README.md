@@ -8,7 +8,7 @@ MESSAGE="describe the change" docker compose --profile autorevision up alembic-a
 
 ## Before you merge: N-1 compatibility
 
-The deployment updater can roll the application back one version without
+The deploy workflow can roll the application back one version without
 rolling back the database. A migration shipped in release N must leave the
 schema usable by application N-1.
 

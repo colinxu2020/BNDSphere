@@ -561,7 +561,7 @@ erDiagram
 
 ## 6. N-1 兼容性策略
 
-部署更新器可以将应用回滚一个版本（实现见 `infra/updater/lib/deploy.sh` 的 `run_rollback`）。它**不会**回滚数据库。回滚后，数据库 schema 停留在版本 N，而应用回退到 N-1。
+部署工作流可以将应用回滚一个版本（实现见 `infra/deploy/lib/stack.sh` 的 `run_rollback`）。它**不会**回滚数据库。回滚后，数据库 schema 停留在版本 N，而应用回退到 N-1。
 
 **因此：版本 N 中发布的迁移，必须让 schema 同时可被应用 N 和应用 N-1 使用。**
 

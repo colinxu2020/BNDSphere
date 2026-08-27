@@ -134,7 +134,7 @@ secrets
 
 # Host deployment state — written by the deploy workflow, never committed
 deploy/versions.env
-deploy/status/
+deploy/versions.env.prev
 
 # Agent workflow scratch (superpowers skill spec/plan output). Kept on disk,
 # never committed: the plans describe designs that later changed, so tracked

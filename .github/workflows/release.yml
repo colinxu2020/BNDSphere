@@ -17,7 +17,7 @@ permissions:
 # A tag push and a manual rerun of the same version must not publish at once.
 # `gh release upload --clobber` DELETES an asset before uploading its
 # replacement, so two interleaved runs can leave the tarball, manifest and
-# SHA256SUMS from different builds — a release the updater's checksum gate
+# SHA256SUMS from different builds — a release the deploy script's checksum gate
 # then refuses, and that no redeploy can repair without deleting assets by
 # hand. Keyed by version so unrelated releases still run in parallel.
 #
@@ -68,7 +68,7 @@ jobs:
             exit 1
           fi
 
-          # Same grammar the updater enforces (spec §8). Rejecting here means a
+          # Same grammar the deploy script enforces. Rejecting here means a
           # malformed tag fails at release time, not on someone's deploy host.
           # No '+' build metadata: the version becomes a Docker tag verbatim
           # below, and Docker's reference grammar allows only word characters,
@@ -127,7 +127,7 @@ jobs:
           caddy_ref="${{ steps.meta.outputs.caddy_ref }}"
 
           # The local image ID — what `docker load` reproduces on the deploy host,
-          # and what the updater re-checks after loading the tarball.
+          # and what the deploy script re-checks after loading the tarball.
           backend_config_digest=$(docker image inspect --format '{{.Id}}' "$backend_ref")
           caddy_config_digest=$(docker image inspect --format '{{.Id}}' "$caddy_ref")
 

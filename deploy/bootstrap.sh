@@ -48,19 +48,13 @@ else
 fi
 
 # Seed the version pins. Never overwrite: after the first deployment this file
-# is the updater's, and clobbering it would discard the rollback target.
+# is the deploy workflow's record of what is running, and clobbering it would
+# discard the rollback target.
 if [ -f "$PROJECT_DIR/deploy/versions.env" ]; then
     printf 'deploy/versions.env already exists — left untouched.\n'
 else
     cp "$PROJECT_DIR/deploy/versions.env.example" "$PROJECT_DIR/deploy/versions.env"
     printf 'Created deploy/versions.env from the template.\n'
 fi
-
-# The deploy workflow writes state.json / deployed.json / update.log here and
-# the backend container bind-mounts it read-only. Create it before first `up`,
-# or Docker creates it root-owned and the runner cannot write into it.
-mkdir -p "$PROJECT_DIR/deploy/status"
-chmod 0755 "$PROJECT_DIR/deploy/status"
-printf 'Ensured deploy/status/ exists for deploy state.\n'
 
 printf 'Bootstrap complete.\n'

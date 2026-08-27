@@ -4,10 +4,10 @@
 #
 # Nothing downloaded is ever executed unverified: the tarball is checked
 # against SHA256SUMS BEFORE docker load, then the loaded config digests are
-# re-checked against the manifest (spec §6.3).
+# re-checked against the manifest.
 
 GITHUB_REPO="${GITHUB_REPO:-colinxu2020/BNDSphere}"
-WORK_DIR="${WORK_DIR:-/tmp/updater}"
+WORK_DIR="${WORK_DIR:-/tmp/bndsphere-deploy}"
 
 ASSET_TARBALL="bndsphere-images-amd64.tar.gz"
 ASSET_MANIFEST="release-manifest.json"
@@ -19,7 +19,7 @@ asset_url() {
 }
 
 # Download to a temp name and rename only on success, so an interrupted
-# transfer can never be mistaken for a complete file (spec §19.3).
+# transfer can never be mistaken for a complete file.
 download_asset() {
     _version=$1; _name=$2; _dest="$WORK_DIR/$_name"
     rm -f "$_dest" "$_dest.part"
@@ -49,7 +49,7 @@ fetch_manifest() {
     # same verify-before-use treatment as the tarball itself. This buys integrity
     # against truncation/corruption -- not authenticity, since the manifest
     # and SHA256SUMS both arrive over the same unauthenticated channel.
-    # Signing is the intended follow-up (design spec) and is out of scope here.
+    # Signing is the intended follow-up and is out of scope here.
     download_asset "$_version" "$ASSET_SUMS" || return 1
     download_asset "$_version" "$ASSET_MANIFEST" || return 1
     verify_checksum "$WORK_DIR" "$ASSET_MANIFEST" || {
@@ -107,27 +107,21 @@ acquire_images() {
     _version=$1
     rm -rf "$WORK_DIR"; mkdir -p "$WORK_DIR"
 
-    state_stage checking
+    log "fetching release assets for $_version"
     _manifest=$(fetch_manifest "$_version") || {
-        state_terminal failed download_failed "could not fetch $ASSET_MANIFEST for $_version"
+        log "could not fetch $ASSET_MANIFEST for $_version"
         return 1
     }
-
-    state_stage downloading
-    # delivery_path is always "tarball" now: the field is kept (not the value
-    # space) because the panel reads it, and keeping it avoids a schema change.
-    state_set delivery_path tarball
 
     fetch_and_load_tarball "$_version" "$_manifest"
     case $? in
         0) ;;
-        2) state_terminal failed checksum_mismatch "SHA256SUMS did not match $ASSET_TARBALL"; return 1 ;;
-        3) state_terminal failed load_failed "docker load failed"; return 1 ;;
-        4) state_terminal failed digest_mismatch "loaded image digest did not match the manifest"; return 1 ;;
-        *) state_terminal failed download_failed "could not download release assets"; return 1 ;;
+        2) log "SHA256SUMS did not match $ASSET_TARBALL"; return 1 ;;
+        3) log "docker load failed"; return 1 ;;
+        4) log "loaded image digest did not match the manifest"; return 1 ;;
+        *) log "could not download release assets"; return 1 ;;
     esac
 
-    state_stage verifying
     printf '%s' "$_manifest"
     return 0
 }
