@@ -6,6 +6,12 @@
 # separate deployed.json could. Rollback reads versions.env.prev, which is a
 # byte copy of that file taken immediately before a forward deploy overwrote
 # it -- not a set of fields that can partially desync from it.
+#
+# docker-compose.yml is rotated the same way, from the release's own copy of
+# it. A version therefore describes the whole deployment: a release that adds
+# a service or an environment variable deploys without an operator having to
+# edit the host first, and rollback restores the file that matched the version
+# it restores.
 
 # HARDCODED. The dispatch inputs never supply these. Postgres is deliberately
 # absent and must stay absent.
@@ -16,6 +22,14 @@ HEALTH_INTERVAL=3
 
 versions_env()      { printf '%s/deploy/versions.env' "$COMPOSE_PROJECT_DIR"; }
 versions_env_prev() { printf '%s/deploy/versions.env.prev' "$COMPOSE_PROJECT_DIR"; }
+compose_file()      { printf '%s/docker-compose.yml' "$COMPOSE_PROJECT_DIR"; }
+compose_file_prev() { printf '%s/docker-compose.yml.prev' "$COMPOSE_PROJECT_DIR"; }
+
+# Which compose file the wrapper below uses. Empty means the installed one.
+# run_update points it at the staged release copy for the migration, so the
+# migration runs against the definitions it shipped with while the host still
+# holds the old file.
+COMPOSE_FILE="${COMPOSE_FILE:-}"
 
 # Read one pin out of a versions.env-format file. Keys are fixed literals, so
 # no regex escaping is needed. Last assignment wins, as Compose itself does.
@@ -36,15 +50,19 @@ compose() {
     # port. Passing .env first and the pins second keeps the deployment's real
     # environment and still lets the pins win on BACKEND_IMAGE/CADDY_IMAGE
     # (later --env-file takes precedence for overlapping keys).
+    # --project-directory stays at the deployment root even when -f points
+    # elsewhere, so bind-mount sources (./secrets/*) keep resolving against
+    # the host deployment while a staged compose file is in use.
+    _cf=${COMPOSE_FILE:-$(compose_file)}
     if [ "${COMPOSE_ECHO:-0}" = "1" ]; then
         printf 'docker compose --project-directory %s -f %s --env-file %s --env-file %s -p %s %s\n' \
-            "$COMPOSE_PROJECT_DIR" "$COMPOSE_PROJECT_DIR/docker-compose.yml" \
+            "$COMPOSE_PROJECT_DIR" "$_cf" \
             "$COMPOSE_PROJECT_DIR/.env" "$(versions_env)" "$COMPOSE_PROJECT_NAME" "$*"
         return 0
     fi
     docker compose \
         --project-directory "$COMPOSE_PROJECT_DIR" \
-        -f "$COMPOSE_PROJECT_DIR/docker-compose.yml" \
+        -f "$_cf" \
         --env-file "$COMPOSE_PROJECT_DIR/.env" \
         --env-file "$(versions_env)" \
         -p "$COMPOSE_PROJECT_NAME" \
@@ -195,6 +213,40 @@ app_ready() {
     curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:${_hostport##*:}/"
 }
 
+# Only two versions are ever reachable: the one in versions.env and the one in
+# versions.env.prev. Everything else is unreachable disk, and a deploy host
+# accumulates a full image pair per release.
+#
+# `docker image rm` WITHOUT -f, deliberately: the daemon refuses to remove an
+# image that a container still uses, which makes "never delete something in
+# use" the daemon's invariant rather than this function's arithmetic.
+prune_superseded() {
+    _keep_ids=""
+    _repos=""
+    for _ref in "$@"; do
+        [ -n "$_ref" ] || continue
+        _id=$(docker image inspect --format '{{.Id}}' "$_ref" 2>/dev/null) || continue
+        _keep_ids="$_keep_ids $_id"
+        # Confine the sweep to the repositories we actually deploy, so an
+        # unrelated image on the host is never a candidate.
+        _repo=${_ref%@*}; _repo=${_repo%:*}
+        case " $_repos " in *" $_repo "*) ;; *) _repos="$_repos $_repo" ;; esac
+    done
+    [ -n "$_keep_ids" ] || return 0
+
+    for _repo in $_repos; do
+        # --no-trunc so these are sha256:... ids, comparable with inspect's.
+        for _id in $(docker image ls -q --no-trunc \
+                        --filter "reference=$_repo" 2>/dev/null | sort -u); do
+            case " $_keep_ids " in *" $_id "*) continue ;; esac
+            if docker image rm "$_id" >/dev/null 2>&1; then
+                log "pruned superseded image $_id"
+            fi
+        done
+    done
+    return 0
+}
+
 run_update() {
     _version=$1
     _current=$(pin_get "$(versions_env)" APP_VERSION)
@@ -205,10 +257,23 @@ run_update() {
     [ -n "$_backend_ref" ] && [ -n "$_caddy_ref" ] \
         || { log "manifest is missing an image ref"; return 1; }
 
-    if ! run_migration "$_backend_ref"; then
-        # The old application is still running and serving, and versions.env
-        # is untouched: nothing was deployed, so there is nothing to roll back
-        # and versions.env.prev must keep naming whatever a manual rollback
+    _staged_compose=$(fetch_compose "$_version") || {
+        log "could not fetch the release's docker-compose.yml"
+        return 1
+    }
+
+    # The migration runs against the RELEASE's compose file (its
+    # alembic-migration service may differ from the installed one) with the
+    # NEW image, while the installed file and pins are still untouched.
+    COMPOSE_FILE=$_staged_compose
+    run_migration "$_backend_ref"
+    _mig_rc=$?
+    COMPOSE_FILE=
+
+    if [ "$_mig_rc" -ne 0 ]; then
+        # The old application is still running and serving, and nothing on
+        # disk has changed: nothing was deployed, so there is nothing to roll
+        # back and the .prev files must keep naming whatever a manual rollback
         # should actually restore.
         log "alembic exited non-zero; application containers were NOT replaced"
         return 1
@@ -218,10 +283,18 @@ run_update() {
     # rollback could need to follow. Earlier, it would survive a migration
     # abort and leave .prev naming the version that is still running.
     # Redirected, not `cat ... |`: in a pipeline the status is atomic_write's,
-    # so a missing versions.env would write an EMPTY rollback target and
-    # report success. As a redirect, the open failure fails the command.
+    # so a missing source would write an EMPTY rollback target and report
+    # success. As a redirect, the open failure fails the command.
     atomic_write "$(versions_env_prev)" < "$(versions_env)" || {
         log "could not record the rollback target; refusing to deploy"
+        return 1
+    }
+    atomic_write "$(compose_file_prev)" < "$(compose_file)" || {
+        log "could not record the previous compose file; refusing to deploy"
+        return 1
+    }
+    atomic_write "$(compose_file)" < "$_staged_compose" || {
+        log "could not install the release's compose file; refusing to deploy"
         return 1
     }
 
@@ -238,9 +311,11 @@ run_update() {
     fi
 
     log "updated to $_version"
-    # Superseded images are deliberately never pruned: rollback restores the
-    # previous images from the local store, so keeping them IS the feature.
-    # Disk is cheaper than an impossible rollback.
+    # Keep exactly the two reachable versions: this one, and the one rollback
+    # would restore.
+    prune_superseded "$_backend_ref" "$_caddy_ref" \
+        "$(pin_get "$(versions_env_prev)" BACKEND_IMAGE)" \
+        "$(pin_get "$(versions_env_prev)" CADDY_IMAGE)"
     return 0
 }
 
@@ -278,13 +353,26 @@ run_rollback() {
     log "rollback to $_target (trigger=$_trigger)"
 
     # Verify rather than assume: discovering a missing image during an
-    # incident is the worst possible time.
+    # incident is the worst possible time. Pruning keeps this pair, so a
+    # miss here means someone reclaimed space by hand.
     for _ref in "$_backend_ref" "$_caddy_ref"; do
         docker image inspect "$_ref" >/dev/null 2>&1 || {
             log "previous image $_ref is no longer present locally"
             return 1
         }
     done
+
+    # Restore the compose file that matched this version, before recreating
+    # against it. Absent on a deployment that predates compose rotation, in
+    # which case the installed file is already the one that version ran with.
+    if [ -f "$(compose_file_prev)" ]; then
+        atomic_write "$(compose_file)" < "$(compose_file_prev)" || {
+            log "could not restore the previous compose file"
+            return 1
+        }
+    else
+        log "no previous compose file recorded; keeping the installed one"
+    fi
 
     # No migration, forward or backward. The schema stays at N while the
     # application returns to N-1; the N-1 compatibility policy makes that safe.
@@ -298,13 +386,13 @@ run_rollback() {
         return 1
     fi
 
-    # The target is DROPPED, not rotated. Kept, it would name the version now
-    # running, so a second rollback would sail through the target check having
-    # done nothing. And the rolled-back-FROM version is not a target either:
+    # The target is DROPPED, not rotated -- both files. Kept, it would name
+    # the version now running, so a second rollback would sail through the
+    # target check having done nothing. And the rolled-back-FROM version is not a target either:
     # that is the release which just failed, and offering it would be a
     # roll-forward into a known-bad version. After a rollback there is nothing
     # further back to go.
-    rm -f "$_prev"
+    rm -f "$_prev" "$(compose_file_prev)"
     log "rolled back to $_target"
     return 0
 }

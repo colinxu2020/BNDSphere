@@ -263,80 +263,125 @@ assert_fail "health fails when the app does not answer on the published port" \
 HEALTH_TIMEOUT=120
 HEALTH_INTERVAL=3
 
-# ── artifact verification ────────────────────────────────────────────
+# ── artifact acquisition ─────────────────────────────────────────────
+# Verification IS the digest: the daemon rejects content that does not match
+# the digest asked for. So the only thing this layer must get right is
+# refusing to pull anything that is NOT digest-pinned -- a tag-only ref would
+# be mutable and unverified, which is the whole property being relied on.
 WORK_DIR=$(mktemp -d); export WORK_DIR
-printf 'payload' > "$WORK_DIR/$ASSET_TARBALL"
-( cd "$WORK_DIR" && sha256sum "$ASSET_TARBALL" > "$ASSET_SUMS" )
-assert_ok "verify_checksum accepts a matching file" \
-    verify_checksum "$WORK_DIR" "$ASSET_TARBALL"
-printf 'tampered' > "$WORK_DIR/$ASSET_TARBALL"
-assert_fail "verify_checksum rejects a tampered file" \
-    verify_checksum "$WORK_DIR" "$ASSET_TARBALL"
-rm -f "$WORK_DIR/$ASSET_SUMS"
-assert_fail "verify_checksum refuses without SHA256SUMS" \
-    verify_checksum "$WORK_DIR" "$ASSET_TARBALL"
+_pulled=$(mktemp)
 
-# THE gate: docker load must never run on bytes that failed their checksum.
-_load_called=$(mktemp)
-_load_after_bad_checksum() (
-    download_asset() { return 0; }
-    verify_checksum() { return 1; }
-    docker() { printf 'called' > "$_load_called"; }
-    fetch_and_load_tarball v1.5.0 /dev/null
+_acquire_with_ref() (
+    _ref=$1
+    fetch_manifest() { printf '/dev/null'; }
+    manifest_field() { printf '%s' "$_ref"; }
+    # docker pull <ref>
+    docker() { printf '%s\n' "$2" >> "$_pulled"; return 0; }
+    acquire_images v1.5.0
 )
-_load_after_bad_checksum >/dev/null 2>&1
-assert_eq "2" "$?" "a checksum mismatch is reported as its own failure code"
-assert_eq "" "$(cat "$_load_called")" \
-    "docker load never runs on a tarball that failed verification"
-rm -f "$_load_called"
+assert_ok "acquire_images accepts a digest-pinned ref" \
+    _acquire_with_ref 'ghcr.io/o/bndsphere-backend@sha256:aaa'
+assert_fail "acquire_images refuses a tag-only ref" \
+    _acquire_with_ref 'ghcr.io/o/bndsphere-backend:v1.5.0'
+assert_fail "acquire_images refuses a mutable tag" \
+    _acquire_with_ref 'ghcr.io/o/bndsphere-backend:latest'
+assert_fail "acquire_images refuses an empty ref" _acquire_with_ref ''
 
-# A correct checksum proves the bytes arrived intact; the digest check proves
-# they contain the images the manifest claims.
-printf '%s' '{"images":{"backend":{"ref":"b:v1","config_digest":"sha256:aaa"},
-"caddy":{"ref":"c:v1","config_digest":"sha256:bbb"}}}' > "$WORK_DIR/manifest.json"
-_load_with_digests() (
-    _got=$1
-    download_asset() { return 0; }
-    verify_checksum() { return 0; }
-    docker() { case "${1:-}" in load) return 0 ;; *) printf '%s\n' "$_got" ;; esac; }
-    fetch_and_load_tarball v1.5.0 "$WORK_DIR/manifest.json"
+: > "$_pulled"
+_acquire_with_ref 'ghcr.io/o/bndsphere-backend@sha256:aaa' >/dev/null 2>&1
+assert_eq "ghcr.io/o/bndsphere-backend@sha256:aaa
+ghcr.io/o/bndsphere-backend@sha256:aaa" "$(cat "$_pulled")" \
+    "acquire_images pulls both components by digest"
+
+# A pull that fails must fail the deploy, not proceed to recreate containers
+# on an image that is not there.
+_acquire_pull_fails() (
+    fetch_manifest() { printf '/dev/null'; }
+    manifest_field() { printf 'ghcr.io/o/i@sha256:aaa'; }
+    docker() { return 1; }
+    acquire_images v1.5.0
 )
-_load_with_digests sha256:aaa >/dev/null 2>&1
-assert_eq "4" "$?" "a config digest that matches only one component is a mismatch"
-assert_fail "an empty loaded digest never passes vacuously" \
-    _load_with_digests ""
-printf '%s' '{"images":{"backend":{"ref":"b:v1"},"caddy":{"ref":"c:v1"}}}' \
-    > "$WORK_DIR/nodigest.json"
-_load_missing_digest() (
+assert_fail "acquire_images fails when the pull fails" _acquire_pull_fails
+
+# An unparseable manifest is a failure, not an empty ref set.
+printf 'not json' > "$WORK_DIR/$ASSET_MANIFEST"
+_bad_manifest() (
     download_asset() { return 0; }
-    verify_checksum() { return 0; }
-    docker() { case "${1:-}" in load) return 0 ;; *) printf 'sha256:aaa\n' ;; esac; }
-    fetch_and_load_tarball v1.5.0 "$WORK_DIR/nodigest.json"
+    fetch_manifest v1.5.0
 )
-assert_fail "a manifest without config_digest is a mismatch, not a pass" \
-    _load_missing_digest
+assert_fail "fetch_manifest rejects a manifest that is not JSON" _bad_manifest
+rm -f "$_pulled"
 rm -rf "$WORK_DIR"
 unset WORK_DIR
 
+# ── image retention ──────────────────────────────────────────────────
+# Only the current and previous versions are reachable; everything else is
+# unreachable disk.
+_rm_log=$(mktemp)
+_prune() (
+    docker() {
+        case "$1" in
+            image)
+                case "$2" in
+                    inspect) printf 'sha256:%s\n' "${5##*:}" ;;
+                    ls)      printf 'sha256:keep1\nsha256:keep2\nsha256:old1\nsha256:old2\n' ;;
+                    rm)      printf '%s\n' "$3" >> "$_rm_log" ;;
+                esac
+                ;;
+        esac
+    }
+    prune_superseded "repo/a@sha256:keep1" "repo/b@sha256:keep2"
+)
+_prune >/dev/null 2>&1
+assert_eq "sha256:old1
+sha256:old2
+sha256:old1
+sha256:old2" "$(cat "$_rm_log")" \
+    "prune removes only images outside the keep set (once per deployed repo)"
+# `docker image rm` is called WITHOUT -f so the daemon refuses to remove an
+# image a container still uses.
+assert_fail "prune never force-removes" grep -q '\-f' "$_rm_log"
+: > "$_rm_log"
+_prune_nothing_kept() (
+    docker() { case "$2" in inspect) return 1 ;; rm) printf 'rm\n' >> "$_rm_log" ;; esac; }
+    prune_superseded "repo/a@sha256:keep1"
+)
+_prune_nothing_kept >/dev/null 2>&1
+assert_eq "" "$(cat "$_rm_log")" \
+    "prune removes nothing when it cannot resolve what to keep"
+rm -f "$_rm_log"
+
 # ── run_update ordering ──────────────────────────────────────────────
-# The invariant: nothing is replaced before the migration succeeds, and the
-# rollback target is only rotated once there is something to roll back from.
+# The invariant: nothing on the host is replaced before the migration
+# succeeds, and the rollback target is only rotated once there is something to
+# roll back from.
 write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
-rm -f "$(versions_env_prev)"
+rm -f "$(versions_env_prev)" "$(compose_file_prev)"
+# The release's compose file, as fetch_compose would stage it, and the one
+# already installed on the host.
+_staged_src=$(mktemp)
+printf 'services: {backend: {image: NEW}}\n' > "$_staged_src"
+printf 'services: {backend: {image: OLD}}\n' | atomic_write "$(compose_file)"
 
 _trace=$(mktemp)
 _update_migration_fails() (
     acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
-    run_migration() { printf 'migrated\n' >> "$_trace"; return 1; }
+    run_migration() { printf 'migrated with %s\n' "$COMPOSE_FILE" >> "$_trace"; return 1; }
     recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
     wait_healthy() { return 0; }
     run_rollback() { printf 'rolled_back\n' >> "$_trace"; return 0; }
     run_update v2.0.0
 )
 assert_fail "run_update fails when the migration fails" _update_migration_fails
-assert_eq "migrated" "$(cat "$_trace")" \
-    "a failed migration replaces nothing and rolls back nothing"
+assert_eq "migrated with $_staged_src" "$(cat "$_trace")" \
+    "the migration runs against the release's own compose file, and a failed one replaces nothing"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
+    "a failed migration leaves the installed compose file untouched"
+assert_fail "a failed migration does not rotate the compose file" \
+    test -f "$(compose_file_prev)"
 assert_eq "v1.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
     "a failed migration leaves the durable pins on the running version"
 assert_fail "a failed migration does not rotate the rollback target" \
@@ -345,6 +390,8 @@ assert_fail "a failed migration does not rotate the rollback target" \
 : > "$_trace"
 _update_recreate_fails() (
     acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
     recreate_services() { printf 'recreated\n' >> "$_trace"; return 1; }
@@ -361,10 +408,16 @@ assert_ok "the rollback target is rotated before the first replacing step" \
     test -f "$(versions_env_prev)"
 assert_eq "v1.0.0" "$(pin_get "$(versions_env_prev)" APP_VERSION)" \
     "the rotated target is a copy of the version that was running"
+assert_eq "services: {backend: {image: NEW}}" "$(cat "$(compose_file)")" \
+    "the release's compose file is installed before the services are recreated"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file_prev)")" \
+    "the previous compose file is kept for rollback"
 
 : > "$_trace"
 _update_health_fails() (
     acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
     recreate_services() { write_pins v2.0.0 backend:v2 caddy:v2; return 0; }
@@ -379,9 +432,11 @@ assert_eq "rolled_back v1.0.0 automatic" "$(cat "$_trace")" \
 # Rotation must fail loudly when there is no versions.env to copy, rather
 # than leaving an empty rollback target that later reads as "no image refs".
 : > "$_trace"
-rm -f "$(versions_env)" "$(versions_env_prev)"
+rm -f "$(versions_env)" "$(versions_env_prev)" "$(compose_file_prev)"
 _update_no_record() (
     acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
     recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
@@ -399,6 +454,8 @@ assert_fail "a failed rotation leaves no empty rollback target" \
 : > "$_trace"
 _update_no_refs() (
     acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { printf ''; }
     run_migration() { printf 'migrated\n' >> "$_trace"; return 0; }
     run_update v2.0.0
@@ -410,6 +467,8 @@ assert_eq "" "$(cat "$_trace")" "a refless manifest never reaches the migration"
 write_pins v2.0.0 "backend:v2.0.0" "caddy:v2.0.0"
 printf 'APP_VERSION=v1.0.0\nBACKEND_IMAGE=backend:v1.0.0\nCADDY_IMAGE=caddy:v1.0.0\n' \
     | atomic_write "$(versions_env_prev)"
+printf 'services: {backend: {image: NEW}}\n' | atomic_write "$(compose_file)"
+printf 'services: {backend: {image: OLD}}\n' | atomic_write "$(compose_file_prev)"
 
 : > "$_trace"
 _rollback() (
@@ -446,15 +505,19 @@ assert_eq "recreated v1.0.0 backend:v1.0.0" "$(cat "$_trace")" \
     "rollback never runs a migration, forward or backward"
 assert_eq "v1.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
     "rollback pins the restored version"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
+    "rollback restores the compose file that matched the restored version"
 # The target is DROPPED, not rotated: kept, it would name the version now
 # running, so a second rollback would sail through the target check having
 # done nothing. The rolled-back-FROM version is not a target either -- that
 # is the release which just failed.
 assert_fail "a successful rollback leaves no rollback target behind" \
     test -f "$(versions_env_prev)"
+assert_fail "a successful rollback drops the previous compose file too" \
+    test -f "$(compose_file_prev)"
 assert_fail "a second rollback has nothing to restore" _rollback v1.0.0
 
-rm -f "$_trace"
+rm -f "$_trace" "$_staged_src"
 
 # ── dispatch ─────────────────────────────────────────────────────────
 # main() must reject both inputs before touching anything, and the `*)` arm

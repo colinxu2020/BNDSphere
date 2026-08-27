@@ -13,28 +13,18 @@ on:
 
 permissions:
   contents: write
+  packages: write
 
-# A tag push and a manual rerun of the same version must not publish at once.
-# `gh release upload --clobber` DELETES an asset before uploading its
-# replacement, so two interleaved runs can leave the tarball, manifest and
-# SHA256SUMS from different builds — a release the deploy script's checksum gate
-# then refuses, and that no redeploy can repair without deleting assets by
-# hand. Keyed by version so unrelated releases still run in parallel.
-#
-# ref_name, NOT ref: a tag push's github.ref is "refs/tags/v1.5.0" while a
-# dispatch supplies "v1.5.0" — with `ref` those land in two different groups
-# and the tag-push-racing-a-manual-rerun case (the one this exists for) is
-# not serialised at all. ref_name is "v1.5.0" for a tag push, matching the
-# dispatch input exactly. Residual gap: a dispatch of "1.5.0" (no leading v)
-# for tag v1.5.0 still lands in its own group — expressions cannot normalise
-# that; dispatch with the tag's exact name.
-concurrency:
-  group: release-${{ inputs.version || github.ref_name }}
-  cancel-in-progress: false
+# NO concurrency group, and none is needed: a version is published exactly
+# once. The "Refuse to republish" step below fails a second run for a version
+# that already has a release, so a tag push racing a manual rerun cannot leave
+# assets from two different builds behind. That mutability — `gh release upload
+# --clobber`, which deleted an asset before replacing it — was the only reason
+# this workflow ever needed serialising.
 
 jobs:
   release:
-    name: Build once, publish to Release
+    name: Build once, publish to GHCR
     runs-on: ubuntu-latest
 
     steps:
@@ -55,14 +45,14 @@ jobs:
             version="${GITHUB_REF#refs/tags/}"
           fi
 
-          # grep -Eq matches PER LINE, so "v1.0.0\nbackend_ref=x" satisfies the
+          # grep -Eq matches PER LINE, so "v1.0.0\nbackend_repo=x" satisfies the
           # anchored pattern below and then injects a SECOND key=value pair
-          # into $GITHUB_OUTPUT — where the last occurrence wins, and where
-          # backend_ref is interpolated straight into `docker build -t` and
-          # `docker save` in a job holding contents: write. The dispatch UI box
+          # into $GITHUB_OUTPUT — where the last occurrence wins, and where the
+          # value is interpolated straight into `docker build -t` and
+          # `docker push` in a job holding packages: write. The dispatch UI box
           # is single-line; the REST API is not. Reject multi-line input before
-          # writing anything, the same guard lib/validate.sh applies for the
-          # same reason.
+          # writing anything, the same guard lib/common.sh applies for the same
+          # reason.
           if [ "$(printf '%s' "$version" | wc -l)" -ne 0 ]; then
             echo "::error::Version must be a single line"
             exit 1
@@ -80,23 +70,48 @@ jobs:
             exit 1
           fi
 
+          # Registry paths must be lowercase; the owner name need not be.
+          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"
+
           {
             echo "version=$version"
-            echo "backend_ref=bndsphere-backend:${version}"
-            echo "caddy_ref=bndsphere-caddy:${version}"
+            echo "backend_repo=ghcr.io/${owner_lc}/bndsphere-backend"
+            echo "caddy_repo=ghcr.io/${owner_lc}/bndsphere-caddy"
           } >> "$GITHUB_OUTPUT"
+
+      # A published version is immutable. Refusing here — before the build,
+      # before any push — is what lets the deploy side trust that a version
+      # names one specific set of bytes forever.
+      - name: Refuse to republish an existing version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
+          if gh release view "$version" \
+               --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $version already exists. Versions are immutable — publish a new version instead of replacing this one."
+            exit 1
+          fi
 
       # Check out the TAG, never the dispatch ref. actions/checkout defaults to
       # the ref the run was started from, so dispatching from master with
-      # version=v1.5.0 would build master's sources, label them v1.5.0, and
-      # then --clobber the real v1.5.0 assets on the existing release. For a
-      # tag push refs/tags/$version is the pushed tag, so one ref serves both
+      # version=v1.5.0 would build master's sources and label them v1.5.0. For
+      # a tag push refs/tags/$version is the pushed tag, so one ref serves both
       # triggers. Safe in `ref:` because the step above already rejected
       # anything outside ^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$.
       - name: Checkout the released tag
         uses: actions/checkout@v6
         with:
           ref: refs/tags/${{ steps.meta.outputs.version }}
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build backend and caddy images (exactly once)
         shell: bash
@@ -107,54 +122,50 @@ jobs:
             --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
             --target prod \
             -f backend/Dockerfile \
-            -t "${{ steps.meta.outputs.backend_ref }}" \
+            -t "${{ steps.meta.outputs.backend_repo }}:${{ steps.meta.outputs.version }}" \
             backend
 
           docker build \
             --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
             --target prod \
             -f infra/Dockerfile.Caddy \
-            -t "${{ steps.meta.outputs.caddy_ref }}" \
+            -t "${{ steps.meta.outputs.caddy_repo }}:${{ steps.meta.outputs.version }}" \
             .
 
-      - name: Capture local image digests
-        id: digest
+      # The digest refs recorded here are the whole delivery mechanism: a
+      # deploy pulls exactly these, and the Docker daemon rejects any content
+      # whose digest does not match. That is content addressing doing the
+      # verification, not a checksum file travelling beside the artifact it
+      # vouches for.
+      - name: Push and capture digest references
+        id: push
         shell: bash
         run: |
           set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
 
-          backend_ref="${{ steps.meta.outputs.backend_ref }}"
-          caddy_ref="${{ steps.meta.outputs.caddy_ref }}"
-
-          # The local image ID — what `docker load` reproduces on the deploy host,
-          # and what the deploy script re-checks after loading the tarball.
-          backend_config_digest=$(docker image inspect --format '{{.Id}}' "$backend_ref")
-          caddy_config_digest=$(docker image inspect --format '{{.Id}}' "$caddy_ref")
-
-          for d in "$backend_config_digest" "$caddy_config_digest"; do
-            case "$d" in
-              sha256:*) ;;
-              *) echo "::error::Expected a sha256 digest, got: $d"; exit 1 ;;
+          for component in backend caddy; do
+            case "$component" in
+              backend) repo="${{ steps.meta.outputs.backend_repo }}" ;;
+              caddy)   repo="${{ steps.meta.outputs.caddy_repo }}" ;;
             esac
+
+            # NOTE: no rebuild. These are the exact local images just built.
+            docker push "${repo}:${version}"
+
+            # RepoDigests is only populated after a successful push, and can
+            # hold entries for several repositories — take this repo's.
+            digest_ref=$(docker image inspect \
+              --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+              "${repo}:${version}" | grep "^${repo}@" | head -n 1)
+
+            case "$digest_ref" in
+              *@sha256:*) ;;
+              *) echo "::error::No digest reference for ${repo}:${version} after push"; exit 1 ;;
+            esac
+
+            echo "${component}_digest_ref=${digest_ref}" >> "$GITHUB_OUTPUT"
           done
-
-          {
-            echo "backend_config_digest=$backend_config_digest"
-            echo "caddy_config_digest=$caddy_config_digest"
-          } >> "$GITHUB_OUTPUT"
-
-      - name: Save the built images to a release tarball
-        shell: bash
-        run: |
-          set -euo pipefail
-          # NOTE: no rebuild. These are the exact local images just built, which
-          # is what makes the post-load digest check meaningful.
-          docker save \
-            "${{ steps.meta.outputs.backend_ref }}" \
-            "${{ steps.meta.outputs.caddy_ref }}" \
-            | gzip -9 > bndsphere-images-amd64.tar.gz
-
-          ls -lh bndsphere-images-amd64.tar.gz
 
       - name: Write release manifest
         shell: bash
@@ -166,56 +177,35 @@ jobs:
           # STARTED from. On a dispatch from master for v1.5.0 that would
           # record master's commit for images built from the tag.
           jq -n \
-            --arg version        "${{ steps.meta.outputs.version }}" \
-            --arg built_at       "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
-            --arg commit         "$(git rev-parse HEAD)" \
-            --arg backend_ref    "${{ steps.meta.outputs.backend_ref }}" \
-            --arg backend_cdig   "${{ steps.digest.outputs.backend_config_digest }}" \
-            --arg caddy_ref      "${{ steps.meta.outputs.caddy_ref }}" \
-            --arg caddy_cdig     "${{ steps.digest.outputs.caddy_config_digest }}" \
+            --arg version      "${{ steps.meta.outputs.version }}" \
+            --arg built_at     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg commit       "$(git rev-parse HEAD)" \
+            --arg backend_ref  "${{ steps.push.outputs.backend_digest_ref }}" \
+            --arg caddy_ref    "${{ steps.push.outputs.caddy_digest_ref }}" \
             '{
               version: $version,
               arch: "amd64",
               built_at: $built_at,
               commit: $commit,
               images: {
-                backend: {
-                  ref: $backend_ref,
-                  config_digest: $backend_cdig
-                },
-                caddy: {
-                  ref: $caddy_ref,
-                  config_digest: $caddy_cdig
-                }
-              },
-              assets: { tarball: "bndsphere-images-amd64.tar.gz" }
+                backend: { ref: $backend_ref },
+                caddy:   { ref: $caddy_ref }
+              }
             }' > release-manifest.json
 
           cat release-manifest.json
 
-      - name: Write SHA256SUMS
-        shell: bash
-        run: |
-          set -euo pipefail
-          # Manifest must already exist — it is covered by these sums.
-          sha256sum bndsphere-images-amd64.tar.gz release-manifest.json > SHA256SUMS
-          cat SHA256SUMS
-
+      # docker-compose.yml ships as an asset so a version describes the WHOLE
+      # deployment, not just its images. A release that adds a service or an
+      # environment variable used to need an operator to edit the host by hand
+      # before deploying, with nothing checking that they had.
       - name: Create the GitHub Release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         shell: bash
         run: |
           set -euo pipefail
-          version="${{ steps.meta.outputs.version }}"
-
-          if gh release view "$version" >/dev/null 2>&1; then
-            gh release upload "$version" \
-              bndsphere-images-amd64.tar.gz release-manifest.json SHA256SUMS \
-              --clobber
-          else
-            gh release create "$version" \
-              --title "$version" \
-              --generate-notes \
-              bndsphere-images-amd64.tar.gz release-manifest.json SHA256SUMS
-          fi
+          gh release create "${{ steps.meta.outputs.version }}" \
+            --title "${{ steps.meta.outputs.version }}" \
+            --generate-notes \
+            release-manifest.json docker-compose.yml

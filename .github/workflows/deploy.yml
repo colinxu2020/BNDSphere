@@ -19,6 +19,9 @@ on:
 
 permissions:
   contents: read
+  # Release images are pulled from GHCR by digest. Read-only: this workflow
+  # deploys packages, it never publishes them.
+  packages: read
 
 # THE serialisation. The script keeps no lock of its own — this group is the
 # only thing standing between two deploys, so it must never gain
@@ -49,6 +52,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # The runner lives on the deploy host, so this writes credentials into
+      # the host's docker config. The logout step below is not optional.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
       - name: Deploy
         env:
           # Absolute path of the live deployment on this host — the directory
@@ -57,9 +69,12 @@ jobs:
           # silently; the script fails closed instead (lib/common.sh's
           # validate_startup). Set it as a repository variable.
           #
-          # NOTE: this workflow deploys release *images*; it does not update
-          # the compose file at DEPLOY_DIR. Changes to docker-compose.yml are
-          # an operator step on the host.
+          # The deploy installs the release's own docker-compose.yml here,
+          # keeping the previous copy as docker-compose.yml.prev so a rollback
+          # restores the file that matched the version it restores. A release
+          # that adds a service or an environment variable therefore deploys
+          # on its own; it used to need an operator to edit the host first,
+          # with nothing checking that they had.
           COMPOSE_PROJECT_DIR: ${{ vars.DEPLOY_DIR }}
           COMPOSE_PROJECT_NAME: bndsphere
           GITHUB_REPO: ${{ github.repository }}
@@ -73,3 +88,6 @@ jobs:
           set -eu
           sh infra/deploy/deploy.sh "$INPUT_ACTION" "$INPUT_VERSION"
 
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io || true

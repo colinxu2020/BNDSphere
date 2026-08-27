@@ -585,6 +585,16 @@ erDiagram
 
 以上最后四项中任意一项回答"否"，都意味着该变更必须拆分到多个发布版本中。
 
-### 部分失败说明
+### 多 revision 升级的失败语义
 
-Alembic 会单独提交每一个 revision，因此一次多 revision 的升级如果中途失败，会导致 schema 只推进了部分 revision，而非全部。此时更新器会在替换容器之前中止，让**旧版本**应用继续运行在**部分升级**的 schema 之上。本策略正是保证这一窗口期可存活的关键。
+`backend/migrations/env.py` 没有设置 `transaction_per_migration`（默认为关闭），因此 `alembic upgrade head` 的**全部** revision 运行在**同一个**事务里（见 `env.py` 的 `with context.begin_transaction()`）。PostgreSQL 的 DDL 是事务性的，且现有 16 个 revision 都没有使用 `CREATE INDEX CONCURRENTLY` 之类无法进入事务的操作。
+
+所以一次多 revision 升级只有两种结果：全部生效，或全部回滚。**不存在"schema 只推进了一部分"的中间状态。** 迁移失败时，数据库仍停留在升级前的 schema，旧应用继续运行在它原本就兼容的 schema 上，部署在替换容器之前中止。
+
+（本节此前声称"Alembic 会单独提交每一个 revision"，据此推导出一个需要 N-1 策略兜底的"部分升级窗口"。该前提是错误的，那个窗口并不存在。N-1 策略依然是必需的，但理由只有下面这一个。）
+
+### N-1 策略真正的依据：回滚
+
+回滚不回滚数据库。回滚完成后，schema 停留在 N，而应用是 N-1，并且会**长期**这样运行下去——不是一个短暂窗口。这是 N-1 兼容性唯一无法回避的场合，也是上面那张 expand/migrate/contract 表格存在的原因。
+
+这条规则无法自动强制执行：没有任何工具能推断一次迁移的意图，因此它只能靠上面的评审清单在 code review 时把住。这是本设计里唯一一条依赖人的不变量，必须如实记录为此。

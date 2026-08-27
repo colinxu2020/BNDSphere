@@ -1,17 +1,23 @@
 #!/bin/sh
-# Artifact acquisition. One delivery path (the GitHub Release tarball),
-# verified at every step.
+# Artifact acquisition: read the release manifest, pull the images it pins.
 #
-# Nothing downloaded is ever executed unverified: the tarball is checked
-# against SHA256SUMS BEFORE docker load, then the loaded config digests are
-# re-checked against the manifest.
+# VERIFICATION IS THE DIGEST. The manifest records each image as
+# repo@sha256:..., and the Docker daemon rejects any content whose digest does
+# not match what was asked for — so the registry cannot serve different bytes
+# than the release named, and nothing needs to be checked after the fact.
+#
+# This deliberately replaced a tarball + SHA256SUMS + post-load digest check.
+# That scheme could only ever detect download corruption: the sums file
+# travelled beside the artifact it vouched for, over the same channel, from
+# the same release, so anything able to replace one could replace both. It
+# bought no authenticity, and it cost three downloads, a docker load, and a
+# re-inspection to get less than content addressing gives for free.
 
 GITHUB_REPO="${GITHUB_REPO:-colinxu2020/BNDSphere}"
 WORK_DIR="${WORK_DIR:-/tmp/bndsphere-deploy}"
 
-ASSET_TARBALL="bndsphere-images-amd64.tar.gz"
 ASSET_MANIFEST="release-manifest.json"
-ASSET_SUMS="SHA256SUMS"
+ASSET_COMPOSE="docker-compose.yml"
 
 asset_url() {
     printf 'https://github.com/%s/releases/download/%s/%s' \
@@ -22,8 +28,9 @@ asset_url() {
 # transfer can never be mistaken for a complete file.
 download_asset() {
     _version=$1; _name=$2; _dest="$WORK_DIR/$_name"
+    mkdir -p "$WORK_DIR"
     rm -f "$_dest" "$_dest.part"
-    curl -fsSL --retry 3 --retry-delay 2 --max-time 1800 \
+    curl -fsSL --retry 3 --retry-delay 2 --max-time 300 \
         -o "$_dest.part" "$(asset_url "$_version" "$_name")" || {
             rm -f "$_dest.part"
             return 1
@@ -31,96 +38,54 @@ download_asset() {
     mv -f "$_dest.part" "$_dest"
 }
 
-verify_checksum() {
-    _dir=$1; _name=$2
-    [ -f "$_dir/$ASSET_SUMS" ] || return 1
-    [ -f "$_dir/$_name" ] || return 1
-    # Check only the entry we care about; SHA256SUMS also covers the manifest,
-    # which may not have been downloaded into this directory.
-    ( cd "$_dir" && grep " [ *]\{0,1\}$_name\$" "$ASSET_SUMS" | sha256sum -c - ) \
-        >/dev/null 2>&1
-}
-
 fetch_manifest() {
-    _version=$1
-    mkdir -p "$WORK_DIR"
-    # SHA256SUMS must land before the manifest is validated: the manifest is
-    # the root of trust for the post-load config_digest check, so it gets the
-    # same verify-before-use treatment as the tarball itself. This buys integrity
-    # against truncation/corruption -- not authenticity, since the manifest
-    # and SHA256SUMS both arrive over the same unauthenticated channel.
-    # Signing is the intended follow-up and is out of scope here.
-    download_asset "$_version" "$ASSET_SUMS" || return 1
-    download_asset "$_version" "$ASSET_MANIFEST" || return 1
-    verify_checksum "$WORK_DIR" "$ASSET_MANIFEST" || {
-        rm -f "$WORK_DIR/$ASSET_MANIFEST"
-        log "checksum mismatch for $ASSET_MANIFEST — refusing to trust it"
+    download_asset "$1" "$ASSET_MANIFEST" || return 1
+    jq -e . "$WORK_DIR/$ASSET_MANIFEST" >/dev/null 2>&1 || {
+        log "$ASSET_MANIFEST is not valid JSON"
         return 1
     }
-    jq -e . "$WORK_DIR/$ASSET_MANIFEST" >/dev/null 2>&1 || return 1
     printf '%s/%s' "$WORK_DIR" "$ASSET_MANIFEST"
+}
+
+# The release's own compose file. Staged in WORK_DIR, not installed: the
+# migration runs against it while the OLD file is still the installed one, so
+# a failed migration leaves nothing on the host changed.
+fetch_compose() {
+    download_asset "$1" "$ASSET_COMPOSE" || return 1
+    printf '%s/%s' "$WORK_DIR" "$ASSET_COMPOSE"
 }
 
 manifest_field() {
     jq -r "$2 // empty" "$1"
 }
 
-fetch_and_load_tarball() {
-    _version=$1; _manifest=$2
-
-    # SHA256SUMS is already in $WORK_DIR: fetch_manifest downloaded and
-    # verified it before this ever runs (review round 2). Re-fetching it here
-    # bought nothing but a wasted round trip, and it deleted the known-good
-    # copy first -- a transient failure on the re-fetch would discard a good
-    # file, and the manifest and tarball could in principle end up checked
-    # against two different versions of the sums file.
-    download_asset "$_version" "$ASSET_TARBALL" || return 1
-
-    # THE gate. Verify before load, never after.
-    verify_checksum "$WORK_DIR" "$ASSET_TARBALL" || {
-        rm -f "$WORK_DIR/$ASSET_TARBALL"
-        log "checksum mismatch for $ASSET_TARBALL — refusing to load"
-        return 2
-    }
-
-    docker load -i "$WORK_DIR/$ASSET_TARBALL" >/dev/null 2>&1 || return 3
-
-    # A correct checksum proves the bytes arrived intact; this proves they
-    # contain the images the manifest claims.
-    for _component in backend caddy; do
-        _ref=$(manifest_field "$_manifest" ".images.${_component}.ref")
-        _want=$(manifest_field "$_manifest" ".images.${_component}.config_digest")
-        _got=$(docker image inspect --format '{{.Id}}' "$_ref" 2>/dev/null)
-        # Both sides must be non-empty before comparing: an absent
-        # config_digest (or ref) must never compare "" = "" and pass
-        # vacuously -- a manifest with missing/renamed image fields is a
-        # digest mismatch, not a pass.
-        [ -n "$_want" ] && [ -n "$_got" ] && [ "$_want" = "$_got" ] || {
-            log "config digest mismatch for $_component: want '$_want' got '$_got'"
-            return 4
-        }
-    done
-    return 0
-}
-
 acquire_images() {
     _version=$1
     rm -rf "$WORK_DIR"; mkdir -p "$WORK_DIR"
 
-    log "fetching release assets for $_version"
     _manifest=$(fetch_manifest "$_version") || {
         log "could not fetch $ASSET_MANIFEST for $_version"
         return 1
     }
 
-    fetch_and_load_tarball "$_version" "$_manifest"
-    case $? in
-        0) ;;
-        2) log "SHA256SUMS did not match $ASSET_TARBALL"; return 1 ;;
-        3) log "docker load failed"; return 1 ;;
-        4) log "loaded image digest did not match the manifest"; return 1 ;;
-        *) log "could not download release assets"; return 1 ;;
-    esac
+    for _component in backend caddy; do
+        _ref=$(manifest_field "$_manifest" ".images.${_component}.ref")
+        # A tag-only ref would make the pull below mutable and unverified,
+        # which is the entire property this depends on. Refuse it rather than
+        # silently pulling whatever the tag points at today.
+        case "$_ref" in
+            *@sha256:*) ;;
+            *)
+                log "images.${_component}.ref is not digest-pinned: '$_ref'"
+                return 1
+                ;;
+        esac
+        log "pulling $_ref"
+        docker pull "$_ref" >/dev/null 2>&1 || {
+            log "could not pull $_ref"
+            return 1
+        }
+    done
 
     printf '%s' "$_manifest"
     return 0
