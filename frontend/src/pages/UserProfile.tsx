@@ -54,7 +54,7 @@ export function UserProfile() {
         <ArrowLeft size={18} /> 返回探索
       </Link>
 
-      <PageHeader title="用户档案" description="公开用户资料来自后端用户接口。" />
+      <PageHeader title="用户档案" />
 
       {isLoading ? (
         <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />

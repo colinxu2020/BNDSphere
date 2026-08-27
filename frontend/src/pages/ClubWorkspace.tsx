@@ -22,6 +22,7 @@ import type { components } from "../api/schema";
 import {
   AUDIT_STATUS_MAP,
   CATEGORY_MAP,
+  CLUB_STATUS_MAP,
   MEMBERSHIP_MAP,
   PARTICIPATION_MAP,
   PARTICIPATION_OPTIONS,
@@ -148,8 +149,9 @@ export function ClubWorkspace() {
   const refresh = async () => {
     setIsLoading(true);
     const errors: Record<string, unknown> = {};
+    let loadedClub: Club | null = null;
 
-    const clubResponse = await client.GET("/api/v1/clubs/{club_id}", {
+    const clubResponse = await (client.GET as any)("/api/v1/clubs/{club_id}/manage", {
       params: { path: { club_id: clubId } },
     });
     if (clubResponse.error) {
@@ -157,6 +159,7 @@ export function ClubWorkspace() {
       setClub(null);
     } else {
       const nextClub = clubResponse.data || null;
+      loadedClub = nextClub;
       setClub(nextClub);
       if (nextClub) {
         setClubSummary(nextClub.summary || "");
@@ -171,6 +174,19 @@ export function ClubWorkspace() {
       setCurrentUser(null);
     } else {
       setCurrentUser(userResponse.data || null);
+    }
+
+    if (loadedClub?.status !== "normal") {
+      setMembershipRequests([]);
+      setMembershipApplicants({});
+      setActivities([]);
+      setGeneralActivities([]);
+      setRecords([]);
+      setStarApplications([]);
+      setStarRating(null);
+      setLoadErrors(errors);
+      setIsLoading(false);
+      return;
     }
 
     const membershipRequestsResponse = await client.GET(
@@ -340,20 +356,28 @@ export function ClubWorkspace() {
     setIsClubSubmitting(true);
     setClubMessage(null);
     try {
-      const { data, error } = await client.POST("/api/v1/clubs/{club_id}/update-requests", {
-        params: { path: { club_id: clubId } },
-        body: {
-          summary: nullableText(clubSummary),
-          description: nullableText(clubDescription),
-          logo_uri: nullableText(clubLogo),
-        },
-      });
+      const body = {
+        summary: nullableText(clubSummary),
+        description: nullableText(clubDescription),
+        logo_uri: nullableText(clubLogo),
+      };
+      const { error } =
+        club?.status === "unreviewed"
+          ? await (client.PATCH as any)("/api/v1/clubs/{club_id}", {
+              params: { path: { club_id: clubId } },
+              body,
+            })
+          : await client.POST("/api/v1/clubs/{club_id}/update-requests", {
+              params: { path: { club_id: clubId } },
+              body,
+            });
       if (error) {
         setClubTone("error");
         setClubMessage(error);
       } else {
         setClubTone("success");
-        setClubMessage(data);
+        setClubMessage(club?.status === "unreviewed" ? "社团资料已保存" : "社团资料变更申请已提交");
+        if (club?.status === "unreviewed") await refresh();
       }
     } catch (error) {
       setClubTone("error");
@@ -687,10 +711,10 @@ export function ClubWorkspace() {
       className="flex flex-col gap-8 pb-20"
     >
       <Link
-        to={`/club/${clubId}`}
+        to={club?.status === "unreviewed" ? "/workspace" : `/club/${clubId}`}
         className="inline-flex items-center gap-2 text-slate-500 hover:text-slate-900 font-medium w-fit transition-colors"
       >
-        <ArrowLeft size={18} /> 返回社团
+        <ArrowLeft size={18} /> {club?.status === "unreviewed" ? "返回我的社团" : "返回社团"}
       </Link>
 
       <PageHeader
@@ -698,12 +722,14 @@ export function ClubWorkspace() {
         title={club?.name || `社团 #${clubId} 工作台`}
         action={
           <div className="flex flex-wrap gap-2">
-            <Link
-              to={`/club/${clubId}/joint-activities/manage`}
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
-            >
-              <CalendarDays size={16} /> 联合活动
-            </Link>
+            {club?.status === "normal" && (
+              <Link
+                to={`/club/${clubId}/joint-activities/manage`}
+                className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
+              >
+                <CalendarDays size={16} /> 联合活动
+              </Link>
+            )}
             <SecondaryButton onClick={() => refresh()} disabled={isLoading}>
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
@@ -746,6 +772,9 @@ export function ClubWorkspace() {
                   <div className="flex flex-wrap gap-2 mb-2">
                     <Badge tone="primary">{CATEGORY_MAP[club.category]}</Badge>
                     <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
+                    <Badge tone={club.status === "unreviewed" ? "yellow" : "green"}>
+                      {CLUB_STATUS_MAP[club.status]}
+                    </Badge>
                   </div>
                   <h2 className="text-2xl font-display font-bold text-slate-900">{club.name}</h2>
                   <p className="text-slate-500 mt-1">{club.summary}</p>
@@ -754,715 +783,742 @@ export function ClubWorkspace() {
             </Surface>
           )}
 
-          {club && canVerifyMemberships && (
+          {club && (
             <Surface>
-              <SectionTitle icon={<Users size={20} />} title="成员管理" />
-              <div className="grid gap-7">
-                <section>
-                  <div className="mb-3 flex items-center justify-between gap-3">
-                    <h3 className="font-semibold text-slate-900">待审批申请</h3>
-                    <Badge tone={membershipRequests.length ? "yellow" : "slate"}>
-                      {membershipRequests.length} 条
-                    </Badge>
-                  </div>
-                  <StatusMessage value={membershipRequestMessage} tone={membershipRequestTone} />
-                  <div className="mt-4 grid gap-3">
-                    {membershipRequests.length ? (
-                      membershipRequests.map((request) => {
-                        const applicant = membershipApplicants[request.applicant_id];
-                        const isSubmitting = membershipRequestSubmittingId === request.id;
-                        return (
-                          <div
-                            key={request.id}
-                            className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
-                          >
-                            <div className="min-w-0 flex-1">
-                              <Link
-                                to={`/users/${request.applicant_id}`}
-                                className="font-semibold text-slate-900 hover:text-primary-600"
-                              >
-                                {applicant?.username || `用户 #${request.applicant_id}`}
-                              </Link>
-                              <p className="mt-1 text-sm text-slate-500">
-                                {request.message.trim() || "申请人没有填写留言"}
-                              </p>
-                            </div>
-                            <div className="flex flex-wrap gap-2 md:justify-end">
-                              <PrimaryButton
-                                type="button"
-                                loading={isSubmitting}
-                                disabled={membershipRequestSubmittingId !== null}
-                                onClick={() => verifyMembershipRequest(request, "approved")}
-                                className="px-4 py-2.5"
-                              >
-                                <Check size={16} /> 通过
-                              </PrimaryButton>
-                              <DangerButton
-                                type="button"
-                                disabled={membershipRequestSubmittingId !== null}
-                                onClick={() => verifyMembershipRequest(request, "rejected")}
-                              >
-                                <X size={16} /> 驳回
-                              </DangerButton>
-                            </div>
-                          </div>
-                        );
-                      })
-                    ) : (
-                      <EmptyState title="暂无待审批的入社申请" />
-                    )}
-                  </div>
-                </section>
-
-                {isPresident && (
-                  <section className="border-t border-slate-100 pt-7">
-                    <div className="mb-3 flex items-center justify-between gap-3">
-                      <h3 className="font-semibold text-slate-900">社团成员</h3>
-                      <Badge>{activeMembers.length} 人</Badge>
-                    </div>
-                    <StatusMessage value={memberMessage} tone={memberTone} />
-                    <div className="mt-4 grid gap-3">
-                      {activeMembers.map((member) => {
-                        const isCurrentPresident = member.membership === "president";
-                        const isSubmitting = memberSubmittingId === member.user_id;
-                        return (
-                          <div
-                            key={member.id}
-                            className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
-                          >
-                            <div className="flex min-w-0 flex-1 items-center gap-3">
-                              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white font-semibold text-slate-500">
-                                {member.user.avatar_uri ? (
-                                  <img
-                                    src={member.user.avatar_uri}
-                                    alt=""
-                                    className="h-full w-full object-cover"
-                                  />
-                                ) : (
-                                  member.user.username.slice(0, 1).toUpperCase()
-                                )}
-                              </div>
-                              <div className="min-w-0">
-                                <Link
-                                  to={`/users/${member.user_id}`}
-                                  className="truncate font-semibold text-slate-900 hover:text-primary-600"
-                                >
-                                  {member.user.username}
-                                </Link>
-                                <div className="mt-1">
-                                  <Badge tone={isCurrentPresident ? "primary" : "slate"}>
-                                    {MEMBERSHIP_MAP[member.membership]}
-                                  </Badge>
-                                </div>
-                              </div>
-                            </div>
-
-                            {!isCurrentPresident && (
-                              <div className="flex flex-wrap gap-2 md:justify-end">
-                                <SecondaryButton
-                                  type="button"
-                                  disabled={memberSubmittingId !== null}
-                                  onClick={() =>
-                                    changeMemberRole(
-                                      member,
-                                      member.membership === "vice_president"
-                                        ? "member"
-                                        : "vice_president",
-                                    )
-                                  }
-                                >
-                                  <ShieldCheck size={16} />
-                                  {isSubmitting
-                                    ? "处理中..."
-                                    : member.membership === "vice_president"
-                                      ? "取消副社长"
-                                      : "设为副社长"}
-                                </SecondaryButton>
-                                <DangerButton
-                                  type="button"
-                                  disabled={memberSubmittingId !== null}
-                                  onClick={() => setPendingTransfer(member)}
-                                >
-                                  交接社团
-                                </DangerButton>
-                                <DangerButton
-                                  type="button"
-                                  disabled={memberSubmittingId !== null}
-                                  onClick={() => removeMember(member)}
-                                >
-                                  <Trash2 size={16} /> 移除
-                                </DangerButton>
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </section>
-                )}
-              </div>
+              <SectionTitle
+                icon={<Save size={20} />}
+                title={club.status === "unreviewed" ? "编辑待审核社团资料" : "社团资料变更申请"}
+              />
+              <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
+                <Field label="简介">
+                  <input
+                    className={inputClassName}
+                    value={clubSummary}
+                    onChange={(event) => setClubSummary(event.target.value)}
+                  />
+                </Field>
+                <Field label="详细介绍">
+                  <textarea
+                    className={textareaClassName}
+                    value={clubDescription}
+                    onChange={(event) => setClubDescription(event.target.value)}
+                  />
+                </Field>
+                <FileUploadField
+                  label="Logo"
+                  scene="club_logo"
+                  value={clubLogo}
+                  onChange={setClubLogo}
+                  accept="image/*"
+                  hint={
+                    club.status === "unreviewed"
+                      ? "上传后将直接保存为社团 Logo。"
+                      : "上传后作为社团资料变更申请的 Logo。"
+                  }
+                />
+                <StatusMessage value={clubMessage} tone={clubTone} />
+                <PrimaryButton type="submit" loading={isClubSubmitting}>
+                  {club.status === "unreviewed" ? "保存社团资料" : "提交变更申请"}
+                </PrimaryButton>
+              </form>
             </Surface>
           )}
 
-          {pendingTransfer && (
-            <div
-              className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
-              role="dialog"
-              aria-modal="true"
-              aria-labelledby="transfer-club-title"
-            >
-              <div className="w-full max-w-lg rounded-md border border-red-200 bg-white p-6 shadow-2xl">
-                <div className="flex items-start justify-between gap-4">
-                  <div>
-                    <p className="text-sm font-bold text-red-600">危险操作</p>
-                    <h2
-                      id="transfer-club-title"
-                      className="mt-1 text-2xl font-display font-bold text-slate-900"
-                    >
-                      确认交接社团？
-                    </h2>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => setPendingTransfer(null)}
-                    className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
-                    aria-label="取消交接"
-                  >
-                    <X size={20} />
-                  </button>
-                </div>
-                <div className="mt-5 rounded-md border border-red-100 bg-red-50 p-4 text-sm leading-6 text-red-800">
-                  你将把 <strong>{club.name}</strong> 交接给{" "}
-                  <strong>{pendingTransfer.user.username}</strong>。提交后，对方会立即成为社长，
-                  你会降为普通成员，并失去仅限社长的成员管理权限。
-                </div>
-                <p className="mt-4 text-sm text-slate-500">
-                  请确认接任人无误。为防止误操作，确认按钮将在 5 秒后启用。
-                </p>
-                <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
-                  <SecondaryButton type="button" onClick={() => setPendingTransfer(null)}>
-                    取消
-                  </SecondaryButton>
-                  <DangerButton
-                    type="button"
-                    disabled={transferCountdown > 0 || memberSubmittingId !== null}
-                    onClick={confirmTransfer}
-                    className="bg-red-600 text-white hover:bg-red-700"
-                  >
-                    {memberSubmittingId === pendingTransfer.user_id
-                      ? "正在交接..."
-                      : transferCountdown > 0
-                        ? `请等待 ${transferCountdown} 秒`
-                        : "再次确认并交接"}
-                  </DangerButton>
-                </div>
-              </div>
-            </div>
-          )}
-
-          <Surface>
-            <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
-            {starRating ? (
-              <div className="flex flex-col gap-5">
-                <div className="rounded-md border border-slate-100 bg-slate-50 p-5">
-                  <p className="text-sm font-medium text-slate-500">当前总分</p>
-                  <p className="mt-2 text-4xl font-display font-bold text-slate-900">
-                    {starRating.total_score}
-                  </p>
-                  <p className="mt-2 text-sm font-semibold text-primary-600">
-                    {STAR_LEVEL_MAP[starRating.star_level]}
-                  </p>
-                </div>
-                <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-                  <Badge tone="primary">会议出勤 {starRating.breakdown.meeting_attendance}</Badge>
-                  <Badge tone="primary">
-                    活动参与 {starRating.breakdown.activity_participation}
-                  </Badge>
-                  <Badge tone="primary">内部活动 {starRating.breakdown.internal_activities}</Badge>
-                  <Badge tone="primary">社团历史 {starRating.breakdown.club_history}</Badge>
-                </div>
-                <p className="text-sm text-slate-500">
-                  内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
-                  {starRating.club_age_years} 年。
-                </p>
-              </div>
-            ) : (
-              <EmptyState title="暂无星级评价" />
-            )}
-          </Surface>
-
-          <Surface>
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle
-                className="mb-0"
-                icon={<CalendarDays size={20} />}
-                title="社团活动申请"
-              />
-              <SecondaryButton
-                type="button"
-                onClick={openActivityCreate}
-                className="w-full whitespace-nowrap sm:w-auto"
-              >
-                <Plus size={16} /> 新建社团活动申请
-              </SecondaryButton>
-            </div>
-            <div
-              className={`grid gap-6 ${
-                activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
-              }`}
-            >
-              <div className="grid gap-3">
-                {activities.length ? (
-                  activities.map((activityItem) => (
-                    <button
-                      key={activityItem.id}
-                      type="button"
-                      onClick={() => selectActivityForUpdate(activityItem)}
-                      className={`rounded-md border p-4 text-left transition hover:bg-white ${
-                        updateActivityId === String(activityItem.id)
-                          ? "border-primary-200 bg-primary-50"
-                          : "border-slate-100 bg-slate-50"
-                      }`}
-                    >
-                      <h3 className="font-semibold text-slate-900">{activityItem.name}</h3>
-                      <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                        {activityItem.description}
-                      </p>
-                      <p className="mt-2 text-xs font-medium text-slate-400">
-                        #{activityItem.id} · {formatDateTime(activityItem.start_time)} ·{" "}
-                        {activityItem.location}
-                      </p>
-                    </button>
-                  ))
-                ) : (
-                  <EmptyState title="暂无社团活动" />
-                )}
-              </div>
-
-              {activityEditorMode && (
-                <div className="rounded-md border border-slate-100 bg-white p-5">
-                  {activityEditorMode === "create" ? (
-                    <form onSubmit={submitActivityCreate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="新建申请"
-                        title="创建社团活动"
-                        onClose={closeActivityEditor}
-                      />
-                      <Field label="活动名称">
-                        <input
-                          className={inputClassName}
-                          value={activityName}
-                          onChange={(event) => setActivityName(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <Field label="活动描述">
-                        <textarea
-                          className={textareaClassName}
-                          value={activityDescription}
-                          onChange={(event) => setActivityDescription(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <Field label="开始时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={activityStart}
-                            onChange={(event) => setActivityStart(event.target.value)}
-                            required
-                          />
-                        </Field>
-                        <Field label="结束时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={activityEnd}
-                            onChange={(event) => setActivityEnd(event.target.value)}
-                            required
-                          />
-                        </Field>
-                      </div>
-                      <Field label="地点">
-                        <input
-                          className={inputClassName}
-                          value={activityLocation}
-                          onChange={(event) => setActivityLocation(event.target.value)}
-                          required
-                        />
-                      </Field>
-                      <StatusMessage value={activityCreateMessage} tone={activityCreateTone} />
-                      <PrimaryButton type="submit" loading={isActivityCreating}>
-                        提交活动申请
-                      </PrimaryButton>
-                    </form>
-                  ) : selectedUpdateActivity ? (
-                    <form onSubmit={submitActivityUpdate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="当前编辑"
-                        title={selectedUpdateActivity.name}
-                        onClose={closeActivityEditor}
-                      />
-                      <Field label="新名称">
-                        <input
-                          className={inputClassName}
-                          value={updateActivityName}
-                          onChange={(event) => setUpdateActivityName(event.target.value)}
-                        />
-                      </Field>
-                      <Field label="新描述">
-                        <textarea
-                          className={textareaClassName}
-                          value={updateActivityDescription}
-                          onChange={(event) => setUpdateActivityDescription(event.target.value)}
-                        />
-                      </Field>
-                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                        <Field label="新开始时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={updateActivityStart}
-                            onChange={(event) => setUpdateActivityStart(event.target.value)}
-                          />
-                        </Field>
-                        <Field label="新结束时间">
-                          <input
-                            className={inputClassName}
-                            type="datetime-local"
-                            value={updateActivityEnd}
-                            onChange={(event) => setUpdateActivityEnd(event.target.value)}
-                          />
-                        </Field>
-                      </div>
-                      <Field label="新地点">
-                        <input
-                          className={inputClassName}
-                          value={updateActivityLocation}
-                          onChange={(event) => setUpdateActivityLocation(event.target.value)}
-                        />
-                      </Field>
-                      <FileUploadField
-                        label="活动图片"
-                        scene="activity_poster"
-                        values={updateActivityPictureUrls}
-                        onValuesChange={setUpdateActivityPictureUrls}
-                        multiple
-                        accept="image/*"
-                      />
-                      <StatusMessage value={activityUpdateMessage} tone={activityUpdateTone} />
-                      <PrimaryButton type="submit" loading={isActivityUpdating}>
-                        提交修改申请
-                      </PrimaryButton>
-                    </form>
-                  ) : (
-                    <EmptyState title="请选择社团活动" />
-                  )}
-                </div>
-              )}
-            </div>
-          </Surface>
-
-          <Surface>
-            <SectionTitle
-              icon={<FileCheck2 size={20} />}
-              title="综评活动记录"
-              description="点击“未提交”的大型活动可新建记录；点击已提交的活动可查看或修改记录。"
-            />
-            <div
-              className={`grid gap-6 ${
-                selectedGeneralActivity ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
-              }`}
-            >
-              <div className="grid gap-3">
-                {generalActivities.length ? (
-                  generalActivities.map((activityItem) => {
-                    const record = records.find((item) => item.activity_id === activityItem.id);
-                    const isSelected = generalActivityId === String(activityItem.id);
-                    return (
-                      <button
-                        key={activityItem.id}
-                        type="button"
-                        onClick={() => selectGeneralActivityForRecord(activityItem)}
-                        className={`rounded-md p-4 text-left transition hover:bg-white ${
-                          isSelected
-                            ? "bg-primary-50 shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
-                            : "bg-slate-50 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]"
-                        }`}
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          {record ? (
-                            <>
-                              <Badge tone={getAuditTone(record.audit_status)}>
-                                {AUDIT_STATUS_MAP[record.audit_status]}
-                              </Badge>
-                              <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
-                            </>
-                          ) : (
-                            <Badge tone="slate">未提交</Badge>
-                          )}
-                        </div>
-                        <h3 className="mt-3 font-semibold text-slate-900">{activityItem.name}</h3>
-                        <p className="mt-1 line-clamp-2 text-sm text-slate-500">
-                          {activityItem.description}
-                        </p>
-                        <p className="mt-2 text-xs font-medium text-slate-400">
-                          #{activityItem.id} ·{" "}
-                          {formatDateTime(activityItem.starts_at || activityItem.created_at)}
-                          {record ? ` · 申请 ${record.requested_score} 分` : ""}
-                        </p>
-                      </button>
-                    );
-                  })
-                ) : (
-                  <EmptyState title="暂无综评活动" />
-                )}
-              </div>
-
-              {selectedGeneralActivity && (
-                <div className="rounded-md bg-white p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
-                  <form
-                    onSubmit={(event) => {
-                      event.preventDefault();
-                      submitRecord(selectedGeneralRecord ? "update" : "create");
-                    }}
-                    className="flex flex-col gap-4"
-                  >
-                    <div>
-                      <EditorHeader
-                        eyebrow={selectedGeneralRecord ? "当前记录" : "新建记录"}
-                        title={selectedGeneralActivity.name}
-                        onClose={() => setGeneralActivityId("")}
-                      />
-                      {selectedGeneralRecord && (
-                        <p className="mt-1 text-sm text-slate-500">
-                          记录 #{selectedGeneralRecord.id}
-                        </p>
-                      )}
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <Field label="参与类型">
-                        <select
-                          className={selectClassName}
-                          value={participationType}
-                          onChange={(event) =>
-                            setParticipationType(event.target.value as ParticipationType)
-                          }
-                        >
-                          {PARTICIPATION_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </Field>
-                      <Field label="申请分值">
-                        <input
-                          className={inputClassName}
-                          type="number"
-                          value={requestedScore}
-                          onChange={(event) => setRequestedScore(event.target.value)}
-                          required
-                        />
-                      </Field>
-                    </div>
-                    <FileUploadField
-                      label="证明材料"
-                      scene="application_file"
-                      values={proofFileUrls}
-                      onValuesChange={setProofFileUrls}
-                      multiple
-                    />
-                    {selectedGeneralRecord?.audit_status !== "pending" && selectedGeneralRecord && (
-                      <StatusMessage value="已审核的综评记录不能在这里更新。" tone="info" />
-                    )}
-                    <StatusMessage value={recordMessage} tone={recordTone} />
-                    <PrimaryButton
-                      type="submit"
-                      loading={isRecordSubmitting}
-                      disabled={
-                        selectedGeneralRecord?.audit_status !== "pending" &&
-                        Boolean(selectedGeneralRecord)
-                      }
-                    >
-                      {selectedGeneralRecord ? "更新记录" : "创建记录"}
-                    </PrimaryButton>
-                  </form>
-                </div>
-              )}
-            </div>
-          </Surface>
-
-          <Surface>
-            <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <SectionTitle className="mb-0" icon={<Award size={20} />} title="星级申请" />
-              <SecondaryButton
-                type="button"
-                onClick={openStarCreate}
-                className="w-full whitespace-nowrap sm:w-auto"
-              >
-                <Plus size={16} /> 新建星级申请
-              </SecondaryButton>
-            </div>
-            <div
-              className={`grid gap-6 ${
-                starEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
-              }`}
-            >
-              <div className="grid gap-3">
-                {starApplications.length ? (
-                  starApplications.map((application) => (
-                    <button
-                      type="button"
-                      key={application.id}
-                      onClick={() => selectStarApplication(application)}
-                      className={`rounded-md border p-5 text-left transition hover:bg-white ${
-                        starUpdateId === String(application.id)
-                          ? "border-primary-200 bg-primary-50"
-                          : "border-slate-100 bg-slate-50"
-                      }`}
-                    >
-                      <div className="flex flex-wrap gap-2">
-                        <Badge
-                          tone={
-                            application.audit_status === "approved"
-                              ? "green"
-                              : application.audit_status === "rejected"
-                                ? "red"
-                                : "yellow"
-                          }
-                        >
-                          {application.audit_status
-                            ? AUDIT_STATUS_MAP[application.audit_status]
-                            : "未审核"}
+          {club?.status === "normal" && (
+            <>
+              {club && canVerifyMemberships && (
+                <Surface>
+                  <SectionTitle icon={<Users size={20} />} title="成员管理" />
+                  <div className="grid gap-7">
+                    <section>
+                      <div className="mb-3 flex items-center justify-between gap-3">
+                        <h3 className="font-semibold text-slate-900">待审批申请</h3>
+                        <Badge tone={membershipRequests.length ? "yellow" : "slate"}>
+                          {membershipRequests.length} 条
                         </Badge>
-                        {application.approved_level && (
-                          <Badge tone="primary">{STAR_LEVEL_MAP[application.approved_level]}</Badge>
+                      </div>
+                      <StatusMessage
+                        value={membershipRequestMessage}
+                        tone={membershipRequestTone}
+                      />
+                      <div className="mt-4 grid gap-3">
+                        {membershipRequests.length ? (
+                          membershipRequests.map((request) => {
+                            const applicant = membershipApplicants[request.applicant_id];
+                            const isSubmitting = membershipRequestSubmittingId === request.id;
+                            return (
+                              <div
+                                key={request.id}
+                                className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
+                              >
+                                <div className="min-w-0 flex-1">
+                                  <Link
+                                    to={`/users/${request.applicant_id}`}
+                                    className="font-semibold text-slate-900 hover:text-primary-600"
+                                  >
+                                    {applicant?.username || `用户 #${request.applicant_id}`}
+                                  </Link>
+                                  <p className="mt-1 text-sm text-slate-500">
+                                    {request.message.trim() || "申请人没有填写留言"}
+                                  </p>
+                                </div>
+                                <div className="flex flex-wrap gap-2 md:justify-end">
+                                  <PrimaryButton
+                                    type="button"
+                                    loading={isSubmitting}
+                                    disabled={membershipRequestSubmittingId !== null}
+                                    onClick={() => verifyMembershipRequest(request, "approved")}
+                                    className="px-4 py-2.5"
+                                  >
+                                    <Check size={16} /> 通过
+                                  </PrimaryButton>
+                                  <DangerButton
+                                    type="button"
+                                    disabled={membershipRequestSubmittingId !== null}
+                                    onClick={() => verifyMembershipRequest(request, "rejected")}
+                                  >
+                                    <X size={16} /> 驳回
+                                  </DangerButton>
+                                </div>
+                              </div>
+                            );
+                          })
+                        ) : (
+                          <EmptyState title="暂无待审批的入社申请" />
                         )}
                       </div>
-                      <h3 className="mt-3 font-semibold text-slate-900">申请 #{application.id}</h3>
-                      <p className="mt-1 text-sm text-slate-500">
-                        申请竞赛分 {application.requested_contest_score ?? "未填"}
-                        ，核定分 {application.approved_score ?? "未定"}
-                      </p>
-                    </button>
-                  ))
-                ) : (
-                  <EmptyState title="暂无星级申请" />
-                )}
-              </div>
+                    </section>
 
-              {starEditorMode && (
-                <div className="rounded-md border border-slate-100 bg-white p-5">
-                  {starEditorMode === "create" ? (
-                    <form onSubmit={submitStarCreate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="新建申请"
-                        title="创建星级申请"
-                        onClose={closeStarEditor}
-                      />
-                      <FileUploadField
-                        label="竞赛附件"
-                        scene="application_file"
-                        value={starAttachment}
-                        onChange={setStarAttachment}
-                        hint="上传后作为星级申请附件。"
-                      />
-                      <Field label="申请竞赛分">
-                        <input
-                          className={inputClassName}
-                          type="number"
-                          value={starScore}
-                          onChange={(event) => setStarScore(event.target.value)}
-                        />
-                      </Field>
-                      <Field label="独特性说明">
-                        <textarea
-                          className={textareaClassName}
-                          value={starStatement}
-                          onChange={(event) => setStarStatement(event.target.value)}
-                        />
-                      </Field>
-                      <StatusMessage value={starCreateMessage} tone={starCreateTone} />
-                      <PrimaryButton type="submit" loading={isStarCreating}>
-                        提交星级申请
-                      </PrimaryButton>
-                    </form>
-                  ) : starUpdateId ? (
-                    <form onSubmit={submitStarUpdate} className="flex flex-col gap-4">
-                      <EditorHeader
-                        eyebrow="当前编辑"
-                        title={`星级申请 #${starUpdateId}`}
-                        onClose={closeStarEditor}
-                      />
-                      <FileUploadField
-                        label="竞赛附件"
-                        scene="application_file"
-                        value={starUpdateAttachment}
-                        onChange={setStarUpdateAttachment}
-                        hint="上传后替换星级申请附件。"
-                      />
-                      <Field label="申请竞赛分">
-                        <input
-                          className={inputClassName}
-                          type="number"
-                          value={starUpdateScore}
-                          onChange={(event) => setStarUpdateScore(event.target.value)}
-                        />
-                      </Field>
-                      <Field label="独特性说明">
-                        <textarea
-                          className={textareaClassName}
-                          value={starUpdateStatement}
-                          onChange={(event) => setStarUpdateStatement(event.target.value)}
-                        />
-                      </Field>
-                      <PrimaryButton type="submit" loading={isStarUpdating}>
-                        更新申请
-                      </PrimaryButton>
-                      <StatusMessage value={starUpdateMessage} tone={starUpdateTone} />
-                    </form>
-                  ) : (
-                    <EmptyState title="请选择星级申请" />
-                  )}
+                    {isPresident && (
+                      <section className="border-t border-slate-100 pt-7">
+                        <div className="mb-3 flex items-center justify-between gap-3">
+                          <h3 className="font-semibold text-slate-900">社团成员</h3>
+                          <Badge>{activeMembers.length} 人</Badge>
+                        </div>
+                        <StatusMessage value={memberMessage} tone={memberTone} />
+                        <div className="mt-4 grid gap-3">
+                          {activeMembers.map((member) => {
+                            const isCurrentPresident = member.membership === "president";
+                            const isSubmitting = memberSubmittingId === member.user_id;
+                            return (
+                              <div
+                                key={member.id}
+                                className="flex flex-col gap-4 rounded-md border border-slate-100 bg-slate-50 p-4 md:flex-row md:items-center"
+                              >
+                                <div className="flex min-w-0 flex-1 items-center gap-3">
+                                  <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-200 bg-white font-semibold text-slate-500">
+                                    {member.user.avatar_uri ? (
+                                      <img
+                                        src={member.user.avatar_uri}
+                                        alt=""
+                                        className="h-full w-full object-cover"
+                                      />
+                                    ) : (
+                                      member.user.username.slice(0, 1).toUpperCase()
+                                    )}
+                                  </div>
+                                  <div className="min-w-0">
+                                    <Link
+                                      to={`/users/${member.user_id}`}
+                                      className="truncate font-semibold text-slate-900 hover:text-primary-600"
+                                    >
+                                      {member.user.username}
+                                    </Link>
+                                    <div className="mt-1">
+                                      <Badge tone={isCurrentPresident ? "primary" : "slate"}>
+                                        {MEMBERSHIP_MAP[member.membership]}
+                                      </Badge>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                {!isCurrentPresident && (
+                                  <div className="flex flex-wrap gap-2 md:justify-end">
+                                    <SecondaryButton
+                                      type="button"
+                                      disabled={memberSubmittingId !== null}
+                                      onClick={() =>
+                                        changeMemberRole(
+                                          member,
+                                          member.membership === "vice_president"
+                                            ? "member"
+                                            : "vice_president",
+                                        )
+                                      }
+                                    >
+                                      <ShieldCheck size={16} />
+                                      {isSubmitting
+                                        ? "处理中..."
+                                        : member.membership === "vice_president"
+                                          ? "取消副社长"
+                                          : "设为副社长"}
+                                    </SecondaryButton>
+                                    <DangerButton
+                                      type="button"
+                                      disabled={memberSubmittingId !== null}
+                                      onClick={() => setPendingTransfer(member)}
+                                    >
+                                      交接社团
+                                    </DangerButton>
+                                    <DangerButton
+                                      type="button"
+                                      disabled={memberSubmittingId !== null}
+                                      onClick={() => removeMember(member)}
+                                    >
+                                      <Trash2 size={16} /> 移除
+                                    </DangerButton>
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </section>
+                    )}
+                  </div>
+                </Surface>
+              )}
+
+              {pendingTransfer && (
+                <div
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/55 p-4"
+                  role="dialog"
+                  aria-modal="true"
+                  aria-labelledby="transfer-club-title"
+                >
+                  <div className="w-full max-w-lg rounded-md border border-red-200 bg-white p-6 shadow-2xl">
+                    <div className="flex items-start justify-between gap-4">
+                      <div>
+                        <p className="text-sm font-bold text-red-600">危险操作</p>
+                        <h2
+                          id="transfer-club-title"
+                          className="mt-1 text-2xl font-display font-bold text-slate-900"
+                        >
+                          确认交接社团？
+                        </h2>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setPendingTransfer(null)}
+                        className="rounded-md p-2 text-slate-400 hover:bg-slate-100 hover:text-slate-700"
+                        aria-label="取消交接"
+                      >
+                        <X size={20} />
+                      </button>
+                    </div>
+                    <div className="mt-5 rounded-md border border-red-100 bg-red-50 p-4 text-sm leading-6 text-red-800">
+                      你将把 <strong>{club.name}</strong> 交接给{" "}
+                      <strong>{pendingTransfer.user.username}</strong>。提交后，对方会立即成为社长，
+                      你会降为普通成员，并失去仅限社长的成员管理权限。
+                    </div>
+                    <p className="mt-4 text-sm text-slate-500">
+                      请确认接任人无误。为防止误操作，确认按钮将在 5 秒后启用。
+                    </p>
+                    <div className="mt-6 flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
+                      <SecondaryButton type="button" onClick={() => setPendingTransfer(null)}>
+                        取消
+                      </SecondaryButton>
+                      <DangerButton
+                        type="button"
+                        disabled={transferCountdown > 0 || memberSubmittingId !== null}
+                        onClick={confirmTransfer}
+                        className="bg-red-600 text-white hover:bg-red-700"
+                      >
+                        {memberSubmittingId === pendingTransfer.user_id
+                          ? "正在交接..."
+                          : transferCountdown > 0
+                            ? `请等待 ${transferCountdown} 秒`
+                            : "再次确认并交接"}
+                      </DangerButton>
+                    </div>
+                  </div>
                 </div>
               )}
-            </div>
-          </Surface>
 
-          <Surface>
-            <SectionTitle icon={<Save size={20} />} title="社团资料变更申请" />
-            <form onSubmit={submitClubUpdate} className="flex flex-col gap-4">
-              <Field label="简介">
-                <input
-                  className={inputClassName}
-                  value={clubSummary}
-                  onChange={(event) => setClubSummary(event.target.value)}
+              <Surface>
+                <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
+                {starRating ? (
+                  <div className="flex flex-col gap-5">
+                    <div className="rounded-md border border-slate-100 bg-slate-50 p-5">
+                      <p className="text-sm font-medium text-slate-500">当前总分</p>
+                      <p className="mt-2 text-4xl font-display font-bold text-slate-900">
+                        {starRating.total_score}
+                      </p>
+                      <p className="mt-2 text-sm font-semibold text-primary-600">
+                        {STAR_LEVEL_MAP[starRating.star_level]}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
+                      <Badge tone="primary">
+                        会议出勤 {starRating.breakdown.meeting_attendance}
+                      </Badge>
+                      <Badge tone="primary">
+                        活动参与 {starRating.breakdown.activity_participation}
+                      </Badge>
+                      <Badge tone="primary">
+                        内部活动 {starRating.breakdown.internal_activities}
+                      </Badge>
+                      <Badge tone="primary">社团历史 {starRating.breakdown.club_history}</Badge>
+                    </div>
+                    <p className="text-sm text-slate-500">
+                      内部活动 {starRating.internal_activity_count} 次，社团年限{" "}
+                      {starRating.club_age_years} 年。
+                    </p>
+                  </div>
+                ) : (
+                  <EmptyState title="暂无星级评价" />
+                )}
+              </Surface>
+
+              <Surface>
+                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <SectionTitle
+                    className="mb-0"
+                    icon={<CalendarDays size={20} />}
+                    title="社团活动申请"
+                  />
+                  <SecondaryButton
+                    type="button"
+                    onClick={openActivityCreate}
+                    className="w-full whitespace-nowrap sm:w-auto"
+                  >
+                    <Plus size={16} /> 新建社团活动申请
+                  </SecondaryButton>
+                </div>
+                <div
+                  className={`grid gap-6 ${
+                    activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
+                  }`}
+                >
+                  <div className="grid gap-3">
+                    {activities.length ? (
+                      activities.map((activityItem) => (
+                        <button
+                          key={activityItem.id}
+                          type="button"
+                          onClick={() => selectActivityForUpdate(activityItem)}
+                          className={`rounded-md border p-4 text-left transition hover:bg-white ${
+                            updateActivityId === String(activityItem.id)
+                              ? "border-primary-200 bg-primary-50"
+                              : "border-slate-100 bg-slate-50"
+                          }`}
+                        >
+                          <h3 className="font-semibold text-slate-900">{activityItem.name}</h3>
+                          <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                            {activityItem.description}
+                          </p>
+                          <p className="mt-2 text-xs font-medium text-slate-400">
+                            #{activityItem.id} · {formatDateTime(activityItem.start_time)} ·{" "}
+                            {activityItem.location}
+                          </p>
+                        </button>
+                      ))
+                    ) : (
+                      <EmptyState title="暂无社团活动" />
+                    )}
+                  </div>
+
+                  {activityEditorMode && (
+                    <div className="rounded-md border border-slate-100 bg-white p-5">
+                      {activityEditorMode === "create" ? (
+                        <form onSubmit={submitActivityCreate} className="flex flex-col gap-4">
+                          <EditorHeader
+                            eyebrow="新建申请"
+                            title="创建社团活动"
+                            onClose={closeActivityEditor}
+                          />
+                          <Field label="活动名称">
+                            <input
+                              className={inputClassName}
+                              value={activityName}
+                              onChange={(event) => setActivityName(event.target.value)}
+                              required
+                            />
+                          </Field>
+                          <Field label="活动描述">
+                            <textarea
+                              className={textareaClassName}
+                              value={activityDescription}
+                              onChange={(event) => setActivityDescription(event.target.value)}
+                              required
+                            />
+                          </Field>
+                          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                            <Field label="开始时间">
+                              <input
+                                className={inputClassName}
+                                type="datetime-local"
+                                value={activityStart}
+                                onChange={(event) => setActivityStart(event.target.value)}
+                                required
+                              />
+                            </Field>
+                            <Field label="结束时间">
+                              <input
+                                className={inputClassName}
+                                type="datetime-local"
+                                value={activityEnd}
+                                onChange={(event) => setActivityEnd(event.target.value)}
+                                required
+                              />
+                            </Field>
+                          </div>
+                          <Field label="地点">
+                            <input
+                              className={inputClassName}
+                              value={activityLocation}
+                              onChange={(event) => setActivityLocation(event.target.value)}
+                              required
+                            />
+                          </Field>
+                          <StatusMessage value={activityCreateMessage} tone={activityCreateTone} />
+                          <PrimaryButton type="submit" loading={isActivityCreating}>
+                            提交活动申请
+                          </PrimaryButton>
+                        </form>
+                      ) : selectedUpdateActivity ? (
+                        <form onSubmit={submitActivityUpdate} className="flex flex-col gap-4">
+                          <EditorHeader
+                            eyebrow="当前编辑"
+                            title={selectedUpdateActivity.name}
+                            onClose={closeActivityEditor}
+                          />
+                          <Field label="新名称">
+                            <input
+                              className={inputClassName}
+                              value={updateActivityName}
+                              onChange={(event) => setUpdateActivityName(event.target.value)}
+                            />
+                          </Field>
+                          <Field label="新描述">
+                            <textarea
+                              className={textareaClassName}
+                              value={updateActivityDescription}
+                              onChange={(event) => setUpdateActivityDescription(event.target.value)}
+                            />
+                          </Field>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <Field label="新开始时间">
+                              <input
+                                className={inputClassName}
+                                type="datetime-local"
+                                value={updateActivityStart}
+                                onChange={(event) => setUpdateActivityStart(event.target.value)}
+                              />
+                            </Field>
+                            <Field label="新结束时间">
+                              <input
+                                className={inputClassName}
+                                type="datetime-local"
+                                value={updateActivityEnd}
+                                onChange={(event) => setUpdateActivityEnd(event.target.value)}
+                              />
+                            </Field>
+                          </div>
+                          <Field label="新地点">
+                            <input
+                              className={inputClassName}
+                              value={updateActivityLocation}
+                              onChange={(event) => setUpdateActivityLocation(event.target.value)}
+                            />
+                          </Field>
+                          <FileUploadField
+                            label="活动图片"
+                            scene="activity_poster"
+                            values={updateActivityPictureUrls}
+                            onValuesChange={setUpdateActivityPictureUrls}
+                            multiple
+                            accept="image/*"
+                          />
+                          <StatusMessage value={activityUpdateMessage} tone={activityUpdateTone} />
+                          <PrimaryButton type="submit" loading={isActivityUpdating}>
+                            提交修改申请
+                          </PrimaryButton>
+                        </form>
+                      ) : (
+                        <EmptyState title="请选择社团活动" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Surface>
+
+              <Surface>
+                <SectionTitle
+                  icon={<FileCheck2 size={20} />}
+                  title="综评活动记录"
+                  description="点击“未提交”的大型活动可新建记录；点击已提交的活动可查看或修改记录。"
                 />
-              </Field>
-              <Field label="详细介绍">
-                <textarea
-                  className={textareaClassName}
-                  value={clubDescription}
-                  onChange={(event) => setClubDescription(event.target.value)}
-                />
-              </Field>
-              <FileUploadField
-                label="Logo"
-                scene="club_logo"
-                value={clubLogo}
-                onChange={setClubLogo}
-                accept="image/*"
-                hint="上传后作为社团资料变更申请的 Logo。"
-              />
-              <StatusMessage value={clubMessage} tone={clubTone} />
-              <PrimaryButton type="submit" loading={isClubSubmitting}>
-                提交变更申请
-              </PrimaryButton>
-            </form>
-          </Surface>
+                <div
+                  className={`grid gap-6 ${
+                    selectedGeneralActivity ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
+                  }`}
+                >
+                  <div className="grid gap-3">
+                    {generalActivities.length ? (
+                      generalActivities.map((activityItem) => {
+                        const record = records.find((item) => item.activity_id === activityItem.id);
+                        const isSelected = generalActivityId === String(activityItem.id);
+                        return (
+                          <button
+                            key={activityItem.id}
+                            type="button"
+                            onClick={() => selectGeneralActivityForRecord(activityItem)}
+                            className={`rounded-md p-4 text-left transition hover:bg-white ${
+                              isSelected
+                                ? "bg-primary-50 shadow-[inset_0_0_0_1.5px_rgba(14,165,233,0.35)]"
+                                : "bg-slate-50 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]"
+                            }`}
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              {record ? (
+                                <>
+                                  <Badge tone={getAuditTone(record.audit_status)}>
+                                    {AUDIT_STATUS_MAP[record.audit_status]}
+                                  </Badge>
+                                  <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
+                                </>
+                              ) : (
+                                <Badge tone="slate">未提交</Badge>
+                              )}
+                            </div>
+                            <h3 className="mt-3 font-semibold text-slate-900">
+                              {activityItem.name}
+                            </h3>
+                            <p className="mt-1 line-clamp-2 text-sm text-slate-500">
+                              {activityItem.description}
+                            </p>
+                            <p className="mt-2 text-xs font-medium text-slate-400">
+                              #{activityItem.id} ·{" "}
+                              {formatDateTime(activityItem.starts_at || activityItem.created_at)}
+                              {record ? ` · 申请 ${record.requested_score} 分` : ""}
+                            </p>
+                          </button>
+                        );
+                      })
+                    ) : (
+                      <EmptyState title="暂无综评活动" />
+                    )}
+                  </div>
+
+                  {selectedGeneralActivity && (
+                    <div className="rounded-md bg-white p-5 shadow-[inset_0_0_0_1.5px_rgba(148,163,184,0.18)]">
+                      <form
+                        onSubmit={(event) => {
+                          event.preventDefault();
+                          submitRecord(selectedGeneralRecord ? "update" : "create");
+                        }}
+                        className="flex flex-col gap-4"
+                      >
+                        <div>
+                          <EditorHeader
+                            eyebrow={selectedGeneralRecord ? "当前记录" : "新建记录"}
+                            title={selectedGeneralActivity.name}
+                            onClose={() => setGeneralActivityId("")}
+                          />
+                          {selectedGeneralRecord && (
+                            <p className="mt-1 text-sm text-slate-500">
+                              记录 #{selectedGeneralRecord.id}
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          <Field label="参与类型">
+                            <select
+                              className={selectClassName}
+                              value={participationType}
+                              onChange={(event) =>
+                                setParticipationType(event.target.value as ParticipationType)
+                              }
+                            >
+                              {PARTICIPATION_OPTIONS.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </Field>
+                          <Field label="申请分值">
+                            <input
+                              className={inputClassName}
+                              type="number"
+                              value={requestedScore}
+                              onChange={(event) => setRequestedScore(event.target.value)}
+                              required
+                            />
+                          </Field>
+                        </div>
+                        <FileUploadField
+                          label="证明材料"
+                          scene="application_file"
+                          values={proofFileUrls}
+                          onValuesChange={setProofFileUrls}
+                          multiple
+                        />
+                        {selectedGeneralRecord?.audit_status !== "pending" &&
+                          selectedGeneralRecord && (
+                            <StatusMessage value="已审核的综评记录不能在这里更新。" tone="info" />
+                          )}
+                        <StatusMessage value={recordMessage} tone={recordTone} />
+                        <PrimaryButton
+                          type="submit"
+                          loading={isRecordSubmitting}
+                          disabled={
+                            selectedGeneralRecord?.audit_status !== "pending" &&
+                            Boolean(selectedGeneralRecord)
+                          }
+                        >
+                          {selectedGeneralRecord ? "更新记录" : "创建记录"}
+                        </PrimaryButton>
+                      </form>
+                    </div>
+                  )}
+                </div>
+              </Surface>
+
+              <Surface>
+                <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                  <SectionTitle className="mb-0" icon={<Award size={20} />} title="星级申请" />
+                  <SecondaryButton
+                    type="button"
+                    onClick={openStarCreate}
+                    className="w-full whitespace-nowrap sm:w-auto"
+                  >
+                    <Plus size={16} /> 新建星级申请
+                  </SecondaryButton>
+                </div>
+                <div
+                  className={`grid gap-6 ${
+                    starEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
+                  }`}
+                >
+                  <div className="grid gap-3">
+                    {starApplications.length ? (
+                      starApplications.map((application) => (
+                        <button
+                          type="button"
+                          key={application.id}
+                          onClick={() => selectStarApplication(application)}
+                          className={`rounded-md border p-5 text-left transition hover:bg-white ${
+                            starUpdateId === String(application.id)
+                              ? "border-primary-200 bg-primary-50"
+                              : "border-slate-100 bg-slate-50"
+                          }`}
+                        >
+                          <div className="flex flex-wrap gap-2">
+                            <Badge
+                              tone={
+                                application.audit_status === "approved"
+                                  ? "green"
+                                  : application.audit_status === "rejected"
+                                    ? "red"
+                                    : "yellow"
+                              }
+                            >
+                              {application.audit_status
+                                ? AUDIT_STATUS_MAP[application.audit_status]
+                                : "未审核"}
+                            </Badge>
+                            {application.approved_level && (
+                              <Badge tone="primary">
+                                {STAR_LEVEL_MAP[application.approved_level]}
+                              </Badge>
+                            )}
+                          </div>
+                          <h3 className="mt-3 font-semibold text-slate-900">
+                            申请 #{application.id}
+                          </h3>
+                          <p className="mt-1 text-sm text-slate-500">
+                            申请竞赛分 {application.requested_contest_score ?? "未填"}
+                            ，核定分 {application.approved_score ?? "未定"}
+                          </p>
+                        </button>
+                      ))
+                    ) : (
+                      <EmptyState title="暂无星级申请" />
+                    )}
+                  </div>
+
+                  {starEditorMode && (
+                    <div className="rounded-md border border-slate-100 bg-white p-5">
+                      {starEditorMode === "create" ? (
+                        <form onSubmit={submitStarCreate} className="flex flex-col gap-4">
+                          <EditorHeader
+                            eyebrow="新建申请"
+                            title="创建星级申请"
+                            onClose={closeStarEditor}
+                          />
+                          <FileUploadField
+                            label="竞赛附件"
+                            scene="application_file"
+                            value={starAttachment}
+                            onChange={setStarAttachment}
+                            hint="上传后作为星级申请附件。"
+                          />
+                          <Field label="申请竞赛分">
+                            <input
+                              className={inputClassName}
+                              type="number"
+                              value={starScore}
+                              onChange={(event) => setStarScore(event.target.value)}
+                            />
+                          </Field>
+                          <Field label="独特性说明">
+                            <textarea
+                              className={textareaClassName}
+                              value={starStatement}
+                              onChange={(event) => setStarStatement(event.target.value)}
+                            />
+                          </Field>
+                          <StatusMessage value={starCreateMessage} tone={starCreateTone} />
+                          <PrimaryButton type="submit" loading={isStarCreating}>
+                            提交星级申请
+                          </PrimaryButton>
+                        </form>
+                      ) : starUpdateId ? (
+                        <form onSubmit={submitStarUpdate} className="flex flex-col gap-4">
+                          <EditorHeader
+                            eyebrow="当前编辑"
+                            title={`星级申请 #${starUpdateId}`}
+                            onClose={closeStarEditor}
+                          />
+                          <FileUploadField
+                            label="竞赛附件"
+                            scene="application_file"
+                            value={starUpdateAttachment}
+                            onChange={setStarUpdateAttachment}
+                            hint="上传后替换星级申请附件。"
+                          />
+                          <Field label="申请竞赛分">
+                            <input
+                              className={inputClassName}
+                              type="number"
+                              value={starUpdateScore}
+                              onChange={(event) => setStarUpdateScore(event.target.value)}
+                            />
+                          </Field>
+                          <Field label="独特性说明">
+                            <textarea
+                              className={textareaClassName}
+                              value={starUpdateStatement}
+                              onChange={(event) => setStarUpdateStatement(event.target.value)}
+                            />
+                          </Field>
+                          <PrimaryButton type="submit" loading={isStarUpdating}>
+                            更新申请
+                          </PrimaryButton>
+                          <StatusMessage value={starUpdateMessage} tone={starUpdateTone} />
+                        </form>
+                      ) : (
+                        <EmptyState title="请选择星级申请" />
+                      )}
+                    </div>
+                  )}
+                </div>
+              </Surface>
+            </>
+          )}
         </>
       )}
     </motion.div>

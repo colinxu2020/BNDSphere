@@ -57,7 +57,7 @@ export function Workspace() {
       }
 
       setUser(meResponse.data);
-      const clubsResponse = await client.GET("/api/v1/clubs/", {
+      const clubsResponse = await (client.GET as any)("/api/v1/clubs/managed/", {
         params: { query: { size: 100 } },
       });
       if (clubsResponse.error) {

@@ -249,7 +249,7 @@ export function ClubDetail() {
               关于社团
             </h2>
             <div className="prose prose-slate prose-p:leading-relaxed prose-p:text-slate-600 max-w-none text-[17px]">
-              <p>{club.description || "暂无详细介绍。"}</p>
+              <p className="whitespace-pre-line">{club.description || "暂无详细介绍。"}</p>
             </div>
           </section>
 

@@ -23,6 +23,7 @@ from app.schemas.club import (
     ClubCreate,
     ClubMemberRoleUpdate,
     ClubMemberUpdate,
+    ClubUpdate,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
@@ -116,6 +117,38 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         status: ClubStatusEnum | None = None,
     ) -> Page[Club]:
         return await self.repository.get_multi(search, category, status)
+
+    async def get_managed_by_user(self, user: User) -> Page[Club]:
+        return await self.repository.get_managed_by_user(user.id)
+
+    async def get_manageable_club(self, club_id: int) -> Club:
+        club = await self.get(club_id)
+        if club is None:
+            raise ClubNotFoundError(club_id) from None
+        if club.status == ClubStatusEnum.archived:
+            raise ResourceForbiddenError(
+                "error.club.not_active",
+                "CLUB_NOT_ACTIVE",
+                {"club_id": club_id},
+            ) from None
+        return club
+
+    async def update_unreviewed_club(
+        self,
+        club_id: int,
+        obj_in: ClubUpdate,
+    ) -> Club:
+        async with self.transaction():
+            club = await self.repository.get_with_lock(club_id)
+            if club is None:
+                raise ClubNotFoundError(club_id) from None
+            if club.status != ClubStatusEnum.unreviewed:
+                raise ResourceForbiddenError(
+                    "error.club.update_requires_review",
+                    "CLUB_UPDATE_REQUIRES_REVIEW",
+                    {"club_id": club_id},
+                ) from None
+            return await self.repository.update_details(club, obj_in)
 
     async def request_club_update(
         self,
