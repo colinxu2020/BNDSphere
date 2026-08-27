@@ -131,3 +131,12 @@ secrets
 .env
 .DS_Store
 .codegraph/
+
+# Host deployment state — written by the deploy workflow, never committed
+deploy/versions.env
+deploy/status/
+
+# Agent workflow scratch (superpowers skill spec/plan output). Kept on disk,
+# never committed: the plans describe designs that later changed, so tracked
+# copies drift into contradicting the code beside them.
+docs/superpowers/

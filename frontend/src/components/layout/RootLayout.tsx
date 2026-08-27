@@ -7,6 +7,7 @@ import {
   LogOut,
   Settings,
   Shield,
+  Terminal,
   User,
 } from "@/src/components/ui/Icons";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
@@ -100,6 +101,10 @@ export function RootLayout({ children }: { children: ReactNode }) {
     [user?.role],
   );
   const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
+  // Deliberately NOT `|| admin`: the deployment panel can restart containers on
+  // the host, which managing users and clubs must not confer. Mirrors the
+  // backend gate on RoleChecker([RoleEnum.dev]).
+  const canOpenDevPanel = user?.role === "dev";
 
   const handleLogout = () => {
     clearAuthToken();
@@ -235,6 +240,15 @@ export function RootLayout({ children }: { children: ReactNode }) {
                         onClick={() => setIsUserMenuOpen(false)}
                       >
                         管理员控制台
+                      </MenuItem>
+                    )}
+                    {canOpenDevPanel && (
+                      <MenuItem
+                        to="/dev"
+                        icon={<Terminal size={16} />}
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        部署面板
                       </MenuItem>
                     )}
                     <button

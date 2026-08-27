@@ -91,6 +91,11 @@ services:
       - oss_access_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
+    volumes:
+      # Read-only. Written on the host by whatever runs a deploy, so the
+      # backend can report deploy state but never forge it. Absent until a
+      # deploy has run; the panel reports "idle" in that case.
+      - ./deploy/status:/srv/status:ro
 
   caddy:
     image: bndsphere-caddy

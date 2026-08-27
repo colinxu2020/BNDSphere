@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import SessionLocal
 from app.core.security import verify_access_token
+from app.core.settings import deployment_settings
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.repositories.academic_term import AcademicTermRepository
@@ -43,6 +44,7 @@ from app.services.club_activity import (
     ClubActivityService,
     ClubActivityUpdateRequestService,
 )
+from app.services.deployment import DeploymentService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -181,6 +183,23 @@ type StarRatingServiceDep = Annotated[
 type ObjectStorageServiceDep = Annotated[
     ObjectStorageService,
     Depends(ObjectStorageService),
+]
+
+
+def get_deployment_service() -> DeploymentService:
+    settings = deployment_settings()
+    return DeploymentService(
+        app_version=settings.app_version,
+        github_repo=settings.github_repo,
+        github_token=settings.github_token,
+        status_dir=settings.status_dir,
+        deploy_workflow=settings.deploy_workflow,
+    )
+
+
+type DeploymentServiceDep = Annotated[
+    DeploymentService,
+    Depends(get_deployment_service),
 ]
 
 
