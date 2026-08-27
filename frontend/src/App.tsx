@@ -104,10 +104,6 @@ const router = createBrowserRouter([
         lazy: () => import("./pages/Admin").then(({ Admin }) => ({ Component: Admin })),
       },
       {
-        path: "dev",
-        lazy: () => import("./pages/DevPanel").then(({ DevPanel }) => ({ Component: DevPanel })),
-      },
-      {
         path: "federation",
         lazy: () =>
           import("./pages/Federation").then(({ Federation }) => ({ Component: Federation })),

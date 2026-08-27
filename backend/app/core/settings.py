@@ -1,5 +1,4 @@
 from functools import cache
-from pathlib import Path
 from urllib.parse import quote
 
 from pydantic import computed_field
@@ -46,23 +45,6 @@ class OSSSettings(_AppBaseSettings):
     oss_public_base_url: str
 
 
-class DeploymentSettings(_AppBaseSettings):
-    # Baked in at image build time via the APP_VERSION build arg. This is
-    # ground truth for "what version is running" — never inferred from a file
-    # on disk, which an updater crash could leave stale (spec §7).
-    app_version: str = "dev"
-    github_repo: str = "colinxu2020/BNDSphere"
-    # Optional, and read-only: it only raises the rate limit on the public
-    # release lookup. The panel cannot start a deploy, so no write scope is
-    # needed or wanted here.
-    github_token: str | None = None
-    # Only used to build the link to the workflow on GitHub.
-    deploy_workflow: str = "deploy.yml"
-    # Bind-mounted read-only: written on the host by the deploy workflow, so
-    # the backend can report deploy state but never forge it.
-    status_dir: Path = Path("/srv/status")
-
-
 @cache
 def db_settings() -> DatabaseSettings:
     return DatabaseSettings()  # type: ignore[call-arg]
@@ -76,8 +58,3 @@ def web_settings() -> WebSettings:
 @cache
 def oss_settings() -> OSSSettings:
     return OSSSettings()  # type: ignore[call-arg]
-
-
-@cache
-def deployment_settings() -> DeploymentSettings:
-    return DeploymentSettings()

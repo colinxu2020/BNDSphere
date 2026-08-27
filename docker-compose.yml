@@ -91,11 +91,6 @@ services:
       - oss_access_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
-    volumes:
-      # Read-only, and written by the deploy workflow running on the host —
-      # so the backend still cannot forge deploy status, and the backend's
-      # only write path to a deploy is a workflow_dispatch call to GitHub.
-      - ${COMPOSE_PROJECT_DIR}/deploy/status:/srv/status:ro
 
   caddy:
     image: ${CADDY_IMAGE:-bndsphere-caddy}
