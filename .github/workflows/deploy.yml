@@ -7,15 +7,9 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: "Release tag to deploy, or to roll back to (e.g. v1.5.0)"
+        description: "Release tag to deploy (e.g. v1.5.0)"
         required: true
         type: string
-      action:
-        description: "update or rollback"
-        required: true
-        default: update
-        type: choice
-        options: [update, rollback]
 
 permissions:
   contents: read
@@ -33,7 +27,7 @@ concurrency:
 
 jobs:
   deploy:
-    name: ${{ inputs.action }} to ${{ inputs.version }}
+    name: deploy ${{ inputs.version }}
     # Runs on the deploy host. A GitHub-hosted runner cannot reach a box behind
     # NAT, and this needs the host's Docker daemon regardless.
     #
@@ -58,15 +52,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
-      # Only an update pulls: a rollback restarts images already in the local
-      # store. Logging in unconditionally would put a GHCR outage on the
-      # rollback path — registry trouble during an incident is precisely when
-      # a rollback must still work.
-      #
       # The runner lives on the deploy host, so this writes credentials into
       # the host's docker config. The logout step below is not optional.
       - name: Log in to GHCR
-        if: inputs.action == 'update'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -81,10 +69,8 @@ jobs:
           # silently; the script fails closed instead (lib/common.sh's
           # validate_startup). Set it as a repository variable.
           #
-          # The deploy installs the release's own docker-compose.yml here,
-          # keeping the previous copy as docker-compose.yml.prev so a rollback
-          # restores the file that matched the version it restores. A release
-          # that adds a service or an environment variable therefore deploys
+          # The deploy installs the release's own docker-compose.yml here, so
+          # a release that adds a service or an environment variable deploys
           # on its own; it used to need an operator to edit the host first,
           # with nothing checking that they had.
           COMPOSE_PROJECT_DIR: ${{ vars.DEPLOY_DIR }}
@@ -93,13 +79,12 @@ jobs:
           # Via env, never interpolated into the script body: `${{ }}` is
           # substituted by the Actions expression engine BEFORE the shell
           # parses the line, so a crafted input would execute ahead of any
-          # validation. The script validates these itself (lib/common.sh).
-          INPUT_ACTION: ${{ inputs.action }}
+          # validation. The script validates it itself (lib/common.sh).
           INPUT_VERSION: ${{ inputs.version }}
         run: |
           set -eu
-          sh infra/deploy/deploy.sh "$INPUT_ACTION" "$INPUT_VERSION"
+          sh infra/deploy/deploy.sh "$INPUT_VERSION"
 
       - name: Log out of GHCR
-        if: always() && inputs.action == 'update'
+        if: always()
         run: docker logout ghcr.io || true
