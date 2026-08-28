@@ -1,15 +1,16 @@
 name: Release
 
+# Tag push only. workflow_dispatch was removed: with versions immutable, a
+# dispatch for a tag that already has a release is refused below, and one for
+# a tag that does not is the same thing as re-running the failed tag-push run
+# from the Actions UI. It bought nothing and cost the version-vs-ref split
+# below -- resolving two sources of the version, guarding the dispatch input
+# for newline injection (a git refname cannot contain one), and checking out
+# a ref other than the one that triggered the run.
 on:
   push:
     tags:
       - "v*"
-  workflow_dispatch:
-    inputs:
-      version:
-        description: "Version tag to build (e.g. v1.5.0)"
-        required: true
-        type: string
 
 permissions:
   contents: write
@@ -28,42 +29,28 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      # Resolve and validate the version BEFORE checkout: on workflow_dispatch
-      # the version is an input independent of the ref, and it decides what
-      # gets checked out below.
       - name: Resolve version and image references
         id: meta
-        env:
-          INPUT_VERSION: ${{ inputs.version }}
         shell: bash
         run: |
           set -euo pipefail
 
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            version="$INPUT_VERSION"
-          else
-            version="${GITHUB_REF#refs/tags/}"
-          fi
+          version="${GITHUB_REF#refs/tags/}"
 
-          # grep -Eq matches PER LINE, so "v1.0.0\nbackend_repo=x" satisfies the
-          # anchored pattern below and then injects a SECOND key=value pair
-          # into $GITHUB_OUTPUT — where the last occurrence wins, and where the
-          # value is interpolated straight into `docker build -t` and
-          # `docker push` in a job holding packages: write. The dispatch UI box
-          # is single-line; the REST API is not. Reject multi-line input before
-          # writing anything, the same guard lib/common.sh applies for the same
-          # reason.
-          if [ "$(printf '%s' "$version" | wc -l)" -ne 0 ]; then
-            echo "::error::Version must be a single line"
-            exit 1
-          fi
-
-          # Same grammar the deploy script enforces. Rejecting here means a
-          # malformed tag fails at release time, not on someone's deploy host.
+          # Same grammar AND same length limit the deploy script enforces
+          # (lib/common.sh). Rejecting here means a malformed tag fails at
+          # release time rather than on someone's deploy host — and a version
+          # that this passes but the deployer rejects would be a release that
+          # can never be deployed.
+          #
           # No '+' build metadata: the version becomes a Docker tag verbatim
           # below, and Docker's reference grammar allows only word characters,
           # dots and dashes — v1.5.0+build.7 would pass this check and then
           # fail `docker build` with "invalid reference format".
+          if [ "${#version}" -gt 64 ]; then
+            echo "::error::Version must be at most 64 characters: $version"
+            exit 1
+          fi
           if ! printf '%s' "$version" \
              | grep -Eq '^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$'; then
             echo "::error::Invalid version tag: $version"
@@ -95,16 +82,11 @@ jobs:
             exit 1
           fi
 
-      # Check out the TAG, never the dispatch ref. actions/checkout defaults to
-      # the ref the run was started from, so dispatching from master with
-      # version=v1.5.0 would build master's sources and label them v1.5.0. For
-      # a tag push refs/tags/$version is the pushed tag, so one ref serves both
-      # triggers. Safe in `ref:` because the step above already rejected
-      # anything outside ^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$.
+      # No `ref:` — the run was triggered BY the tag, so the default checkout
+      # is that tag. This was only ever needed to correct for a dispatch
+      # started from a different ref.
       - name: Checkout the released tag
         uses: actions/checkout@v6
-        with:
-          ref: refs/tags/${{ steps.meta.outputs.version }}
 
       - name: Log in to GHCR
         uses: docker/login-action@v3
@@ -172,10 +154,6 @@ jobs:
         run: |
           set -euo pipefail
 
-          # HEAD, not $GITHUB_SHA: checkout above moved the worktree to the
-          # requested tag, but GITHUB_SHA still names the ref the run was
-          # STARTED from. On a dispatch from master for v1.5.0 that would
-          # record master's commit for images built from the tag.
           jq -n \
             --arg version      "${{ steps.meta.outputs.version }}" \
             --arg built_at     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \

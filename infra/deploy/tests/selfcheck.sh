@@ -3,7 +3,7 @@
 # fixtures. Everything that needs a Docker daemon is stubbed; what a stub
 # cannot observe is called out where it matters.
 #
-# Run: SCRIPT_DIR=infra/deploy sh infra/deploy/selfcheck.sh
+# Run: sh infra/deploy/tests/selfcheck.sh
 set -u
 
 FAILURES=0
@@ -46,7 +46,8 @@ assert_fail() {
 # every test after it. Inside a subshell the override vanishes on return while
 # real file writes persist.
 
-SCRIPT_DIR="${SCRIPT_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
+# ../ from tests/ — the directory holding deploy.sh and lib/.
+SCRIPT_DIR="${SCRIPT_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)}"
 export SCRIPT_DIR
 
 . "$SCRIPT_DIR"/lib/common.sh
@@ -174,7 +175,14 @@ case "$MANAGED_SERVICES" in
         printf 'FAIL: MANAGED_SERVICES includes postgres\n' >&2 ;;
     *) PASSES=$((PASSES + 1)) ;;
 esac
-RS_OUT=$(recreate_services v1.6.0 "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0")
+_recreate_echo() (
+    # COMPOSE_ECHO makes every compose call echo its argv, including the
+    # `config --services` the derivation uses, so pin the list here and test
+    # the derivation itself separately below.
+    set_managed_services() { MANAGED_SERVICES="backend caddy"; }
+    recreate_services v1.6.0 "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0"
+)
+RS_OUT=$(_recreate_echo)
 case "$RS_OUT" in
     *postgres*) FAILURES=$((FAILURES + 1))
         printf 'FAIL: recreate_services named postgres (got: %s)\n' "$RS_OUT" >&2 ;;
@@ -197,6 +205,41 @@ esac
 assert_eq "v1.6.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
     "recreate_services pinned the version it was given"
 unset COMPOSE_ECHO
+
+# ── the managed service set ──────────────────────────────────────────
+# Taken from the compose file about to be used, so a release that adds a
+# service actually starts it -- and never postgres, and never a one-off.
+_derive() (
+    _listing=$1
+    compose() { printf '%s' "$_listing"; }
+    set_managed_services && printf '%s' "$MANAGED_SERVICES"
+)
+assert_eq "backend caddy" "$(_derive 'backend
+caddy
+postgres
+alembic-migration
+')" "derivation drops postgres and the alembic one-offs"
+assert_eq "backend caddy worker" "$(_derive 'backend
+caddy
+worker
+postgres
+')" "a service the release introduced is picked up"
+# Fail closed: an empty list would become `compose up -d --no-deps` with no
+# arguments, which starts every service in the file -- postgres included.
+assert_fail "derivation fails closed on an empty service list" _derive ''
+assert_fail "derivation fails closed when only excluded services exist" \
+    _derive 'postgres
+'
+_recreate_no_services=$(mktemp)
+_recreate_undeterminable() (
+    compose() { case "$1" in up) printf 'called' > "$_recreate_no_services" ;; *) printf '' ;; esac; }
+    recreate_services v1 backend:v1 caddy:v1
+)
+assert_fail "recreate_services aborts when the service set is unusable" \
+    _recreate_undeterminable
+assert_eq "" "$(cat "$_recreate_no_services")" \
+    "compose up never runs without a known service list"
+rm -f "$_recreate_no_services"
 
 # A failed pin write must never be followed by `compose up`: with the OLD pins
 # still on disk, `up` would recreate nothing, exit 0, and the OLD (genuinely
@@ -258,6 +301,30 @@ _healthy_app_down() (
 )
 assert_fail "health fails when the app does not answer on the published port" \
     _healthy_app_down
+# A service the release introduced has no pinned ref and may declare no
+# healthcheck; demanding "healthy" from it would fail every deploy that adds
+# one. It must still fail if it declares a healthcheck and is unhealthy.
+_healthy_extra_service() (
+    _extra_status=$1
+    MANAGED_SERVICES="backend caddy worker"
+    compose() { case "$1" in ps) printf '%s\n' "$3" ;; port) printf '0.0.0.0:8080\n' ;; esac; }
+    docker() {
+        case "$3" in
+            *Health*) case "$4" in worker) printf '%s\n' "$_extra_status" ;;
+                                  *) printf 'healthy\n' ;; esac ;;
+            *) printf '%s:v2\n' "$4" ;;
+        esac
+    }
+    app_ready() { return 0; }
+    wait_healthy "backend:v2" "caddy:v2"
+)
+assert_ok "a new service without a healthcheck does not block the deploy" \
+    _healthy_extra_service none
+assert_ok "a new service reporting healthy passes" \
+    _healthy_extra_service healthy
+assert_fail "a new service that IS unhealthy still fails the deploy" \
+    _healthy_extra_service unhealthy
+
 # Restore the real defaults rather than unsetting them: `set -u` plus a
 # later real wait_healthy call would abort the suite.
 HEALTH_TIMEOUT=120
@@ -292,6 +359,26 @@ _acquire_with_ref 'ghcr.io/o/bndsphere-backend@sha256:aaa' >/dev/null 2>&1
 assert_eq "ghcr.io/o/bndsphere-backend@sha256:aaa
 ghcr.io/o/bndsphere-backend@sha256:aaa" "$(cat "$_pulled")" \
     "acquire_images pulls both components by digest"
+
+# THE return-channel invariant. acquire_images returns the manifest path by
+# printing it, and callers take that with $(...) -- which captures stdout. A
+# log line on stdout is therefore spliced into the return value: it was, and
+# `jq` then got a multi-line filename, every ref came back empty, and every
+# update aborted before the migration. Logs go to stderr for exactly this.
+_acquire_stdout() (
+    fetch_manifest() { printf '/tmp/manifest.json'; }
+    manifest_field() { printf 'ghcr.io/o/i@sha256:aaa'; }
+    docker() { return 0; }
+    acquire_images v1.5.0 2>/dev/null
+)
+assert_eq "/tmp/manifest.json" "$(_acquire_stdout)" \
+    "acquire_images prints the manifest path and nothing else"
+# The same hazard for every other function that returns a value by printing.
+_pinfile=$(mktemp)
+printf 'APP_VERSION=v9.9.9\n' > "$_pinfile"
+assert_eq "v9.9.9" "$( { log 'noise'; pin_get "$_pinfile" APP_VERSION; } 2>/dev/null )" \
+    "log never contaminates a captured return value"
+rm -f "$_pinfile"
 
 # A pull that fails must fail the deploy, not proceed to recreate containers
 # on an image that is not there.
@@ -428,6 +515,59 @@ _update_health_fails() (
 assert_fail "run_update fails when the new version is unhealthy" _update_health_fails
 assert_eq "rolled_back v1.0.0 automatic" "$(cat "$_trace")" \
     "an unhealthy deploy rolls back to the version it started from"
+
+# Redeploying the version the pins already name must NOT rotate: versions.env
+# is written before `compose up` finishes, so this is exactly the state a
+# cancelled job leaves behind, and rotating would copy the failed version over
+# the rollback target and discard the real last-known-good one.
+write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
+printf 'APP_VERSION=v0.9.0\nBACKEND_IMAGE=backend:v0.9.0\nCADDY_IMAGE=caddy:v0.9.0\n' \
+    | atomic_write "$(versions_env_prev)"
+: > "$_trace"
+_update_same_version() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
+    wait_healthy() { return 0; }
+    run_rollback() { printf 'rolled_back\n' >> "$_trace"; return 0; }
+    run_update v1.0.0
+)
+assert_ok "redeploying the pinned version succeeds" _update_same_version
+assert_eq "v0.9.0" "$(pin_get "$(versions_env_prev)" APP_VERSION)" \
+    "a redeploy of the pinned version keeps the existing rollback target"
+
+# The two rotation writes cannot be atomic together, so versions.env.prev is
+# the commit marker and must be written LAST: interrupted in between, a
+# rollback finds no target and refuses, rather than pairing one version's pins
+# with another version's compose file.
+write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
+rm -f "$(versions_env_prev)"
+printf 'services: {backend: {image: OLD}}\n' | atomic_write "$(compose_file)"
+_update_interrupted_rotation() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    # Fail the SECOND rotation write, as an interruption between them would.
+    atomic_write() {
+        case "$1" in *versions.env.prev) cat >/dev/null; return 1 ;; esac
+        _d=$1; cat > "$_d.tmp.$$" && mv -f "$_d.tmp.$$" "$_d"
+    }
+    recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
+    wait_healthy() { return 0; }
+    run_update v2.0.0
+)
+: > "$_trace"
+assert_fail "an interrupted rotation aborts the deploy" _update_interrupted_rotation
+assert_eq "" "$(cat "$_trace")" "an interrupted rotation recreates nothing"
+assert_fail "an interrupted rotation leaves no rollback target to mispair" \
+    test -f "$(versions_env_prev)"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
+    "an interrupted rotation does not install the new compose file"
 
 # Rotation must fail loudly when there is no versions.env to copy, rather
 # than leaving an empty rollback target that later reads as "no image refs".

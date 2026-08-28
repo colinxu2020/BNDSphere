@@ -3,11 +3,17 @@
 
 # ---------------------------------------------------------------- logging
 
-# stdout IS the log. This runs as a GitHub Actions step, which captures,
-# timestamps and retains it, and the run page is what an operator opens. The
-# sidecar kept its own rotated update.log because nothing was watching a
-# daemon; a job does not need one.
-log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1"; }
+# The Actions step log IS the log: the runner captures both streams, and the
+# run page is what an operator opens. The sidecar kept its own rotated
+# update.log because nothing was watching a daemon; a job does not need one.
+#
+# STDERR, not stdout, and this is load-bearing: several functions return a
+# value by printing it (acquire_images returns the manifest path, pin_get a
+# pin, running_ref an image ref) and callers capture that with `$(...)`, which
+# captures stdout only. A log line on stdout would be spliced into the return
+# value -- it was, and it made every update abort with an unreadable manifest
+# path before this was caught in review.
+log() { printf '%s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" >&2; }
 
 die() {
     printf 'FATAL: %s\n' "$1" >&2

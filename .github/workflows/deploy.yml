@@ -36,7 +36,13 @@ jobs:
     name: ${{ inputs.action }} to ${{ inputs.version }}
     # Runs on the deploy host. A GitHub-hosted runner cannot reach a box behind
     # NAT, and this needs the host's Docker daemon regardless.
-    runs-on: self-hosted
+    #
+    # The label is not decoration: bare `self-hosted` lets GitHub schedule this
+    # on ANY self-hosted runner in the repo or org, and a second runner that
+    # happens to have the same DEPLOY_DIR path would deploy to the wrong
+    # Docker daemon rather than merely failing. Register the deploy host with
+    # the `bndsphere-deploy` label.
+    runs-on: [self-hosted, bndsphere-deploy]
     # The boundary is wider than "push to this file": workflow_dispatch runs
     # the workflow definition FROM THE DISPATCHED REF, and checkout below then
     # executes that ref's infra/deploy/*.sh on the host. So push access to
@@ -52,9 +58,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v6
 
+      # Only an update pulls: a rollback restarts images already in the local
+      # store. Logging in unconditionally would put a GHCR outage on the
+      # rollback path — registry trouble during an incident is precisely when
+      # a rollback must still work.
+      #
       # The runner lives on the deploy host, so this writes credentials into
       # the host's docker config. The logout step below is not optional.
       - name: Log in to GHCR
+        if: inputs.action == 'update'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
@@ -89,5 +101,5 @@ jobs:
           sh infra/deploy/deploy.sh "$INPUT_ACTION" "$INPUT_VERSION"
 
       - name: Log out of GHCR
-        if: always()
+        if: always() && inputs.action == 'update'
         run: docker logout ghcr.io || true

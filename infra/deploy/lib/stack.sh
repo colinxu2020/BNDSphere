@@ -13,8 +13,10 @@
 # edit the host first, and rollback restores the file that matched the version
 # it restores.
 
-# HARDCODED. The dispatch inputs never supply these. Postgres is deliberately
-# absent and must stay absent.
+# Replaced from the release's own compose file before any recreate (see
+# set_managed_services). Seeded, never empty, so nothing can accidentally
+# expand to "every service" -- `compose up -d --no-deps` with no service
+# arguments starts EVERYTHING, postgres included.
 MANAGED_SERVICES="backend caddy"
 MIGRATION_SERVICE="alembic-migration"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
@@ -67,6 +69,40 @@ compose() {
         --env-file "$(versions_env)" \
         -p "$COMPOSE_PROJECT_NAME" \
         "$@"
+}
+
+# The services a deploy may recreate, taken from the compose file that is
+# about to be used. Hardcoding "backend caddy" meant a release that added a
+# service shipped its compose file and then never started the service --
+# `--no-deps` does not start linked services either, so being a dependency of
+# backend would not have saved it.
+#
+# Excluded, always: postgres (the database is not the application's to
+# restart) and the alembic-* one-offs (`up -d` would leave them running;
+# run_migration invokes the migration itself, once, under `compose run`).
+set_managed_services() {
+    _svcs=$(compose config --services 2>/dev/null \
+        | grep -vx 'postgres' \
+        | grep -v '^alembic-' \
+        | tr '\n' ' ')
+    _svcs=${_svcs% }
+
+    # Fail closed. An empty list here would become `compose up -d --no-deps`
+    # with no arguments, which starts every service in the file.
+    [ -n "$_svcs" ] || {
+        log "could not determine the services to manage from the compose file"
+        return 1
+    }
+    case " $_svcs " in
+        *" postgres "*)
+            log "refusing: postgres appeared in the managed service list"
+            return 1
+            ;;
+    esac
+
+    MANAGED_SERVICES=$_svcs
+    log "managed services: $MANAGED_SERVICES"
+    return 0
 }
 
 # Compose `run --rm` helpers can be orphaned when the job is cancelled.
@@ -139,6 +175,12 @@ recreate_services() {
         log "recreate_services: aborting, version pins were not written"
         return 1
     }
+    # After the pins are written, so `compose config` interpolates the images
+    # this deploy is actually about to start.
+    set_managed_services || {
+        log "recreate_services: aborting, managed service list is unusable"
+        return 1
+    }
     # --no-deps: without it, `up -d backend caddy` pulls postgres in via
     # depends_on and re-runs alembic-migration a SECOND time via backend's
     # service_completed_successfully dependency -- run_migration already ran
@@ -171,18 +213,33 @@ wait_healthy() {
             _status=$(docker inspect --format \
                 '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
                 "$_cid" 2>/dev/null)
-            [ "$_status" = "healthy" ] || { _all_healthy=0; break; }
 
             case "$_svc" in
-                backend) _want=$_want_backend ;;
-                caddy)   _want=$_want_caddy ;;
-                *)       _want= ;;
+                backend|caddy)
+                    # The two services this deploy pins. Both checks apply,
+                    # and the expected ref must be non-empty: an absent ref
+                    # must never compare "" = "" and pass vacuously, which is
+                    # the whole reason this gate exists.
+                    case "$_svc" in
+                        backend) _want=$_want_backend ;;
+                        caddy)   _want=$_want_caddy ;;
+                    esac
+                    [ "$_status" = "healthy" ] || { _all_healthy=0; break; }
+                    _running=$(docker inspect --format '{{.Config.Image}}' \
+                        "$_cid" 2>/dev/null)
+                    [ -n "$_want" ] && [ "$_want" = "$_running" ] \
+                        || { _all_healthy=0; break; }
+                    ;;
+                *)
+                    # A service the release introduced. There is no pinned ref
+                    # to compare it against, and it may declare no healthcheck
+                    # at all -- demanding "healthy" would fail every deploy
+                    # that adds one. Honour a healthcheck if it has one; its
+                    # container existing is all this can otherwise assert.
+                    [ "$_status" = "none" ] || [ "$_status" = "healthy" ] \
+                        || { _all_healthy=0; break; }
+                    ;;
             esac
-            _running=$(docker inspect --format '{{.Config.Image}}' "$_cid" 2>/dev/null)
-            # Both sides must be non-empty before comparing, same discipline
-            # as the artifact digest check: an absent expected ref must never
-            # compare "" = "" and pass vacuously.
-            [ -n "$_want" ] && [ "$_want" = "$_running" ] || { _all_healthy=0; break; }
         done
 
         if [ "$_all_healthy" -eq 1 ] && app_ready; then
@@ -282,17 +339,34 @@ run_update() {
     # Rotate AFTER migration succeeded and immediately before the first step a
     # rollback could need to follow. Earlier, it would survive a migration
     # abort and leave .prev naming the version that is still running.
-    # Redirected, not `cat ... |`: in a pipeline the status is atomic_write's,
-    # so a missing source would write an EMPTY rollback target and report
-    # success. As a redirect, the open failure fails the command.
-    atomic_write "$(versions_env_prev)" < "$(versions_env)" || {
-        log "could not record the rollback target; refusing to deploy"
-        return 1
-    }
-    atomic_write "$(compose_file_prev)" < "$(compose_file)" || {
-        log "could not record the previous compose file; refusing to deploy"
-        return 1
-    }
+    #
+    # ONLY when the version actually changes. Redeploying the version the pins
+    # already name -- which is exactly what an operator does after a cancelled
+    # job, since versions.env is written before `compose up` finishes -- would
+    # otherwise copy that version over the rollback target and discard the
+    # real last-known-good one.
+    if [ "$_current" != "$_version" ]; then
+        # compose FIRST, versions.env.prev LAST: the two writes cannot be made
+        # atomic together, so the second one is the commit marker. Interrupted
+        # in between, versions.env.prev is absent and a rollback refuses --
+        # rather than pairing one version's pins with another's compose file.
+        # Nothing has been replaced at this point either way.
+        #
+        # Redirected, not `cat ... |`: in a pipeline the status is
+        # atomic_write's, so a missing source would write an EMPTY rollback
+        # target and report success. As a redirect, the open failure fails.
+        atomic_write "$(compose_file_prev)" < "$(compose_file)" || {
+            log "could not record the previous compose file; refusing to deploy"
+            return 1
+        }
+        atomic_write "$(versions_env_prev)" < "$(versions_env)" || {
+            log "could not record the rollback target; refusing to deploy"
+            return 1
+        }
+    else
+        log "redeploying $_version; keeping the existing rollback target"
+    fi
+
     atomic_write "$(compose_file)" < "$_staged_compose" || {
         log "could not install the release's compose file; refusing to deploy"
         return 1

@@ -64,9 +64,7 @@ jobs:
       # place they get exercised. Runs on the same GNU coreutils the deploy
       # host has (busybox `wc -l` pads its output and breaks the guards).
       - name: Run the deploy script self-check
-        env:
-          SCRIPT_DIR: ${{ github.workspace }}/infra/deploy
-        run: sh infra/deploy/selfcheck.sh
+        run: sh infra/deploy/tests/selfcheck.sh
 
       - name: Validate Docker Compose file
         run: docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet
