@@ -9,7 +9,7 @@
 #
 # STDERR, not stdout, and this is load-bearing: several functions return a
 # value by printing it (acquire_images returns the manifest path, pin_get a
-# pin) and callers capture that with `$(...)`, which
+# pin, running_ref an image ref) and callers capture that with `$(...)`, which
 # captures stdout only. A log line on stdout would be spliced into the return
 # value -- it was, and it made every update abort with an unreadable manifest
 # path before this was caught in review.
@@ -24,7 +24,7 @@ die() {
 
 # versions.env is written through this, always. The job can be cancelled at
 # any instant, including mid-deploy; a half-written versions.env would make
-# the stack unstartable by ANY means. Partial files must be
+# the stack unstartable by ANY means, rollback included. Partial files must be
 # unobservable, not merely rare.
 atomic_write() {
     _dest=$1
