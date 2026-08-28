@@ -397,7 +397,7 @@ export function ClubDetail() {
                 分享 {club.name}
               </h2>
               <p className="mt-2 text-sm leading-6 text-slate-500">
-                扫码即可打开社团详情，了解社团介绍和近期活动。
+                扫码查看社团详情，了解近期活动。
               </p>
             </div>
 
