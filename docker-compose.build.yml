@@ -28,4 +28,3 @@ services:
       dockerfile: infra/Dockerfile.Caddy
       network: host
       target: prod
-

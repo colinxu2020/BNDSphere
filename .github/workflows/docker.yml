@@ -54,15 +54,10 @@ jobs:
             echo "secret_key=${SECRET_KEY}"
           } > .env.backend
 
-          # backend's status bind mount keys off COMPOSE_PROJECT_DIR
-          # (must be an absolute host path — see infra/deploy/lib/state.sh's
-          # validate_startup). $GITHUB_WORKSPACE is the checkout root, which
-          # already has docker-compose.yml and the secrets/ dir created above.
-          echo "COMPOSE_PROJECT_DIR=${GITHUB_WORKSPACE}" >> "$GITHUB_ENV"
-
-      # The deploy scripts no longer ship in an image, so this is the only
-      # place they get exercised. Runs on the same GNU coreutils the deploy
-      # host has (busybox `wc -l` pads its output and breaks the guards).
+      # The deploy scripts ship in no image, so this is the only place they
+      # get exercised. Runs on the same GNU coreutils the deploy host has
+      # (busybox `wc -l` pads its output and breaks the guards). It sets its
+      # own COMPOSE_PROJECT_DIR per case, against throwaway directories.
       - name: Run the deploy script self-check
         run: sh infra/deploy/tests/selfcheck.sh
 
@@ -193,4 +188,3 @@ jobs:
         with:
           sarif_file: trivy-caddy-results.sarif
           category: trivy-caddy
-
