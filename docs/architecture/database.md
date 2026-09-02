@@ -585,6 +585,8 @@ erDiagram
 
 以上最后四项中任意一项回答"否"，都意味着该变更必须拆分到多个发布版本中。
 
+**删除的影响面被 eager 关系放大。** 多个 relationship 声明了 `lazy="selectin"`（如 `Club.members`、`ClubMember.user`），加载父实体时总会连带 SELECT 关联表。因此在关联表上删掉一列，会让所有读父实体的路径失败，包括从不访问该关系的接口；同样的删除在 `lazy="select"` 下只在真正访问该属性时才失败。这不改变上面的判定，只是把漏掉一次删除的代价从一条路由放大到整个实体。
+
 ### 多 revision 升级的失败语义
 
 `backend/migrations/env.py` 没有设置 `transaction_per_migration`（默认为关闭），因此 `alembic upgrade head` 的**全部** revision 运行在**同一个**事务里（见 `env.py` 的 `with context.begin_transaction()`）。PostgreSQL 的 DDL 是事务性的，且现有 16 个 revision 都没有使用 `CREATE INDEX CONCURRENTLY` 之类无法进入事务的操作。
