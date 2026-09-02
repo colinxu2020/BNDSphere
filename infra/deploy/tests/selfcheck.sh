@@ -180,7 +180,7 @@ _recreate_echo() (
     # `config --services` the derivation uses, so pin the list here and test
     # the derivation itself separately below.
     set_managed_services() { MANAGED_SERVICES="backend caddy"; }
-    recreate_services v1.6.0 "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0"
+    recreate_services "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0"
 )
 RS_OUT=$(_recreate_echo)
 case "$RS_OUT" in
@@ -202,8 +202,13 @@ case "$RS_OUT" in
     *) FAILURES=$((FAILURES + 1))
        printf 'FAIL: recreate_services omits --no-deps (got: %s)\n' "$RS_OUT" >&2 ;;
 esac
-assert_eq "v1.6.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
-    "recreate_services pinned the version it was given"
+assert_eq "bndsphere-backend:v1.6.0" "$(pin_get "$(versions_env)" BACKEND_IMAGE)" \
+    "recreate_services pinned the image refs it was given"
+# `compose up` exiting 0 is not evidence the new version is serving, so
+# recreating must leave the record on the last version that passed a health
+# check -- and must not blank it either.
+assert_eq "v1.5.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
+    "recreate_services carries APP_VERSION over instead of advancing it"
 unset COMPOSE_ECHO
 
 # ── the managed service set ──────────────────────────────────────────
@@ -233,7 +238,7 @@ assert_fail "derivation fails closed when only excluded services exist" \
 _recreate_no_services=$(mktemp)
 _recreate_undeterminable() (
     compose() { case "$1" in up) printf 'called' > "$_recreate_no_services" ;; *) printf '' ;; esac; }
-    recreate_services v1 backend:v1 caddy:v1
+    recreate_services backend:v1 caddy:v1
 )
 assert_fail "recreate_services aborts when the service set is unusable" \
     _recreate_undeterminable
@@ -255,7 +260,7 @@ _up_called=$(mktemp)
 _recreate_failing_write() (
     atomic_write() { cat >/dev/null; return 1; }
     compose() { case "$1" in up) printf 'called' > "$_up_called" ;; esac; }
-    recreate_services v1 "backend:v1" "caddy:v1"
+    recreate_services "backend:v1" "caddy:v1"
 )
 assert_fail "recreate_services propagates a refused pin write" _recreate_failing_write
 assert_eq "" "$(cat "$_up_called")" \
@@ -455,13 +460,29 @@ _update_health_fails() (
     fetch_compose() { printf '%s' "$_staged_src"; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
-    recreate_services() { write_pins v2.0.0 backend:v2 caddy:v2; return 0; }
+    recreate_services() { write_pins "$(pin_get "$(versions_env)" APP_VERSION)" backend:v2 caddy:v2; return 0; }
     wait_healthy() { return 1; }
     run_update v2.0.0
 )
 assert_fail "run_update fails when the new version is unhealthy" _update_health_fails
+assert_eq "backend:v2" "$(pin_get "$(versions_env)" BACKEND_IMAGE)" \
+    "an unhealthy deploy leaves the failure in place and reports it"
+assert_eq "v1.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
+    "an unhealthy deploy does NOT advance the version record"
+
+# The commit. APP_VERSION moves here and nowhere else.
+_update_succeeds() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { write_pins "$(pin_get "$(versions_env)" APP_VERSION)" backend:v2 caddy:v2; return 0; }
+    wait_healthy() { return 0; }
+    run_update v2.0.0
+)
+assert_ok "run_update succeeds when the new version is healthy" _update_succeeds
 assert_eq "v2.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
-    "an unhealthy deploy leaves the failure in place, pinned and reported"
+    "the version record is advanced only once the health check has passed"
 
 # A manifest missing an image ref must abort before anything runs.
 : > "$_trace"

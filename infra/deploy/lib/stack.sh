@@ -2,8 +2,17 @@
 # Migration, recreation, health verification and update.
 #
 # THE VERSION RECORD is deploy/versions.env, and it is the only one. It holds
-# what Compose will start, so it cannot drift from what is running the way a
-# separate deployed.json could.
+# two kinds of key, written at two different times:
+#
+#   BACKEND_IMAGE / CADDY_IMAGE are INPUT to Compose. `up` reads them to know
+#   what to start, so they are necessarily on disk before it runs.
+#
+#   APP_VERSION is input to nothing -- no compose file interpolates it, it is
+#   purely the record of what is deployed. So it is advanced only after
+#   wait_healthy has confirmed the containers ARE the new refs and are
+#   healthy. `compose up` exiting 0 means "containers created", not "the new
+#   version is serving", and a job cancelled between the two must not leave
+#   the record naming a version that never came up.
 #
 # docker-compose.yml comes from the release too, installed from the release's
 # own copy of it. A version therefore describes the whole deployment: a
@@ -166,12 +175,17 @@ run_migration() {
     BACKEND_IMAGE="$_backend_ref" compose run --rm "$MIGRATION_SERVICE"
 }
 
+# $1/$2 are the backend/caddy refs to start. NOT the version: recreating is
+# not what makes a version current, so APP_VERSION is carried over unchanged
+# here and run_update advances it once the health check has passed. Carried
+# over rather than dropped, so an interrupted deploy leaves the record naming
+# the last version that actually worked, not nothing.
 recreate_services() {
     # A failed pin write must never be followed by `compose up`: with the OLD
     # pins still on disk, `up` would recreate nothing, exit 0, and the OLD
     # (genuinely healthy) containers would sail through wait_healthy --
     # reporting success while still running the old version.
-    write_pins "$1" "$2" "$3" || {
+    write_pins "$(pin_get "$(versions_env)" APP_VERSION)" "$1" "$2" || {
         log "recreate_services: aborting, version pins were not written"
         return 1
     }
@@ -305,10 +319,11 @@ run_update() {
     }
 
     # Both failures below leave the deployment BROKEN and say so. There is no
-    # automatic recovery here, so the log line is the whole handover: the pins
-    # and the compose file already name $_version, and the containers are
-    # whatever the failed step left behind.
-    if ! recreate_services "$_version" "$_backend_ref" "$_caddy_ref"; then
+    # automatic recovery here, so the log line is the whole handover: the
+    # compose file and the image pins already name $_version, the containers
+    # are whatever the failed step left behind, and APP_VERSION still names
+    # the last version that passed a health check.
+    if ! recreate_services "$_backend_ref" "$_caddy_ref"; then
         log "could not recreate services on $_version; the deployment is broken"
         return 1
     fi
@@ -317,6 +332,13 @@ run_update() {
         log "$_version failed its health check; the deployment is broken"
         return 1
     fi
+
+    # COMMIT. Everything above this line is reversible by redeploying; only
+    # here is $_version known to be the version actually serving.
+    write_pins "$_version" "$_backend_ref" "$_caddy_ref" || {
+        log "$_version is serving but APP_VERSION was not advanced; the deploy directory needs a hand"
+        return 1
+    }
 
     log "updated to $_version"
     return 0
