@@ -401,10 +401,49 @@ rm -f "$_pulled"
 rm -rf "$WORK_DIR"
 unset WORK_DIR
 
+# ── image retention ──────────────────────────────────────────────────
+# Only the current and previous versions are reachable; everything else is
+# unreachable disk.
+_rm_log=$(mktemp)
+_prune() (
+    docker() {
+        case "$1" in
+            image)
+                case "$2" in
+                    inspect) printf 'sha256:%s\n' "${5##*:}" ;;
+                    ls)      printf 'sha256:keep1\nsha256:keep2\nsha256:old1\nsha256:old2\n' ;;
+                    rm)      printf '%s\n' "$3" >> "$_rm_log" ;;
+                esac
+                ;;
+        esac
+    }
+    prune_superseded "repo/a@sha256:keep1" "repo/b@sha256:keep2"
+)
+_prune >/dev/null 2>&1
+assert_eq "sha256:old1
+sha256:old2
+sha256:old1
+sha256:old2" "$(cat "$_rm_log")" \
+    "prune removes only images outside the keep set (once per deployed repo)"
+# `docker image rm` is called WITHOUT -f so the daemon refuses to remove an
+# image a container still uses.
+assert_fail "prune never force-removes" grep -q '\-f' "$_rm_log"
+: > "$_rm_log"
+_prune_nothing_kept() (
+    docker() { case "$2" in inspect) return 1 ;; rm) printf 'rm\n' >> "$_rm_log" ;; esac; }
+    prune_superseded "repo/a@sha256:keep1"
+)
+_prune_nothing_kept >/dev/null 2>&1
+assert_eq "" "$(cat "$_rm_log")" \
+    "prune removes nothing when it cannot resolve what to keep"
+rm -f "$_rm_log"
+
 # ── run_update ordering ──────────────────────────────────────────────
 # The invariant: nothing on the host is replaced before the migration
-# succeeds.
+# succeeds, and the rollback target is only rotated once there is something to
+# roll back from.
 write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
+rm -f "$(versions_env_prev)" "$(compose_file_prev)"
 # The release's compose file, as fetch_compose would stage it, and the one
 # already installed on the host.
 _staged_src=$(mktemp)
@@ -415,10 +454,12 @@ _trace=$(mktemp)
 _update_migration_fails() (
     acquire_images() { printf '/dev/null'; }
     fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { printf 'migrated with %s\n' "$COMPOSE_FILE" >> "$_trace"; return 1; }
     recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
     wait_healthy() { return 0; }
+    run_rollback() { printf 'rolled_back\n' >> "$_trace"; return 0; }
     run_update v2.0.0
 )
 assert_fail "run_update fails when the migration fails" _update_migration_fails
@@ -426,48 +467,156 @@ assert_eq "migrated with $_staged_src" "$(cat "$_trace")" \
     "the migration runs against the release's own compose file, and a failed one replaces nothing"
 assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
     "a failed migration leaves the installed compose file untouched"
+assert_fail "a failed migration does not rotate the compose file" \
+    test -f "$(compose_file_prev)"
 assert_eq "v1.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
     "a failed migration leaves the durable pins on the running version"
+assert_fail "a failed migration does not rotate the rollback target" \
+    test -f "$(versions_env_prev)"
 
 : > "$_trace"
 _update_recreate_fails() (
     acquire_images() { printf '/dev/null'; }
     fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
     recreate_services() { printf 'recreated\n' >> "$_trace"; return 1; }
     wait_healthy() { printf 'health_checked\n' >> "$_trace"; return 0; }
+    run_rollback() { printf 'rolled_back %s %s\n' "$1" "$2" >> "$_trace"; return 0; }
     run_update v2.0.0
 )
 assert_fail "run_update fails when the services cannot be recreated" \
     _update_recreate_fails
-# No health check after a failed recreate: there is nothing to confirm, and
-# the OLD containers are still genuinely healthy, so running it would report
-# a passing deploy over a failed one.
-assert_eq "recreated" "$(cat "$_trace")" \
-    "a failed recreate is not followed by a health check"
+assert_eq "recreated
+rolled_back v1.0.0 automatic" "$(cat "$_trace")" \
+    "a failed recreate rolls back to the recorded running version, without health-checking"
+assert_ok "the rollback target is rotated before the first replacing step" \
+    test -f "$(versions_env_prev)"
+assert_eq "v1.0.0" "$(pin_get "$(versions_env_prev)" APP_VERSION)" \
+    "the rotated target is a copy of the version that was running"
 assert_eq "services: {backend: {image: NEW}}" "$(cat "$(compose_file)")" \
     "the release's compose file is installed before the services are recreated"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file_prev)")" \
+    "the previous compose file is kept for rollback"
 
 : > "$_trace"
 _update_health_fails() (
     acquire_images() { printf '/dev/null'; }
     fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
     run_migration() { return 0; }
     recreate_services() { write_pins v2.0.0 backend:v2 caddy:v2; return 0; }
     wait_healthy() { return 1; }
+    run_rollback() { printf 'rolled_back %s %s\n' "$1" "$2" >> "$_trace"; return 0; }
     run_update v2.0.0
 )
 assert_fail "run_update fails when the new version is unhealthy" _update_health_fails
-assert_eq "v2.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
-    "an unhealthy deploy leaves the failure in place, pinned and reported"
+assert_eq "rolled_back v1.0.0 automatic" "$(cat "$_trace")" \
+    "an unhealthy deploy rolls back to the version it started from"
+
+# Redeploying the version the pins already name must NOT rotate: versions.env
+# is written before `compose up` finishes, so this is exactly the state a
+# cancelled job leaves behind, and rotating would copy the failed version over
+# the rollback target and discard the real last-known-good one.
+write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
+printf 'APP_VERSION=v0.9.0\nBACKEND_IMAGE=backend:v0.9.0\nCADDY_IMAGE=caddy:v0.9.0\n' \
+    | atomic_write "$(versions_env_prev)"
+: > "$_trace"
+_update_same_version() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
+    wait_healthy() { return 0; }
+    run_rollback() { printf 'rolled_back\n' >> "$_trace"; return 0; }
+    run_update v1.0.0
+)
+assert_ok "redeploying the pinned version succeeds" _update_same_version
+assert_eq "v0.9.0" "$(pin_get "$(versions_env_prev)" APP_VERSION)" \
+    "a redeploy of the pinned version keeps the existing rollback target"
+
+# Same state, but the retry FAILS. The rollback must aim at the RECORDED
+# target: $_current is the version being redeployed here, and run_rollback
+# refuses a target that is not what .prev names -- which would skip the
+# rollback and leave the broken release running.
+: > "$_trace"
+_update_same_version_fails() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { return 1; }
+    wait_healthy() { return 0; }
+    run_rollback() { printf 'rolled_back %s %s\n' "$1" "$2" >> "$_trace"; return 0; }
+    run_update v1.0.0
+)
+assert_fail "a failed redeploy of the pinned version fails" \
+    _update_same_version_fails
+assert_eq "rolled_back v0.9.0 automatic" "$(cat "$_trace")" \
+    "a failed redeploy rolls back to the recorded target, not to the version it is redeploying"
+
+# The two rotation writes cannot be atomic together, so versions.env.prev is
+# the commit marker and must be written LAST: interrupted in between, a
+# rollback finds no target and refuses, rather than pairing one version's pins
+# with another version's compose file.
+write_pins v1.0.0 "backend:v1.0.0" "caddy:v1.0.0"
+rm -f "$(versions_env_prev)"
+printf 'services: {backend: {image: OLD}}\n' | atomic_write "$(compose_file)"
+_update_interrupted_rotation() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    # Fail the SECOND rotation write, as an interruption between them would.
+    atomic_write() {
+        case "$1" in *versions.env.prev) cat >/dev/null; return 1 ;; esac
+        _d=$1; cat > "$_d.tmp.$$" && mv -f "$_d.tmp.$$" "$_d"
+    }
+    recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
+    wait_healthy() { return 0; }
+    run_update v2.0.0
+)
+: > "$_trace"
+assert_fail "an interrupted rotation aborts the deploy" _update_interrupted_rotation
+assert_eq "" "$(cat "$_trace")" "an interrupted rotation recreates nothing"
+assert_fail "an interrupted rotation leaves no rollback target to mispair" \
+    test -f "$(versions_env_prev)"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
+    "an interrupted rotation does not install the new compose file"
+
+# Rotation must fail loudly when there is no versions.env to copy, rather
+# than leaving an empty rollback target that later reads as "no image refs".
+: > "$_trace"
+rm -f "$(versions_env)" "$(versions_env_prev)" "$(compose_file_prev)"
+_update_no_record() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { printf 'recreated\n' >> "$_trace"; return 0; }
+    wait_healthy() { return 0; }
+    run_rollback() { return 0; }
+    run_update v2.0.0
+)
+assert_fail "run_update refuses to deploy with no version record to rotate" \
+    _update_no_record
+assert_eq "" "$(cat "$_trace")" "nothing is recreated when rotation failed"
+assert_fail "a failed rotation leaves no empty rollback target" \
+    test -f "$(versions_env_prev)"
 
 # A manifest missing an image ref must abort before anything runs.
 : > "$_trace"
 _update_no_refs() (
     acquire_images() { printf '/dev/null'; }
     fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
     manifest_field() { printf ''; }
     run_migration() { printf 'migrated\n' >> "$_trace"; return 0; }
     run_update v2.0.0
@@ -475,20 +624,82 @@ _update_no_refs() (
 assert_fail "run_update refuses a manifest with no image refs" _update_no_refs
 assert_eq "" "$(cat "$_trace")" "a refless manifest never reaches the migration"
 
+# ── run_rollback ─────────────────────────────────────────────────────
+write_pins v2.0.0 "backend:v2.0.0" "caddy:v2.0.0"
+printf 'APP_VERSION=v1.0.0\nBACKEND_IMAGE=backend:v1.0.0\nCADDY_IMAGE=caddy:v1.0.0\n' \
+    | atomic_write "$(versions_env_prev)"
+printf 'services: {backend: {image: NEW}}\n' | atomic_write "$(compose_file)"
+printf 'services: {backend: {image: OLD}}\n' | atomic_write "$(compose_file_prev)"
+
+: > "$_trace"
+_rollback() (
+    _target=$1
+    docker() { return "${FAKE_IMAGE_MISSING:-0}"; }
+    recreate_services() { printf 'recreated %s %s\n' "$1" "$2" >> "$_trace"; write_pins "$1" "$2" "$3"; }
+    run_migration() { printf 'MIGRATED\n' >> "$_trace"; return 0; }
+    wait_healthy() { return "${FAKE_UNHEALTHY:-0}"; }
+    run_rollback "$_target" manual
+)
+
+# Naming a version that is not the recorded previous one is a two-hop
+# rollback: it would skip a schema generation and walk straight through the
+# N-1 compatibility boundary the whole design rests on.
+assert_fail "rollback refuses a target that is not the recorded previous version" \
+    _rollback v0.9.0
+assert_eq "" "$(cat "$_trace")" "a refused rollback recreates nothing"
+
+FAKE_IMAGE_MISSING=1 assert_fail \
+    "rollback refuses when the previous image is gone from the local store" \
+    _rollback v1.0.0
+unset FAKE_IMAGE_MISSING
+
+FAKE_UNHEALTHY=1
+assert_fail "rollback fails when the previous version does not come back healthy" \
+    _rollback v1.0.0
+assert_ok "a failed rollback keeps the target for a retry" \
+    test -f "$(versions_env_prev)"
+unset FAKE_UNHEALTHY
+
+: > "$_trace"
+assert_ok "rollback restores the recorded previous version" _rollback v1.0.0
+assert_eq "recreated v1.0.0 backend:v1.0.0" "$(cat "$_trace")" \
+    "rollback never runs a migration, forward or backward"
+assert_eq "v1.0.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
+    "rollback pins the restored version"
+assert_eq "services: {backend: {image: OLD}}" "$(cat "$(compose_file)")" \
+    "rollback restores the compose file that matched the restored version"
+# The target is DROPPED, not rotated: kept, it would name the version now
+# running, so a second rollback would sail through the target check having
+# done nothing. The rolled-back-FROM version is not a target either -- that
+# is the release which just failed.
+assert_fail "a successful rollback leaves no rollback target behind" \
+    test -f "$(versions_env_prev)"
+assert_fail "a successful rollback drops the previous compose file too" \
+    test -f "$(compose_file_prev)"
+assert_fail "a second rollback has nothing to restore" _rollback v1.0.0
+
+rm -f "$_trace" "$_staged_src"
+
 # ── dispatch ─────────────────────────────────────────────────────────
-# main() must reject its input before touching anything.
+# main() must reject both inputs before touching anything, and the `*)` arm
+# must die rather than fall through exiting 0 having deployed nothing.
 DEPLOY_NO_MAIN=1; export DEPLOY_NO_MAIN
 _dispatch() (
     . "$SCRIPT_DIR"/deploy.sh
     validate_startup() { return 0; }
     reap_orphans() { return 0; }
     run_update() { printf 'update %s\n' "$1"; }
+    run_rollback() { printf 'rollback %s\n' "$1"; }
     main "$@"
 )
-assert_eq "update v1.5.0" "$(_dispatch v1.5.0 2>/dev/null | tail -n 1)" \
+assert_eq "update v1.5.0" "$(_dispatch update v1.5.0 2>/dev/null | tail -n 1)" \
     "main dispatches update"
-assert_fail "main rejects an invalid version" _dispatch 'v1; id'
-assert_fail "main rejects an empty version"   _dispatch ''
+assert_eq "rollback v1.5.0" "$(_dispatch rollback v1.5.0 2>/dev/null | tail -n 1)" \
+    "main dispatches rollback"
+assert_fail "main rejects an unknown action"  _dispatch 'shell' v1.5.0
+assert_fail "main rejects an empty action"    _dispatch '' v1.5.0
+assert_fail "main rejects an invalid version" _dispatch update 'v1; id'
+assert_fail "main rejects an empty version"   _dispatch update ''
 
 # Refuse to deploy beside an orphaned one-off: it may be a migration still
 # writing to the database.
@@ -497,7 +708,7 @@ _dispatch_orphan() (
     validate_startup() { return 0; }
     reap_orphans() { return 1; }
     run_update() { printf 'update\n'; }
-    main v1.5.0
+    main update v1.5.0
 )
 assert_fail "main refuses to deploy beside an unreapable one-off" _dispatch_orphan
 assert_eq "" "$(_dispatch_orphan 2>/dev/null)" \
