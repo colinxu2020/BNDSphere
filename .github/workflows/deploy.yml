@@ -1,8 +1,9 @@
 name: Deploy
 
 # Run by a developer from the Actions tab (or `gh workflow run deploy.yml`).
-# Nothing in the application can trigger it: the dev panel is read-only and
-# only links here. Never runs on push — a deploy is always an explicit act.
+# Nothing in the application can trigger it, and nothing in it is meant to:
+# there is no in-app deploy control, so dispatching this is the only way in.
+# Never runs on push — a deploy is always an explicit act.
 on:
   workflow_dispatch:
     inputs:
