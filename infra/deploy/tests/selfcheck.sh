@@ -539,6 +539,27 @@ assert_ok "redeploying the pinned version succeeds" _update_same_version
 assert_eq "v0.9.0" "$(pin_get "$(versions_env_prev)" APP_VERSION)" \
     "a redeploy of the pinned version keeps the existing rollback target"
 
+# Same state, but the retry FAILS. The rollback must aim at the RECORDED
+# target: $_current is the version being redeployed here, and run_rollback
+# refuses a target that is not what .prev names -- which would skip the
+# rollback and leave the broken release running.
+: > "$_trace"
+_update_same_version_fails() (
+    acquire_images() { printf '/dev/null'; }
+    fetch_compose() { printf '%s' "$_staged_src"; }
+    prune_superseded() { :; }
+    manifest_field() { case "$2" in *backend*) printf 'backend:v2' ;; *) printf 'caddy:v2' ;; esac; }
+    run_migration() { return 0; }
+    recreate_services() { return 1; }
+    wait_healthy() { return 0; }
+    run_rollback() { printf 'rolled_back %s %s\n' "$1" "$2" >> "$_trace"; return 0; }
+    run_update v1.0.0
+)
+assert_fail "a failed redeploy of the pinned version fails" \
+    _update_same_version_fails
+assert_eq "rolled_back v0.9.0 automatic" "$(cat "$_trace")" \
+    "a failed redeploy rolls back to the recorded target, not to the version it is redeploying"
+
 # The two rotation writes cannot be atomic together, so versions.env.prev is
 # the commit marker and must be written LAST: interrupted in between, a
 # rollback finds no target and refuses, rather than pairing one version's pins

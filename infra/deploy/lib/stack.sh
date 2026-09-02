@@ -367,6 +367,13 @@ run_update() {
         log "redeploying $_version; keeping the existing rollback target"
     fi
 
+    # The automatic rollback target is whatever .prev records, NOT $_current.
+    # A cancelled job leaves versions.env already naming the version being
+    # deployed, so on a retry $_current IS that version -- and run_rollback
+    # would reject it as a two-hop target and skip the rollback entirely,
+    # leaving the broken release running with a valid target on disk.
+    _rollback_target=$(pin_get "$(versions_env_prev)" APP_VERSION)
+
     atomic_write "$(compose_file)" < "$_staged_compose" || {
         log "could not install the release's compose file; refusing to deploy"
         return 1
@@ -374,13 +381,13 @@ run_update() {
 
     if ! recreate_services "$_version" "$_backend_ref" "$_caddy_ref"; then
         log "could not recreate services on $_version — rolling back"
-        run_rollback "$_current" automatic
+        run_rollback "$_rollback_target" automatic
         return 1
     fi
 
     if ! wait_healthy "$_backend_ref" "$_caddy_ref"; then
         log "$_version failed its health check — rolling back"
-        run_rollback "$_current" automatic
+        run_rollback "$_rollback_target" automatic
         return 1
     fi
 
