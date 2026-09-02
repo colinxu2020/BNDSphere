@@ -6,6 +6,13 @@
 # not match what was asked for — so the registry cannot serve different bytes
 # than the release named, and nothing needs to be checked after the fact.
 #
+# WHAT THE DIGEST DOES NOT DO is authenticate the release. The manifest and
+# the compose file are fetched by tag over HTTPS with nothing to check them
+# against, so whoever can publish or edit a release chooses the digests, and
+# therefore what runs. That is the same authority as pushing to the branch
+# this workflow runs from (see .github/workflows/deploy.yml), so it is the
+# same control: repository write access, not anything verifiable here.
+#
 # This deliberately replaced a tarball + SHA256SUMS + post-load digest check.
 # That scheme could only ever detect download corruption: the sums file
 # travelled beside the artifact it vouched for, over the same channel, from

@@ -14,8 +14,14 @@
 #
 # NO LOCK, NO STATE FILE, NO CRASH RECOVERY. The workflow's `concurrency:
 # deploy` group already guarantees one job at a time, the Actions run page is
-# the progress and failure report, and a job that dies is simply re-run —
-# versions.env is written atomically, so there is no half-state to reconcile.
+# the progress and failure report, and a job that dies is simply re-run.
+#
+# Nothing needs reconciling because nothing durable is left half-true, which
+# is a narrower claim than it sounds: versions.env goes through atomic_write,
+# so there is no spliced file, and APP_VERSION is advanced only after the
+# health check, so the record never names a version that did not come up. A
+# dead job CAN leave containers that are not yet the images the pins name —
+# that is the deploy it did not finish, and the re-run finishes it.
 set -u
 
 SCRIPT_DIR="${SCRIPT_DIR:-$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)}"
