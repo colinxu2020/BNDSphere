@@ -35,6 +35,9 @@
   - [3.16 verifications.* — 核验（verification）请求表](#316-verifications--核验verification请求表)
 - [4. 枚举类型汇总](#4-枚举类型汇总)
 - [5. 实体关系图 (ER Diagram)](#5-实体关系图-er-diagram)
+  - [5.1 核心：用户 / 社团 / 成员](#51-核心用户--社团--成员)
+  - [5.2 活动 / 星级评分](#52-活动--星级评分)
+  - [5.3 审核（moderation）/ 核验（verification）](#53-审核moderation-核验verification)
 
 ---
 
@@ -535,277 +538,53 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 
 ## 5. 实体关系图 (ER Diagram)
 
+字段级定义都已经在第 3 节的表格里；这里的图只画**表与表之间的关系**（外键基数），故意不重复列属性，按领域拆成三张小图，避免一张图挤下全部 21 张表反而看不清。三张图合起来才是完整关系；跨图共享的表（`users`/`clubs`/`club_activities`）在每张图里都只承担该图关心的那部分关系。
+
+### 5.1 核心：用户 / 社团 / 成员
+
 ```mermaid
 erDiagram
-    users {
-        int id PK
-        text username UK
-        text email UK
-        string hashed_password
-        text avatar_uri
-        text description
-        string real_name
-        enum role
-        string wecom_userid UK
-        enum grade
-        datetime created_at
-    }
+    users ||--o{ club_members : "成员身份"
+    clubs ||--o{ club_members : "拥有成员"
+    clubs ||--o{ club_tags : ""
+    tags ||--o{ club_tags : ""
+```
 
-    clubs {
-        int id PK
-        string name
-        text summary
-        text description
-        text logo_uri
-        datetime created_at
-        enum status
-        enum star_level
-        enum category
-    }
+### 5.2 活动 / 星级评分
 
-    club_members {
-        int id PK
-        int user_id FK
-        int club_id FK
-        enum membership
-        datetime updated_at
-    }
+```mermaid
+erDiagram
+    clubs ||--o{ club_activities : "举办"
+    users }o--o{ club_activities : "参与"
+    academic_terms ||--o{ club_activities : ""
+    academic_terms ||--o{ general_activities : ""
+    academic_terms ||--o{ joint_activities : ""
+    academic_terms ||--o{ star_level_applications : ""
+    general_activities ||--o{ club_general_activity_records : "被参与"
+    clubs ||--o{ club_general_activity_records : "参与记录"
+    club_general_activity_records ||--o{ record_condition_details : ""
+    activity_conditions ||--o{ record_condition_details : ""
+    clubs ||--o{ star_level_applications : "申请评星"
+    clubs ||--o{ joint_activities : "发起"
+    joint_activities ||--o{ joint_activity_participations : "报名"
+    clubs ||--o{ joint_activity_participations : ""
+```
 
-    tags {
-        int id PK
-        string name UK
-        enum status
-    }
+`users` 还分别是 `club_general_activity_records`/`star_level_applications`/`joint_activities` 的审核人（`auditor_id`/`preliminary_auditor_id`/`final_auditor_id`），图中略去这几条"谁审核了谁"的边以保持简洁，字段本身在第 3 节列出。
 
-    club_tags {
-        int club_id PK
-        int tag_id PK
-    }
+### 5.3 审核（moderation）/ 核验（verification）
 
-    academic_terms {
-        int id PK
-        string term_name UK
-        date start_date
-        date end_date
-        boolean is_current
-    }
+下图画的是真实外键（目标表 → 申请表，例如 `club_update_requests.club_id` 指向 `clubs.id`）；"审核通过后把申请里的字段写回目标表"是应用层的数据流，不是外键，图上不体现——流程见 [overview.md](overview.md#审核--核验模式moderation--verification)。申请表与 `users` 的关系表示申请人/审核人，字段见第 3 节。
 
-    club_activities {
-        int id PK
-        string name
-        text description
-        int club_id FK
-        datetime start_time
-        datetime end_time
-        text location
-        json picture_urls
-        int academic_term_id FK
-    }
-
-    club_activity_participants {
-        int user_id PK
-        int club_activity_id PK
-    }
-
-    announcements {
-        int id PK
-        string title
-        text body
-        text link_url
-        datetime starts_at
-        datetime ends_at
-        boolean is_active
-        datetime created_at
-    }
-
-    general_activities {
-        int id PK
-        string name
-        text description
-        enum level
-        datetime starts_at
-        datetime ends_at
-        text poster_uri
-        text article_url
-        datetime created_at
-        int academic_term_id FK
-    }
-
-    club_general_activity_records {
-        int id PK
-        int club_id FK
-        int activity_id FK
-        enum participation_type
-        int requested_score
-        int final_score
-        json proof_files
-        datetime created_at
-        enum audit_status
-        int auditor_id FK
-    }
-
-    activity_conditions {
-        int id PK
-        text description
-        boolean active
-    }
-
-    record_condition_details {
-        int id PK
-        int record_id FK
-        int condition_id FK
-        boolean is_met
-    }
-
-    star_level_applications {
-        int id PK
-        int club_id FK
-        text contest_attachment
-        int requested_contest_score
-        int final_contest_score
-        text uniqueness_statement
-        boolean uniqueness_approved
-        text growth_story_url
-        boolean growth_story_approved
-        enum target_grade_1
-        enum target_grade_2
-        int approved_score
-        enum approved_level
-        datetime created_at
-        int academic_term_id FK
-        enum audit_status
-        int auditor_id FK
-    }
-
-    joint_activities {
-        int id PK
-        string name
-        text description
-        string location
-        datetime starts_at
-        datetime ends_at
-        int initiator_club_id FK
-        int created_by_user_id FK
-        enum preliminary_status
-        int preliminary_auditor_id FK
-        text archive_text
-        json archive_files
-        enum final_status
-        int final_score
-        int final_auditor_id FK
-        datetime created_at
-        datetime updated_at
-        int academic_term_id FK
-    }
-
-    joint_activity_participations {
-        int id PK
-        int activity_id FK
-        int club_id FK
-        int registered_by_user_id FK
-        boolean is_initiator
-        datetime created_at
-    }
-
-    club_update_requests {
-        int id PK
-        int club_id FK
-        text summary
-        text description
-        text logo_uri
-        json update_fields
-        enum moderation_status
-        int moderator_id FK
-        datetime moderate_at
-        int requestor_id FK
-        datetime request_at
-    }
-
-    club_activity_create_requests {
-        int id PK
-        int club_id FK
-        string name
-        text description
-        datetime start_time
-        datetime end_time
-        text location
-        enum moderation_status
-        int moderator_id FK
-        datetime moderate_at
-        int requestor_id FK
-        datetime request_at
-    }
-
-    club_activity_update_requests {
-        int id PK
-        int club_activity_id FK
-        string name
-        text description
-        datetime start_time
-        datetime end_time
-        text location
-        json picture_urls
-        json update_fields
-        enum moderation_status
-        int moderator_id FK
-        datetime moderate_at
-        int requestor_id FK
-        datetime request_at
-    }
-
-    user_update_requests {
-        int id PK
-        int user_id FK
-        text username
-        text avatar_uri
-        text description
-        enum grade
-        json update_fields
-        enum moderation_status
-        int moderator_id FK
-        datetime moderate_at
-        datetime request_at
-    }
-
-    club_membership_requests {
-        int id PK
-        int club_id FK
-        text message
-        enum verification_status
-        int verifier_id FK
-        datetime verify_at
-        int applicant_id FK
-        datetime apply_at
-    }
-
-    users ||--o{ club_members : "has memberships"
-    clubs ||--o{ club_members : "has members"
-    clubs ||--o{ club_tags : "tagged with"
-    tags ||--o{ club_tags : "applied to"
-    clubs ||--o{ club_activities : "hosts"
-    users }o--o{ club_activities : "participates via club_activity_participants"
-    academic_terms ||--o{ club_activities : "contains"
-    academic_terms ||--o{ general_activities : "contains"
-    academic_terms ||--o{ joint_activities : "contains"
-    academic_terms ||--o{ star_level_applications : "contains"
-    general_activities ||--o{ club_general_activity_records : "has records"
-    clubs ||--o{ club_general_activity_records : "participates in"
-    users ||--o{ club_general_activity_records : "audits"
-    club_general_activity_records ||--o{ record_condition_details : "has conditions"
-    activity_conditions ||--o{ record_condition_details : "referenced by"
-    clubs ||--o{ star_level_applications : "applies for"
-    users ||--o{ star_level_applications : "audits"
-    clubs ||--o{ joint_activities : "initiates"
-    users ||--o{ joint_activities : "creates / audits"
-    joint_activities ||--o{ joint_activity_participations : "has participants"
-    clubs ||--o{ joint_activity_participations : "registers"
-    clubs ||--o{ club_update_requests : "requests update on"
-    users ||--o{ club_update_requests : "requests / moderates"
-    clubs ||--o{ club_activity_create_requests : "requests create on"
-    club_activities ||--o{ club_activity_update_requests : "requests update on"
-    users ||--o{ club_activity_create_requests : "requests / moderates"
-    users ||--o{ club_activity_update_requests : "requests / moderates"
-    users ||--o{ user_update_requests : "requests / moderates own profile"
-    clubs ||--o{ club_membership_requests : "receives applications for"
-    users ||--o{ club_membership_requests : "applies / verifies"
+```mermaid
+erDiagram
+    clubs ||--o{ club_update_requests : "申请修改"
+    clubs ||--o{ club_activity_create_requests : "申请新建活动"
+    club_activities ||--o{ club_activity_update_requests : "申请修改"
+    users ||--o{ user_update_requests : "申请修改自己"
+    clubs ||--o{ club_membership_requests : "申请加入"
+    users ||--o{ club_update_requests : "提交/审核"
+    users ||--o{ club_activity_create_requests : "提交/审核"
+    users ||--o{ club_activity_update_requests : "提交/审核"
+    users ||--o{ club_membership_requests : "提交/核验"
 ```

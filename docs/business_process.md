@@ -85,7 +85,7 @@
 2. 该记录默认 `audit_status=pending`；在被审核前，社长/副社长可以 `PATCH /clubs/{club_id}/general-activities` 修改，一旦审核完成（非 `pending`）则不可再改（`403`）。
 3. 社联侧（`federation_staff`/`admin`/`dev`）通过 `PATCH /club-federation/general-activity/club-records/{record_id}` 给出 `final_score` 并把 `audit_status` 置为 `approved`/`rejected`。通过的 `final_score` 会计入该社团的星级评分（见下文"社团星级评分"）。
 
-校级/大型活动本身（`general_activities` 记录，含名称、级别、时间、海报）由社联或管理员在 [Club Federation → General Activities](architecture/API.md#general-activities-1) / [Admin → General Activities](architecture/API.md#general-activities-2) 维护，普通用户/社团只读（`GET /general-activities`）。
+校级/大型活动本身（`general_activities` 记录，含名称、级别、时间、海报）由社联或管理员在 [Club Federation → General Activities](architecture/API.md#general-activities--club-federationgeneral-activity) / [Admin → General Activities](architecture/API.md#general-activities--admingeneral-activities) 维护，普通用户/社团只读（`GET /general-activities`）。
 
 ### 联合活动（跨社团活动）
 
