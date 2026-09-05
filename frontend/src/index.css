@@ -4,14 +4,102 @@
   --font-sans: Inter, ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   --font-display: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  --color-primary-50: #f0fdfa;
-  --color-primary-100: #ccfbf1;
-  --color-primary-500: #14b8a6;
-  --color-primary-600: #0d9488;
+  /* Beijing National Day School emblem colors. These are named Pantone
+     screen equivalents, not colors sampled from the reference image. */
+  --color-school-gray: #97999b; /* Pantone Cool Gray 7 C */
+  --color-school-orange: #ff9e1b; /* Pantone 1375 C */
+  --color-school-red: #f9423a; /* Pantone Warm Red C */
+  --color-school-blue: #0085ca; /* Pantone Process Blue C */
+  --color-school-green: #84bd00; /* Pantone 376 C */
 
-  --color-secondary-50: #eff6ff;
-  --color-secondary-500: #3b82f6;
-  --color-secondary-600: #2563eb;
+  /* Neutral palette: Pantone Cool Gray 7 C */
+  --color-slate-50: color-mix(in srgb, var(--color-school-gray) 7%, white);
+  --color-slate-100: color-mix(in srgb, var(--color-school-gray) 15%, white);
+  --color-slate-200: color-mix(in srgb, var(--color-school-gray) 28%, white);
+  --color-slate-300: color-mix(in srgb, var(--color-school-gray) 43%, white);
+  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 72%, black);
+  --color-slate-500: color-mix(in srgb, var(--color-school-gray) 65%, black);
+  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 55%, black);
+  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 45%, black);
+  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 35%, black);
+  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 26%, black);
+  --color-slate-950: color-mix(in srgb, var(--color-school-gray) 18%, black);
+
+  /* Primary palette: Pantone Process Blue C */
+  --color-primary-50: color-mix(in srgb, var(--color-school-blue) 7%, white);
+  --color-primary-100: color-mix(in srgb, var(--color-school-blue) 15%, white);
+  --color-primary-200: color-mix(in srgb, var(--color-school-blue) 28%, white);
+  --color-primary-300: color-mix(in srgb, var(--color-school-blue) 45%, white);
+  --color-primary-400: color-mix(in srgb, var(--color-school-blue) 70%, white);
+  --color-primary-500: var(--color-school-blue);
+  --color-primary-600: color-mix(in srgb, var(--color-school-blue) 86%, black);
+  --color-primary-700: color-mix(in srgb, var(--color-school-blue) 70%, black);
+  --color-primary-800: color-mix(in srgb, var(--color-school-blue) 54%, black);
+  --color-primary-900: color-mix(in srgb, var(--color-school-blue) 38%, black);
+  --color-primary-950: color-mix(in srgb, var(--color-school-blue) 23%, black);
+
+  /* Accent palette: Pantone 1375 C */
+  --color-yellow-50: color-mix(in srgb, var(--color-school-orange) 7%, white);
+  --color-yellow-100: color-mix(in srgb, var(--color-school-orange) 15%, white);
+  --color-yellow-200: color-mix(in srgb, var(--color-school-orange) 28%, white);
+  --color-yellow-300: color-mix(in srgb, var(--color-school-orange) 45%, white);
+  --color-yellow-400: color-mix(in srgb, var(--color-school-orange) 70%, white);
+  --color-yellow-500: var(--color-school-orange);
+  --color-yellow-600: color-mix(in srgb, var(--color-school-orange) 62%, black);
+  --color-yellow-700: color-mix(in srgb, var(--color-school-orange) 50%, black);
+  --color-yellow-800: color-mix(in srgb, var(--color-school-orange) 40%, black);
+  --color-yellow-900: color-mix(in srgb, var(--color-school-orange) 31%, black);
+  --color-yellow-950: color-mix(in srgb, var(--color-school-orange) 23%, black);
+
+  --color-secondary-50: var(--color-yellow-50);
+  --color-secondary-100: var(--color-yellow-100);
+  --color-secondary-200: var(--color-yellow-200);
+  --color-secondary-300: var(--color-yellow-300);
+  --color-secondary-400: var(--color-yellow-400);
+  --color-secondary-500: var(--color-yellow-500);
+  --color-secondary-600: var(--color-yellow-600);
+  --color-secondary-700: var(--color-yellow-700);
+  --color-secondary-800: var(--color-yellow-800);
+  --color-secondary-900: var(--color-yellow-900);
+  --color-secondary-950: var(--color-yellow-950);
+
+  /* Error palette: Pantone Warm Red C */
+  --color-red-50: color-mix(in srgb, var(--color-school-red) 7%, white);
+  --color-red-100: color-mix(in srgb, var(--color-school-red) 15%, white);
+  --color-red-200: color-mix(in srgb, var(--color-school-red) 28%, white);
+  --color-red-300: color-mix(in srgb, var(--color-school-red) 45%, white);
+  --color-red-400: color-mix(in srgb, var(--color-school-red) 70%, white);
+  --color-red-500: var(--color-school-red);
+  --color-red-600: color-mix(in srgb, var(--color-school-red) 86%, black);
+  --color-red-700: color-mix(in srgb, var(--color-school-red) 70%, black);
+  --color-red-800: color-mix(in srgb, var(--color-school-red) 54%, black);
+  --color-red-900: color-mix(in srgb, var(--color-school-red) 38%, black);
+  --color-red-950: color-mix(in srgb, var(--color-school-red) 23%, black);
+
+  /* Success palette: Pantone 376 C */
+  --color-emerald-50: color-mix(in srgb, var(--color-school-green) 7%, white);
+  --color-emerald-100: color-mix(in srgb, var(--color-school-green) 15%, white);
+  --color-emerald-200: color-mix(in srgb, var(--color-school-green) 28%, white);
+  --color-emerald-300: color-mix(in srgb, var(--color-school-green) 45%, white);
+  --color-emerald-400: color-mix(in srgb, var(--color-school-green) 70%, white);
+  --color-emerald-500: var(--color-school-green);
+  --color-emerald-600: color-mix(in srgb, var(--color-school-green) 86%, black);
+  --color-emerald-700: color-mix(in srgb, var(--color-school-green) 70%, black);
+  --color-emerald-800: color-mix(in srgb, var(--color-school-green) 54%, black);
+  --color-emerald-900: color-mix(in srgb, var(--color-school-green) 38%, black);
+  --color-emerald-950: color-mix(in srgb, var(--color-school-green) 23%, black);
+
+  --color-sky-50: var(--color-primary-50);
+  --color-sky-100: var(--color-primary-100);
+  --color-sky-200: var(--color-primary-200);
+  --color-sky-300: var(--color-primary-300);
+  --color-sky-400: var(--color-primary-400);
+  --color-sky-500: var(--color-primary-500);
+  --color-sky-600: var(--color-primary-600);
+  --color-sky-700: var(--color-primary-700);
+  --color-sky-800: var(--color-primary-800);
+  --color-sky-900: var(--color-primary-900);
+  --color-sky-950: var(--color-primary-950);
 }
 
 body {
@@ -69,41 +157,52 @@ body {
 .dark {
   color-scheme: dark;
 
-  --color-white: oklch(19% 0.014 260); /* card surface */
+  --color-white: color-mix(in srgb, var(--color-school-gray) 20%, black); /* card surface */
 
-  --color-slate-50: oklch(15% 0.014 260); /* page background, inputs */
-  --color-slate-100: oklch(26% 0.016 260); /* hairlines, active pills */
-  --color-slate-200: oklch(31% 0.018 260); /* borders */
-  --color-slate-300: oklch(38% 0.02 260);
-  --color-slate-400: oklch(62% 0.02 260); /* hint text */
-  --color-slate-500: oklch(71% 0.02 260); /* secondary text */
-  --color-slate-600: oklch(79% 0.018 260);
-  --color-slate-700: oklch(86% 0.015 260);
-  --color-slate-800: oklch(91% 0.012 260);
-  --color-slate-900: oklch(96% 0.008 260); /* headings */
-  --color-slate-950: oklch(99% 0.004 260);
+  --color-slate-50: color-mix(
+    in srgb,
+    var(--color-school-gray) 15%,
+    black
+  ); /* page background, inputs */
+  --color-slate-100: color-mix(
+    in srgb,
+    var(--color-school-gray) 25%,
+    black
+  ); /* hairlines, active pills */
+  --color-slate-200: color-mix(in srgb, var(--color-school-gray) 34%, black); /* borders */
+  --color-slate-300: color-mix(in srgb, var(--color-school-gray) 43%, black);
+  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 95%, white); /* hint text */
+  --color-slate-500: color-mix(in srgb, var(--color-school-gray) 82%, white); /* secondary text */
+  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 68%, white);
+  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 54%, white);
+  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 40%, white);
+  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 24%, white); /* headings */
+  --color-slate-950: color-mix(in srgb, var(--color-school-gray) 10%, white);
 
-  --color-primary-50: oklch(27% 0.055 180);
-  --color-primary-100: oklch(34% 0.07 180);
-  --color-primary-600: oklch(80% 0.13 180);
+  --color-primary-50: color-mix(in srgb, var(--color-school-blue) 20%, black);
+  --color-primary-100: color-mix(in srgb, var(--color-school-blue) 32%, black);
+  --color-primary-500: color-mix(in srgb, var(--color-school-blue) 85%, white);
+  --color-primary-600: color-mix(in srgb, var(--color-school-blue) 68%, white);
+  --color-primary-700: color-mix(in srgb, var(--color-school-blue) 52%, white);
 
-  --color-secondary-50: oklch(27% 0.055 260);
-  --color-secondary-600: oklch(80% 0.13 260);
+  --color-secondary-50: color-mix(in srgb, var(--color-school-orange) 20%, black);
+  --color-secondary-100: color-mix(in srgb, var(--color-school-orange) 32%, black);
+  --color-secondary-600: color-mix(in srgb, var(--color-school-orange) 68%, white);
 
-  --color-red-50: oklch(26% 0.06 25);
-  --color-red-100: oklch(33% 0.08 25);
-  --color-red-600: oklch(78% 0.13 25);
-  --color-red-700: oklch(84% 0.1 25);
+  --color-red-50: color-mix(in srgb, var(--color-school-red) 20%, black);
+  --color-red-100: color-mix(in srgb, var(--color-school-red) 32%, black);
+  --color-red-600: color-mix(in srgb, var(--color-school-red) 68%, white);
+  --color-red-700: color-mix(in srgb, var(--color-school-red) 52%, white);
 
-  --color-yellow-50: oklch(27% 0.05 85);
-  --color-yellow-100: oklch(34% 0.06 85);
-  --color-yellow-600: oklch(85% 0.12 85);
-  --color-yellow-700: oklch(89% 0.1 85);
+  --color-yellow-50: color-mix(in srgb, var(--color-school-orange) 20%, black);
+  --color-yellow-100: color-mix(in srgb, var(--color-school-orange) 32%, black);
+  --color-yellow-600: color-mix(in srgb, var(--color-school-orange) 68%, white);
+  --color-yellow-700: color-mix(in srgb, var(--color-school-orange) 52%, white);
 
-  --color-emerald-50: oklch(26% 0.05 165);
-  --color-emerald-100: oklch(33% 0.06 165);
-  --color-emerald-700: oklch(85% 0.12 165);
+  --color-emerald-50: color-mix(in srgb, var(--color-school-green) 20%, black);
+  --color-emerald-100: color-mix(in srgb, var(--color-school-green) 32%, black);
+  --color-emerald-700: color-mix(in srgb, var(--color-school-green) 52%, white);
 
-  --color-sky-50: oklch(26% 0.05 235);
-  --color-sky-700: oklch(85% 0.11 235);
+  --color-sky-50: color-mix(in srgb, var(--color-school-blue) 20%, black);
+  --color-sky-700: color-mix(in srgb, var(--color-school-blue) 52%, white);
 }
