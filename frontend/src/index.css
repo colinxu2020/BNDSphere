@@ -17,12 +17,12 @@
   --color-slate-100: color-mix(in srgb, var(--color-school-gray) 15%, white);
   --color-slate-200: color-mix(in srgb, var(--color-school-gray) 28%, white);
   --color-slate-300: color-mix(in srgb, var(--color-school-gray) 43%, white);
-  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 70%, white);
-  --color-slate-500: var(--color-school-gray);
-  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 85%, black);
-  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 70%, black);
-  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 52%, black);
-  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 32%, black);
+  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 72%, black);
+  --color-slate-500: color-mix(in srgb, var(--color-school-gray) 65%, black);
+  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 55%, black);
+  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 45%, black);
+  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 35%, black);
+  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 26%, black);
   --color-slate-950: color-mix(in srgb, var(--color-school-gray) 18%, black);
 
   /* Primary palette: Pantone Process Blue C */
@@ -45,10 +45,10 @@
   --color-yellow-300: color-mix(in srgb, var(--color-school-orange) 45%, white);
   --color-yellow-400: color-mix(in srgb, var(--color-school-orange) 70%, white);
   --color-yellow-500: var(--color-school-orange);
-  --color-yellow-600: color-mix(in srgb, var(--color-school-orange) 86%, black);
-  --color-yellow-700: color-mix(in srgb, var(--color-school-orange) 70%, black);
-  --color-yellow-800: color-mix(in srgb, var(--color-school-orange) 54%, black);
-  --color-yellow-900: color-mix(in srgb, var(--color-school-orange) 38%, black);
+  --color-yellow-600: color-mix(in srgb, var(--color-school-orange) 62%, black);
+  --color-yellow-700: color-mix(in srgb, var(--color-school-orange) 50%, black);
+  --color-yellow-800: color-mix(in srgb, var(--color-school-orange) 40%, black);
+  --color-yellow-900: color-mix(in srgb, var(--color-school-orange) 31%, black);
   --color-yellow-950: color-mix(in srgb, var(--color-school-orange) 23%, black);
 
   --color-secondary-50: var(--color-yellow-50);
@@ -171,16 +171,17 @@ body {
   ); /* hairlines, active pills */
   --color-slate-200: color-mix(in srgb, var(--color-school-gray) 34%, black); /* borders */
   --color-slate-300: color-mix(in srgb, var(--color-school-gray) 43%, black);
-  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 78%, black); /* hint text */
-  --color-slate-500: var(--color-school-gray); /* secondary text */
-  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 82%, white);
-  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 68%, white);
-  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 50%, white);
-  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 28%, white); /* headings */
+  --color-slate-400: color-mix(in srgb, var(--color-school-gray) 95%, white); /* hint text */
+  --color-slate-500: color-mix(in srgb, var(--color-school-gray) 82%, white); /* secondary text */
+  --color-slate-600: color-mix(in srgb, var(--color-school-gray) 68%, white);
+  --color-slate-700: color-mix(in srgb, var(--color-school-gray) 54%, white);
+  --color-slate-800: color-mix(in srgb, var(--color-school-gray) 40%, white);
+  --color-slate-900: color-mix(in srgb, var(--color-school-gray) 24%, white); /* headings */
   --color-slate-950: color-mix(in srgb, var(--color-school-gray) 10%, white);
 
   --color-primary-50: color-mix(in srgb, var(--color-school-blue) 20%, black);
   --color-primary-100: color-mix(in srgb, var(--color-school-blue) 32%, black);
+  --color-primary-500: color-mix(in srgb, var(--color-school-blue) 85%, white);
   --color-primary-600: color-mix(in srgb, var(--color-school-blue) 68%, white);
   --color-primary-700: color-mix(in srgb, var(--color-school-blue) 52%, white);
 
