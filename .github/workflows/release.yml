@@ -1,0 +1,189 @@
+name: Release
+
+# Tag push only. workflow_dispatch was removed: with versions immutable, a
+# dispatch for a tag that already has a release is refused below, and one for
+# a tag that does not is the same thing as re-running the failed tag-push run
+# from the Actions UI. It bought nothing and cost the version-vs-ref split
+# below -- resolving two sources of the version, guarding the dispatch input
+# for newline injection (a git refname cannot contain one), and checking out
+# a ref other than the one that triggered the run.
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+  packages: write
+
+# NO concurrency group, and none is needed: a version is published exactly
+# once. The "Refuse to republish" step below fails a second run for a version
+# that already has a release, so a tag push racing a manual rerun cannot leave
+# assets from two different builds behind. That mutability — `gh release upload
+# --clobber`, which deleted an asset before replacing it — was the only reason
+# this workflow ever needed serialising.
+
+jobs:
+  release:
+    name: Build once, publish to GHCR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Resolve version and image references
+        id: meta
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          version="${GITHUB_REF#refs/tags/}"
+
+          # Same grammar AND same length limit the deploy script enforces
+          # (lib/common.sh). Rejecting here means a malformed tag fails at
+          # release time rather than on someone's deploy host — and a version
+          # that this passes but the deployer rejects would be a release that
+          # can never be deployed.
+          #
+          # No '+' build metadata: the version becomes a Docker tag verbatim
+          # below, and Docker's reference grammar allows only word characters,
+          # dots and dashes — v1.5.0+build.7 would pass this check and then
+          # fail `docker build` with "invalid reference format".
+          if [ "${#version}" -gt 64 ]; then
+            echo "::error::Version must be at most 64 characters: $version"
+            exit 1
+          fi
+          if ! printf '%s' "$version" \
+             | grep -Eq '^v?[0-9]+(\.[0-9]+){0,3}(-[0-9A-Za-z.-]+)?$'; then
+            echo "::error::Invalid version tag: $version"
+            exit 1
+          fi
+
+          # Registry paths must be lowercase; the owner name need not be.
+          owner_lc="${GITHUB_REPOSITORY_OWNER,,}"
+
+          {
+            echo "version=$version"
+            echo "backend_repo=ghcr.io/${owner_lc}/bndsphere-backend"
+            echo "caddy_repo=ghcr.io/${owner_lc}/bndsphere-caddy"
+          } >> "$GITHUB_OUTPUT"
+
+      # A published version is immutable. Refusing here — before the build,
+      # before any push — is what lets the deploy side trust that a version
+      # names one specific set of bytes forever.
+      - name: Refuse to republish an existing version
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
+          if gh release view "$version" \
+               --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            echo "::error::Release $version already exists. Versions are immutable — publish a new version instead of replacing this one."
+            exit 1
+          fi
+
+      # No `ref:` — the run was triggered BY the tag, so the default checkout
+      # is that tag. This was only ever needed to correct for a dispatch
+      # started from a different ref.
+      - name: Checkout the released tag
+        uses: actions/checkout@v6
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build backend and caddy images (exactly once)
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          docker build \
+            --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
+            --target prod \
+            -f backend/Dockerfile \
+            -t "${{ steps.meta.outputs.backend_repo }}:${{ steps.meta.outputs.version }}" \
+            backend
+
+          docker build \
+            --build-arg APP_VERSION="${{ steps.meta.outputs.version }}" \
+            --target prod \
+            -f infra/Dockerfile.Caddy \
+            -t "${{ steps.meta.outputs.caddy_repo }}:${{ steps.meta.outputs.version }}" \
+            .
+
+      # The digest refs recorded here are the whole delivery mechanism: a
+      # deploy pulls exactly these, and the Docker daemon rejects any content
+      # whose digest does not match. That is content addressing doing the
+      # verification, not a checksum file travelling beside the artifact it
+      # vouches for.
+      - name: Push and capture digest references
+        id: push
+        shell: bash
+        run: |
+          set -euo pipefail
+          version="${{ steps.meta.outputs.version }}"
+
+          for component in backend caddy; do
+            case "$component" in
+              backend) repo="${{ steps.meta.outputs.backend_repo }}" ;;
+              caddy)   repo="${{ steps.meta.outputs.caddy_repo }}" ;;
+            esac
+
+            # NOTE: no rebuild. These are the exact local images just built.
+            docker push "${repo}:${version}"
+
+            # RepoDigests is only populated after a successful push, and can
+            # hold entries for several repositories — take this repo's.
+            digest_ref=$(docker image inspect \
+              --format '{{range .RepoDigests}}{{println .}}{{end}}' \
+              "${repo}:${version}" | grep "^${repo}@" | head -n 1)
+
+            case "$digest_ref" in
+              *@sha256:*) ;;
+              *) echo "::error::No digest reference for ${repo}:${version} after push"; exit 1 ;;
+            esac
+
+            echo "${component}_digest_ref=${digest_ref}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Write release manifest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          jq -n \
+            --arg version      "${{ steps.meta.outputs.version }}" \
+            --arg built_at     "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --arg commit       "$(git rev-parse HEAD)" \
+            --arg backend_ref  "${{ steps.push.outputs.backend_digest_ref }}" \
+            --arg caddy_ref    "${{ steps.push.outputs.caddy_digest_ref }}" \
+            '{
+              version: $version,
+              arch: "amd64",
+              built_at: $built_at,
+              commit: $commit,
+              images: {
+                backend: { ref: $backend_ref },
+                caddy:   { ref: $caddy_ref }
+              }
+            }' > release-manifest.json
+
+          cat release-manifest.json
+
+      # docker-compose.yml ships as an asset so a version describes the WHOLE
+      # deployment, not just its images. A release that adds a service or an
+      # environment variable used to need an operator to edit the host by hand
+      # before deploying, with nothing checking that they had.
+      - name: Create the GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh release create "${{ steps.meta.outputs.version }}" \
+            --title "${{ steps.meta.outputs.version }}" \
+            --generate-notes \
+            release-manifest.json docker-compose.yml

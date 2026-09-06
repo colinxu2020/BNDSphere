@@ -1,0 +1,91 @@
+name: Deploy
+
+# Run by a developer from the Actions tab (or `gh workflow run deploy.yml`).
+# Nothing in the application can trigger it, and nothing in it is meant to:
+# there is no in-app deploy control, so dispatching this is the only way in.
+# Never runs on push — a deploy is always an explicit act.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release tag to deploy (e.g. v1.5.0)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  # Release images are pulled from GHCR by digest. Read-only: this workflow
+  # deploys packages, it never publishes them.
+  packages: read
+
+# THE serialisation. The script keeps no lock of its own — this group is the
+# only thing standing between two deploys, so it must never gain
+# cancel-in-progress: cancelling a job mid-deploy is exactly what the deleted
+# lock-and-recover machinery existed to clean up after.
+concurrency:
+  group: deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: deploy ${{ inputs.version }}
+    # Runs on the deploy host. A GitHub-hosted runner cannot reach a box behind
+    # NAT, and this needs the host's Docker daemon regardless.
+    #
+    # The label is not decoration: bare `self-hosted` lets GitHub schedule this
+    # on ANY self-hosted runner in the repo or org, and a second runner that
+    # happens to have the same DEPLOY_DIR path would deploy to the wrong
+    # Docker daemon rather than merely failing. Register the deploy host with
+    # the `bndsphere-deploy` label.
+    runs-on: [self-hosted, bndsphere-deploy]
+    # The boundary is wider than "push to this file": workflow_dispatch runs
+    # the workflow definition FROM THE DISPATCHED REF, and checkout below then
+    # executes that ref's infra/deploy/*.sh on the host. So push access to
+    # ANY branch containing this file, plus actions:write, is host code
+    # execution. Checkout pinning cannot close that (the workflow file itself
+    # already came from the branch); the real control is this environment's
+    # protection rules — set a deployment branch policy restricting
+    # `production` to master and tags, and optionally required reviewers.
+    # Repository settings, not YAML: Settings → Environments → production.
+    environment: production
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      # The runner lives on the deploy host, so this writes credentials into
+      # the host's docker config. The logout step below is not optional.
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Deploy
+        env:
+          # Absolute path of the live deployment on this host — the directory
+          # holding docker-compose.yml, secrets/ and deploy/. Compose resolves
+          # bind-mount sources against it, so a wrong value breaks secrets
+          # silently; the script fails closed instead (lib/common.sh's
+          # validate_startup). Set it as a repository variable.
+          #
+          # The deploy installs the release's own docker-compose.yml here, so
+          # a release that adds a service or an environment variable deploys
+          # on its own; it used to need an operator to edit the host first,
+          # with nothing checking that they had.
+          COMPOSE_PROJECT_DIR: ${{ vars.DEPLOY_DIR }}
+          COMPOSE_PROJECT_NAME: bndsphere
+          GITHUB_REPO: ${{ github.repository }}
+          # Via env, never interpolated into the script body: `${{ }}` is
+          # substituted by the Actions expression engine BEFORE the shell
+          # parses the line, so a crafted input would execute ahead of any
+          # validation. The script validates it itself (lib/common.sh).
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -eu
+          sh infra/deploy/deploy.sh "$INPUT_VERSION"
+
+      - name: Log out of GHCR
+        if: always()
+        run: docker logout ghcr.io || true
