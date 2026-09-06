@@ -176,10 +176,6 @@ case "$MANAGED_SERVICES" in
     *) PASSES=$((PASSES + 1)) ;;
 esac
 _recreate_echo() (
-    # COMPOSE_ECHO makes every compose call echo its argv, including the
-    # `config --services` the derivation uses, so pin the list here and test
-    # the derivation itself separately below.
-    set_managed_services() { MANAGED_SERVICES="backend caddy"; }
     recreate_services "bndsphere-backend:v1.6.0" "bndsphere-caddy:v1.6.0"
 )
 RS_OUT=$(_recreate_echo)
@@ -212,39 +208,10 @@ assert_eq "v1.5.0" "$(pin_get "$(versions_env)" APP_VERSION)" \
 unset COMPOSE_ECHO
 
 # ── the managed service set ──────────────────────────────────────────
-# Taken from the compose file about to be used, so a release that adds a
-# service actually starts it -- and never postgres, and never a one-off.
-_derive() (
-    _listing=$1
-    compose() { printf '%s' "$_listing"; }
-    set_managed_services && printf '%s' "$MANAGED_SERVICES"
-)
-assert_eq "backend caddy" "$(_derive 'backend
-caddy
-postgres
-alembic-migration
-')" "derivation drops postgres and the alembic one-offs"
-assert_eq "backend caddy worker" "$(_derive 'backend
-caddy
-worker
-postgres
-')" "a service the release introduced is picked up"
-# Fail closed: an empty list would become `compose up -d --no-deps` with no
-# arguments, which starts every service in the file -- postgres included.
-assert_fail "derivation fails closed on an empty service list" _derive ''
-assert_fail "derivation fails closed when only excluded services exist" \
-    _derive 'postgres
-'
-_recreate_no_services=$(mktemp)
-_recreate_undeterminable() (
-    compose() { case "$1" in up) printf 'called' > "$_recreate_no_services" ;; *) printf '' ;; esac; }
-    recreate_services backend:v1 caddy:v1
-)
-assert_fail "recreate_services aborts when the service set is unusable" \
-    _recreate_undeterminable
-assert_eq "" "$(cat "$_recreate_no_services")" \
-    "compose up never runs without a known service list"
-rm -f "$_recreate_no_services"
+# Fixed to what the manifest pins and the health gate verifies. Deriving it
+# from the compose file would start services with no digest and no check.
+assert_eq "backend caddy" "$MANAGED_SERVICES" \
+    "the managed set is exactly the services the manifest pins"
 
 # A failed pin write must never be followed by `compose up`: with the OLD pins
 # still on disk, `up` would recreate nothing, exit 0, and the OLD (genuinely
@@ -288,7 +255,6 @@ assert_fail "health fails when a healthy container runs the OLD image" \
     _healthy_running v1
 # An absent expected ref must never compare "" = "" and pass vacuously.
 _healthy_vacuous() (
-    compose() { case "$1" in ps) printf 'cid\n' ;; port) printf '0.0.0.0:8080\n' ;; esac; }
     compose() { case "$1" in ps) printf '%s\n' "$3" ;; port) printf '0.0.0.0:8080\n' ;; esac; }
     docker() { case "$3" in *Health*) printf 'healthy\n' ;; *) printf '\n' ;; esac; }
     app_ready() { return 0; }
@@ -298,7 +264,6 @@ assert_fail "health never passes vacuously on empty refs" _healthy_vacuous
 # Container health is necessary but not sufficient: the published port must
 # actually serve.
 _healthy_app_down() (
-    compose() { case "$1" in ps) printf 'cid\n' ;; port) printf '0.0.0.0:8080\n' ;; esac; }
     compose() { case "$1" in ps) printf '%s\n' "$3" ;; port) printf '0.0.0.0:8080\n' ;; esac; }
     docker() { case "$3" in *Health*) printf 'healthy\n' ;; *) printf '%s:v2\n' "$4" ;; esac; }
     app_ready() { return 1; }
@@ -306,29 +271,17 @@ _healthy_app_down() (
 )
 assert_fail "health fails when the app does not answer on the published port" \
     _healthy_app_down
-# A service the release introduced has no pinned ref and may declare no
-# healthcheck; demanding "healthy" from it would fail every deploy that adds
-# one. It must still fail if it declares a healthcheck and is unhealthy.
-_healthy_extra_service() (
-    _extra_status=$1
+# A service outside the pinned set has no ref to verify against, so the gate
+# must fail rather than wave it through -- even if its container is healthy.
+_healthy_unpinned_service() (
     MANAGED_SERVICES="backend caddy worker"
     compose() { case "$1" in ps) printf '%s\n' "$3" ;; port) printf '0.0.0.0:8080\n' ;; esac; }
-    docker() {
-        case "$3" in
-            *Health*) case "$4" in worker) printf '%s\n' "$_extra_status" ;;
-                                  *) printf 'healthy\n' ;; esac ;;
-            *) printf '%s:v2\n' "$4" ;;
-        esac
-    }
+    docker() { case "$3" in *Health*) printf 'healthy\n' ;; *) printf '%s:v2\n' "$4" ;; esac; }
     app_ready() { return 0; }
     wait_healthy "backend:v2" "caddy:v2"
 )
-assert_ok "a new service without a healthcheck does not block the deploy" \
-    _healthy_extra_service none
-assert_ok "a new service reporting healthy passes" \
-    _healthy_extra_service healthy
-assert_fail "a new service that IS unhealthy still fails the deploy" \
-    _healthy_extra_service unhealthy
+assert_fail "a service with no pinned ref never passes the health gate" \
+    _healthy_unpinned_service
 
 # Restore the real defaults rather than unsetting them: `set -u` plus a
 # later real wait_healthy call would abort the suite.
@@ -502,7 +455,7 @@ DEPLOY_NO_MAIN=1; export DEPLOY_NO_MAIN
 _dispatch() (
     . "$SCRIPT_DIR"/deploy.sh
     validate_startup() { return 0; }
-    reap_orphans() { return 0; }
+    refuse_oneoffs() { return 0; }
     run_update() { printf 'update %s\n' "$1"; }
     main "$@"
 )
@@ -516,27 +469,31 @@ assert_fail "main rejects an empty version"   _dispatch ''
 _dispatch_orphan() (
     . "$SCRIPT_DIR"/deploy.sh
     validate_startup() { return 0; }
-    reap_orphans() { return 1; }
+    refuse_oneoffs() { return 1; }
     run_update() { printf 'update\n'; }
     main v1.5.0
 )
-assert_fail "main refuses to deploy beside an unreapable one-off" _dispatch_orphan
+assert_fail "main refuses to deploy beside a one-off container" _dispatch_orphan
 assert_eq "" "$(_dispatch_orphan 2>/dev/null)" \
     "nothing is deployed when the orphan check fails"
 
-# reap_orphans must verify the removal rather than assume it: `rm -f` covers
-# running and exited alike, but a container that survives it is the hazard.
-_reap_survivor() (
+# A one-off present in the project is a stop, never a kill: the labels cannot
+# tell a runner-orphaned migration from an operator's live `compose run`.
+_docker_calls=$(mktemp)
+_oneoff_present() (
     oneoff_ids() { printf 'abc123\n'; }
-    docker() { return 0; }
-    reap_orphans
+    docker() { printf '%s\n' "$*" >> "$_docker_calls"; }
+    refuse_oneoffs
 )
-assert_fail "reap_orphans fails when a one-off survives removal" _reap_survivor
-_reap_none() (
+assert_fail "refuse_oneoffs fails when a one-off is present" _oneoff_present
+assert_eq "" "$(cat "$_docker_calls")" \
+    "refuse_oneoffs never runs docker against the container it found"
+rm -f "$_docker_calls"
+_oneoff_none() (
     oneoff_ids() { printf ''; }
-    reap_orphans
+    refuse_oneoffs
 )
-assert_ok "reap_orphans succeeds when there is nothing to reap" _reap_none
+assert_ok "refuse_oneoffs succeeds when there is no one-off" _oneoff_none
 
 # No lock, no state file, no status directory: the workflow's concurrency
 # group is the only serialisation, and the run page is the only status. A

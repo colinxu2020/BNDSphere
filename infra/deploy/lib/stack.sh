@@ -16,18 +16,22 @@
 #
 # docker-compose.yml comes from the release too, installed from the release's
 # own copy of it. A version therefore describes the whole deployment: a
-# release that adds a service or an environment variable deploys without an
-# operator having to edit the host first.
+# release that changes a service definition or an environment variable
+# deploys without an operator having to edit the host first. A release that
+# adds or removes a SERVICE also has to change MANAGED_SERVICES below, and the
+# manifest and wait_healthy with it -- that is deliberate, see the next block.
 #
 # NO ROLLBACK. A failed deploy leaves the failure in place and reports it;
 # recovery is an operator's job. Automatic rollback, its recorded target
 # (versions.env.prev / docker-compose.yml.prev) and the image retention that
 # keeps that target's images are a separate change.
 
-# Replaced from the release's own compose file before any recreate (see
-# set_managed_services). Seeded, never empty, so nothing can accidentally
-# expand to "every service" -- `compose up -d --no-deps` with no service
-# arguments starts EVERYTHING, postgres included.
+# FIXED, not derived from the compose file. These are exactly the services
+# the release manifest pins a digest for and wait_healthy verifies; a service
+# discovered from the compose file would have neither, so it would start
+# unverified and could only ever be "assumed fine". Never empty either:
+# `compose up -d --no-deps` with no service arguments starts EVERYTHING,
+# postgres included.
 MANAGED_SERVICES="backend caddy"
 MIGRATION_SERVICE="alembic-migration"
 HEALTH_TIMEOUT="${HEALTH_TIMEOUT:-120}"
@@ -80,68 +84,27 @@ compose() {
         "$@"
 }
 
-# The services a deploy may recreate, taken from the compose file that is
-# about to be used. Hardcoding "backend caddy" meant a release that added a
-# service shipped its compose file and then never started the service --
-# `--no-deps` does not start linked services either, so being a dependency of
-# backend would not have saved it.
-#
-# Excluded, always: postgres (the database is not the application's to
-# restart) and the alembic-* one-offs (`up -d` would leave them running;
-# run_migration invokes the migration itself, once, under `compose run`).
-set_managed_services() {
-    _svcs=$(compose config --services 2>/dev/null \
-        | grep -vx 'postgres' \
-        | grep -v '^alembic-' \
-        | tr '\n' ' ')
-    _svcs=${_svcs% }
-
-    # Fail closed. An empty list here would become `compose up -d --no-deps`
-    # with no arguments, which starts every service in the file.
-    [ -n "$_svcs" ] || {
-        log "could not determine the services to manage from the compose file"
-        return 1
-    }
-    case " $_svcs " in
-        *" postgres "*)
-            log "refusing: postgres appeared in the managed service list"
-            return 1
-            ;;
-    esac
-
-    MANAGED_SERVICES=$_svcs
-    log "managed services: $MANAGED_SERVICES"
-    return 0
-}
-
-# Compose `run --rm` helpers can be orphaned when the job is cancelled.
+# Compose `run --rm` one-offs in this project. A cancelled job can leave a
+# migration running with no client (`--rm` only removes the container when
+# it exits), and an operator may equally be running a legitimate
+# `compose run` right now. The labels cannot tell those apart, so this never
+# kills anything: any one-off present means stop and let a human look.
 #
 # NO status filter, deliberately: a one-off that is still RUNNING is the
-# dangerous case, not the dead one. `--rm` only removes the container when it
-# exits, so a migration whose client disconnected keeps going, stays invisible
-# to a `status=exited` filter, and is never reaped -- and the next deploy then
-# starts a SECOND `alembic upgrade head` concurrently against the same
-# database. `rm -f` covers running and exited alike.
+# dangerous case. A `status=exited` filter would hide exactly the migration
+# that is still writing to the database.
 oneoff_ids() {
     docker ps -aq \
         --filter "label=com.docker.compose.project=$COMPOSE_PROJECT_NAME" \
         --filter "label=com.docker.compose.oneoff=True" 2>/dev/null
 }
 
-reap_orphans() {
+refuse_oneoffs() {
     _ids=$(oneoff_ids)
     [ -n "$_ids" ] || return 0
-    # shellcheck disable=SC2086 # deliberate word splitting over an id list
-    docker rm -f $_ids >/dev/null 2>&1 || true
-    # Verify, never assume: a surviving one-off may be a migration still
-    # writing to the database, and starting a deploy beside it is the one
-    # thing we must not do.
-    _left=$(oneoff_ids)
-    if [ -n "$_left" ]; then
-        log "orphaned one-off containers could not be removed: $_left"
-        return 1
-    fi
-    log "reaped orphaned one-off containers"
+    log "one-off containers are present in project $COMPOSE_PROJECT_NAME: $(printf '%s' "$_ids" | tr '\n' ' ')"
+    log "refusing to deploy beside them; inspect with 'docker ps -a' and remove them by hand if they are dead"
+    return 1
 }
 
 write_pins() {
@@ -189,12 +152,6 @@ recreate_services() {
         log "recreate_services: aborting, version pins were not written"
         return 1
     }
-    # After the pins are written, so `compose config` interpolates the images
-    # this deploy is actually about to start.
-    set_managed_services || {
-        log "recreate_services: aborting, managed service list is unusable"
-        return 1
-    }
     # --no-deps: without it, `up -d backend caddy` pulls postgres in via
     # depends_on and re-runs alembic-migration a SECOND time via backend's
     # service_completed_successfully dependency -- run_migration already ran
@@ -228,32 +185,19 @@ wait_healthy() {
                 '{{if .State.Health}}{{.State.Health.Status}}{{else}}none{{end}}' \
                 "$_cid" 2>/dev/null)
 
+            # Both checks apply to every managed service, and the expected
+            # ref must be non-empty: an absent ref must never compare "" = ""
+            # and pass vacuously, which is the whole reason this gate exists.
             case "$_svc" in
-                backend|caddy)
-                    # The two services this deploy pins. Both checks apply,
-                    # and the expected ref must be non-empty: an absent ref
-                    # must never compare "" = "" and pass vacuously, which is
-                    # the whole reason this gate exists.
-                    case "$_svc" in
-                        backend) _want=$_want_backend ;;
-                        caddy)   _want=$_want_caddy ;;
-                    esac
-                    [ "$_status" = "healthy" ] || { _all_healthy=0; break; }
-                    _running=$(docker inspect --format '{{.Config.Image}}' \
-                        "$_cid" 2>/dev/null)
-                    [ -n "$_want" ] && [ "$_want" = "$_running" ] \
-                        || { _all_healthy=0; break; }
-                    ;;
-                *)
-                    # A service the release introduced. There is no pinned ref
-                    # to compare it against, and it may declare no healthcheck
-                    # at all -- demanding "healthy" would fail every deploy
-                    # that adds one. Honour a healthcheck if it has one; its
-                    # container existing is all this can otherwise assert.
-                    [ "$_status" = "none" ] || [ "$_status" = "healthy" ] \
-                        || { _all_healthy=0; break; }
-                    ;;
+                backend) _want=$_want_backend ;;
+                caddy)   _want=$_want_caddy ;;
+                *) log "no pinned ref for service $_svc"; return 1 ;;
             esac
+            [ "$_status" = "healthy" ] || { _all_healthy=0; break; }
+            _running=$(docker inspect --format '{{.Config.Image}}' \
+                "$_cid" 2>/dev/null)
+            [ -n "$_want" ] && [ "$_want" = "$_running" ] \
+                || { _all_healthy=0; break; }
         done
 
         if [ "$_all_healthy" -eq 1 ] && app_ready; then

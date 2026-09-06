@@ -39,9 +39,10 @@ main() {
     validate_startup
 
     # A cancelled job can leave a `compose run --rm` migration alive with no
-    # client. Starting a second `alembic upgrade head` beside it is the one
-    # thing we must not do, so refuse rather than deploy.
-    reap_orphans || die "an orphaned one-off container is still present; refusing to start new work"
+    # client, and an operator's own `compose run` looks identical. Starting a
+    # second `alembic upgrade head` beside the former is the one thing we must
+    # not do, and killing the latter is not ours to do, so refuse either way.
+    refuse_oneoffs || die "a one-off container is present in this project; refusing to start new work"
 
     log "deploy started (version=$_version run=${GITHUB_RUN_ID:-local})"
 
