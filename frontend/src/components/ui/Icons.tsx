@@ -33,6 +33,7 @@ export {
   IconMoon as Moon,
   IconDeviceDesktop as Monitor,
   IconPlus as Plus,
+  IconQrcode as QrCode,
   IconRefresh as RefreshCw,
   IconDeviceFloppy as Save,
   IconSearch as Search,
