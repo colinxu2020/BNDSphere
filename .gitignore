@@ -141,3 +141,4 @@ docker-compose.yml.prev
 # never committed: the plans describe designs that later changed, so tracked
 # copies drift into contradicting the code beside them.
 docs/superpowers/
+.serena/
