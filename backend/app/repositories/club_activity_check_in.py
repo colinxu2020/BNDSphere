@@ -3,8 +3,9 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
+from sqlalchemy.dialects.postgresql import insert
 
-from app.models.club_activity_check_in import ClubActivityCheckIn
+from app.models.club_activity_check_in import CheckInMethodEnum, ClubActivityCheckIn
 from app.repositories.base import RepositoryBase
 from app.schemas.club_activity_check_in import ClubActivityCheckInCreate
 
@@ -25,7 +26,15 @@ class ClubActivityCheckInRepository(
         stmt = (
             select(ClubActivityCheckIn)
             .where(ClubActivityCheckIn.club_activity_id == club_activity_id)
-            .order_by(ClubActivityCheckIn.checked_in_at.asc())
+            # A manual batch commits in one transaction, so checked_in_at's
+            # server_default=now() is identical across its rows (now() is
+            # transaction-stable in Postgres) — id breaks ties so pagination
+            # stays stable instead of arbitrarily splitting/duplicating rows
+            # across pages.
+            .order_by(
+                ClubActivityCheckIn.checked_in_at.asc(),
+                ClubActivityCheckIn.id.asc(),
+            )
         )
         return cast("Page[ClubActivityCheckIn]", await apaginate(self.db, stmt))
 
@@ -47,3 +56,48 @@ class ClubActivityCheckInRepository(
         )
         result = await self.db.execute(stmt)
         return result.scalars().first()
+
+    async def create_or_get_existing(
+        self,
+        club_activity_id: int,
+        user_id: int,
+        method: CheckInMethodEnum,
+        recorded_by_user_id: int,
+    ) -> ClubActivityCheckIn:
+        """Insert one check-in row, or return the existing one if a
+        concurrent request already recorded this (activity, user) pair —
+        same ON CONFLICT upsert pattern as
+        ``ClubMemberRepository.set_relationship``, so a race between two
+        check-in requests (e.g. a QR scan racing a manual entry) resolves
+        to one row instead of an unhandled unique-constraint violation.
+        """
+        stmt = (
+            insert(ClubActivityCheckIn)
+            .values(
+                club_activity_id=club_activity_id,
+                user_id=user_id,
+                method=method,
+                recorded_by_user_id=recorded_by_user_id,
+            )
+            .on_conflict_do_nothing(
+                index_elements=[
+                    ClubActivityCheckIn.club_activity_id,
+                    ClubActivityCheckIn.user_id,
+                ],
+            )
+            .returning(ClubActivityCheckIn)
+        )
+        result = await self.db.execute(stmt)
+        row = result.scalars().first()
+        if row is not None:
+            return row
+        existing = await self.get_by_activity_user(club_activity_id, user_id)
+        if existing is None:
+            # Conflicted against a row that vanished before we could re-read
+            # it — a concurrent delete would be the only way, and nothing in
+            # this codebase deletes check-ins. Treat it as the DB-invariant
+            # violation it would be rather than silently returning None.
+            raise AssertionError(
+                "check-in insert conflicted but no existing row was found",
+            )
+        return existing

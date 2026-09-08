@@ -40,6 +40,8 @@ class ActivityFixture(TypedDict):
     active_activity_id: int
     active_activity_2_id: int
     upcoming_activity_id: int
+    archived_club_id: int
+    archived_club_activity_id: int
     user_ids: dict[str, int]
 
 
@@ -117,11 +119,43 @@ async def setup_activity(
     db_session.add_all([active_activity, active_activity_2, upcoming_activity])
     await db_session.flush()
 
+    # A second, archived club — same president — to check that check-in
+    # write paths reject it the same way other club-scoped mutations do.
+    archived_club = Club(
+        name="Archived Check-in Test Club",
+        summary="summary",
+        description="description",
+        status=ClubStatusEnum.archived,
+        category=ClubCategoryEnum.other,
+    )
+    db_session.add(archived_club)
+    await db_session.flush()
+    db_session.add(
+        ClubMember(
+            user_id=user_ids["president"],
+            club_id=archived_club.id,
+            membership=ClubMembershipEnum.president,
+        ),
+    )
+    archived_club_activity = ClubActivity(
+        name="Archived club's activity",
+        description="description",
+        club_id=archived_club.id,
+        start_time=now - timedelta(hours=1),
+        end_time=now + timedelta(hours=1),
+        location="location",
+        academic_term_id=term.id,
+    )
+    db_session.add(archived_club_activity)
+    await db_session.flush()
+
     fixture: ActivityFixture = {
         "club_id": club.id,
         "active_activity_id": active_activity.id,
         "active_activity_2_id": active_activity_2.id,
         "upcoming_activity_id": upcoming_activity.id,
+        "archived_club_id": archived_club.id,
+        "archived_club_activity_id": archived_club_activity.id,
         "user_ids": user_ids,
     }
 
@@ -240,6 +274,26 @@ class TestClubActivityCheckIn:
         )
         assert resp.status_code == 403
         assert resp.json()["error_code"] == "CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER"
+
+    async def test_manual_check_in_rejects_archived_club(
+        self,
+        client: AsyncClient,
+        setup_activity: ActivityFixture,
+    ) -> None:
+        # ClubRoleChecker itself doesn't check club status (archived clubs
+        # keep their membership rows, see business_process.md), so this
+        # exercises the service-level _ensure_club_normal check instead.
+        club_id = setup_activity["archived_club_id"]
+        activity_id = setup_activity["archived_club_activity_id"]
+        president_id = setup_activity["user_ids"]["president"]
+
+        resp = await client.post(
+            self._url(club_id, activity_id, "check-ins"),
+            json={"user_ids": [president_id]},
+            headers=self._headers("president"),
+        )
+        assert resp.status_code == 403
+        assert resp.json()["error_code"] == "CLUB_NOT_ACTIVE"
 
     async def test_get_check_ins_forbidden_for_regular_member(
         self,

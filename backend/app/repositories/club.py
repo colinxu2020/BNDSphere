@@ -84,6 +84,26 @@ class ClubMemberRepository(
         )
         return result.scalars().first()
 
+    async def get_user_ids_with_membership(
+        self,
+        club_id: int,
+        user_ids: Sequence[int],
+        allowed_memberships: Sequence[ClubMembershipEnum],
+    ) -> set[int]:
+        """Of ``user_ids``, which currently hold one of ``allowed_memberships``
+        in this club — one query instead of one per candidate id.
+        """
+        if not user_ids:
+            return set()
+        result = await self.db.execute(
+            select(self.model.user_id).where(
+                self.model.club_id == club_id,
+                self.model.user_id.in_(user_ids),
+                self.model.membership.in_(allowed_memberships),
+            ),
+        )
+        return set(result.scalars().all())
+
     async def set_membership(
         self,
         member: ClubMember,

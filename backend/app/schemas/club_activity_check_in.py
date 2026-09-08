@@ -2,6 +2,7 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core import constants
 from app.models.club_activity_check_in import CheckInMethodEnum
 from app.schemas.generic import IdMixin
 
@@ -32,7 +33,11 @@ class ClubActivityManualCheckInRequest(BaseModel):
     roster of members who attended.
     """
 
-    user_ids: list[int] = Field(..., min_length=1)
+    user_ids: list[int] = Field(
+        ...,
+        min_length=1,
+        max_length=constants.CLUB_ACTIVITY_CHECK_IN_MAX_ROSTER_SIZE,
+    )
 
 
 class ClubActivityCheckInQrTokenInfo(BaseModel):
