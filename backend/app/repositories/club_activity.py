@@ -34,7 +34,7 @@ class ClubActivityRepository(
             select(ClubActivity)
             .where(ClubActivity.club_id == club.id)
             .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc())
-            .options(selectinload(ClubActivity.participants))
+            .options(selectinload(ClubActivity.check_ins))
         )
         return cast("Page[ClubActivity]", await apaginate(self.db, stmt))
 

@@ -24,7 +24,7 @@
   - [3.5 club_tags — 社团-标签关联表](#35-club_tags--社团-标签关联表)
   - [3.6 academic_terms — 学期表](#36-academic_terms--学期表)
   - [3.7 club_activities — 社团活动表](#37-club_activities--社团活动表)
-  - [3.8 club_activity_participants — 活动参与者关联表](#38-club_activity_participants--活动参与者关联表)
+  - [3.8 club_activity_check_ins — 活动签到表](#38-club_activity_check_ins--活动签到表)
   - [3.9 announcements — 公告表](#39-announcements--公告表)
   - [3.10 general_activities — 通用活动表](#310-general_activities--通用活动表)
   - [3.11 club_general_activity_records — 社团通用活动记录表](#311-club_general_activity_records--社团通用活动记录表)
@@ -177,7 +177,6 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | 关系名                          | 目标模型      | 类型   | 说明                                        |
 | ------------------------------- | ------------- | ------ | ------------------------------------------- |
 | `club_memberships`              | `ClubMember`  | 一对多 | 用户的社团成员记录                          |
-| `participated_club_activities`  | `ClubActivity`| 多对多 | 通过 `club_activity_participants` 关联       |
 
 ---
 
@@ -302,17 +301,30 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 
 **约束**：`check_start_end_time` — `end_time > start_time`。
 
-**关系**：`club` → `Club`；`participants` → `User`（多对多，经 `club_activity_participants`）；`academic_term` → `AcademicTerm`（来自 Mixin）。
+**关系**：`club` → `Club`；`check_ins` → `ClubActivityCheckIn`（一对多，见 [3.8](#38-club_activity_check_ins--活动签到表)）；`academic_term` → `AcademicTerm`（来自 Mixin）。
 
 > 社团活动本身没有直接的增/改接口——创建和更新都要经过 `club_activity_create_requests` / `club_activity_update_requests` 的审核流程，详见 [3.15](#315-moderations--审核moderation请求表)。
 
 ---
 
-### 3.8 `club_activity_participants` — 活动参与者关联表
+### 3.8 `club_activity_check_ins` — 活动签到表
 
-> 源码：`app/models/club_activity_participant.py`
+> 源码：`app/models/club_activity_check_in.py`
 
-纯关联表，复合主键 `(user_id, club_activity_id)`，`user_id → users.id`，`club_activity_id → club_activities.id`。
+| 列名                   | 类型            | 约束 / 默认值           | 说明                                          |
+| ---------------------- | ---------------- | ------------------------ | --------------------------------------------- |
+| `id`                   | `int`             | PK, 自增                 | 主键                                          |
+| `club_activity_id`     | `int`              | FK → `club_activities.id`, `ondelete=CASCADE`, INDEX | 所属活动 |
+| `user_id`               | `int`              | FK → `users.id`, INDEX   | 签到人                                        |
+| `method`                | `CheckInMethodEnum`| NOT NULL                 | 签到方式：`manual`（社长/副社长录入）/ `qrcode`（扫码自助签到） |
+| `checked_in_at`         | `DateTime(tz)`      | `server_default=now()`   | 签到时间                                      |
+| `recorded_by_user_id`   | `int`              | FK → `users.id`          | 记录人：`manual` 时为操作的社长/副社长，`qrcode` 时与 `user_id` 相同 |
+
+**约束**：`ix_unique_club_activity_check_in_user` — `(club_activity_id, user_id)` 联合唯一索引（同一用户对同一活动只能有一条签到记录；两种签到方式共用同一张表，谁先落地谁生效，后续操作是幂等的空操作而非报错）。
+
+**关系**：`activity` → `ClubActivity`；`user` → `User`；`recorded_by` → `User`。
+
+> 没有独立的审核流程——签到是操作记录（谁在什么时候、以什么方式确认了出席），不是需要二次审核的业务申请，因此不套用 moderation/audit 模式（对比 [overview.md](overview.md#审核--核验模式moderation--verification)）。`qrcode` 方式的签到二维码内容是一个作用域限定到单个 `club_activity_id`、有效期等于该活动 `end_time` 的签名 token（`core/security.py::create_check_in_token`/`verify_check_in_token`），由社长/副社长在活动进行中生成；只有活动处于 `start_time <= 现在 <= end_time` 区间内才能生成或使用该 token。
 
 ---
 
@@ -525,6 +537,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | `ClubCategoryEnum`             | `club.py`                                          | `sports`, `humanity`, `arts`, `science`, `charity`, `business`, `campus`, `other`           | 社团分类         |
 | `ClubMembershipEnum`           | `clubmember.py`                                     | `pending`, `member`, `president`, `vice_president`, `left`                                  | 社团成员角色（`pending` 目前未被写入路径实际使用，加入靠 `club_membership_requests`；见下方说明） |
 | `TagStatusEnum`                | `tag.py`                                            | `normal`, `archived`                                                                        | 标签状态         |
+| `CheckInMethodEnum`            | `club_activity_check_in.py`                         | `manual`, `qrcode`                                                                           | 活动签到方式     |
 | `GeneralActivityLevelEnum`     | `general_activity.py`                               | `school`, `large`, `club_federation`                                                        | 通用活动级别     |
 | `ParticipationTypeEnum`        | `general_activity.py`                               | `participate_only`, `organize`                                                              | 参与类型         |
 | `ModerationStatusEnum`         | `moderations/moderation_common.py`                   | `pending`, `approved`, `rejected`, `superseded`                                             | 审核状态；`superseded` = 被同一目标上更晚的新请求取代 |
@@ -555,7 +568,8 @@ erDiagram
 ```mermaid
 erDiagram
     clubs ||--o{ club_activities : "举办"
-    users }o--o{ club_activities : "参与"
+    club_activities ||--o{ club_activity_check_ins : "签到记录"
+    users ||--o{ club_activity_check_ins : "签到人"
     academic_terms ||--o{ club_activities : ""
     academic_terms ||--o{ general_activities : ""
     academic_terms ||--o{ joint_activities : ""

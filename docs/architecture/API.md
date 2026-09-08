@@ -49,6 +49,8 @@
 | `UPDATE_REQUEST_IS_NULL`               | 审核类"修改申请"一个要改的字段都没提供                            |
 | `UPLOAD_SCENE_MISMATCH`                | 确认上传时，object key 与声明的场景目录不匹配                    |
 | `UPLOAD_OBJECT_TOO_LARGE`              | 确认上传时，OSS 记录的实际大小超过该场景上限                      |
+| `CLUB_ACTIVITY_CHECK_IN_INVALID_TOKEN`   | 签到二维码 token 无效 / 已过期 / 与当前活动不匹配                |
+| `CLUB_ACTIVITY_CHECK_IN_NOT_IN_PROGRESS` | 活动不在进行中（生成/扫码签到二维码时，当前时间不在 `[start_time, end_time]`） |
 
 </details>
 
@@ -79,6 +81,7 @@
 | `JOINT_ACTIVITY_FINAL_REVIEW_LOCKED`          | 终审已提交（pending/approved），结项材料被锁定不能再改              |
 | `JOINT_ACTIVITY_PRELIMINARY_REVIEWED`         | 初审已经处理过，不能重复初审                                       |
 | `JOINT_ACTIVITY_FINAL_REVIEW_NOT_PENDING`     | 终审不处于待审状态，不能执行终审操作                                |
+| `CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER`           | 目标用户不是该社团的有效成员（`member`/`president`/`vice_president`），不能签到 |
 
 </details>
 
@@ -175,6 +178,12 @@
 | GET  | `/`                                    | 公开                                      | –                                             | `Page[ClubActivityInfo]`               | –                                                                                                       |
 | POST | `/create-requests`                     | 职务: `president`/`vice_president`         | `ClubActivityCreateRequestCreatePublic`       | `ClubActivityCreateRequestInfo`（201）  | `CLUB_NOT_FOUND`, `CLUB_NOT_ACTIVE`                                                                    |
 | POST | `/update-requests/{activity_id}`       | 职务: `president`/`vice_president`         | `ClubActivityUpdateRequestCreatePublic`       | `ClubActivityUpdateRequestInfo`         | `CLUB_NOT_FOUND`, `CLUB_NOT_ACTIVE`, `CLUB_ACTIVITY_NOT_FOUND`, `CLUB_ACTIVITY_WRONG_BELONG`, `CLUB_ACTIVITY_INVALID_TIME_RANGE`, `DUPLICATE_PENDING_REQUEST` |
+| GET  | `/{activity_id}/check-ins`             | 职务: `president`/`vice_president`         | –                                             | `Page[ClubActivityCheckInInfo]`        | `CLUB_ACTIVITY_NOT_FOUND`                                                                              |
+| POST | `/{activity_id}/check-ins`             | 职务: `president`/`vice_president`         | `ClubActivityManualCheckInRequest`            | `list[ClubActivityCheckInInfo]`（201） | `CLUB_ACTIVITY_NOT_FOUND`, `CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER`                                          |
+| POST | `/{activity_id}/check-in-qrcode`       | 职务: `president`/`vice_president`         | –                                             | `ClubActivityCheckInQrTokenInfo`       | `CLUB_ACTIVITY_NOT_FOUND`, `CLUB_ACTIVITY_CHECK_IN_NOT_IN_PROGRESS`                                     |
+| POST | `/{activity_id}/check-in-qrcode/scan`  | 登录                                       | `ClubActivityQrCheckInRequest`                | `ClubActivityCheckInInfo`（201）        | `CLUB_ACTIVITY_NOT_FOUND`, `CLUB_ACTIVITY_CHECK_IN_NOT_IN_PROGRESS`, `CLUB_ACTIVITY_CHECK_IN_INVALID_TOKEN`, `CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER` |
+
+> 签到（issue #72）**不走审核流程**——`POST /{activity_id}/check-ins`（社长/副社长手动录入名单）和 `/check-in-qrcode` + `/check-in-qrcode/scan`（社长/副社长为进行中的活动生成二维码，成员扫码自助签到）都直接写入 `club_activity_check_ins`，同一用户对同一活动重复签到是幂等的空操作，不是错误；见 [database.md §3.8](database.md#38-club_activity_check_ins--活动签到表)。
 
 ## Club General Activities — `/clubs/{club_id}/general-activities`
 
