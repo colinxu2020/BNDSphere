@@ -149,122 +149,124 @@ export function ClubWorkspace() {
   const refresh = async () => {
     setIsLoading(true);
     const errors: Record<string, unknown> = {};
-    let loadedClub: Club | null = null;
+    try {
+      let loadedClub: Club | null = null;
 
-    const clubResponse = await (client.GET as any)("/api/v1/clubs/{club_id}/manage", {
-      params: { path: { club_id: clubId } },
-    });
-    if (clubResponse.error) {
-      errors.club = clubResponse.error;
-      setClub(null);
-    } else {
-      const nextClub = clubResponse.data || null;
-      loadedClub = nextClub;
-      setClub(nextClub);
-      if (nextClub) {
-        setClubSummary(nextClub.summary || "");
-        setClubDescription(nextClub.description || "");
-        setClubLogo(nextClub.logo_uri || "");
+      const clubResponse = await client.GET("/api/v1/clubs/{club_id}/manage", {
+        params: { path: { club_id: clubId } },
+      });
+      if (clubResponse.error) {
+        errors.club = clubResponse.error;
+        setClub(null);
+      } else {
+        const nextClub = clubResponse.data || null;
+        loadedClub = nextClub;
+        setClub(nextClub);
+        if (nextClub) {
+          setClubSummary(nextClub.summary || "");
+          setClubDescription(nextClub.description || "");
+          setClubLogo(nextClub.logo_uri || "");
+        }
       }
-    }
 
-    const userResponse = await client.GET("/api/v1/users/me");
-    if (userResponse.error) {
-      errors.user = userResponse.error;
-      setCurrentUser(null);
-    } else {
-      setCurrentUser(userResponse.data || null);
-    }
+      const userResponse = await client.GET("/api/v1/users/me");
+      if (userResponse.error) {
+        errors.user = userResponse.error;
+        setCurrentUser(null);
+      } else {
+        setCurrentUser(userResponse.data || null);
+      }
 
-    if (loadedClub?.status !== "normal") {
-      setMembershipRequests([]);
-      setMembershipApplicants({});
-      setActivities([]);
-      setGeneralActivities([]);
-      setRecords([]);
-      setStarApplications([]);
-      setStarRating(null);
+      if (loadedClub?.status !== "normal") {
+        setMembershipRequests([]);
+        setMembershipApplicants({});
+        setActivities([]);
+        setGeneralActivities([]);
+        setRecords([]);
+        setStarApplications([]);
+        setStarRating(null);
+        return;
+      }
+
+      const membershipRequestsResponse = await client.GET(
+        "/api/v1/clubs/{club_id}/membership-requests",
+        { params: { path: { club_id: clubId }, query: { size: 100 } } },
+      );
+      if (membershipRequestsResponse.error) {
+        errors.membershipRequests = membershipRequestsResponse.error;
+        setMembershipRequests([]);
+        setMembershipApplicants({});
+      } else {
+        const nextRequests = membershipRequestsResponse.data?.items || [];
+        setMembershipRequests(nextRequests);
+        const applicantResults = await Promise.all(
+          nextRequests.map(async (request) => {
+            const response = await client.GET("/api/v1/users/{user_id}", {
+              params: { path: { user_id: request.applicant_id } },
+            });
+            return response.data ? ([request.applicant_id, response.data] as const) : null;
+          }),
+        );
+        setMembershipApplicants(
+          Object.fromEntries(applicantResults.filter((result) => result !== null)),
+        );
+      }
+
+      const activitiesResponse = await client.GET("/api/v1/clubs/{club_id}/activities/", {
+        params: { path: { club_id: clubId }, query: { size: 50 } },
+      });
+      if (activitiesResponse.error) {
+        errors.activities = activitiesResponse.error;
+        setActivities([]);
+      } else {
+        setActivities(activitiesResponse.data?.items || []);
+      }
+
+      const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
+        params: { query: { size: 100 } },
+      });
+      if (generalActivitiesResponse.error) {
+        errors.generalActivities = generalActivitiesResponse.error;
+        setGeneralActivities([]);
+      } else {
+        setGeneralActivities(generalActivitiesResponse.data?.items || []);
+      }
+
+      const recordsResponse = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
+        params: { path: { club_id: clubId }, query: { size: 50 } },
+      });
+      if (recordsResponse.error) {
+        errors.records = recordsResponse.error;
+        setRecords([]);
+      } else {
+        setRecords(recordsResponse.data?.items || []);
+      }
+
+      const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
+        params: { path: { club_id: clubId }, query: { size: 50 } },
+      });
+      if (applicationsResponse.error) {
+        errors.starApplications = applicationsResponse.error;
+        setStarApplications([]);
+      } else {
+        setStarApplications(applicationsResponse.data?.items || []);
+      }
+
+      const ratingResponse = await client.GET("/api/v1/clubs/{club_id}/star-rating/", {
+        params: { path: { club_id: clubId } },
+      });
+      if (ratingResponse.error) {
+        errors.starRating = ratingResponse.error;
+        setStarRating(null);
+      } else {
+        setStarRating(ratingResponse.data || null);
+      }
+    } catch (error) {
+      errors.workspace = error;
+    } finally {
       setLoadErrors(errors);
       setIsLoading(false);
-      return;
     }
-
-    const membershipRequestsResponse = await client.GET(
-      "/api/v1/clubs/{club_id}/membership-requests",
-      { params: { path: { club_id: clubId }, query: { size: 100 } } },
-    );
-    if (membershipRequestsResponse.error) {
-      errors.membershipRequests = membershipRequestsResponse.error;
-      setMembershipRequests([]);
-      setMembershipApplicants({});
-    } else {
-      const nextRequests = membershipRequestsResponse.data?.items || [];
-      setMembershipRequests(nextRequests);
-      const applicantResults = await Promise.all(
-        nextRequests.map(async (request) => {
-          const response = await client.GET("/api/v1/users/{user_id}", {
-            params: { path: { user_id: request.applicant_id } },
-          });
-          return response.data ? ([request.applicant_id, response.data] as const) : null;
-        }),
-      );
-      setMembershipApplicants(
-        Object.fromEntries(applicantResults.filter((result) => result !== null)),
-      );
-    }
-
-    const activitiesResponse = await client.GET("/api/v1/clubs/{club_id}/activities/", {
-      params: { path: { club_id: clubId }, query: { size: 50 } },
-    });
-    if (activitiesResponse.error) {
-      errors.activities = activitiesResponse.error;
-      setActivities([]);
-    } else {
-      setActivities(activitiesResponse.data?.items || []);
-    }
-
-    const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
-      params: { query: { size: 100 } },
-    });
-    if (generalActivitiesResponse.error) {
-      errors.generalActivities = generalActivitiesResponse.error;
-      setGeneralActivities([]);
-    } else {
-      setGeneralActivities(generalActivitiesResponse.data?.items || []);
-    }
-
-    const recordsResponse = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
-      params: { path: { club_id: clubId }, query: { size: 50 } },
-    });
-    if (recordsResponse.error) {
-      errors.records = recordsResponse.error;
-      setRecords([]);
-    } else {
-      setRecords(recordsResponse.data?.items || []);
-    }
-
-    const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
-      params: { path: { club_id: clubId }, query: { size: 50 } },
-    });
-    if (applicationsResponse.error) {
-      errors.starApplications = applicationsResponse.error;
-      setStarApplications([]);
-    } else {
-      setStarApplications(applicationsResponse.data?.items || []);
-    }
-
-    const ratingResponse = await client.GET("/api/v1/clubs/{club_id}/star-rating/", {
-      params: { path: { club_id: clubId } },
-    });
-    if (ratingResponse.error) {
-      errors.starRating = ratingResponse.error;
-      setStarRating(null);
-    } else {
-      setStarRating(ratingResponse.data || null);
-    }
-
-    setLoadErrors(errors);
-    setIsLoading(false);
   };
 
   useEffect(() => {
@@ -363,7 +365,7 @@ export function ClubWorkspace() {
       };
       const { error } =
         club?.status === "unreviewed"
-          ? await (client.PATCH as any)("/api/v1/clubs/{club_id}", {
+          ? await client.PATCH("/api/v1/clubs/{club_id}", {
               params: { path: { club_id: clubId } },
               body,
             })
