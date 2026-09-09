@@ -22,9 +22,12 @@ class CheckInMethodEnum(StrEnum):
 class ClubActivityCheckIn(Base):
     __tablename__ = "club_activity_check_ins"
 
+    # No index=True here — ix_unique_club_activity_check_in_user below is a
+    # composite (club_activity_id, user_id) index, and its leftmost prefix
+    # already serves plain club_activity_id lookups, so a standalone index
+    # on it would just be redundant.
     club_activity_id: Mapped[int] = mapped_column(
         ForeignKey("club_activities.id", ondelete="CASCADE"),
-        index=True,
     )
     user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), index=True)
     method: Mapped[CheckInMethodEnum]

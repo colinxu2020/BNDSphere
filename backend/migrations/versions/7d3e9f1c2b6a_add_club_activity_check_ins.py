@@ -61,14 +61,16 @@ def upgrade() -> None:
         sa.PrimaryKeyConstraint("id", name=op.f("pk_club_activity_check_ins")),
         schema="app",
     )
-    for column in ("club_activity_id", "user_id"):
-        op.create_index(
-            op.f(f"ix_club_activity_check_ins_{column}"),
-            "club_activity_check_ins",
-            [column],
-            unique=False,
-            schema="app",
-        )
+    # club_activity_id gets no standalone index: the composite unique index
+    # below already serves plain club_activity_id lookups via its leftmost
+    # prefix.
+    op.create_index(
+        op.f("ix_club_activity_check_ins_user_id"),
+        "club_activity_check_ins",
+        ["user_id"],
+        unique=False,
+        schema="app",
+    )
     op.create_index(
         "ix_unique_club_activity_check_in_user",
         "club_activity_check_ins",
@@ -84,12 +86,11 @@ def downgrade() -> None:
         table_name="club_activity_check_ins",
         schema="app",
     )
-    for column in ("user_id", "club_activity_id"):
-        op.drop_index(
-            op.f(f"ix_club_activity_check_ins_{column}"),
-            table_name="club_activity_check_ins",
-            schema="app",
-        )
+    op.drop_index(
+        op.f("ix_club_activity_check_ins_user_id"),
+        table_name="club_activity_check_ins",
+        schema="app",
+    )
     op.drop_table("club_activity_check_ins", schema="app")
     check_in_method.drop(op.get_bind(), checkfirst=False)
 

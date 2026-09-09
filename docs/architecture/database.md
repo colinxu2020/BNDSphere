@@ -314,7 +314,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | 列名                   | 类型            | 约束 / 默认值           | 说明                                          |
 | ---------------------- | ---------------- | ------------------------ | --------------------------------------------- |
 | `id`                   | `int`             | PK, 自增                 | 主键                                          |
-| `club_activity_id`     | `int`              | FK → `club_activities.id`, `ondelete=CASCADE`, INDEX | 所属活动 |
+| `club_activity_id`     | `int`              | FK → `club_activities.id`, `ondelete=CASCADE` | 所属活动（无单独索引——下面的联合唯一索引已覆盖单列查询） |
 | `user_id`               | `int`              | FK → `users.id`, INDEX   | 签到人                                        |
 | `method`                | `CheckInMethodEnum`| NOT NULL                 | 签到方式：`manual`（社长/副社长录入）/ `qrcode`（扫码自助签到） |
 | `checked_in_at`         | `DateTime(tz)`      | `server_default=now()`   | 签到时间                                      |

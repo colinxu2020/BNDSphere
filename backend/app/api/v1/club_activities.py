@@ -171,7 +171,7 @@ async def generate_club_activity_check_in_qrcode(
 @router.post(
     "/{activity_id}/check-in-qrcode/scan",
     status_code=status.HTTP_201_CREATED,
-    responses=TOKEN_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
 )
 async def scan_club_activity_check_in_qrcode(
     club_id: int,
