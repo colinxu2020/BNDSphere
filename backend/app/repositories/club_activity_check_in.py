@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import cast
 
 from fastapi_pagination import Page
@@ -101,3 +102,44 @@ class ClubActivityCheckInRepository(
                 "check-in insert conflicted but no existing row was found",
             )
         return existing
+
+    async def create_many_ignoring_conflicts(
+        self,
+        club_activity_id: int,
+        user_ids: Sequence[int],
+        method: CheckInMethodEnum,
+        recorded_by_user_id: int,
+    ) -> Sequence[ClubActivityCheckIn]:
+        """Insert a whole manual roster as one INSERT (one round trip, one
+        transaction — a failure partway can't leave a partially-committed
+        roster). Callers must have already deduped ``user_ids`` and filtered
+        out ones already checked in; any that still conflict (a concurrent
+        request beat this one to it) are silently dropped from the result
+        rather than erroring — same idempotent semantics as
+        ``create_or_get_existing``, just batched.
+        """
+        if not user_ids:
+            return []
+        stmt = (
+            insert(ClubActivityCheckIn)
+            .values(
+                [
+                    {
+                        "club_activity_id": club_activity_id,
+                        "user_id": user_id,
+                        "method": method,
+                        "recorded_by_user_id": recorded_by_user_id,
+                    }
+                    for user_id in user_ids
+                ],
+            )
+            .on_conflict_do_nothing(
+                index_elements=[
+                    ClubActivityCheckIn.club_activity_id,
+                    ClubActivityCheckIn.user_id,
+                ],
+            )
+            .returning(ClubActivityCheckIn)
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().all()

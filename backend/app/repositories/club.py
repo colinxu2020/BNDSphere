@@ -28,6 +28,15 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, AdminClubUpdate]):
         result = await self.db.execute(select(Club).where(Club.name == name))
         return result.scalars().all()
 
+    async def get_status(self, club_id: int) -> ClubStatusEnum | None:
+        """Just the ``status`` column — ``get()`` hydrates the full ``Club``,
+        which pulls in ``members``/``club_activities``/
+        ``general_activity_records`` too (all ``lazy="selectin"``); callers
+        that only need to check status shouldn't pay for that on every call.
+        """
+        result = await self.db.execute(select(Club.status).where(Club.id == club_id))
+        return result.scalars().first()
+
     async def get_multi(
         self,
         search: str | None = None,

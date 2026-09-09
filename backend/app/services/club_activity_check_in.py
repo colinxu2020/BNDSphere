@@ -85,16 +85,17 @@ class ClubActivityCheckInService(
         new_user_ids = [
             user_id for user_id in unique_user_ids if user_id not in already_checked_in
         ]
+        if not new_user_ids:
+            return []
 
-        return [
-            await self._create_check_in(
+        async with self.transaction():
+            rows = await self.repository.create_many_ignoring_conflicts(
                 activity.id,
-                user_id,
+                new_user_ids,
                 CheckInMethodEnum.manual,
                 recorder.id,
             )
-            for user_id in new_user_ids
-        ]
+        return list(rows)
 
     async def generate_qr_token(
         self,
@@ -164,10 +165,10 @@ class ClubActivityCheckInService(
         return activity
 
     async def _ensure_club_normal(self, club_id: int) -> None:
-        club = await self.club_repository.get(club_id)
-        if club is None:
+        status = await self.club_repository.get_status(club_id)
+        if status is None:
             raise ClubNotFoundError(club_id) from None
-        if club.status != ClubStatusEnum.normal:
+        if status != ClubStatusEnum.normal:
             raise ResourceForbiddenError(
                 "error.club.not_active",
                 "CLUB_NOT_ACTIVE",
