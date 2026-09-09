@@ -96,9 +96,11 @@ class ClubActivityCheckInRepository(
         if existing is None:
             # Conflicted against a row that vanished before we could re-read
             # it — a concurrent delete would be the only way, and nothing in
-            # this codebase deletes check-ins. Treat it as the DB-invariant
-            # violation it would be rather than silently returning None.
-            raise AssertionError(
+            # this codebase deletes check-ins. This is a plain RuntimeError,
+            # not a BusinessError, because repositories don't raise those
+            # (see services/errors.py) — the caller translates it, same as
+            # ClubGeneralActivityService does for a raw IntegrityError.
+            raise RuntimeError(
                 "check-in insert conflicted but no existing row was found",
             )
         return existing

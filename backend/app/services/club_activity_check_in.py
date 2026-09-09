@@ -14,6 +14,7 @@ from app.repositories.club_activity_check_in import ClubActivityCheckInRepositor
 from app.schemas.club_activity_check_in import ClubActivityCheckInCreate
 from app.services.base import ServiceBase
 from app.services.errors import (
+    BusinessError,
     ClubActivityCheckInInvalidTokenError,
     ClubActivityCheckInNotInProgressError,
     ClubActivityCheckInNotMemberError,
@@ -150,13 +151,25 @@ class ClubActivityCheckInService(
         method: CheckInMethodEnum,
         recorded_by_user_id: int,
     ) -> ClubActivityCheckIn:
-        async with self.transaction():
-            return await self.repository.create_or_get_existing(
-                club_activity_id,
-                user_id,
-                method,
-                recorded_by_user_id,
-            )
+        try:
+            async with self.transaction():
+                return await self.repository.create_or_get_existing(
+                    club_activity_id,
+                    user_id,
+                    method,
+                    recorded_by_user_id,
+                )
+        except RuntimeError as err:
+            # Same shape as ClubGeneralActivityService's IntegrityError/
+            # OperationalError handling: a low-level failure that should be
+            # unreachable still gets the app's structured error envelope
+            # instead of an opaque 500.
+            raise BusinessError(
+                "error.club_activity_check_in.conflict_lost",
+                500,
+                "CLUB_ACTIVITY_CHECK_IN_CONFLICT_LOST",
+                {"club_activity_id": club_activity_id, "user_id": user_id},
+            ) from err
 
     async def _get_club_activity(self, club_id: int, activity_id: int) -> ClubActivity:
         activity = await self.activity_repository.get(activity_id)
