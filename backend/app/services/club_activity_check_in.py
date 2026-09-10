@@ -78,8 +78,12 @@ class ClubActivityCheckInService(
 
         await self._ensure_club_normal(club_id)
         activity = await self._get_club_activity(club_id, activity_id)
-        await self._ensure_active_members(club_id, unique_user_ids)
 
+        # Filter to genuinely new ids *before* validating membership — an
+        # id that's already checked in must stay a no-op even if that user
+        # has since left the club, otherwise resubmitting the full roster
+        # (the documented idempotent way to add newly-attended members)
+        # would fail on the departed id and block the new ones with it.
         already_checked_in = await self.repository.get_checked_in_user_ids(
             activity.id,
         )
@@ -88,6 +92,8 @@ class ClubActivityCheckInService(
         ]
         if not new_user_ids:
             return []
+
+        await self._ensure_active_members(club_id, new_user_ids)
 
         async with self.transaction():
             rows = await self.repository.create_many_ignoring_conflicts(

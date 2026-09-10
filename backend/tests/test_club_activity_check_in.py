@@ -22,6 +22,7 @@ from typing import ClassVar, TypedDict
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import create_check_in_token
@@ -78,6 +79,7 @@ async def setup_activity(
         ("vice_president", ClubMembershipEnum.vice_president),
         ("member", ClubMembershipEnum.member),
         ("left_member", ClubMembershipEnum.left),
+        ("departing_member", ClubMembershipEnum.member),
     ):
         db_session.add(
             ClubMember(
@@ -174,6 +176,7 @@ class TestClubActivityCheckIn:
         {"username": "member", "password": "member-password"},
         {"username": "left_member", "password": "left-member-password"},
         {"username": "outsider", "password": "outsider-password"},
+        {"username": "departing_member", "password": "departing-member-password"},
     ]
 
     def _url(self, club_id: int, activity_id: int, suffix: str) -> str:
@@ -294,6 +297,49 @@ class TestClubActivityCheckIn:
         )
         assert resp.status_code == 403
         assert resp.json()["error_code"] == "CLUB_NOT_ACTIVE"
+
+    async def test_manual_check_in_resubmission_skips_departed_member(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_activity: ActivityFixture,
+    ) -> None:
+        """Regression: resubmitting the full roster (the documented way to
+        add newly-attended members) must not fail just because someone
+        checked in earlier has since left the club — membership is only
+        validated for ids that aren't already checked in."""
+        club_id = setup_activity["club_id"]
+        activity_id = setup_activity["active_activity_2_id"]
+        departing_member_id = setup_activity["user_ids"]["departing_member"]
+        vice_president_id = setup_activity["user_ids"]["vice_president"]
+
+        first = await client.post(
+            self._url(club_id, activity_id, "check-ins"),
+            json={"user_ids": [departing_member_id]},
+            headers=self._headers("president"),
+        )
+        assert first.status_code == 201
+        assert len(first.json()) == 1
+
+        await db_session.execute(
+            update(ClubMember)
+            .where(
+                ClubMember.club_id == club_id,
+                ClubMember.user_id == departing_member_id,
+            )
+            .values(membership=ClubMembershipEnum.left),
+        )
+        await db_session.commit()
+
+        resp = await client.post(
+            self._url(club_id, activity_id, "check-ins"),
+            json={"user_ids": [departing_member_id, vice_president_id]},
+            headers=self._headers("president"),
+        )
+        assert resp.status_code == 201
+        body = resp.json()
+        assert len(body) == 1
+        assert body[0]["user_id"] == vice_president_id
 
     async def test_get_check_ins_forbidden_for_regular_member(
         self,
