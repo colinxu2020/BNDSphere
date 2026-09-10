@@ -404,8 +404,8 @@ export function ClubWorkspace() {
     setClubMessage(null);
     try {
       const body = {
-        summary: nullableText(clubSummary),
-        description: nullableText(clubDescription),
+        summary: clubSummary.trim(),
+        description: clubDescription.trim(),
         logo_uri: nullableText(clubLogo),
       };
       const { error } =
