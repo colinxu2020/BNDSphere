@@ -14,14 +14,14 @@ from app.models.user import User
 from app.models.verifications.club_membership import ClubMembershipRequest
 from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
-from app.schemas.club import AdminClubUpdate, ClubCreate, ClubMemberUpdate, ClubUpdate
+from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.schemas.moderations.club import ClubUpdateRequestCreate
 from app.schemas.moderations.moderation_common import RequestModerate
 from app.schemas.verifications.club_membership import ClubMembershipRequestCreate
 from app.schemas.verifications.verification_common import RequestVerify
 
 
-class ClubRepository(RepositoryBase[Club, ClubCreate, AdminClubUpdate]):
+class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     model = Club
 
     async def get_by_name(self, name: str) -> Sequence[Club]:
@@ -79,14 +79,6 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, AdminClubUpdate]):
             .order_by(Club.id.desc())
         )
         return cast("Page[Club]", await apaginate(self.db, stmt))
-
-    async def update_details(self, club: Club, obj_in: ClubUpdate) -> Club:
-        for field, value in obj_in.model_dump(exclude_unset=True).items():
-            setattr(club, field, value)
-        self.db.add(club)
-        await self.db.flush()
-        await self.db.refresh(club)
-        return club
 
 
 class ClubMemberRepository(

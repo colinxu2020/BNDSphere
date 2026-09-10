@@ -148,7 +148,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                     "CLUB_UPDATE_REQUIRES_REVIEW",
                     {"club_id": club_id},
                 ) from None
-            return await self.repository.update_details(club, obj_in)
+            return await self.repository.update(club, obj_in)
 
     async def request_club_update(
         self,
