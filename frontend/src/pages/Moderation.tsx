@@ -16,6 +16,7 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
 type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
@@ -70,6 +71,7 @@ export function Moderation() {
   const [activityCreateRequests, setActivityCreateRequests] = useState<ActivityCreateRequest[]>([]);
   const [activityUpdateRequests, setActivityUpdateRequests] = useState<ActivityUpdateRequest[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isForbidden, setIsForbidden] = useState(false);
   const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
@@ -78,6 +80,7 @@ export function Moderation() {
 
   const loadRequests = async () => {
     setIsLoading(true);
+    setIsForbidden(false);
     setLoadError(null);
     try {
       if (activeQueue === "users") {
@@ -85,7 +88,10 @@ export function Moderation() {
           params: { query: { size: 50 } },
         });
         setItems(response.error ? [] : response.data?.items || []);
-        if (response.error) setLoadError(response.error);
+        if (response.error) {
+          setLoadError(response.error);
+          if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
+        }
       }
 
       if (activeQueue === "clubUpdate") {
@@ -93,7 +99,10 @@ export function Moderation() {
           params: { query: { size: 50 } },
         });
         setItems(response.error ? [] : response.data?.items || []);
-        if (response.error) setLoadError(response.error);
+        if (response.error) {
+          setLoadError(response.error);
+          if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
+        }
       }
 
       if (activeQueue === "activities") {
@@ -110,6 +119,12 @@ export function Moderation() {
         setActivityUpdateRequests(updateResponse.error ? [] : updateResponse.data?.items || []);
         const firstError = createResponse.error || updateResponse.error;
         if (firstError) setLoadError(firstError);
+        if (
+          isForbiddenResponse(createResponse.response, createResponse.error) ||
+          isForbiddenResponse(updateResponse.response, updateResponse.error)
+        ) {
+          setIsForbidden(true);
+        }
       }
     } catch (error) {
       setLoadError(error);
@@ -196,6 +211,10 @@ export function Moderation() {
     }
   };
 
+  if (isForbidden) {
+    return <ForbiddenPage description="只有审核员及获授权的管理角色可以进入审核台。" />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -244,7 +263,7 @@ export function Moderation() {
             description="处理社团提交的活动创建和修改申请。"
           />
           {isLoading ? (
-            <LoadingRows />
+            <PageLoading compact />
           ) : (
             <div className="grid gap-6 lg:grid-cols-2">
               <ActivityRequestList
@@ -297,14 +316,7 @@ function ModerationRequestList({
     <Surface>
       <SectionTitle icon={<FilePenLine size={20} />} title={title} description={description} />
       {isLoading ? (
-        <div className="grid gap-4">
-          {[...Array(3)].map((_, index) => (
-            <div
-              key={index}
-              className="h-40 animate-pulse rounded-md border border-slate-100 bg-slate-50"
-            />
-          ))}
-        </div>
+        <PageLoading compact />
       ) : items.length ? (
         <div className="grid gap-4">
           {items.map((item) => (
@@ -350,19 +362,6 @@ function ModerationRequestList({
         <EmptyState title="没有待处理请求" />
       )}
     </Surface>
-  );
-}
-
-function LoadingRows() {
-  return (
-    <div className="grid gap-6 lg:grid-cols-2">
-      {[...Array(2)].map((_, index) => (
-        <div
-          key={index}
-          className="h-40 animate-pulse rounded-md border border-slate-100 bg-slate-50"
-        />
-      ))}
-    </div>
   );
 }
 

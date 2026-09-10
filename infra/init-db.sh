@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
 
-APP_DB_PASSWORD_VALUE="$(cat "$APP_DB_PASSWORD_FILE")"
-MIGRATION_DB_PASSWORD_VALUE="$(cat "$MIGRATION_DB_PASSWORD_FILE")"
+APP_DB_PASSWORD_VALUE="${APP_DB_PASSWORD:?app password not resolved by entrypoint}"
+MIGRATION_DB_PASSWORD_VALUE="${MIGRATION_DB_PASSWORD:?migration password not resolved by entrypoint}"
 
 echo "[initdb] configuring roles, schemas, and privileges for database: ${POSTGRES_DB}"
 
@@ -60,7 +60,7 @@ ALTER SCHEMA db_meta OWNER TO app_owner;
 ALTER SCHEMA app OWNER TO app_owner;
 ALTER SCHEMA extensions OWNER TO app_owner;
 
-REVOKE CREATE ON SCHEMA public FROM PUBLIC;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
 REVOKE ALL ON SCHEMA public FROM app_user;
 REVOKE ALL ON SCHEMA public FROM migration_user;
 
