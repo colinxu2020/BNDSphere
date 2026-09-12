@@ -2,6 +2,7 @@ import inspect
 from collections.abc import AsyncIterator, Awaitable, Mapping
 from contextlib import asynccontextmanager
 from typing import Final, Protocol, cast
+from urllib.parse import quote
 
 import aioboto3  # type: ignore[import-untyped]
 from botocore.config import Config  # type: ignore[import-untyped]
@@ -16,6 +17,8 @@ class S3Client(Protocol):
     def generate_presigned_url(self, **kwargs: object) -> str | Awaitable[str]: ...
 
     async def head_object(self, **kwargs: object) -> Mapping[str, object]: ...
+
+    async def delete_object(self, **kwargs: object) -> object: ...
 
 
 class ObjectStorageService:
@@ -76,6 +79,46 @@ class ObjectStorageService:
             if isinstance(content_length, int):
                 return content_length
             return None
+
+    async def generate_get_presigned_url(
+        self,
+        object_key: str,
+        filename: str,
+        expires_seconds: int = 300,
+    ) -> str:
+        fallback_filename = (
+            "".join(
+                character if character.isascii() and character.isalnum() else "_"
+                for character in filename
+            ).strip("_")
+            or "download"
+        )
+        content_disposition = (
+            f'attachment; filename="{fallback_filename}"; '
+            f"filename*=UTF-8''{quote(filename, safe='')}"
+        )
+        params = {
+            "Bucket": self.settings.oss_bucket,
+            "Key": object_key,
+            "ResponseContentDisposition": content_disposition,
+        }
+        async with self._client() as client:
+            result = client.generate_presigned_url(
+                ClientMethod="get_object",
+                Params=params,
+                ExpiresIn=expires_seconds,
+                HttpMethod="GET",
+            )
+            if inspect.isawaitable(result):
+                result = await result
+            return result
+
+    async def delete_object(self, object_key: str) -> None:
+        async with self._client() as client:
+            await client.delete_object(
+                Bucket=self.settings.oss_bucket,
+                Key=object_key,
+            )
 
 
 def _is_not_found_error(exc: object) -> bool:

@@ -3,6 +3,7 @@ import {
   Award,
   CalendarDays,
   Compass,
+  Folder,
   LayoutDashboard,
   LogOut,
   Settings,
@@ -21,6 +22,7 @@ const navLinks = [
   { name: "发现社团", path: "/explore", icon: Compass },
   { name: "大型活动", path: "/activities", icon: CalendarDays },
   { name: "联合活动", path: "/joint-activities", icon: CalendarDays },
+  { name: "资料中心", path: "/resources", icon: Folder },
   { name: "星级评价", path: "/star-level", icon: Award },
 ];
 
@@ -257,7 +259,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       </main>
 
       <div className="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white md:hidden">
-        <div className="grid grid-cols-4 gap-1 px-2 py-2">
+        <div className="grid grid-cols-5 gap-1 px-2 py-2">
           {navLinks.map((link) => {
             const isActive =
               location.pathname === link.path ||

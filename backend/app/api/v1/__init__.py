@@ -12,6 +12,7 @@ from app.api.v1.clubs import router as clubs_router
 from app.api.v1.general_activities import router as general_activities_router
 from app.api.v1.joint_activities import router as joint_activities_router
 from app.api.v1.moderations import router as moderation_router
+from app.api.v1.resources import router as resources_router
 from app.api.v1.star_level import router as star_level_router
 from app.api.v1.star_rating import router as star_rating_router
 from app.api.v1.uploads import router as uploads_router
@@ -51,3 +52,4 @@ router.include_router(moderation_router, prefix="/moderations")
 router.include_router(verification_router, prefix="/clubs/{club_id}")
 router.include_router(uploads_router, prefix="/uploads")
 router.include_router(announcements_router, prefix="/announcements")
+router.include_router(resources_router, prefix="/resources")
