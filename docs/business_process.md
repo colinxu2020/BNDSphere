@@ -73,9 +73,14 @@
 
 社长/副社长 `POST /clubs/{club_id}/activities/update-requests/{activity_id}` 提交要改的字段（只填要改的），同一活动若已有 pending 修改申请会被顶替；若修改涉及起止时间，最终生效的起止时间（结合未修改的原值）必须合法，否则 `400`。审核流程与新建相同，通过后局部更新目标活动。
 
-#### 取消 / 补发布 / 签到 / 活动信息提交（图文素材） — **尚未实现**
+#### 签到
 
-旧版文档设想的"取消活动""活动结束后补发布""社长录入/扫码签到""活动结束后提交图文材料再审核"等能力，在当前代码里没有对应的接口或状态字段——`club_activities` 只有一次性的"创建 → （可多次）修改"两个动作，没有取消/签到/结项这些子状态。`picture_urls` 字段存在（活动图片列表），但只能通过"修改活动"申请整体替换，没有独立的"活动信息提交并二次审核"流程。
+签到（issue #72）不是 `club_activities` 上的一个子状态，而是独立的 `club_activity_check_ins` 表——一个活动可以有任意多条签到记录。两种签到方式：
+
+1. **社长录入（`manual`）**：社长/副社长 `POST /clubs/{club_id}/activities/{activity_id}/check-ins`，提交出席成员的 `user_ids`。随时可用（不要求活动正在进行），可多次提交——已签到的用户 id 会被跳过而不是报错，所以补录名单只需重新提交完整名单。目标必须是该社团当前有效成员（`member`/`president`/`vice_president`），否则 `403 CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER`。
+2. **扫码签到（`qrcode`）**：社长/副社长 `POST /clubs/{club_id}/activities/{activity_id}/check-in-qrcode` 生成一个作用域限定到该活动的签到 token（前端渲染成二维码），仅在活动进行中（`start_time <= 现在 <= end_time`）才能生成，token 有效期等于活动 `end_time`。成员扫码后 `POST /clubs/{club_id}/activities/{activity_id}/check-in-qrcode/scan` 提交 token 完成自助签到，同样要求活动仍在进行中、扫码者是该社团有效成员。
+
+两种方式共写同一张表，`(club_activity_id, user_id)` 唯一——同一用户对同一活动只会留下一条签到记录（先到先得），重复签到是幂等的空操作。
 
 ### 参与大型活动（校级/社联通用活动）
 

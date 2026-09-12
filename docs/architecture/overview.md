@@ -56,7 +56,7 @@ models/*        SQLAlchemy Base 子类
 | ------------ | ------------------------------------------------------------------------------ |
 | 用户         | `users`（角色 `ban/user/moderator/federation_staff/admin/dev`，年级 `grade`）  |
 | 社团         | `clubs`（状态 `unreviewed/normal/archived`，星级，分类，标签）、`club_members`（职务 `pending/member/president/vice_president/left`） |
-| 社团活动     | `club_activities` + `club_activity_create_requests`/`club_activity_update_requests`（审核制） |
+| 社团活动     | `club_activities` + `club_activity_create_requests`/`club_activity_update_requests`（审核制）；`club_activity_check_ins`（签到，非审核制，社长录入或扫码自助） |
 | 学期         | `academic_terms`（有且仅有一个"当前学期"，靠部分唯一索引保证）                |
 | 校级/大型活动 | `general_activities` + `club_general_activity_records`（`AuditMixin`），附带 `activity_conditions`/`record_condition_details`（目前尚无对应 API） |
 | 联合活动     | `joint_activities` + `joint_activity_participations`：发起 → 社联初审公开 → 社团报名 → 结项归档 → 终审打分 |
