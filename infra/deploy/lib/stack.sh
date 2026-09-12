@@ -100,7 +100,10 @@ oneoff_ids() {
 }
 
 refuse_oneoffs() {
-    _ids=$(oneoff_ids)
+    if ! _ids=$(oneoff_ids); then
+        log "could not enumerate one-off containers; refusing to deploy"
+        return 1
+    fi
     [ -n "$_ids" ] || return 0
     log "one-off containers are present in project $COMPOSE_PROJECT_NAME: $(printf '%s' "$_ids" | tr '\n' ' ')"
     log "refusing to deploy beside them; inspect with 'docker ps -a' and remove them by hand if they are dead"
@@ -225,7 +228,12 @@ app_ready() {
     [ -n "$_hostport" ] || return 1
     # "0.0.0.0:8443" or "[::]:8443" -> 8443. Connect over loopback explicitly;
     # curl to 0.0.0.0 is not portable.
-    curl -fsS --max-time 5 -o /dev/null "http://127.0.0.1:${_hostport##*:}/"
+    _base_url="http://127.0.0.1:${_hostport##*:}"
+    curl -fsS --max-time 5 -o /dev/null "$_base_url/" || return 1
+    # Exercise Caddy's reverse proxy as well as its static file handler. The
+    # generated OpenAPI document is unauthenticated and does not touch the
+    # database, so a failure here isolates routing or backend reachability.
+    curl -fsS --max-time 5 -o /dev/null "$_base_url/api/openapi.json"
 }
 
 run_update() {

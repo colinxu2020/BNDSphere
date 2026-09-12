@@ -39,19 +39,24 @@ jobs:
     # the `bndsphere-deploy` label.
     runs-on: [self-hosted, bndsphere-deploy]
     # The boundary is wider than "push to this file": workflow_dispatch runs
-    # the workflow definition FROM THE DISPATCHED REF, and checkout below then
-    # executes that ref's infra/deploy/*.sh on the host. So push access to
-    # ANY branch containing this file, plus actions:write, is host code
-    # execution. Checkout pinning cannot close that (the workflow file itself
-    # already came from the branch); the real control is this environment's
-    # protection rules — set a deployment branch policy restricting
+    # the workflow definition FROM THE DISPATCHED REF. Checkout below pins the
+    # deployer to the requested release tag, but a modified workflow definition
+    # could remove that pin before any step runs. So push access to ANY branch
+    # containing this file, plus actions:write, is host code execution. The
+    # real control is this environment's protection rules — set a deployment
+    # branch policy restricting
     # `production` to master and tags, and optionally required reviewers.
     # Repository settings, not YAML: Settings → Environments → production.
     environment: production
 
     steps:
-      - name: Checkout
+      - name: Checkout requested release
         uses: actions/checkout@v6
+        with:
+          # Use the exact tag namespace: the deploy scripts and release assets
+          # are one versioned unit, and a same-named branch must not win ref
+          # resolution.
+          ref: refs/tags/${{ inputs.version }}
 
       # The runner lives on the deploy host, so this writes credentials into
       # the host's docker config. The logout step below is not optional.

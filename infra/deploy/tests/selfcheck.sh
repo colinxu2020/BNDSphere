@@ -271,6 +271,25 @@ _healthy_app_down() (
 )
 assert_fail "health fails when the app does not answer on the published port" \
     _healthy_app_down
+
+# The static frontend and the API proxy are separate Caddy paths. A healthy
+# `/` must not hide a broken reverse proxy to backend.
+_app_ready_api_down() (
+    compose() { case "$1" in port) printf '0.0.0.0:8080\n' ;; esac; }
+    curl() {
+        _url=
+        for _arg do _url=$_arg; done
+        case "$_url" in
+            http://127.0.0.1:8080/) return 0 ;;
+            http://127.0.0.1:8080/api/*) return 1 ;;
+            *) return 0 ;;
+        esac
+    }
+    app_ready
+)
+assert_fail "readiness fails when Caddy's API proxy is broken" \
+    _app_ready_api_down
+
 # A service outside the pinned set has no ref to verify against, so the gate
 # must fail rather than wave it through -- even if its container is healthy.
 _healthy_unpinned_service() (
@@ -494,6 +513,13 @@ _oneoff_none() (
     refuse_oneoffs
 )
 assert_ok "refuse_oneoffs succeeds when there is no one-off" _oneoff_none
+
+_oneoff_enumeration_fails() (
+    oneoff_ids() { return 1; }
+    refuse_oneoffs
+)
+assert_fail "refuse_oneoffs propagates an enumeration failure" \
+    _oneoff_enumeration_fails
 
 # No lock, no state file, no status directory: the workflow's concurrency
 # group is the only serialisation, and the run page is the only status. A
