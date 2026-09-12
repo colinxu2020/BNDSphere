@@ -10,7 +10,7 @@ from app.schemas.star_rating import StarRatingBreakdown, StarRatingResponse
 from app.services.errors import ClubNotFoundError
 
 _MEETING_ATTENDANCE_SCORE = 10
-_SECTION_2_1_CAP = 45
+_SECTION_2_1_CAP = 55
 _SPECIAL_BONUSES_CAP = 10
 _TOTAL_SCORE_CAP = 100
 _CLUB_HISTORY_MIN_YEARS = 2
@@ -21,7 +21,7 @@ _ALL_GRADE_LEVELS = {7, 8, 9, 10, 11, 12}
 _CROSS_GRADE_MIN_MEMBERS = 25
 
 _INTERNAL_ACTIVITY_THRESHOLDS: list[tuple[int, int]] = [
-    (15, 30),
+    (15, 25),
     (10, 20),
     (5, 10),
     (3, 3),
@@ -91,11 +91,11 @@ class StarRatingService:
         )
 
         raw_competition = self._get_competition_score(application, review)
-        competition_score = min(raw_competition, _SECTION_2_1_CAP)
+        competition_score = min(max(raw_competition, 0), _SECTION_2_1_CAP)
 
         competition_breakdown = competition_score
         activity_participation = min(
-            raw_activity,
+            max(raw_activity, 0),
             _SECTION_2_1_CAP - competition_breakdown,
         )
         section_2_1 = activity_participation + competition_breakdown
@@ -114,7 +114,7 @@ class StarRatingService:
         )
         age_years = self._club_age_years(club)
         history_score = (
-            _CLUB_HISTORY_SCORE if age_years >= _CLUB_HISTORY_MIN_YEARS else 0
+            _CLUB_HISTORY_SCORE if age_years > _CLUB_HISTORY_MIN_YEARS else 0
         )
         special_bonuses = min(
             growth_story + cross_grade + history_score,
