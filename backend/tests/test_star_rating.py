@@ -1,5 +1,6 @@
 from datetime import UTC, datetime, timedelta
 from typing import cast
+from unittest.mock import patch
 
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -119,6 +120,46 @@ async def test_latest_section_caps_allow_a_100_point_rating() -> None:
     assert rating.breakdown.activity_participation == 35
     assert rating.breakdown.internal_activities == 25
     assert rating.breakdown.special_bonuses == 10
+
+
+@pytest.mark.parametrize(
+    ("created_at", "now", "expected_score"),
+    [
+        (
+            datetime(2024, 1, 1, 12, tzinfo=UTC),
+            datetime(2026, 1, 1, 12, tzinfo=UTC),
+            0,
+        ),
+        (
+            datetime(2024, 9, 12, 12, tzinfo=UTC),
+            datetime(2026, 9, 12, 12, 0, 0, 1, tzinfo=UTC),
+            5,
+        ),
+        (
+            datetime(2024, 2, 29, 12, tzinfo=UTC),
+            datetime(2026, 2, 28, 12, tzinfo=UTC),
+            0,
+        ),
+        (
+            datetime(2024, 2, 29, 12, tzinfo=UTC),
+            datetime(2026, 2, 28, 12, 0, 0, 1, tzinfo=UTC),
+            5,
+        ),
+    ],
+)
+async def test_club_history_bonus_uses_strict_calendar_anniversary(
+    created_at: datetime,
+    now: datetime,
+    expected_score: int,
+) -> None:
+    repository = StubStarRatingRepository()
+    repository.club.created_at = created_at
+
+    with patch("app.services.star_rating.datetime") as mock_datetime:
+        mock_datetime.now.return_value = now
+        rating = await make_service(repository).calculate_score(repository.club.id)
+
+    assert rating.breakdown.club_history == expected_score
 
 
 class ScalarResult:

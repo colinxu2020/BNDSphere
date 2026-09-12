@@ -1,3 +1,4 @@
+from calendar import monthrange
 from datetime import UTC, datetime
 
 from app.models.academic_term import AcademicTerm
@@ -112,9 +113,12 @@ class StarRatingService:
             application,
             review,
         )
-        age_years = self._club_age_years(club)
+        now = datetime.now(tz=UTC)
+        age_years = self._club_age_years(club, now)
         history_score = (
-            _CLUB_HISTORY_SCORE if age_years > _CLUB_HISTORY_MIN_YEARS else 0
+            _CLUB_HISTORY_SCORE
+            if now > self._club_anniversary(club, _CLUB_HISTORY_MIN_YEARS)
+            else 0
         )
         special_bonuses = min(
             growth_story + cross_grade + history_score,
@@ -241,10 +245,21 @@ class StarRatingService:
         return ClubStarLevelEnum.none
 
     @staticmethod
-    def _club_age_years(club: Club) -> float:
-        now = datetime.now(tz=UTC)
+    def _club_age_years(club: Club, now: datetime) -> float:
         created = club.created_at
         if created.tzinfo is None:
             created = created.replace(tzinfo=UTC)
         delta = now - created
         return delta.days / 365.25
+
+    @staticmethod
+    def _club_anniversary(club: Club, years: int) -> datetime:
+        created = club.created_at
+        if created.tzinfo is None:
+            created = created.replace(tzinfo=UTC)
+        anniversary_year = created.year + years
+        anniversary_day = min(
+            created.day,
+            monthrange(anniversary_year, created.month)[1],
+        )
+        return created.replace(year=anniversary_year, day=anniversary_day)
