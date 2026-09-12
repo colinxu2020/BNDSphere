@@ -3,6 +3,7 @@ import {
   Award,
   CalendarDays,
   Compass,
+  FileCheck2,
   Folder,
   LayoutDashboard,
   LogOut,
@@ -98,6 +99,10 @@ export function RootLayout({ children }: { children: ReactNode }) {
 
   const canOpenFederation = useMemo(
     () => user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev",
+    [user?.role],
+  );
+  const canOpenModeration = useMemo(
+    () => user?.role === "moderator" || user?.role === "admin" || user?.role === "dev",
     [user?.role],
   );
   const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
@@ -220,6 +225,15 @@ export function RootLayout({ children }: { children: ReactNode }) {
                     >
                       我管理的社团
                     </MenuItem>
+                    {canOpenModeration && (
+                      <MenuItem
+                        to="/moderation"
+                        icon={<FileCheck2 size={16} />}
+                        onClick={() => setIsUserMenuOpen(false)}
+                      >
+                        审核台
+                      </MenuItem>
+                    )}
                     {canOpenFederation && (
                       <MenuItem
                         to="/federation"

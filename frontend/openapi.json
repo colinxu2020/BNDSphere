@@ -53,9 +53,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/PublicUserInfo" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/PublicUserInfo" } }
             }
           },
           "404": {
@@ -215,6 +213,72 @@
         }
       }
     },
+    "/api/v1/clubs/managed/": {
+      "get": {
+        "tags": ["Clubs"],
+        "summary": "List Managed Clubs",
+        "description": "List active and unreviewed clubs managed by the current user.",
+        "operationId": "list_managed_clubs_api_v1_clubs_managed__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clubs/{club_id}": {
       "get": {
         "tags": ["Clubs"],
@@ -243,6 +307,124 @@
                 "example": {
                   "message_key": "error.auth.token_invalid",
                   "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": ["Clubs"],
+        "summary": "Update Unreviewed Club",
+        "description": "Update an unreviewed club without creating a moderation request.",
+        "operationId": "update_unreviewed_club_api_v1_clubs__club_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ClubUpdate" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/manage": {
+      "get": {
+        "tags": ["Clubs"],
+        "summary": "Get Managed Club Info",
+        "description": "Get a club for its managers, including while it is unreviewed.",
+        "operationId": "get_managed_club_info_api_v1_clubs__club_id__manage_get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -556,18 +738,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -575,6 +745,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -628,6 +810,159 @@
                 "example": {
                   "message_key": "error.auth.token_invalid",
                   "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/members/{user_id}": {
+      "patch": {
+        "tags": ["Clubs"],
+        "summary": "Update Club Member Role",
+        "description": "Appoint a vice president, demote one, or transfer the presidency.",
+        "operationId": "update_club_member_role_api_v1_clubs__club_id__members__user_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "User Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubMemberRoleUpdate" }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubMemberInfo" } }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": ["Clubs"],
+        "summary": "Remove Club Member",
+        "description": "Remove a member from the club.",
+        "operationId": "remove_club_member_api_v1_clubs__club_id__members__user_id__delete",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "user_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "User Id" }
+          }
+        ],
+        "responses": {
+          "204": { "description": "Successful Response" },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -916,18 +1251,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/Page_UserInfo_" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -935,6 +1258,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -979,18 +1314,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -998,6 +1321,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1094,18 +1429,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1113,6 +1436,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1151,18 +1486,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1170,6 +1493,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1225,18 +1560,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1244,6 +1567,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1318,18 +1653,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1337,6 +1660,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1371,18 +1706,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1390,6 +1713,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1428,18 +1763,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1447,6 +1770,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1502,18 +1837,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1521,6 +1844,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1570,18 +1905,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1589,6 +1912,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1640,18 +1975,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AcademicTermInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1659,6 +1982,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1751,18 +2086,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1770,6 +2093,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1808,18 +2143,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1827,6 +2150,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1875,18 +2210,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1894,6 +2217,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -1945,18 +2280,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -1964,6 +2287,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -2050,18 +2385,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -2069,6 +2392,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -2103,18 +2438,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -2122,6 +2445,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -2166,18 +2501,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -2185,6 +2508,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -2234,18 +2569,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/AnnouncementInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -2253,6 +2576,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3463,6 +3798,7 @@
         "summary": "Update Application",
         "description": "Update a star level application.\nOnly the club president can perform this operation.",
         "operationId": "update_application_api_v1_star_level__star_level_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "star_level_id",
@@ -3495,6 +3831,18 @@
                 "example": {
                   "message_key": "error.auth.token_invalid",
                   "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3547,18 +3895,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3567,6 +3903,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 }
               }
             }
@@ -3615,18 +3963,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3634,6 +3970,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3685,18 +4033,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3704,6 +4040,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3764,18 +4112,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3783,6 +4119,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3843,18 +4191,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3862,6 +4198,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3909,18 +4257,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -3928,6 +4264,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -3994,18 +4342,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4013,6 +4349,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4058,18 +4406,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4077,6 +4413,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4135,18 +4483,6 @@
               "application/json": { "schema": { "$ref": "#/components/schemas/JointActivityInfo" } }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4154,6 +4490,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4228,18 +4576,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4247,6 +4583,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4294,18 +4642,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4313,6 +4649,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4374,18 +4722,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4393,6 +4729,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4441,18 +4789,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4460,6 +4796,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4521,18 +4869,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4540,6 +4876,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4588,18 +4936,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4607,6 +4943,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4668,18 +5016,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4687,6 +5023,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4735,18 +5083,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4754,6 +5090,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -4806,18 +5154,6 @@
               }
             }
           },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
-            }
-          },
           "403": {
             "description": "Permission Denied",
             "content": {
@@ -4825,6 +5161,18 @@
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
@@ -5482,17 +5830,50 @@
         ],
         "title": "ClubInfo"
       },
+      "ClubMemberAssignableRoleEnum": {
+        "type": "string",
+        "enum": ["member", "vice_president", "president"],
+        "title": "ClubMemberAssignableRoleEnum"
+      },
       "ClubMemberInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
           "user_id": { "type": "integer", "title": "User Id" },
           "club_id": { "type": "integer", "title": "Club Id" },
           "membership": { "$ref": "#/components/schemas/ClubMembershipEnum" },
-          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" }
+          "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" },
+          "user": { "$ref": "#/components/schemas/ClubMemberUserInfo" }
         },
         "type": "object",
-        "required": ["id", "user_id", "club_id", "membership", "updated_at"],
+        "required": ["id", "user_id", "club_id", "membership", "updated_at", "user"],
         "title": "ClubMemberInfo"
+      },
+      "ClubMemberRoleUpdate": {
+        "properties": {
+          "membership": { "$ref": "#/components/schemas/ClubMemberAssignableRoleEnum" }
+        },
+        "type": "object",
+        "required": ["membership"],
+        "title": "ClubMemberRoleUpdate"
+      },
+      "ClubMemberUserInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "username": { "type": "string", "title": "Username" },
+          "avatar_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Avatar Uri"
+          },
+          "grade": {
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
+          }
+        },
+        "type": "object",
+        "required": ["id", "username", "avatar_uri", "grade"],
+        "title": "ClubMemberUserInfo"
       },
       "ClubMembershipEnum": {
         "type": "string",
@@ -5539,6 +5920,27 @@
         "type": "string",
         "enum": ["unreviewed", "normal", "archived"],
         "title": "ClubStatusEnum"
+      },
+      "ClubUpdate": {
+        "properties": {
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
+          "description": {
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
+            "title": "Description"
+          },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          }
+        },
+        "type": "object",
+        "title": "ClubUpdate"
       },
       "ClubUpdateRequestCreatePublic": {
         "properties": {
@@ -5788,7 +6190,7 @@
           "scene": { "$ref": "#/components/schemas/UploadScene" },
           "filename": { "type": "string", "maxLength": 256, "minLength": 1, "title": "Filename" },
           "content_type": { "type": "string", "title": "Content Type" },
-          "size": { "type": "integer", "exclusiveMinimum": 0, "title": "Size" }
+          "size": { "type": "integer", "exclusiveMinimum": 0.0, "title": "Size" }
         },
         "type": "object",
         "required": ["scene", "filename", "content_type", "size"],
@@ -5846,8 +6248,8 @@
           "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
           "final_score": {
             "type": "integer",
-            "maximum": 8,
-            "minimum": 0,
+            "maximum": 8.0,
+            "minimum": 0.0,
             "title": "Final Score",
             "default": 0
           }
@@ -6068,10 +6470,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6084,10 +6486,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6100,10 +6502,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6116,10 +6518,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6132,10 +6534,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6148,10 +6550,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6164,10 +6566,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6180,10 +6582,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6196,10 +6598,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6212,10 +6614,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6228,10 +6630,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6244,10 +6646,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6260,10 +6662,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6276,10 +6678,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6292,10 +6694,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6308,10 +6710,10 @@
             "type": "array",
             "title": "Items"
           },
-          "total": { "type": "integer", "minimum": 0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0, "title": "Pages" }
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
         },
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
@@ -6321,6 +6723,27 @@
         "type": "string",
         "enum": ["participate_only", "organize"],
         "title": "ParticipationTypeEnum"
+      },
+      "PublicUserInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "avatar_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Avatar Uri"
+          },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "grade": {
+            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
+        },
+        "type": "object",
+        "required": ["id", "username", "avatar_uri", "description", "grade", "created_at"],
+        "title": "PublicUserInfo"
       },
       "RecordConditionDetail": {
         "properties": {
@@ -6771,27 +7194,6 @@
           "inter_grade_12"
         ],
         "title": "UserGradeEnum"
-      },
-      "PublicUserInfo": {
-        "properties": {
-          "id": { "type": "integer", "title": "Id" },
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
-          "avatar_uri": {
-            "anyOf": [
-              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
-              { "type": "null" }
-            ],
-            "title": "Avatar Uri"
-          },
-          "description": { "type": "string", "maxLength": 400, "title": "Description" },
-          "grade": {
-            "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
-          },
-          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
-        },
-        "type": "object",
-        "required": ["id", "username", "avatar_uri", "description", "grade", "created_at"],
-        "title": "PublicUserInfo"
       },
       "UserInfo": {
         "properties": {

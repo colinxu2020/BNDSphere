@@ -3,9 +3,7 @@ import { motion } from "motion/react";
 import {
   Award,
   CalendarDays,
-  Check,
   Clock,
-  FilePenLine,
   Plus,
   RefreshCw,
   Save,
@@ -21,7 +19,6 @@ import {
   ACTIVITY_LEVEL_OPTIONS,
   AUDIT_STATUS_MAP,
   AUDIT_STATUS_OPTIONS,
-  MODERATION_STATUS_MAP,
   PARTICIPATION_MAP,
   STAR_LEVEL_MAP,
 } from "../lib/labels";
@@ -45,20 +42,14 @@ import { cn } from "../lib/utils";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
-type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
-type ActivityUpdateRequest = components["schemas"]["ClubActivityUpdateRequestInfo"];
 type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
-type ModerationStatus = components["schemas"]["ModerationStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
-type ActivityModerationKind = "create" | "update";
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
 
 export function Federation() {
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
-  const [activityCreateRequests, setActivityCreateRequests] = useState<ActivityCreateRequest[]>([]);
-  const [activityUpdateRequests, setActivityUpdateRequests] = useState<ActivityUpdateRequest[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
@@ -82,7 +73,6 @@ export function Federation() {
   const [recordScore, setRecordScore] = useState("");
   const [isRecordUpdating, setIsRecordUpdating] = useState(false);
 
-  const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(null);
   const [selectedStarId, setSelectedStarId] = useState<number | null>(null);
   const [starStatus, setStarStatus] = useState<AuditStatus>("pending");
   const [finalContestScore, setFinalContestScore] = useState("");
@@ -129,14 +119,8 @@ export function Federation() {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const [activityResponse, createResponse, updateResponse, starResponse] = await Promise.all([
+      const [activityResponse, starResponse] = await Promise.all([
         client.GET("/api/v1/general-activities/", {
-          params: { query: { size: 50 } },
-        }),
-        client.GET("/api/v1/moderations/club-activities/create-requests", {
-          params: { query: { size: 50 } },
-        }),
-        client.GET("/api/v1/moderations/club-activities/update-requests", {
           params: { query: { size: 50 } },
         }),
         client.GET("/api/v1/star-level/", {
@@ -145,8 +129,6 @@ export function Federation() {
       ]);
 
       setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
-      setActivityCreateRequests(createResponse.error ? [] : createResponse.data?.items || []);
-      setActivityUpdateRequests(updateResponse.error ? [] : updateResponse.data?.items || []);
       setStarApplications(
         starResponse.error
           ? []
@@ -158,17 +140,11 @@ export function Federation() {
               .sort(sortStarApplications),
       );
 
-      const firstError =
-        activityResponse.error ||
-        createResponse.error ||
-        updateResponse.error ||
-        starResponse.error;
+      const firstError = activityResponse.error || starResponse.error;
       if (firstError) setLoadError(firstError);
     } catch (error) {
       setLoadError(error);
       setActivities([]);
-      setActivityCreateRequests([]);
-      setActivityUpdateRequests([]);
       setStarApplications([]);
     } finally {
       setIsLoading(false);
@@ -428,39 +404,6 @@ export function Federation() {
     }
   };
 
-  const moderateClubActivityRequest = async (
-    kind: ActivityModerationKind,
-    requestId: number,
-    moderationStatus: ModerationStatus,
-  ) => {
-    const busyKey = `${kind}-${requestId}`;
-    setBusyActivityRequest(busyKey);
-    setMessage(null);
-    const body = { moderation_status: moderationStatus };
-    try {
-      const result =
-        kind === "create"
-          ? await client.PATCH("/api/v1/moderations/club-activities/create-requests/{request_id}", {
-              params: { path: { request_id: requestId } },
-              body,
-            })
-          : await client.PATCH("/api/v1/moderations/club-activities/update-requests/{request_id}", {
-              params: { path: { request_id: requestId } },
-              body,
-            });
-
-      setResult(
-        result.error,
-        moderationStatus === "approved" ? "社团活动申请已通过" : "社团活动申请已驳回",
-      );
-      if (!result.error) loadWorkspace();
-    } catch (error) {
-      setResult(error, "");
-    } finally {
-      setBusyActivityRequest(null);
-    }
-  };
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -488,30 +431,6 @@ export function Federation() {
 
       {message && <StatusMessage value={message} tone={messageTone} />}
       {loadError && <StatusMessage value={loadError} />}
-
-      <Surface>
-        <SectionTitle
-          icon={<FilePenLine size={20} />}
-          title="审核社团活动"
-          description="处理社团提交的活动创建和修改申请。"
-        />
-        <div className="grid gap-6 lg:grid-cols-2">
-          <ActivityRequestList
-            title="活动创建申请"
-            kind="create"
-            items={activityCreateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
-          />
-          <ActivityRequestList
-            title="活动修改申请"
-            kind="update"
-            items={activityUpdateRequests}
-            busyKey={busyActivityRequest}
-            onModerate={moderateClubActivityRequest}
-          />
-        </div>
-      </Surface>
 
       <Surface>
         <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团综评记录" />
@@ -953,120 +872,6 @@ function ReadOnlyValue({ children }: { children: React.ReactNode }) {
       {children}
     </div>
   );
-}
-
-function ActivityRequestList({
-  title,
-  kind,
-  items,
-  busyKey,
-  onModerate,
-}: {
-  title: string;
-  kind: ActivityModerationKind;
-  items: Array<ActivityCreateRequest | ActivityUpdateRequest>;
-  busyKey: string | null;
-  onModerate: (
-    kind: ActivityModerationKind,
-    requestId: number,
-    moderationStatus: ModerationStatus,
-  ) => void;
-}) {
-  return (
-    <div className="grid gap-3">
-      <div className="flex items-center justify-between">
-        <h3 className="font-bold text-slate-900">{title}</h3>
-        <Badge tone={items.length ? "yellow" : "slate"}>{items.length} 条待处理</Badge>
-      </div>
-      {items.length ? (
-        items.map((item) => {
-          const itemBusyKey = `${kind}-${item.id}`;
-          return (
-            <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="yellow">{MODERATION_STATUS_MAP[item.moderation_status]}</Badge>
-                    <span className="text-xs font-medium text-slate-400">
-                      申请 #{item.id} · {getActivityRequestTarget(item)}
-                    </span>
-                  </div>
-                  <h4 className="mt-2 font-semibold text-slate-900">
-                    {"name" in item && item.name ? item.name : "活动修改申请"}
-                  </h4>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
-                    <Clock size={14} className="mr-1 inline" />
-                    {formatDateTime(item.request_at)}
-                  </p>
-                </div>
-                <div className="flex gap-2">
-                  <PrimaryButton
-                    type="button"
-                    className="px-4 py-2.5"
-                    loading={busyKey === itemBusyKey}
-                    onClick={() => onModerate(kind, item.id, "approved")}
-                  >
-                    <Check size={16} /> 通过
-                  </PrimaryButton>
-                  <SecondaryButton
-                    type="button"
-                    disabled={busyKey === itemBusyKey}
-                    onClick={() => onModerate(kind, item.id, "rejected")}
-                    className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
-                  >
-                    <X size={16} /> 驳回
-                  </SecondaryButton>
-                </div>
-              </div>
-              <div className="mt-4 rounded-md border border-slate-100 bg-white p-3">
-                {renderActivityRequestDetails(item)}
-              </div>
-            </div>
-          );
-        })
-      ) : (
-        <EmptyState title="没有待处理申请" />
-      )}
-    </div>
-  );
-}
-
-function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
-
-  if ("club_id" in item) {
-    rows.push(["社团", `#${item.club_id}`]);
-  }
-  if ("club_activity_id" in item) {
-    rows.push(["原活动", `#${item.club_activity_id}`]);
-  }
-  if ("name" in item) rows.push(["名称", item.name]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("start_time" in item) {
-    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
-  }
-  if ("end_time" in item) {
-    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
-  }
-  if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
-
-  const visibleRows = rows.filter(([, value]) => value != null && value !== "");
-  return (
-    <div className="grid gap-2">
-      {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[72px_1fr] gap-3 text-sm">
-          <span className="font-semibold text-slate-500">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  if ("club_id" in item) return `社团 #${item.club_id}`;
-  return `原活动 #${item.club_activity_id}`;
 }
 
 function ExternalLink({ href, children }: { href?: string | null; children: React.ReactNode }) {

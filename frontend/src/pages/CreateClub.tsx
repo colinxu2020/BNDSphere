@@ -55,9 +55,7 @@ export function CreateClub() {
 
       setMessageTone("success");
       setMessage(data);
-      if (data?.id) {
-        navigate(`/club/${data.id}`);
-      }
+      if (data?.id) navigate(`/club/${data.id}/manage`);
     } catch (error) {
       setMessageTone("error");
       setMessage(error);

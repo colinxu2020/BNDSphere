@@ -64,7 +64,11 @@ export function Home() {
           }),
           isLoggedIn
             ? client.GET("/api/v1/users/me")
-            : Promise.resolve({ data: null, error: null }),
+            : Promise.resolve({
+                data: null,
+                error: null,
+                response: new Response(null, { status: 204 }),
+              }),
         ]);
 
         if (cancelled) return;
@@ -119,8 +123,9 @@ export function Home() {
             ) : boardItems.length ? (
               <BoardPanel items={boardItems} />
             ) : (
-              <div className="aspect-[16/7] lg:h-full lg:aspect-auto">
+              <div className="flex aspect-[16/7] lg:h-full lg:aspect-auto">
                 <EmptyPanel
+                  fill
                   icon={<Image size={28} />}
                   title="暂无展板内容"
                   description="发布大型活动的海报和文章链接后会显示在这里。"
@@ -249,7 +254,7 @@ function HomeClubPanel({
   return (
     <section
       className={cn(
-        "order-2 rounded-md border border-slate-200 bg-white p-5 lg:flex-1",
+        "order-2 rounded-md border border-slate-200 bg-white p-5 lg:flex lg:flex-1 lg:flex-col",
         isLoggedIn ? "min-h-[300px]" : "min-h-[220px]",
       )}
     >
@@ -279,7 +284,7 @@ function HomeClubPanel({
           ))}
         </div>
       ) : isLoggedIn ? (
-        <MyClubActivityList items={items} emptyTitle="暂无我的社团活动" />
+        <MyClubActivityList items={items} emptyTitle="暂无我的社团活动" fill />
       ) : clubs.length ? (
         <div className="grid gap-3 sm:grid-cols-2">
           {clubs.map((club) => (
@@ -318,7 +323,7 @@ function HomeClubPanel({
 
 function AnnouncementPanel({ items }: { items: Announcement[] }) {
   return (
-    <section className="order-3 rounded-md border border-slate-200 bg-white p-5 lg:order-2 lg:flex-1">
+    <section className="order-3 rounded-md border border-slate-200 bg-white p-5 lg:order-2 lg:flex lg:flex-1 lg:flex-col">
       <div className="mb-4 flex items-center gap-2">
         <Megaphone size={18} className="text-slate-500" />
         <h2 className="font-display text-lg font-bold">公告</h2>
@@ -341,7 +346,7 @@ function AnnouncementPanel({ items }: { items: Announcement[] }) {
           ))}
         </div>
       ) : (
-        <EmptyPanel icon={<Bell size={24} />} title="暂无公告" />
+        <EmptyPanel fill icon={<Bell size={24} />} title="暂无公告" />
       )}
     </section>
   );
@@ -387,12 +392,14 @@ function BoardPanel({ items }: { items: GeneralActivity[] }) {
 function MyClubActivityList({
   items,
   emptyTitle = "暂无近期活动",
+  fill = false,
 }: {
   items: MyClubActivity[];
   emptyTitle?: string;
+  fill?: boolean;
 }) {
   if (!items.length) {
-    return <EmptyPanel icon={<CalendarDays size={24} />} title={emptyTitle} />;
+    return <EmptyPanel fill={fill} icon={<CalendarDays size={24} />} title={emptyTitle} />;
   }
   return (
     <div className="space-y-3">
@@ -422,13 +429,20 @@ function EmptyPanel({
   icon,
   title,
   description,
+  fill = false,
 }: {
   icon: ReactNode;
   title: string;
   description?: string;
+  fill?: boolean;
 }) {
   return (
-    <div className="flex h-full min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-slate-500">
+    <div
+      className={cn(
+        "flex min-h-40 flex-col items-center justify-center rounded-md border border-dashed border-slate-200 bg-slate-50 p-6 text-center text-slate-500",
+        fill && "h-full min-h-0 flex-1",
+      )}
+    >
       <div className="mb-3 text-slate-400">{icon}</div>
       <p className="font-semibold text-slate-700">{title}</p>
       {description && <p className="mt-1 max-w-sm text-sm">{description}</p>}

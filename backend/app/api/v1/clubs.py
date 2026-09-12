@@ -22,6 +22,7 @@ from app.schemas.club import (
     ClubInfo,
     ClubMemberInfo,
     ClubMemberRoleUpdate,
+    ClubUpdate,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreatePublic,
@@ -40,12 +41,65 @@ router = APIRouter(tags=["Clubs"])
 
 
 @router.get(
+    "/managed/",
+    responses=TOKEN_INVALID_RESPONSE,
+)
+async def list_managed_clubs(
+    service: ClubServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+) -> Page[ClubInfo]:
+    """List active and unreviewed clubs managed by the current user."""
+    return Page[ClubInfo].model_validate(await service.get_managed_by_user(user))
+
+
+@router.get(
     "/{club_id}",
     responses=TOKEN_INVALID_RESPONSE,
 )
 async def get_club_info(club_id: int, service: ClubServiceDep) -> ClubInfo:
     """Get information of a club by club id."""
     return ClubInfo.model_validate(await service.ensure_club_normal(club_id))
+
+
+@router.get(
+    "/{club_id}/manage",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
+            ),
+        ),
+    ],
+)
+async def get_managed_club_info(
+    club_id: int,
+    service: ClubServiceDep,
+) -> ClubInfo:
+    """Get a club for its managers, including while it is unreviewed."""
+    return ClubInfo.model_validate(await service.get_manageable_club(club_id))
+
+
+@router.patch(
+    "/{club_id}",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.president, ClubMembershipEnum.vice_president],
+            ),
+        ),
+    ],
+)
+async def update_unreviewed_club(
+    club_id: int,
+    obj_in: ClubUpdate,
+    service: ClubServiceDep,
+) -> ClubInfo:
+    """Update an unreviewed club without creating a moderation request."""
+    return ClubInfo.model_validate(
+        await service.update_unreviewed_club(club_id, obj_in),
+    )
 
 
 @router.post(

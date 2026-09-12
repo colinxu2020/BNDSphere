@@ -7,6 +7,7 @@ import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { PageLoading } from "../components/ui/PageStates";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -94,11 +95,7 @@ export function Profile() {
   };
 
   if (isLoading) {
-    return (
-      <div className="flex justify-center py-20">
-        <div className="w-8 h-8 rounded-full border-4 border-slate-200 border-t-primary-500 animate-spin"></div>
-      </div>
-    );
+    return <PageLoading />;
   }
 
   if (loadError) return <StatusMessage value={loadError} />;

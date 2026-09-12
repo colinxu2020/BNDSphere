@@ -27,12 +27,14 @@ import {
 } from "../components/ui/AppPrimitives";
 import { MODERATION_STATUS_MAP, VERIFICATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
+import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 
 export function FederationJointActivities() {
   const [items, setItems] = useState<JointActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isForbidden, setIsForbidden] = useState(false);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [scores, setScores] = useState<Record<number, string>>({});
@@ -49,6 +51,7 @@ export function FederationJointActivities() {
 
   const refresh = async () => {
     setIsLoading(true);
+    setIsForbidden(false);
     const response = await client.GET("/api/v1/club-federation/joint-activities/", {
       params: { query: { size: 100 } },
     });
@@ -56,6 +59,7 @@ export function FederationJointActivities() {
     if (response.error) {
       setMessage(response.error);
       setMessageTone("error");
+      if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
     }
     setIsLoading(false);
   };
@@ -107,6 +111,10 @@ export function FederationJointActivities() {
     if (!response.error) await refresh();
   };
 
+  if (isForbidden) {
+    return <ForbiddenPage description="只有社联工作人员可以进入联合活动审核页面。" />;
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 10 }}
@@ -133,7 +141,7 @@ export function FederationJointActivities() {
       <Surface>
         <SectionTitle icon={<CalendarDays size={20} />} title="待预审" />
         {isLoading ? (
-          <Loading />
+          <PageLoading compact />
         ) : preliminaryItems.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {preliminaryItems.map((activity) => (
@@ -172,7 +180,7 @@ export function FederationJointActivities() {
           description="查看文字或图片档案，并填写本次活动的星级评价分值。"
         />
         {isLoading ? (
-          <Loading />
+          <PageLoading compact />
         ) : finalItems.length ? (
           <div className="grid gap-4 md:grid-cols-2">
             {finalItems.map((activity) => (
@@ -311,8 +319,4 @@ function ReviewCard({
       <div className="mt-5 grid gap-3">{children}</div>
     </div>
   );
-}
-
-function Loading() {
-  return <div className="h-40 animate-pulse rounded-md bg-slate-50" />;
 }

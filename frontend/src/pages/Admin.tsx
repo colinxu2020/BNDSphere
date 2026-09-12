@@ -192,10 +192,10 @@ function UsersAdmin() {
     if (!selected) return;
     setIsSaving(true);
     const body: AdminUserUpdate = {
-      username: nullableText(form.username),
+      username: form.username.trim(),
       email: nullableText(form.email),
       avatar_uri: nullableText(form.avatar_uri),
-      description: nullableText(form.description),
+      description: form.description.trim(),
       role: form.role || null,
     };
     try {
@@ -349,8 +349,8 @@ function ClubsAdmin() {
     if (!selected) return;
     setIsSaving(true);
     const body: AdminClubUpdate = {
-      summary: nullableText(form.summary),
-      description: nullableText(form.description),
+      summary: form.summary.trim(),
+      description: form.description.trim(),
       logo_uri: nullableText(form.logo_uri),
       star_level: form.star_level || null,
       status: form.status || null,

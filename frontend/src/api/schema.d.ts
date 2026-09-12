@@ -106,6 +106,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/managed/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Managed Clubs
+     * @description List active and unreviewed clubs managed by the current user.
+     */
+    get: operations["list_managed_clubs_api_v1_clubs_managed__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/clubs/{club_id}": {
     parameters: {
       query?: never;
@@ -118,6 +138,30 @@ export interface paths {
      * @description Get information of a club by club id.
      */
     get: operations["get_club_info_api_v1_clubs__club_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Update Unreviewed Club
+     * @description Update an unreviewed club without creating a moderation request.
+     */
+    patch: operations["update_unreviewed_club_api_v1_clubs__club_id__patch"];
+    trace?: never;
+  };
+  "/api/v1/clubs/{club_id}/manage": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Managed Club Info
+     * @description Get a club for its managers, including while it is unreviewed.
+     */
+    get: operations["get_managed_club_info_api_v1_clubs__club_id__manage_get"];
     put?: never;
     post?: never;
     delete?: never;
@@ -1730,6 +1774,15 @@ export interface components {
      * @enum {string}
      */
     ClubStatusEnum: "unreviewed" | "normal" | "archived";
+    /** ClubUpdate */
+    ClubUpdate: {
+      /** Summary */
+      summary?: string | null;
+      /** Description */
+      description?: string | null;
+      /** Logo Uri */
+      logo_uri?: string | null;
+    };
     /** ClubUpdateRequestCreatePublic */
     ClubUpdateRequestCreatePublic: {
       /** Summary */
@@ -2306,6 +2359,23 @@ export interface components {
      * @enum {string}
      */
     ParticipationTypeEnum: "participate_only" | "organize";
+    /** PublicUserInfo */
+    PublicUserInfo: {
+      /** Id */
+      id: number;
+      /** Username */
+      username: string;
+      /** Avatar Uri */
+      avatar_uri: string | null;
+      /** Description */
+      description: string;
+      grade: components["schemas"]["UserGradeEnum"] | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+    };
     /** RecordConditionDetail */
     RecordConditionDetail: {
       /** Is Met */
@@ -2587,23 +2657,6 @@ export interface components {
       | "inter_grade_10"
       | "inter_grade_11"
       | "inter_grade_12";
-    /** PublicUserInfo */
-    PublicUserInfo: {
-      /** Id */
-      id: number;
-      /** Username */
-      username: string;
-      /** Avatar Uri */
-      avatar_uri: string | null;
-      /** Description */
-      description: string;
-      grade: components["schemas"]["UserGradeEnum"] | null;
-      /**
-       * Created At
-       * Format: date-time
-       */
-      created_at: string;
-    };
     /** UserInfo */
     UserInfo: {
       /** Id */
@@ -2926,6 +2979,55 @@ export interface operations {
       };
     };
   };
+  list_managed_clubs_api_v1_clubs_managed__get: {
+    parameters: {
+      query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_ClubInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_club_info_api_v1_clubs__club_id__get: {
     parameters: {
       query?: never;
@@ -2956,6 +3058,132 @@ export interface operations {
            * @example {
            *       "message_key": "error.auth.token_invalid",
            *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  update_unreviewed_club_api_v1_clubs__club_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClubUpdate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_managed_club_info_api_v1_clubs__club_id__manage_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
@@ -6140,6 +6368,21 @@ export interface operations {
            * @example {
            *       "message_key": "error.auth.token_invalid",
            *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
