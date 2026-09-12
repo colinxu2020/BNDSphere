@@ -15,6 +15,8 @@ from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum, User, UserGradeEnum
 from app.models.verifications.verification_common import VerificationStatusEnum
 
+_MAX_SCORED_JOINT_ACTIVITIES = 2
+
 
 class StarRatingRepository:
     def __init__(self, db: AsyncSession) -> None:
@@ -127,8 +129,8 @@ class StarRatingRepository:
         result = await self.db.execute(stmt)
         general_total: int = result.scalar_one()
 
-        joint_stmt = (
-            select(func.coalesce(func.sum(JointActivity.final_score), 0))
+        joint_scores_stmt = (
+            select(JointActivity.final_score.label("score"))
             .join(
                 JointActivityParticipation,
                 JointActivityParticipation.activity_id == JointActivity.id,
@@ -137,9 +139,15 @@ class StarRatingRepository:
                 JointActivityParticipation.club_id == club_id,
                 JointActivity.final_status == VerificationStatusEnum.approved,
             )
+            .order_by(JointActivity.final_score.desc(), JointActivity.id)
+            .limit(_MAX_SCORED_JOINT_ACTIVITIES)
         )
         if term is not None:
-            joint_stmt = joint_stmt.where(JointActivity.academic_term_id == term.id)
+            joint_scores_stmt = joint_scores_stmt.where(
+                JointActivity.academic_term_id == term.id,
+            )
+        joint_scores = joint_scores_stmt.subquery()
+        joint_stmt = select(func.coalesce(func.sum(joint_scores.c.score), 0))
         joint_result = await self.db.execute(joint_stmt)
         joint_total: int = joint_result.scalar_one()
         return general_total + joint_total
