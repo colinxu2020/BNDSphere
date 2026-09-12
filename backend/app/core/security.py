@@ -38,10 +38,10 @@ _CHECK_IN_TOKEN_TYPE = "club_activity_check_in"  # noqa: S105 -- not a password
 def create_check_in_token(activity_id: int, expires_at: datetime) -> str:
     """Sign a short-lived token scoped to one club activity's check-in QR code.
 
-    Distinct from ``create_access_token``: it carries no user identity (it's
-    meant to be displayed/scanned by anyone), expires with the activity
-    rather than after a fixed duration, and is tagged with a ``typ`` claim so
-    it can't be replayed as a login access token.
+    Carries no user identity (meant to be displayed/scanned by anyone),
+    expires with the activity rather than after a fixed duration, and is
+    tagged with a ``typ`` claim so it can't be replayed as a login access
+    token.
     """
     payload = {
         "typ": _CHECK_IN_TOKEN_TYPE,

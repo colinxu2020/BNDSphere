@@ -324,7 +324,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 
 **关系**：`activity` → `ClubActivity`；`user` → `User`；`recorded_by` → `User`。
 
-> 没有独立的审核流程——签到是操作记录（谁在什么时候、以什么方式确认了出席），不是需要二次审核的业务申请，因此不套用 moderation/audit 模式（对比 [overview.md](overview.md#审核--核验模式moderation--verification)）。`qrcode` 方式的签到二维码内容是一个作用域限定到单个 `club_activity_id`、有效期等于该活动 `end_time` 的签名 token（`core/security.py::create_check_in_token`/`verify_check_in_token`），由社长/副社长在活动进行中生成；只有活动处于 `start_time <= 现在 <= end_time` 区间内才能生成或使用该 token。
+> 没有独立的审核流程——签到是操作记录（谁在什么时候、以什么方式确认了出席），不是需要二次审核的业务申请，因此不套用 moderation/audit 模式（对比 [overview.md](overview.md#审核--核验模式moderation--verification)）。`qrcode` 方式的二维码 token 作用域/有效期细节见 [business_process.md](../business_process.md#签到)。
 
 ---
 

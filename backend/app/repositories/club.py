@@ -29,11 +29,6 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, AdminClubUpdate]):
         return result.scalars().all()
 
     async def get_status(self, club_id: int) -> ClubStatusEnum | None:
-        """Just the ``status`` column — ``get()`` hydrates the full ``Club``,
-        which pulls in ``members``/``club_activities``/
-        ``general_activity_records`` too (all ``lazy="selectin"``); callers
-        that only need to check status shouldn't pay for that on every call.
-        """
         result = await self.db.execute(select(Club.status).where(Club.id == club_id))
         return result.scalars().first()
 
@@ -99,9 +94,6 @@ class ClubMemberRepository(
         user_ids: Sequence[int],
         allowed_memberships: Sequence[ClubMembershipEnum],
     ) -> set[int]:
-        """Of ``user_ids``, which currently hold one of ``allowed_memberships``
-        in this club — one query instead of one per candidate id.
-        """
         if not user_ids:
             return set()
         result = await self.db.execute(
