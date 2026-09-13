@@ -328,3 +328,64 @@ class TestResourceCenter:
             headers=staff_headers,
         )
         assert missing_response.status_code == 404
+
+    async def test_batch_retry_continues_after_database_rollback(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        first_id, first_key = await self._publish_resource(
+            client,
+            "first-batch-cleanup.bin",
+        )
+        second_id, second_key = await self._publish_resource(
+            client,
+            "second-batch-cleanup.bin",
+        )
+        staff_headers = self.configured_users["resource_federation_staff"]["headers"]
+        for resource_id, object_key in (
+            (first_id, first_key),
+            (second_id, second_key),
+        ):
+            self.storage.delete_failures_remaining[object_key] = 1
+            with pytest.raises(RuntimeError, match="Simulated object deletion failure"):
+                await client.delete(
+                    f"/resources/{resource_id}",
+                    headers=staff_headers,
+                )
+
+        original_delete = ResourceFileRepository.delete
+        fail_next_delete = True
+
+        async def fail_first_after_flush(
+            repository: ResourceFileRepository,
+            resource_file: ResourceFile,
+        ) -> None:
+            nonlocal fail_next_delete
+            await original_delete(repository, resource_file)
+            if fail_next_delete:
+                fail_next_delete = False
+                raise RuntimeError("Simulated database cleanup failure")
+
+        with monkeypatch.context() as patch:
+            patch.setattr(ResourceFileRepository, "delete", fail_first_after_flush)
+            retry_response = await client.post(
+                "/resources/retry-pending-deletions",
+                headers=staff_headers,
+            )
+
+        assert retry_response.status_code == 200
+        assert retry_response.json() == {"attempted": 2, "deleted": 1, "failed": 1}
+        assert first_key not in self.storage.object_sizes
+        assert second_key not in self.storage.object_sizes
+
+        final_retry_response = await client.post(
+            "/resources/retry-pending-deletions",
+            headers=staff_headers,
+        )
+        assert final_retry_response.status_code == 200
+        assert final_retry_response.json() == {
+            "attempted": 1,
+            "deleted": 1,
+            "failed": 0,
+        }

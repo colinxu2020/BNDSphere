@@ -56,18 +56,21 @@ async def retry_pending_resource_deletions(
     _manager: ResourceManager,
 ) -> PendingDeletionRetryResult:
     """Retry object and database cleanup for all pending resource deletions."""
-    pending_deletions = await service.get_pending_deletions()
+    pending_deletions = [
+        (resource_file.id, resource_file.object_key)
+        for resource_file in await service.get_pending_deletions()
+    ]
     deleted = 0
     failed = 0
-    for resource_file in pending_deletions:
+    for resource_id, object_key in pending_deletions:
         try:
-            await oss_service.delete_object(resource_file.object_key)
-            await service.finish_deletion(resource_file.id)
+            await oss_service.delete_object(object_key)
+            await service.finish_deletion(resource_id)
         except Exception:
             failed += 1
             logger.exception(
                 "Failed to retry pending resource deletion for resource %s",
-                resource_file.id,
+                resource_id,
             )
         else:
             deleted += 1
