@@ -5,12 +5,14 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import selectinload
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
+from app.models.general_activity import ClubGeneralActivityRecord
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
-from app.models.user import User
+from app.models.user import AuditStatusEnum, User
 from app.models.verifications.club_membership import ClubMembershipRequest
 from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
@@ -23,6 +25,26 @@ from app.schemas.verifications.verification_common import RequestVerify
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     model = Club
+
+    async def get_public(self, id_: int) -> Club | None:
+        """公开详情读取: general_activity_records 只加载已审核通过的记录.
+
+        pending/rejected 记录的 proof_files 等内容未经社联审核,
+        匿名访客不应看到.
+        """
+        stmt = (
+            select(self.model)
+            .where(self.model.id == id_)
+            .options(
+                selectinload(
+                    self.model.general_activity_records.and_(
+                        ClubGeneralActivityRecord.audit_status
+                        == AuditStatusEnum.approved,
+                    ),
+                ),
+            )
+        )
+        return (await self.db.execute(stmt)).scalars().first()
 
     async def get_by_name(self, name: str) -> Sequence[Club]:
         result = await self.db.execute(select(Club).where(Club.name == name))

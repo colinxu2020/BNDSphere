@@ -210,6 +210,28 @@ class TestProofFilesValidation:
         assert resp.status_code == 200
         assert resp.json()["proof_files"] == [url]
 
+    async def test_list_records_requires_manager(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        resp = await client.get(f"/clubs/{self.club_id}/general-activities/")
+        assert resp.status_code == 401
+
+    async def test_president_list_sees_pending_record(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        headers = self.configured_users["ga_president"]["headers"]
+        resp = await client.get(
+            f"/clubs/{self.club_id}/general-activities/",
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+        # The seeded record on update_activity is still pending and must be
+        # visible to the club's own managers.
+        assert any(r["activity_id"] == self.update_activity_id for r in items)
+
 
 class TestPublicClubRecordsEcho:
     """Read path: public endpoints must not echo unreviewed records."""
@@ -297,6 +319,8 @@ class TestPublicClubRecordsEcho:
         await db_session.flush()
 
         request.cls.activity_id = activity.id
+        request.cls.normal_club_id = normal_club.id
+        request.cls.normal_club_2_id = normal_club_2.id
         request.cls.approved_record_id = approved.id
         request.cls.pending_record_id = pending_dirty.id
         request.cls.unreviewed_club_record_id = unreviewed_club_record.id
@@ -344,3 +368,20 @@ class TestPublicClubRecordsEcho:
     ) -> None:
         resp = await client.get("/club-federation/general-activity/")
         assert resp.status_code == 401
+
+    async def test_public_club_info_hides_unreviewed_records(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        # Club with only a pending (legacy dirty) record: nothing is echoed.
+        resp = await client.get(f"/clubs/{self.normal_club_2_id}")
+        assert resp.status_code == 200
+        assert resp.json()["general_activity_records"] == []
+        assert "javascript:" not in resp.text
+
+        # Club with an approved record: only that record is echoed.
+        resp = await client.get(f"/clubs/{self.normal_club_id}")
+        assert resp.status_code == 200
+        assert [r["id"] for r in resp.json()["general_activity_records"]] == [
+            self.approved_record_id
+        ]

@@ -95,8 +95,8 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             )
             return club
 
-    async def ensure_club_normal(self, club_id: int) -> Club:
-        club = await self.get(club_id)
+    @staticmethod
+    def _ensure_normal(club: Club | None, club_id: int) -> Club:
         if club is None:
             raise ClubNotFoundError(club_id) from None
         if club.status != ClubStatusEnum.normal:
@@ -106,6 +106,13 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                 {"club_id": club_id},
             ) from None
         return club
+
+    async def ensure_club_normal(self, club_id: int) -> Club:
+        return self._ensure_normal(await self.get(club_id), club_id)
+
+    async def get_public_info(self, club_id: int) -> Club:
+        """公开社团详情: 未审核通过的大型活动参与记录不回显."""
+        return self._ensure_normal(await self.repository.get_public(club_id), club_id)
 
     async def get_by_name(self, name: str) -> Sequence[Club]:
         return await self.repository.get_by_name(name)

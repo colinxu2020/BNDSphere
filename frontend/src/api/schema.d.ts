@@ -836,6 +836,10 @@ export interface paths {
     /**
      * Get Club General Activities
      * @description List the general activities the given club practiced.
+     *
+     *     Only club president and vice president can perform this operation:
+     *     the response includes pending records whose proof_files have not been
+     *     reviewed yet, so it must not be anonymously readable.
      */
     get: operations["get_club_general_activities_api_v1_clubs__club_id__general_activities__get"];
     put?: never;
@@ -6234,6 +6238,36 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_ClubGeneralActivityInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */

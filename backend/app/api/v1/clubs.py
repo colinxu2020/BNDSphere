@@ -58,7 +58,7 @@ async def list_managed_clubs(
 )
 async def get_club_info(club_id: int, service: ClubServiceDep) -> ClubInfo:
     """Get information of a club by club id."""
-    return ClubInfo.model_validate(await service.ensure_club_normal(club_id))
+    return ClubInfo.model_validate(await service.get_public_info(club_id))
 
 
 @router.get(

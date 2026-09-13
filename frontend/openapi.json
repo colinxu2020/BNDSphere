@@ -3627,8 +3627,9 @@
       "get": {
         "tags": ["Club General Activities"],
         "summary": "Get Club General Activities",
-        "description": "List the general activities the given club practiced.",
+        "description": "List the general activities the given club practiced.\n\nOnly club president and vice president can perform this operation:\nthe response includes pending records whose proof_files have not been\nreviewed yet, so it must not be anonymously readable.",
         "operationId": "get_club_general_activities_api_v1_clubs__club_id__general_activities__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "club_id",
@@ -3670,6 +3671,30 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Page_ClubGeneralActivityInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },

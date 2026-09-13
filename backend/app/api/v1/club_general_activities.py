@@ -27,13 +27,28 @@ from app.services.errors import (
 router = APIRouter(tags=["Club General Activities"])
 
 
-@router.get("/")
+@router.get(
+    "/",
+    dependencies=[
+        Depends(
+            ClubRoleChecker(
+                [ClubMembershipEnum.vice_president, ClubMembershipEnum.president],
+            ),
+        ),
+    ],
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
 async def get_club_general_activities(
     club_id: int,
     club_service: ClubServiceDep,
     club_general_activity_service: ClubGeneralActivityServiceDep,
 ) -> Page[ClubGeneralActivityInfo]:
-    """List the general activities the given club practiced."""
+    """List the general activities the given club practiced.
+
+    Only club president and vice president can perform this operation:
+    the response includes pending records whose proof_files have not been
+    reviewed yet, so it must not be anonymously readable.
+    """
     club = await club_service.ensure_club_normal(club_id)
     return Page[ClubGeneralActivityInfo].model_validate(
         await club_general_activity_service.get_by_club(club),
