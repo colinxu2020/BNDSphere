@@ -17,6 +17,7 @@ import {
   EmptyState,
   PageHeader,
   PrimaryButton,
+  SecondaryButton,
   StatusMessage,
   Surface,
   inputClassName,
@@ -27,12 +28,17 @@ type ResourceFile = components["schemas"]["ResourceFileInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024;
+const PAGE_SIZE = 20;
 
 export function ResourceCenter() {
   const inputRef = useRef<HTMLInputElement>(null);
   const [resources, setResources] = useState<ResourceFile[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [search, setSearch] = useState("");
+  const [activeSearch, setActiveSearch] = useState("");
+  const [page, setPage] = useState(1);
+  const [pages, setPages] = useState(0);
+  const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
@@ -42,18 +48,27 @@ export function ResourceCenter() {
   const canManage =
     user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev";
 
-  const loadResources = async (query?: string) => {
+  const loadResources = async (query = "", requestedPage = 1) => {
     setIsLoading(true);
     setError(null);
     try {
       const { data, error: requestError } = await client.GET("/api/v1/resources/", {
-        params: { query: { search: query || undefined, size: 100 } },
+        params: {
+          query: {
+            search: query || undefined,
+            page: requestedPage,
+            size: PAGE_SIZE,
+          },
+        },
       });
       if (requestError) {
         setError(requestError);
         return;
       }
       setResources(data?.items || []);
+      setPage(data?.page || requestedPage);
+      setPages(data?.pages || 0);
+      setTotal(data?.total || 0);
     } catch (requestError) {
       setError(requestError);
     } finally {
@@ -76,7 +91,9 @@ export function ResourceCenter() {
 
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
-    void loadResources(search.trim());
+    const query = search.trim();
+    setActiveSearch(query);
+    void loadResources(query);
   };
 
   const uploadSelectedFile = async (files: FileList | null) => {
@@ -105,7 +122,11 @@ export function ResourceCenter() {
         setError(createError);
         return;
       }
-      if (data) setResources((current) => [data, ...current]);
+      if (data) {
+        setSearch("");
+        setActiveSearch("");
+        await loadResources();
+      }
       setSuccess(`“${file.name}”已上传`);
     } catch (uploadError) {
       setError(uploadError);
@@ -129,7 +150,8 @@ export function ResourceCenter() {
         setError(deleteError);
         return;
       }
-      setResources((current) => current.filter((item) => item.id !== resource.id));
+      const targetPage = resources.length === 1 && page > 1 ? page - 1 : page;
+      await loadResources(activeSearch, targetPage);
       setSuccess(`“${resource.filename}”已删除`);
     } catch (deleteError) {
       setError(deleteError);
@@ -198,50 +220,75 @@ export function ResourceCenter() {
             <Loader2 size={24} className="animate-spin" />
           </div>
         ) : resources.length ? (
-          <div className="divide-y divide-slate-100 rounded-md border border-slate-100">
-            {resources.map((resource) => (
-              <article
-                key={resource.id}
-                className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
-              >
-                <div className="flex min-w-0 items-start gap-3">
-                  <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary-50 text-primary-600">
-                    <FileText size={22} />
+          <>
+            <div className="divide-y divide-slate-100 rounded-md border border-slate-100">
+              {resources.map((resource) => (
+                <article
+                  key={resource.id}
+                  className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between"
+                >
+                  <div className="flex min-w-0 items-start gap-3">
+                    <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-md bg-primary-50 text-primary-600">
+                      <FileText size={22} />
+                    </div>
+                    <div className="min-w-0">
+                      <h2 className="break-words font-semibold text-slate-900">
+                        {resource.filename}
+                      </h2>
+                      <p className="mt-1 text-xs text-slate-500">
+                        {formatFileSize(resource.file_size)} · {formatDateTime(resource.created_at)}
+                      </p>
+                    </div>
                   </div>
-                  <div className="min-w-0">
-                    <h2 className="break-words font-semibold text-slate-900">
-                      {resource.filename}
-                    </h2>
-                    <p className="mt-1 text-xs text-slate-500">
-                      {formatFileSize(resource.file_size)} · {formatDateTime(resource.created_at)}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex shrink-0 gap-2">
-                  <a
-                    href={`/api/v1/resources/${resource.id}/download`}
-                    className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-600"
-                  >
-                    <Download size={17} /> 下载
-                  </a>
-                  {canManage && (
-                    <DangerButton
-                      type="button"
-                      disabled={deletingId === resource.id}
-                      onClick={() => void deleteResource(resource)}
-                      aria-label={`删除 ${resource.filename}`}
+                  <div className="flex shrink-0 gap-2">
+                    <a
+                      href={`/api/v1/resources/${resource.id}/download`}
+                      className="inline-flex items-center justify-center gap-2 rounded-md bg-primary-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-primary-600"
                     >
-                      <Trash2 size={17} /> 删除
-                    </DangerButton>
-                  )}
+                      <Download size={17} /> 下载
+                    </a>
+                    {canManage && (
+                      <DangerButton
+                        type="button"
+                        disabled={deletingId === resource.id}
+                        onClick={() => void deleteResource(resource)}
+                        aria-label={`删除 ${resource.filename}`}
+                      >
+                        <Trash2 size={17} /> 删除
+                      </DangerButton>
+                    )}
+                  </div>
+                </article>
+              ))}
+            </div>
+            <div className="mt-5 flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:justify-between">
+              <p>
+                共 {total} 份资料 · 第 {page} / {pages} 页
+              </p>
+              {pages > 1 && (
+                <div className="flex gap-2">
+                  <SecondaryButton
+                    type="button"
+                    disabled={page <= 1 || isLoading}
+                    onClick={() => void loadResources(activeSearch, page - 1)}
+                  >
+                    上一页
+                  </SecondaryButton>
+                  <SecondaryButton
+                    type="button"
+                    disabled={page >= pages || isLoading}
+                    onClick={() => void loadResources(activeSearch, page + 1)}
+                  >
+                    下一页
+                  </SecondaryButton>
                 </div>
-              </article>
-            ))}
-          </div>
+              )}
+            </div>
+          </>
         ) : (
           <EmptyState
-            title={search ? "没有找到匹配的资料" : "暂无资料"}
-            description={search ? "请尝试其他关键词。" : "社团联合会发布资料后会显示在这里。"}
+            title={activeSearch ? "没有找到匹配的资料" : "暂无资料"}
+            description={activeSearch ? "请尝试其他关键词。" : "社团联合会发布资料后会显示在这里。"}
             icon={<Folder size={24} />}
           />
         )}

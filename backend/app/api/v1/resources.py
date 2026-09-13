@@ -111,7 +111,7 @@ async def delete_resource_file(
     _manager: ResourceManager,
 ) -> ResourceFileInfo:
     """Delete a resource-center file and its stored object."""
-    resource_file = await service.get(resource_id)
+    resource_file = await service.prepare_deletion(resource_id)
     if resource_file is None:
         raise ResourceNotFoundError(
             "error.resource_file.not_found",
@@ -119,6 +119,7 @@ async def delete_resource_file(
             {"resource_id": resource_id},
         ) from None
 
+    response = ResourceFileInfo.model_validate(resource_file)
     await oss_service.delete_object(resource_file.object_key)
-    await service.delete(resource_file)
-    return ResourceFileInfo.model_validate(resource_file)
+    await service.finish_deletion(resource_file.id)
+    return response

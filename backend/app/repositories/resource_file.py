@@ -14,10 +14,23 @@ class ResourceFileRepository(
 ):
     model = ResourceFile
 
+    async def get(self, id_: int) -> ResourceFile | None:
+        result = await self.db.execute(
+            select(self.model).where(
+                self.model.id == id_,
+                self.model.deletion_requested_at.is_(None),
+            ),
+        )
+        return result.scalars().first()
+
     async def get_multi(self, search: str | None = None) -> Page[ResourceFile]:
-        stmt = select(self.model).order_by(
-            ResourceFile.created_at.desc(),
-            ResourceFile.id.desc(),
+        stmt = (
+            select(self.model)
+            .where(self.model.deletion_requested_at.is_(None))
+            .order_by(
+                ResourceFile.created_at.desc(),
+                ResourceFile.id.desc(),
+            )
         )
         if search is not None:
             stmt = stmt.where(self.model.filename.ilike(f"%{search}%"))

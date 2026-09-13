@@ -22,3 +22,6 @@ class ResourceFile(Base):
         server_default=func.now(),
         index=True,
     )
+    deletion_requested_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+    )
