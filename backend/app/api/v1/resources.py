@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Final
 
 from fastapi import APIRouter, Depends, status
@@ -15,12 +16,17 @@ from app.api.dependencies import (
     RoleChecker,
 )
 from app.models.user import RoleEnum, User
-from app.schemas.resource_files import ResourceFileCreate, ResourceFileInfo
+from app.schemas.resource_files import (
+    PendingDeletionRetryResult,
+    ResourceFileCreate,
+    ResourceFileInfo,
+)
 from app.schemas.upload import UploadScene
 from app.services.errors import DuplicateResourceError, ResourceNotFoundError
 from app.services.upload_policy import UPLOAD_POLICIES, validate_confirmed_upload
 
 router = APIRouter(tags=["Resource Center"])
+logger = logging.getLogger(__name__)
 
 RESOURCE_MANAGER_ROLES: Final[list[RoleEnum]] = [
     RoleEnum.federation_staff,
@@ -38,6 +44,39 @@ async def list_resource_files(
 ) -> Page[ResourceFileInfo]:
     """List files in the public resource center."""
     return Page[ResourceFileInfo].model_validate(await service.get_multi(search))
+
+
+@router.post(
+    "/retry-pending-deletions",
+    responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
+)
+async def retry_pending_resource_deletions(
+    service: ResourceFileServiceDep,
+    oss_service: ObjectStorageServiceDep,
+    _manager: ResourceManager,
+) -> PendingDeletionRetryResult:
+    """Retry object and database cleanup for all pending resource deletions."""
+    pending_deletions = await service.get_pending_deletions()
+    deleted = 0
+    failed = 0
+    for resource_file in pending_deletions:
+        try:
+            await oss_service.delete_object(resource_file.object_key)
+            await service.finish_deletion(resource_file.id)
+        except Exception:
+            failed += 1
+            logger.exception(
+                "Failed to retry pending resource deletion for resource %s",
+                resource_file.id,
+            )
+        else:
+            deleted += 1
+
+    return PendingDeletionRetryResult(
+        attempted=len(pending_deletions),
+        deleted=deleted,
+        failed=failed,
+    )
 
 
 @router.post(

@@ -6,6 +6,7 @@ import {
   FileUp,
   Folder,
   Loader2,
+  RefreshCw,
   Search,
   Trash2,
 } from "@/src/components/ui/Icons";
@@ -32,6 +33,7 @@ const PAGE_SIZE = 20;
 
 export function ResourceCenter() {
   const inputRef = useRef<HTMLInputElement>(null);
+  const resourcesRequestGeneration = useRef(0);
   const [resources, setResources] = useState<ResourceFile[]>([]);
   const [user, setUser] = useState<UserInfo | null>(null);
   const [search, setSearch] = useState("");
@@ -41,6 +43,7 @@ export function ResourceCenter() {
   const [total, setTotal] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isUploading, setIsUploading] = useState(false);
+  const [isRetryingCleanup, setIsRetryingCleanup] = useState(false);
   const [deletingId, setDeletingId] = useState<number | null>(null);
   const [error, setError] = useState<unknown>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -49,6 +52,7 @@ export function ResourceCenter() {
     user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev";
 
   const loadResources = async (query = "", requestedPage = 1) => {
+    const requestGeneration = ++resourcesRequestGeneration.current;
     setIsLoading(true);
     setError(null);
     try {
@@ -61,6 +65,7 @@ export function ResourceCenter() {
           },
         },
       });
+      if (requestGeneration !== resourcesRequestGeneration.current) return;
       if (requestError) {
         setError(requestError);
         return;
@@ -69,10 +74,15 @@ export function ResourceCenter() {
       setPage(data?.page || requestedPage);
       setPages(data?.pages || 0);
       setTotal(data?.total || 0);
+      setActiveSearch(query);
     } catch (requestError) {
-      setError(requestError);
+      if (requestGeneration === resourcesRequestGeneration.current) {
+        setError(requestError);
+      }
     } finally {
-      setIsLoading(false);
+      if (requestGeneration === resourcesRequestGeneration.current) {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -92,7 +102,6 @@ export function ResourceCenter() {
   const submitSearch = (event: FormEvent) => {
     event.preventDefault();
     const query = search.trim();
-    setActiveSearch(query);
     void loadResources(query);
   };
 
@@ -124,7 +133,6 @@ export function ResourceCenter() {
       }
       if (data) {
         setSearch("");
-        setActiveSearch("");
         await loadResources();
       }
       setSuccess(`“${file.name}”已上传`);
@@ -133,6 +141,32 @@ export function ResourceCenter() {
     } finally {
       setIsUploading(false);
       if (inputRef.current) inputRef.current.value = "";
+    }
+  };
+
+  const retryPendingDeletions = async () => {
+    setIsRetryingCleanup(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const { data, error: retryError } = await client.POST(
+        "/api/v1/resources/retry-pending-deletions",
+      );
+      if (retryError) {
+        setError(retryError);
+        return;
+      }
+      if (!data?.attempted) {
+        setSuccess("没有待清理的文件");
+      } else if (data.failed) {
+        setError(`重试完成：成功 ${data.deleted} 个，仍有 ${data.failed} 个清理失败。`);
+      } else {
+        setSuccess(`已清理 ${data.deleted} 个文件`);
+      }
+    } catch (retryError) {
+      setError(retryError);
+    } finally {
+      setIsRetryingCleanup(false);
     }
   };
 
@@ -172,7 +206,15 @@ export function ResourceCenter() {
         description="查找并下载社团联合会发布的文件资料。"
         action={
           canManage ? (
-            <>
+            <div className="flex flex-wrap gap-2">
+              <SecondaryButton
+                type="button"
+                disabled={isRetryingCleanup}
+                onClick={() => void retryPendingDeletions()}
+              >
+                <RefreshCw size={18} className={isRetryingCleanup ? "animate-spin" : undefined} />
+                {isRetryingCleanup ? "正在清理..." : "重试待清理文件"}
+              </SecondaryButton>
               <input
                 ref={inputRef}
                 type="file"
@@ -186,7 +228,7 @@ export function ResourceCenter() {
               >
                 <FileUp size={18} /> 上传资料
               </PrimaryButton>
-            </>
+            </div>
           ) : undefined
         }
       />

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from typing import override
 
@@ -18,6 +19,9 @@ class ResourceFileService(
 
     async def get_multi(self, search: str | None = None) -> Page[ResourceFile]:
         return await self.repository.get_multi(search)
+
+    async def get_pending_deletions(self) -> Sequence[ResourceFile]:
+        return await self.repository.get_pending_deletions()
 
     async def get_by_object_key(self, object_key: str) -> ResourceFile | None:
         return await self.repository.get_by_object_key(object_key)

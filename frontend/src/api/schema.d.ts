@@ -1271,6 +1271,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/resources/retry-pending-deletions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Retry Pending Resource Deletions
+     * @description Retry object and database cleanup for all pending resource deletions.
+     */
+    post: operations["retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post"];
+    get?: never;
+    put?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/resources/{resource_id}/download": {
     parameters: {
       query?: never;
@@ -2353,6 +2373,15 @@ export interface components {
       size: number;
       /** Pages */
       pages: number;
+    };
+    /** PendingDeletionRetryResult */
+    PendingDeletionRetryResult: {
+      /** Attempted */
+      attempted: number;
+      /** Deleted */
+      deleted: number;
+      /** Failed */
+      failed: number;
     };
     /**
      * ParticipationTypeEnum
@@ -7810,6 +7839,53 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_ResourceFileInfo_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PendingDeletionRetryResult"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */

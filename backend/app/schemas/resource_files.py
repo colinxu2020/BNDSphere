@@ -34,5 +34,11 @@ class ResourceFileInfo(IdMixin):
     created_at: datetime
 
 
+class PendingDeletionRetryResult(BaseModel):
+    attempted: int
+    deleted: int
+    failed: int
+
+
 class ResourceFileUpdate(BaseModel):
     """Resource files are immutable; this type satisfies the generic repository."""

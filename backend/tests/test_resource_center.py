@@ -267,11 +267,17 @@ class TestResourceCenter:
         assert download_response.status_code == 404
         assert object_key in self.storage.object_sizes
 
-        retry_response = await client.delete(
-            f"/resources/{resource_id}",
+        denied_retry_response = await client.post(
+            "/resources/retry-pending-deletions",
+            headers=self.configured_users["resource_regular_user"]["headers"],
+        )
+        assert denied_retry_response.status_code == 403
+        retry_response = await client.post(
+            "/resources/retry-pending-deletions",
             headers=staff_headers,
         )
         assert retry_response.status_code == 200
+        assert retry_response.json() == {"attempted": 1, "deleted": 1, "failed": 0}
         assert object_key not in self.storage.object_sizes
 
     async def test_database_cleanup_failure_keeps_tombstone_for_retry(

@@ -1,3 +1,4 @@
+from collections.abc import Sequence
 from typing import cast
 
 from fastapi_pagination import Page
@@ -35,6 +36,18 @@ class ResourceFileRepository(
         if search is not None:
             stmt = stmt.where(self.model.filename.ilike(f"%{search}%"))
         return cast("Page[ResourceFile]", await apaginate(self.db, stmt))
+
+    async def get_pending_deletions(self) -> Sequence[ResourceFile]:
+        stmt = (
+            select(self.model)
+            .where(self.model.deletion_requested_at.is_not(None))
+            .order_by(
+                ResourceFile.deletion_requested_at.asc(),
+                ResourceFile.id.asc(),
+            )
+        )
+        result = await self.db.execute(stmt)
+        return result.scalars().all()
 
     async def get_by_object_key(self, object_key: str) -> ResourceFile | None:
         result = await self.db.execute(
