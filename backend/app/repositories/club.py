@@ -28,6 +28,10 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         result = await self.db.execute(select(Club).where(Club.name == name))
         return result.scalars().all()
 
+    async def get_status(self, club_id: int) -> ClubStatusEnum | None:
+        result = await self.db.execute(select(Club.status).where(Club.id == club_id))
+        return result.scalars().first()
+
     async def get_multi(
         self,
         search: str | None = None,
@@ -101,6 +105,23 @@ class ClubMemberRepository(
             ),
         )
         return result.scalars().first()
+
+    async def get_user_ids_with_membership(
+        self,
+        club_id: int,
+        user_ids: Sequence[int],
+        allowed_memberships: Sequence[ClubMembershipEnum],
+    ) -> set[int]:
+        if not user_ids:
+            return set()
+        result = await self.db.execute(
+            select(self.model.user_id).where(
+                self.model.club_id == club_id,
+                self.model.user_id.in_(user_ids),
+                self.model.membership.in_(allowed_memberships),
+            ),
+        )
+        return set(result.scalars().all())
 
     async def set_membership(
         self,

@@ -3,7 +3,6 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select, update
-from sqlalchemy.orm import selectinload
 
 from app.models import Club
 from app.models.club_activity import ClubActivity
@@ -30,11 +29,13 @@ class ClubActivityRepository(
         self,
         club: Club,
     ) -> Page[ClubActivity]:
+        # No .options(selectinload(ClubActivity.check_ins)) here on purpose:
+        # ClubActivityInfo never serializes check-ins, so eager-loading them
+        # would fetch every activity's full roster on every list request.
         stmt = (
             select(ClubActivity)
             .where(ClubActivity.club_id == club.id)
             .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc())
-            .options(selectinload(ClubActivity.participants))
         )
         return cast("Page[ClubActivity]", await apaginate(self.db, stmt))
 
