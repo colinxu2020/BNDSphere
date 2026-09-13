@@ -183,7 +183,16 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          gh release create "${{ steps.meta.outputs.version }}" \
-            --title "${{ steps.meta.outputs.version }}" \
-            --generate-notes \
-            release-manifest.json docker-compose.yml
+          version="${{ steps.meta.outputs.version }}"
+          create_release() {
+            gh release create "$version" \
+              --title "$version" \
+              --generate-notes \
+              "$@" \
+              release-manifest.json docker-compose.yml
+          }
+
+          case "$version" in
+            *-*) create_release --prerelease ;;
+            *)   create_release ;;
+          esac

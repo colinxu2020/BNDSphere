@@ -9,7 +9,10 @@ on:
       - "infra/**"
       - "frontend/**"
       - "scripts/**"
+      - "deploy/**"
+      - ".github/workflows/deploy.yml"
       - ".github/workflows/docker.yml"
+      - ".github/workflows/release.yml"
 
   push:
     branches:
@@ -21,7 +24,10 @@ on:
       - "infra/**"
       - "frontend/**"
       - "scripts/**"
+      - "deploy/**"
+      - ".github/workflows/deploy.yml"
       - ".github/workflows/docker.yml"
+      - ".github/workflows/release.yml"
 
   workflow_dispatch:
 
