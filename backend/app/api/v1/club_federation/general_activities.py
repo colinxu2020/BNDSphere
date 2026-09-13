@@ -1,7 +1,9 @@
 from fastapi import APIRouter, status
+from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import GeneralActivityServiceDep
+from app.models.general_activity import GeneralActivityLevelEnum
 from app.schemas.general_activities import (
     GeneralActivityCreate,
     GeneralActivityInfo,
@@ -10,6 +12,23 @@ from app.schemas.general_activities import (
 from app.services.errors import GeneralActivityNotFoundError
 
 router = APIRouter(tags=["Federation: General Activities"])
+
+
+@router.get("/")
+async def list_activities(
+    *,
+    service: GeneralActivityServiceDep,
+    search: str | None = None,
+    level: GeneralActivityLevelEnum | None = None,
+) -> Page[GeneralActivityInfo]:
+    """List general activities for federation review.
+
+    Unlike the public list endpoint, club_records includes pending and rejected
+    records so federation staff can review them.
+    """
+    return Page[GeneralActivityInfo].model_validate(
+        await service.get_multi(search, level),
+    )
 
 
 @router.post("/", status_code=status.HTTP_201_CREATED)

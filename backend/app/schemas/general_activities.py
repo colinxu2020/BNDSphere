@@ -11,7 +11,7 @@ from app.models.general_activity import (
 from app.models.user import AuditStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
-from app.schemas.upload import ActivityPosterUri
+from app.schemas.upload import ActivityPosterUri, ApplicationFileUriStr
 from app.services.errors import BadRequestError
 
 
@@ -100,7 +100,12 @@ class ClubGeneralActivityCreate(BaseModel):
 
     activity_id: int
     participation_type: ParticipationTypeEnum
-    proof_files: list[str] = Field(default_factory=list)
+    # 写入端必须是经过 OSS 域名校验的链接, 杜绝 javascript:/data: 伪协议与
+    # 任意外部钓鱼链接入库后被公开页面渲染为可点击链接.
+    proof_files: list[ApplicationFileUriStr] = Field(
+        default_factory=list,
+        max_length=20,
+    )
     requested_score: int
 
 
@@ -109,7 +114,10 @@ class ClubGeneralActivityUpdate(BaseModel):
 
     activity_id: int
     participation_type: ParticipationTypeEnum
-    proof_files: list[str] = Field(default_factory=list)
+    proof_files: list[ApplicationFileUriStr] = Field(
+        default_factory=list,
+        max_length=20,
+    )
     requested_score: int
 
 
