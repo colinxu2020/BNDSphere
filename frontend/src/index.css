@@ -51,18 +51,6 @@
   --color-yellow-900: color-mix(in srgb, var(--color-school-orange) 31%, black);
   --color-yellow-950: color-mix(in srgb, var(--color-school-orange) 23%, black);
 
-  --color-secondary-50: var(--color-yellow-50);
-  --color-secondary-100: var(--color-yellow-100);
-  --color-secondary-200: var(--color-yellow-200);
-  --color-secondary-300: var(--color-yellow-300);
-  --color-secondary-400: var(--color-yellow-400);
-  --color-secondary-500: var(--color-yellow-500);
-  --color-secondary-600: var(--color-yellow-600);
-  --color-secondary-700: var(--color-yellow-700);
-  --color-secondary-800: var(--color-yellow-800);
-  --color-secondary-900: var(--color-yellow-900);
-  --color-secondary-950: var(--color-yellow-950);
-
   /* Error palette: Pantone Warm Red C */
   --color-red-50: color-mix(in srgb, var(--color-school-red) 7%, white);
   --color-red-100: color-mix(in srgb, var(--color-school-red) 15%, white);
@@ -140,9 +128,9 @@ body {
    so re-pointing the palette flips the whole app — variants, opacity modifiers
    and all — without touching 700 call sites.
    Neutrals are inverted wholesale, so bg-slate-900 + text-white buttons come out
-   dark-on-light by construction. Tints only remap the shades actually used as chip
-   surfaces (50/100) and chip text (600/700), which leaves bg-*-500 dots and the
-   yellow star icons bright in both themes. */
+   dark-on-light by construction. Chromatic shades are remapped selectively by role:
+   dark mixes for tinted surfaces, borders, and rings; light mixes for text. Solid
+   500 accents and yellow star icons stay bright in both themes. */
 @custom-variant dark (&:where(.dark, .dark *));
 
 /* The brand lockup is navy line art on transparency: legible on the light
@@ -181,18 +169,18 @@ body {
 
   --color-primary-50: color-mix(in srgb, var(--color-school-blue) 20%, black);
   --color-primary-100: color-mix(in srgb, var(--color-school-blue) 32%, black);
+  --color-primary-200: color-mix(in srgb, var(--color-school-blue) 52%, black);
+  --color-primary-400: color-mix(in srgb, var(--color-school-blue) 85%, black);
   --color-primary-500: color-mix(in srgb, var(--color-school-blue) 85%, white);
   --color-primary-600: color-mix(in srgb, var(--color-school-blue) 68%, white);
   --color-primary-700: color-mix(in srgb, var(--color-school-blue) 52%, white);
 
-  --color-secondary-50: color-mix(in srgb, var(--color-school-orange) 20%, black);
-  --color-secondary-100: color-mix(in srgb, var(--color-school-orange) 32%, black);
-  --color-secondary-600: color-mix(in srgb, var(--color-school-orange) 68%, white);
-
   --color-red-50: color-mix(in srgb, var(--color-school-red) 20%, black);
   --color-red-100: color-mix(in srgb, var(--color-school-red) 32%, black);
+  --color-red-200: color-mix(in srgb, var(--color-school-red) 52%, black);
   --color-red-600: color-mix(in srgb, var(--color-school-red) 68%, white);
   --color-red-700: color-mix(in srgb, var(--color-school-red) 52%, white);
+  --color-red-800: color-mix(in srgb, var(--color-school-red) 52%, white);
 
   --color-yellow-50: color-mix(in srgb, var(--color-school-orange) 20%, black);
   --color-yellow-100: color-mix(in srgb, var(--color-school-orange) 32%, black);
@@ -204,5 +192,6 @@ body {
   --color-emerald-700: color-mix(in srgb, var(--color-school-green) 52%, white);
 
   --color-sky-50: color-mix(in srgb, var(--color-school-blue) 20%, black);
+  --color-sky-300: color-mix(in srgb, var(--color-school-blue) 68%, black);
   --color-sky-700: color-mix(in srgb, var(--color-school-blue) 52%, white);
 }
