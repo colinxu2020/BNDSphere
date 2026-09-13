@@ -54,6 +54,13 @@ jobs:
             echo "secret_key=${SECRET_KEY}"
           } > .env.backend
 
+      # The deploy scripts ship in no image, so this is the only place they
+      # get exercised. Runs on the same GNU coreutils the deploy host has
+      # (busybox `wc -l` pads its output and breaks the guards). It sets its
+      # own COMPOSE_PROJECT_DIR per case, against throwaway directories.
+      - name: Run the deploy script self-check
+        run: sh infra/deploy/tests/selfcheck.sh
+
       - name: Validate Docker Compose file
         run: docker compose -f docker-compose.yml -f docker-compose.build.yml -f docker-compose.dev.yml config --quiet
 
