@@ -6,7 +6,6 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { ACTIVITY_LEVEL_MAP, AUDIT_STATUS_MAP, PARTICIPATION_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
-import { isRenderableLinkUrl } from "../lib/utils";
 import {
   Badge,
   EmptyState,
@@ -123,9 +122,9 @@ export function GeneralActivityDetail() {
                         </p>
                       </div>
                     </div>
-                    {record.proof_files?.some(isRenderableLinkUrl) && (
+                    {record.proof_files?.length > 0 && (
                       <div className="flex flex-wrap gap-2 mt-4">
-                        {record.proof_files.filter(isRenderableLinkUrl).map((file) => (
+                        {record.proof_files.map((file) => (
                           <a
                             key={file}
                             href={file}

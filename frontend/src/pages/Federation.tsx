@@ -38,7 +38,7 @@ import {
   selectClassName,
   textareaClassName,
 } from "../components/ui/AppPrimitives";
-import { cn, isRenderableLinkUrl } from "../lib/utils";
+import { cn } from "../lib/utils";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
@@ -515,11 +515,11 @@ export function Federation() {
                     onChange={(event) => setRecordScore(event.target.value)}
                   />
                 </Field>
-                {selectedRecord.proof_files.some(isRenderableLinkUrl) && (
+                {selectedRecord.proof_files.length > 0 && (
                   <div className="rounded-md bg-slate-50 p-3">
                     <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
                     <div className="grid gap-1">
-                      {selectedRecord.proof_files.filter(isRenderableLinkUrl).map((file, index) => (
+                      {selectedRecord.proof_files.map((file, index) => (
                         <a
                           key={file}
                           href={file}
