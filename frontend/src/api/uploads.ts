@@ -3,6 +3,11 @@ import type { components } from "./schema";
 
 export type UploadScene = components["schemas"]["UploadScene"];
 
+export type UploadedFile = {
+  url: string;
+  objectKey: string;
+};
+
 type UploadOptions = {
   resizeImage?: boolean;
   maxWidth?: number;
@@ -15,6 +20,14 @@ export async function uploadFile(
   scene: UploadScene,
   options: UploadOptions = {},
 ): Promise<string> {
+  return (await uploadFileWithDetails(file, scene, options)).url;
+}
+
+export async function uploadFileWithDetails(
+  file: File,
+  scene: UploadScene,
+  options: UploadOptions = {},
+): Promise<UploadedFile> {
   const uploadTarget = options.resizeImage
     ? await resizeImageFile(file, {
         maxWidth: options.maxWidth || 1600,
@@ -67,7 +80,10 @@ export async function uploadFile(
     throw new Error("Upload confirmation response is empty.");
   }
 
-  return confirmed.url;
+  return {
+    url: confirmed.url,
+    objectKey: data.object_key,
+  };
 }
 
 async function resizeImageFile(

@@ -1247,6 +1247,70 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/resources/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Resource Files
+     * @description List files in the public resource center.
+     */
+    get: operations["list_resource_files_api_v1_resources__get"];
+    put?: never;
+    /**
+     * Create Resource File
+     * @description Register an uploaded file in the resource center.
+     */
+    post: operations["create_resource_file_api_v1_resources__post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/resources/{resource_id}/download": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Download Resource File
+     * @description Redirect anyone to a short-lived download URL.
+     */
+    get: operations["download_resource_file_api_v1_resources__resource_id__download_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/resources/{resource_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    /**
+     * Delete Resource File
+     * @description Delete a resource-center file and its stored object.
+     */
+    delete: operations["delete_resource_file_api_v1_resources__resource_id__delete"];
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -2225,6 +2289,19 @@ export interface components {
       /** Pages */
       pages: number;
     };
+    /** Page[ResourceFileInfo] */
+    Page_ResourceFileInfo_: {
+      /** Items */
+      items: components["schemas"]["ResourceFileInfo"][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+    };
     /** Page[StarLevelApplicationInfo] */
     Page_StarLevelApplicationInfo_: {
       /** Items */
@@ -2315,6 +2392,31 @@ export interface components {
     /** RequestVerifyPublic */
     RequestVerifyPublic: {
       verification_status: components["schemas"]["VerificationStatusEnum"];
+    };
+    /** ResourceFileCreate */
+    ResourceFileCreate: {
+      /** Filename */
+      filename: string;
+      /** Object Key */
+      object_key: string;
+      /** Content Type */
+      content_type: string;
+    };
+    /** ResourceFileInfo */
+    ResourceFileInfo: {
+      /** Id */
+      id: number;
+      /** Filename */
+      filename: string;
+      /** Content Type */
+      content_type: string;
+      /** File Size */
+      file_size: number;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
     };
     /**
      * RoleEnum
@@ -2527,7 +2629,12 @@ export interface components {
      * @enum {string}
      */
     UploadScene:
-      "avatar" | "club_logo" | "activity_poster" | "application_file" | "joint_activity_archive";
+      | "avatar"
+      | "club_logo"
+      | "activity_poster"
+      | "application_file"
+      | "joint_activity_archive"
+      | "resource_file";
     /** UserCreate */
     UserCreate: {
       /** Username */
@@ -7668,6 +7775,230 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_AnnouncementInfo_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_resource_files_api_v1_resources__get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_ResourceFileInfo_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_resource_file_api_v1_resources__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ResourceFileCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResourceFileInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  download_resource_file_api_v1_resources__resource_id__download_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        resource_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      307: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  delete_resource_file_api_v1_resources__resource_id__delete: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        resource_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ResourceFileInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
