@@ -22,13 +22,14 @@ class AccessPolicy:
         allowed_roles: Collection[RoleEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        effective_role = RoleEnum.admin if user.role == RoleEnum.dev else user.role
-        if effective_role in allowed_roles:
+        if user.role in allowed_roles:
             return
         if (
-            effective_role == RoleEnum.federation_staff
+            user.role == RoleEnum.federation_staff
             and RoleEnum.moderator in allowed_roles
         ):
+            return
+        if user.role in (RoleEnum.dev, RoleEnum.admin):
             return
         raise ResourceForbiddenError(
             "error.role.not_allowed",

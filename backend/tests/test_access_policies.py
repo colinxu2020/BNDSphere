@@ -27,11 +27,8 @@ def test_admin_and_dev_have_admin_access(role: RoleEnum) -> None:
 
 
 @pytest.mark.parametrize("role", [RoleEnum.admin, RoleEnum.dev])
-def test_admin_and_dev_have_no_moderator_only_access(role: RoleEnum) -> None:
-    with pytest.raises(ResourceForbiddenError) as exc_info:
-        AccessPolicy.ensure_role_allowed(make_user(role), [RoleEnum.moderator])
-
-    assert exc_info.value.error_code == "ROLE_NOT_ALLOWED"
+def test_admin_and_dev_have_unrestricted_access(role: RoleEnum) -> None:
+    AccessPolicy.ensure_role_allowed(make_user(role), [RoleEnum.moderator])
 
 
 @pytest.mark.parametrize("role", [RoleEnum.admin, RoleEnum.dev])
