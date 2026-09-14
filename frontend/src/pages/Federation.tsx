@@ -61,6 +61,7 @@ export function Federation() {
   const [activeTab, setActiveTab] = useState<FederationTab>("activities");
   const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
   const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
+  const [jointActivitiesVisited, setJointActivitiesVisited] = useState(false);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -452,6 +453,7 @@ export function Federation() {
           if (tab === activeTab) return;
           setActiveTab(tab);
           setIsJointActivitiesLoading(tab === "jointActivities");
+          if (tab === "jointActivities") setJointActivitiesVisited(true);
         }}
         ariaLabel="社联工作台功能"
       />
@@ -879,11 +881,13 @@ export function Federation() {
         </div>
       </Surface>
 
-      {activeTab === "jointActivities" && (
-        <FederationJointActivities
-          refreshToken={jointActivitiesRefreshToken}
-          onLoadingChange={setIsJointActivitiesLoading}
-        />
+      {jointActivitiesVisited && (
+        <div className={activeTab === "jointActivities" ? undefined : "hidden"}>
+          <FederationJointActivities
+            refreshToken={jointActivitiesRefreshToken}
+            onLoadingChange={setIsJointActivitiesLoading}
+          />
+        </div>
       )}
     </motion.div>
   );

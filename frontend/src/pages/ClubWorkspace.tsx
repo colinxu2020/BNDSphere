@@ -141,6 +141,7 @@ export function ClubWorkspace() {
   );
   const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
   const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
+  const [jointActivitiesVisited, setJointActivitiesVisited] = useState(false);
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -874,6 +875,7 @@ export function ClubWorkspace() {
             if (tab === activeTab) return;
             setActiveTab(tab);
             setIsJointActivitiesLoading(tab === "jointActivities");
+            if (tab === "jointActivities") setJointActivitiesVisited(true);
           }}
           ariaLabel="社长工作台功能"
         />
@@ -1702,12 +1704,14 @@ export function ClubWorkspace() {
                 </div>
               </Surface>
 
-              {activeTab === "jointActivities" && (
-                <JointActivityWorkspace
-                  clubId={clubId}
-                  refreshToken={jointActivitiesRefreshToken}
-                  onLoadingChange={setIsJointActivitiesLoading}
-                />
+              {jointActivitiesVisited && (
+                <div className={activeTab === "jointActivities" ? undefined : "hidden"}>
+                  <JointActivityWorkspace
+                    clubId={clubId}
+                    refreshToken={jointActivitiesRefreshToken}
+                    onLoadingChange={setIsJointActivitiesLoading}
+                  />
+                </div>
               )}
             </>
           )}
