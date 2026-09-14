@@ -39,13 +39,6 @@ const router = createBrowserRouter([
           })),
       },
       {
-        path: "club/:id/joint-activities/manage",
-        lazy: () =>
-          import("./pages/JointActivityWorkspace").then(({ JointActivityWorkspace }) => ({
-            Component: JointActivityWorkspace,
-          })),
-      },
-      {
         path: "clubs/new",
         lazy: () =>
           import("./pages/CreateClub").then(({ CreateClub }) => ({ Component: CreateClub })),
@@ -107,13 +100,6 @@ const router = createBrowserRouter([
         path: "federation",
         lazy: () =>
           import("./pages/Federation").then(({ Federation }) => ({ Component: Federation })),
-      },
-      {
-        path: "federation/joint-activities",
-        lazy: () =>
-          import("./pages/FederationJointActivities").then(({ FederationJointActivities }) => ({
-            Component: FederationJointActivities,
-          })),
       },
       {
         path: "profile",

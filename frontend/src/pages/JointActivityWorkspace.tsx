@@ -1,24 +1,21 @@
 import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import {
-  ArrowLeft,
   CalendarDays,
   FileText,
   MapPin,
   Plus,
-  RefreshCw,
   Save,
   UserPlus,
   Users,
 } from "@/src/components/ui/Icons";
-import { Link, useParams } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import {
   Badge,
   EmptyState,
   Field,
-  PageHeader,
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
@@ -33,14 +30,18 @@ import { formatDateTime, fromDateTimeLocalValue, toDateTimeLocalValue } from "..
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 type JointActivityPublic = components["schemas"]["JointActivityPublicInfo"];
-type Club = components["schemas"]["ClubInfo"];
 
 const emptyForm = { name: "", description: "", location: "", startsAt: "", endsAt: "" };
 
-export function JointActivityWorkspace() {
-  const { id } = useParams<{ id: string }>();
-  const clubId = Number(id);
-  const [club, setClub] = useState<Club | null>(null);
+export function JointActivityWorkspace({
+  clubId,
+  refreshToken,
+  onLoadingChange,
+}: {
+  clubId: number;
+  refreshToken: number;
+  onLoadingChange: (isLoading: boolean) => void;
+}) {
   const [clubActivities, setClubActivities] = useState<JointActivity[]>([]);
   const [publicActivities, setPublicActivities] = useState<JointActivityPublic[]>([]);
   const [form, setForm] = useState(emptyForm);
@@ -64,22 +65,22 @@ export function JointActivityWorkspace() {
 
   const refresh = async () => {
     setIsLoading(true);
-    const [clubResponse, managedResponse, publicResponse] = await Promise.all([
-      client.GET("/api/v1/clubs/{club_id}", { params: { path: { club_id: clubId } } }),
+    onLoadingChange(true);
+    const [managedResponse, publicResponse] = await Promise.all([
       client.GET("/api/v1/clubs/{club_id}/joint-activities/", {
         params: { path: { club_id: clubId }, query: { size: 100 } },
       }),
       client.GET("/api/v1/joint-activities/", { params: { query: { size: 100 } } }),
     ]);
-    const error = clubResponse.error || managedResponse.error || publicResponse.error;
+    const error = managedResponse.error || publicResponse.error;
     if (error) {
       setMessageTone("error");
       setMessage(error);
     }
-    setClub(clubResponse.error ? null : clubResponse.data || null);
     setClubActivities(managedResponse.error ? [] : managedResponse.data?.items || []);
     setPublicActivities(publicResponse.error ? [] : publicResponse.data?.items || []);
     setIsLoading(false);
+    onLoadingChange(false);
   };
 
   useEffect(() => {
@@ -87,10 +88,11 @@ export function JointActivityWorkspace() {
       setMessage(error);
       setMessageTone("error");
       setIsLoading(false);
+      onLoadingChange(false);
     });
-    // Refresh when the routed club changes.
+    // Refresh when the selected club changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId]);
+  }, [clubId, refreshToken]);
 
   const createActivity = async (event: FormEvent) => {
     event.preventDefault();
@@ -128,23 +130,8 @@ export function JointActivityWorkspace() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-8 pb-20"
+      className="flex flex-col gap-8"
     >
-      <Link
-        to={`/club/${clubId}/manage`}
-        className="inline-flex w-fit items-center gap-2 font-medium text-slate-500 hover:text-slate-900"
-      >
-        <ArrowLeft size={18} /> 返回社团工作台
-      </Link>
-      <PageHeader
-        eyebrow="Joint Activities"
-        title={`${club?.name || `社团 #${clubId}`} · 联合活动`}
-        action={
-          <SecondaryButton type="button" onClick={refresh} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
-        }
-      />
       {message && <StatusMessage value={message} tone={messageTone} />}
 
       <Surface>

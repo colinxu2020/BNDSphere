@@ -1,15 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
-import {
-  ArrowLeft,
-  Award,
-  CalendarDays,
-  Check,
-  FileText,
-  MapPin,
-  RefreshCw,
-  X,
-} from "@/src/components/ui/Icons";
+import { Award, CalendarDays, Check, FileText, MapPin, X } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -17,7 +8,6 @@ import {
   Badge,
   EmptyState,
   Field,
-  PageHeader,
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
@@ -31,7 +21,13 @@ import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/u
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 
-export function FederationJointActivities() {
+export function FederationJointActivities({
+  refreshToken,
+  onLoadingChange,
+}: {
+  refreshToken: number;
+  onLoadingChange: (isLoading: boolean) => void;
+}) {
   const [items, setItems] = useState<JointActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
@@ -51,6 +47,7 @@ export function FederationJointActivities() {
 
   const refresh = async () => {
     setIsLoading(true);
+    onLoadingChange(true);
     setIsForbidden(false);
     const response = await client.GET("/api/v1/club-federation/joint-activities/", {
       params: { query: { size: 100 } },
@@ -62,6 +59,7 @@ export function FederationJointActivities() {
       if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
     }
     setIsLoading(false);
+    onLoadingChange(false);
   };
 
   useEffect(() => {
@@ -69,8 +67,11 @@ export function FederationJointActivities() {
       setMessage(error);
       setMessageTone("error");
       setIsLoading(false);
+      onLoadingChange(false);
     });
-  }, []);
+    // Refresh only when requested by the parent workspace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [refreshToken]);
 
   const preliminaryReview = async (activityId: number, status: "approved" | "rejected") => {
     setBusyId(activityId);
@@ -119,23 +120,8 @@ export function FederationJointActivities() {
     <motion.div
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-8 pb-20"
+      className="flex flex-col gap-8"
     >
-      <Link
-        to="/federation"
-        className="inline-flex w-fit items-center gap-2 font-medium text-slate-500 hover:text-slate-900"
-      >
-        <ArrowLeft size={18} /> 返回社联工作台
-      </Link>
-      <PageHeader
-        eyebrow="Federation"
-        title="联合活动审核"
-        action={
-          <SecondaryButton type="button" onClick={refresh} disabled={isLoading}>
-            <RefreshCw size={16} /> 刷新
-          </SecondaryButton>
-        }
-      />
       {message && <StatusMessage value={message} tone={messageTone} />}
 
       <Surface>
