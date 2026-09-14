@@ -37,6 +37,10 @@ class GeneralActivityService(
 ):
     repository: GeneralActivityRepository
 
+    async def get_public(self, id_: int) -> GeneralActivity | None:
+        """供匿名/公开接口使用: club_records 只含已审核且社团正常的记录."""
+        return await self.repository.get_public(id_)
+
     async def get_multi(
         self,
         search: str | None = None,
@@ -45,6 +49,7 @@ class GeneralActivityService(
         starts_before: datetime | None = None,
         ends_after: datetime | None = None,
         has_poster: bool | None = None,
+        public_only: bool = False,
     ) -> Page[GeneralActivity]:
         return await self.repository.get_multi(
             search,
@@ -52,6 +57,7 @@ class GeneralActivityService(
             starts_before=starts_before,
             ends_after=ends_after,
             has_poster=has_poster,
+            public_only=public_only,
         )
 
 

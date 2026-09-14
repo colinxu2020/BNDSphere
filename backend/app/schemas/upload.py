@@ -100,6 +100,19 @@ def _validate_application_file_uri(url: HttpUrl | None) -> HttpUrl | None:
     return ensure_uploaded_object_url(UploadScene.APPLICATION_FILE, url)
 
 
+def _validate_application_file_uri_str(url: str) -> str:
+    """Str 形态的 application_file 校验, 供 JSON 数组列 (proof_files) 使用.
+
+    与 ``_validate_joint_activity_archive_uri`` 同理: JSON 列无法直接序列化
+    pydantic 的 HttpUrl 对象, 因此校验通过后统一落库为 str.
+    """
+    validated = ensure_uploaded_object_url(
+        UploadScene.APPLICATION_FILE,
+        HttpUrl(url),
+    )
+    return str(validated)
+
+
 def _validate_joint_activity_archive_uri(url: str) -> str:
     validated = ensure_uploaded_object_url(
         UploadScene.JOINT_ACTIVITY_ARCHIVE,
@@ -117,6 +130,11 @@ ActivityPosterUri = Annotated[
 ApplicationFileUri = Annotated[
     HttpUrl | None,
     AfterValidator(_validate_application_file_uri),
+]
+# JSON 数组列 (如 proof_files) 使用的 str 形态; 校验规则与 ApplicationFileUri 一致.
+ApplicationFileUriStr = Annotated[
+    str,
+    AfterValidator(_validate_application_file_uri_str),
 ]
 JointActivityArchiveUri = Annotated[
     str,

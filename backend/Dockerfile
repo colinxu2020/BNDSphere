@@ -26,7 +26,9 @@ ENV DEBUG=true
 CMD ["/backend/.venv/bin/fastapi", "dev", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]
 
 FROM base AS prod
+ARG APP_VERSION=dev
 RUN uv sync --frozen --no-dev --no-cache
 COPY --chown=appuser:appuser . .
-ENV DEBUG=false
+ENV DEBUG=false \
+    APP_VERSION=${APP_VERSION}
 CMD ["/backend/.venv/bin/fastapi", "run", "app/main.py", "--host", "0.0.0.0", "--port", "8000"]

@@ -1,0 +1,210 @@
+from datetime import UTC, datetime
+
+from fastapi_pagination import Page
+
+from app.core.security import create_check_in_token, verify_check_in_token
+from app.models.club import ClubStatusEnum
+from app.models.club_activity import ClubActivity
+from app.models.club_activity_check_in import CheckInMethodEnum, ClubActivityCheckIn
+from app.models.clubmember import ClubMembershipEnum
+from app.models.user import User
+from app.repositories.club import ClubMemberRepository, ClubRepository
+from app.repositories.club_activity import ClubActivityRepository
+from app.repositories.club_activity_check_in import ClubActivityCheckInRepository
+from app.schemas.club_activity_check_in import ClubActivityCheckInCreate
+from app.services.base import ServiceBase
+from app.services.errors import (
+    BusinessError,
+    ClubActivityCheckInInvalidTokenError,
+    ClubActivityCheckInNotInProgressError,
+    ClubActivityCheckInNotMemberError,
+    ClubActivityNotFoundError,
+    ClubNotFoundError,
+    ResourceForbiddenError,
+)
+
+_ACTIVE_MEMBERSHIPS = (
+    ClubMembershipEnum.member,
+    ClubMembershipEnum.president,
+    ClubMembershipEnum.vice_president,
+)
+
+
+class ClubActivityCheckInService(
+    ServiceBase[
+        ClubActivityCheckIn,
+        ClubActivityCheckInCreate,
+        ClubActivityCheckInCreate,
+    ],
+):
+    repository: ClubActivityCheckInRepository
+
+    def __init__(
+        self,
+        repository: ClubActivityCheckInRepository,
+        activity_repository: ClubActivityRepository | None = None,
+        club_repository: ClubRepository | None = None,
+        member_repository: ClubMemberRepository | None = None,
+    ) -> None:
+        super().__init__(repository)
+        self.activity_repository = activity_repository or ClubActivityRepository(
+            repository.db,
+        )
+        self.club_repository = club_repository or ClubRepository(repository.db)
+        self.member_repository = member_repository or ClubMemberRepository(
+            repository.db,
+        )
+
+    async def get_check_ins(
+        self,
+        club_id: int,
+        activity_id: int,
+    ) -> Page[ClubActivityCheckIn]:
+        activity = await self._get_club_activity(club_id, activity_id)
+        return await self.repository.get_by_activity(activity.id)
+
+    async def check_in_manual(
+        self,
+        club_id: int,
+        activity_id: int,
+        user_ids: list[int],
+        recorder: User,
+    ) -> list[ClubActivityCheckIn]:
+        """(President/vice-president) record members who attended, after the
+        fact. Idempotent — user ids already checked in are silently skipped
+        rather than erroring, so the roster can be resubmitted freely.
+        """
+        unique_user_ids = list(dict.fromkeys(user_ids))
+
+        await self._ensure_club_normal(club_id)
+        activity = await self._get_club_activity(club_id, activity_id)
+
+        # Filter to genuinely new ids *before* validating membership — an
+        # id that's already checked in must stay a no-op even if that user
+        # has since left the club, otherwise resubmitting the full roster
+        # (the documented idempotent way to add newly-attended members)
+        # would fail on the departed id and block the new ones with it.
+        already_checked_in = await self.repository.get_checked_in_user_ids(
+            activity.id,
+        )
+        new_user_ids = [
+            user_id for user_id in unique_user_ids if user_id not in already_checked_in
+        ]
+        if not new_user_ids:
+            return []
+
+        await self._ensure_active_members(club_id, new_user_ids)
+
+        async with self.transaction():
+            rows = await self.repository.create_many_ignoring_conflicts(
+                activity.id,
+                new_user_ids,
+                CheckInMethodEnum.manual,
+                recorder.id,
+            )
+        return list(rows)
+
+    async def generate_qr_token(
+        self,
+        club_id: int,
+        activity_id: int,
+    ) -> tuple[str, datetime]:
+        """(President/vice-president) mint a check-in token for the QR code,
+        valid only while the activity is in progress — it expires at the
+        activity's end time regardless of when it was generated.
+        """
+        await self._ensure_club_normal(club_id)
+        activity = await self._get_club_activity(club_id, activity_id)
+        self._ensure_activity_in_progress(activity)
+        expires_at = activity.end_time
+        return create_check_in_token(activity.id, expires_at), expires_at
+
+    async def check_in_via_qr(
+        self,
+        club_id: int,
+        activity_id: int,
+        token: str,
+        user: User,
+    ) -> ClubActivityCheckIn:
+        """Self check-in by scanning the activity's QR code. Idempotent — a
+        second scan by the same user returns the existing row rather than
+        erroring.
+        """
+        await self._ensure_club_normal(club_id)
+        activity = await self._get_club_activity(club_id, activity_id)
+        self._ensure_activity_in_progress(activity)
+
+        try:
+            payload = verify_check_in_token(token)
+        except ValueError:
+            raise ClubActivityCheckInInvalidTokenError from None
+        if payload.get("activity_id") != activity.id:
+            raise ClubActivityCheckInInvalidTokenError from None
+
+        await self._ensure_active_members(club_id, [user.id])
+
+        return await self._create_check_in(
+            activity.id,
+            user.id,
+            CheckInMethodEnum.qrcode,
+            user.id,
+        )
+
+    async def _create_check_in(
+        self,
+        club_activity_id: int,
+        user_id: int,
+        method: CheckInMethodEnum,
+        recorded_by_user_id: int,
+    ) -> ClubActivityCheckIn:
+        try:
+            async with self.transaction():
+                return await self.repository.create_or_get_existing(
+                    club_activity_id,
+                    user_id,
+                    method,
+                    recorded_by_user_id,
+                )
+        except RuntimeError as err:
+            # Same shape as ClubGeneralActivityService's IntegrityError/
+            # OperationalError handling: a low-level failure that should be
+            # unreachable still gets the app's structured error envelope
+            # instead of an opaque 500.
+            raise BusinessError(
+                "error.club_activity_check_in.conflict_lost",
+                500,
+                "CLUB_ACTIVITY_CHECK_IN_CONFLICT_LOST",
+                {"club_activity_id": club_activity_id, "user_id": user_id},
+            ) from err
+
+    async def _get_club_activity(self, club_id: int, activity_id: int) -> ClubActivity:
+        activity = await self.activity_repository.get(activity_id)
+        if activity is None or activity.club_id != club_id:
+            raise ClubActivityNotFoundError(activity_id) from None
+        return activity
+
+    async def _ensure_club_normal(self, club_id: int) -> None:
+        status = await self.club_repository.get_status(club_id)
+        if status is None:
+            raise ClubNotFoundError(club_id) from None
+        if status != ClubStatusEnum.normal:
+            raise ResourceForbiddenError(
+                "error.club.not_active",
+                "CLUB_NOT_ACTIVE",
+                {"club_id": club_id},
+            ) from None
+
+    def _ensure_activity_in_progress(self, activity: ClubActivity) -> None:
+        now = datetime.now(UTC)
+        if now < activity.start_time or now > activity.end_time:
+            raise ClubActivityCheckInNotInProgressError(activity.id) from None
+
+    async def _ensure_active_members(self, club_id: int, user_ids: list[int]) -> None:
+        active_ids = await self.member_repository.get_user_ids_with_membership(
+            club_id,
+            user_ids,
+            _ACTIVE_MEMBERSHIPS,
+        )
+        for user_id in user_ids:
+            if user_id not in active_ids:
+                raise ClubActivityCheckInNotMemberError(user_id) from None

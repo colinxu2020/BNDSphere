@@ -22,6 +22,7 @@ from app.repositories.club_activity import (
     ClubActivityRepository,
     ClubActivityUpdateRequestRepository,
 )
+from app.repositories.club_activity_check_in import ClubActivityCheckInRepository
 from app.repositories.general_activities import (
     ClubGeneralActivityRepository,
     GeneralActivityRepository,
@@ -44,6 +45,7 @@ from app.services.club_activity import (
     ClubActivityService,
     ClubActivityUpdateRequestService,
 )
+from app.services.club_activity_check_in import ClubActivityCheckInService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -145,6 +147,12 @@ type ClubActivityUpdateRequestServiceDep = Annotated[
             ClubActivityUpdateRequestService,
             ClubActivityUpdateRequestRepository,
         ),
+    ),
+]
+type ClubActivityCheckInServiceDep = Annotated[
+    ClubActivityCheckInService,
+    Depends(
+        ServiceFactory(ClubActivityCheckInService, ClubActivityCheckInRepository),
     ),
 ]
 type AcademicTermServiceDep = Annotated[

@@ -5,12 +5,14 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.orm import selectinload
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
+from app.models.general_activity import ClubGeneralActivityRecord
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
-from app.models.user import User
+from app.models.user import AuditStatusEnum, User
 from app.models.verifications.club_membership import ClubMembershipRequest
 from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
@@ -20,19 +22,42 @@ from app.schemas.moderations.moderation_common import RequestModerate
 from app.schemas.verifications.club_membership import ClubMembershipRequestCreate
 from app.schemas.verifications.verification_common import RequestVerify
 
+# 公开回显只加载「已审核通过」的大型活动参与记录:
+# pending/rejected 记录的 proof_files 等内容未经社联审核, 匿名访客不应看到.
+_PUBLIC_RECORDS_OPTION = selectinload(
+    Club.general_activity_records.and_(
+        ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
+    ),
+)
+
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     model = Club
 
+    async def get_public(self, id_: int) -> Club | None:
+        """公开详情读取: general_activity_records 只加载已审核通过的记录."""
+        stmt = (
+            select(self.model)
+            .where(self.model.id == id_)
+            .options(_PUBLIC_RECORDS_OPTION)
+        )
+        return (await self.db.execute(stmt)).scalars().first()
+
     async def get_by_name(self, name: str) -> Sequence[Club]:
         result = await self.db.execute(select(Club).where(Club.name == name))
         return result.scalars().all()
+
+    async def get_status(self, club_id: int) -> ClubStatusEnum | None:
+        result = await self.db.execute(select(Club.status).where(Club.id == club_id))
+        return result.scalars().first()
 
     async def get_multi(
         self,
         search: str | None = None,
         category: ClubCategoryEnum | None = None,
         status: ClubStatusEnum | None = None,
+        *,
+        public_only: bool = False,
     ) -> Page[Club]:
         stmt = select(Club)
         if search is not None and search.strip():
@@ -55,6 +80,8 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         else:
             stmt = stmt.order_by(self.model.id.desc())
 
+        if public_only:
+            stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
         if category is not None:
             stmt = stmt.where(Club.category == category)
         if status is not None:
@@ -101,6 +128,23 @@ class ClubMemberRepository(
             ),
         )
         return result.scalars().first()
+
+    async def get_user_ids_with_membership(
+        self,
+        club_id: int,
+        user_ids: Sequence[int],
+        allowed_memberships: Sequence[ClubMembershipEnum],
+    ) -> set[int]:
+        if not user_ids:
+            return set()
+        result = await self.db.execute(
+            select(self.model.user_id).where(
+                self.model.club_id == club_id,
+                self.model.user_id.in_(user_ids),
+                self.model.membership.in_(allowed_memberships),
+            ),
+        )
+        return set(result.scalars().all())
 
     async def set_membership(
         self,

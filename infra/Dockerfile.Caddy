@@ -18,6 +18,8 @@ COPY ./frontend ./
 RUN npm run build
 
 FROM base AS prod
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 
 COPY --from=builder --chown=caddyuser:caddygroup /app/dist /srv
 COPY --chown=caddyuser:caddygroup ./infra/Caddyfile /etc/caddy/Caddyfile

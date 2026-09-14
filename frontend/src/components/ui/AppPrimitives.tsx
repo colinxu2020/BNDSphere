@@ -238,7 +238,7 @@ export function Badge({
     yellow: "bg-yellow-50 text-yellow-700 border-yellow-100",
     green: "bg-emerald-50 text-emerald-700 border-emerald-100",
     red: "bg-red-50 text-red-700 border-red-100",
-    blue: "bg-secondary-50 text-secondary-600 border-secondary-100",
+    blue: "bg-sky-50 text-sky-700 border-sky-100",
   }[tone];
 
   return (

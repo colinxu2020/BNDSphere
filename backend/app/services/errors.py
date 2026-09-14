@@ -117,6 +117,32 @@ class ClubActivityNotFoundError(ResourceNotFoundError):
         )
 
 
+class ClubActivityCheckInNotMemberError(BusinessPermissionError):
+    def __init__(self, user_id: int) -> None:
+        super().__init__(
+            "error.club_activity_check_in.not_member",
+            "CLUB_ACTIVITY_CHECK_IN_NOT_MEMBER",
+            {"user_id": user_id},
+        )
+
+
+class ClubActivityCheckInInvalidTokenError(BadRequestError):
+    def __init__(self) -> None:
+        super().__init__(
+            "error.club_activity_check_in.invalid_token",
+            "CLUB_ACTIVITY_CHECK_IN_INVALID_TOKEN",
+        )
+
+
+class ClubActivityCheckInNotInProgressError(BadRequestError):
+    def __init__(self, activity_id: int) -> None:
+        super().__init__(
+            "error.club_activity_check_in.not_in_progress",
+            "CLUB_ACTIVITY_CHECK_IN_NOT_IN_PROGRESS",
+            {"club_activity_id": activity_id},
+        )
+
+
 class GeneralActivityNotFoundError(ResourceNotFoundError):
     def __init__(self, activity_id: int) -> None:
         super().__init__(
