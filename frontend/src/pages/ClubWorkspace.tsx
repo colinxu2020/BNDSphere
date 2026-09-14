@@ -44,6 +44,7 @@ import {
   Field,
   InlineError,
   PageHeader,
+  PageTabs,
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
@@ -55,6 +56,7 @@ import {
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
+import { JointActivityWorkspace } from "./JointActivityWorkspace";
 
 type Club = components["schemas"]["ClubInfo"];
 type ClubMember = components["schemas"]["ClubMemberInfo"];
@@ -68,6 +70,24 @@ type StarRating = components["schemas"]["StarRatingResponse"];
 type ParticipationType = components["schemas"]["ParticipationTypeEnum"];
 type UserInfo = components["schemas"]["UserInfo"];
 type PublicUserInfo = components["schemas"]["PublicUserInfo"];
+type ClubWorkspaceTab =
+  | "overview"
+  | "clubActivities"
+  | "members"
+  | "largeActivities"
+  | "starLevel"
+  | "jointActivities"
+  | "profile";
+
+const CLUB_WORKSPACE_TABS: readonly { key: ClubWorkspaceTab; label: string }[] = [
+  { key: "overview", label: "概览" },
+  { key: "clubActivities", label: "社团活动" },
+  { key: "members", label: "成员管理" },
+  { key: "largeActivities", label: "大型活动" },
+  { key: "jointActivities", label: "联合活动" },
+  { key: "starLevel", label: "星级评价" },
+  { key: "profile", label: "社团资料" },
+];
 
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
@@ -76,6 +96,10 @@ export function ClubWorkspace() {
   const clubId = Number(id);
   const activityManagementRef = useRef<HTMLDivElement>(null);
   const hasHandledActivityDeepLink = useRef<string | null>(null);
+  const [activeTab, setActiveTab] = useState<ClubWorkspaceTab>(
+    requestedActivityId ? "clubActivities" : "overview",
+  );
+  const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -295,6 +319,10 @@ export function ClubWorkspace() {
   }, [clubId]);
 
   useEffect(() => {
+    setActiveTab(requestedActivityId ? "clubActivities" : "overview");
+  }, [clubId, requestedActivityId]);
+
+  useEffect(() => {
     if (isLoading || !requestedActivityId || !activities.length) return;
 
     const activityItem = activities.find((item) => String(item.id) === requestedActivityId);
@@ -354,6 +382,9 @@ export function ClubWorkspace() {
   const activeMembers = (club?.members || [])
     .filter((member) => ["member", "president", "vice_president"].includes(member.membership))
     .sort((left, right) => membershipOrder(left.membership) - membershipOrder(right.membership));
+  const currentTermActivityCount = activities.filter(
+    (activityItem) => activityItem.academic_term.is_current,
+  ).length;
 
   const selectActivityForUpdate = (activityItem: ClubActivity) => {
     setActivityEditorMode("update");
@@ -782,21 +813,29 @@ export function ClubWorkspace() {
         eyebrow="Workspace"
         title={club?.name || `社团 #${clubId} 工作台`}
         action={
-          <div className="flex flex-wrap gap-2">
-            {club?.status === "normal" && (
-              <Link
-                to={`/club/${clubId}/joint-activities/manage`}
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
-              >
-                <CalendarDays size={16} /> 联合活动
-              </Link>
-            )}
-            <SecondaryButton onClick={() => refresh()} disabled={isLoading}>
-              <RefreshCw size={16} /> 刷新
-            </SecondaryButton>
-          </div>
+          <SecondaryButton
+            onClick={() => {
+              if (activeTab === "jointActivities") {
+                setJointActivitiesRefreshToken((token) => token + 1);
+              } else {
+                refresh();
+              }
+            }}
+            disabled={activeTab !== "jointActivities" && isLoading}
+          >
+            <RefreshCw size={16} /> 刷新
+          </SecondaryButton>
         }
       />
+
+      {club?.status === "normal" && (
+        <PageTabs
+          tabs={CLUB_WORKSPACE_TABS}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          ariaLabel="社长工作台功能"
+        />
+      )}
 
       {isLoading ? (
         <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
@@ -816,7 +855,11 @@ export function ClubWorkspace() {
           )}
 
           {club && (
-            <Surface>
+            <Surface
+              className={
+                club.status !== "normal" || activeTab === "overview" ? undefined : "hidden"
+              }
+            >
               <div className="flex flex-col md:flex-row md:items-center gap-5">
                 <div className="w-20 h-20 rounded-md bg-slate-100 flex items-center justify-center shrink-0 overflow-hidden border border-slate-200">
                   {club.logo_uri ? (
@@ -841,11 +884,35 @@ export function ClubWorkspace() {
                   <p className="text-slate-500 mt-1">{club.summary}</p>
                 </div>
               </div>
+              {club.status === "normal" && (
+                <dl className="mt-6 grid gap-y-4 border-t border-slate-100 pt-5 sm:grid-cols-3 sm:divide-x sm:divide-slate-100">
+                  <div className="sm:px-5 sm:first:pl-0">
+                    <dt className="text-sm text-slate-500">成员</dt>
+                    <dd className="mt-1 text-xl font-semibold text-slate-900">
+                      {activeMembers.length} 人
+                    </dd>
+                  </div>
+                  <div className="sm:px-5">
+                    <dt className="text-sm text-slate-500">本学期社团活动</dt>
+                    <dd className="mt-1 text-xl font-semibold text-slate-900">
+                      {currentTermActivityCount} 次
+                    </dd>
+                  </div>
+                  <div className="sm:px-5 sm:last:pr-0">
+                    <dt className="text-sm text-slate-500">参与大型活动</dt>
+                    <dd className="mt-1 text-xl font-semibold text-slate-900">
+                      {records.length} 项
+                    </dd>
+                  </div>
+                </dl>
+              )}
             </Surface>
           )}
 
           {club && (
-            <Surface>
+            <Surface
+              className={club.status !== "normal" || activeTab === "profile" ? undefined : "hidden"}
+            >
               <SectionTitle
                 icon={<Save size={20} />}
                 title={club.status === "unreviewed" ? "编辑待审核社团资料" : "社团资料变更申请"}
@@ -888,7 +955,7 @@ export function ClubWorkspace() {
           {club?.status === "normal" && (
             <>
               {club && canVerifyMemberships && (
-                <Surface>
+                <Surface className={activeTab === "members" ? undefined : "hidden"}>
                   <SectionTitle icon={<Users size={20} />} title="成员管理" />
                   <div className="grid gap-7">
                     <section>
@@ -1096,7 +1163,7 @@ export function ClubWorkspace() {
                 </div>
               )}
 
-              <Surface>
+              <Surface className={activeTab === "overview" ? undefined : "hidden"}>
                 <SectionTitle icon={<Sparkles size={20} />} title="星级评价" />
                 {starRating ? (
                   <div className="flex flex-col gap-5">
@@ -1134,7 +1201,7 @@ export function ClubWorkspace() {
               <div
                 id="club-activity-management"
                 ref={activityManagementRef}
-                className="scroll-mt-24"
+                className={activeTab === "clubActivities" ? "scroll-mt-24" : "hidden scroll-mt-24"}
               >
                 <Surface>
                   <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -1318,7 +1385,7 @@ export function ClubWorkspace() {
                 </Surface>
               </div>
 
-              <Surface>
+              <Surface className={activeTab === "largeActivities" ? undefined : "hidden"}>
                 <SectionTitle
                   icon={<FileCheck2 size={20} />}
                   title="综评活动记录"
@@ -1452,7 +1519,7 @@ export function ClubWorkspace() {
                 </div>
               </Surface>
 
-              <Surface>
+              <Surface className={activeTab === "starLevel" ? undefined : "hidden"}>
                 <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <SectionTitle className="mb-0" icon={<Award size={20} />} title="星级申请" />
                   <SecondaryButton
@@ -1592,6 +1659,13 @@ export function ClubWorkspace() {
                   )}
                 </div>
               </Surface>
+
+              {activeTab === "jointActivities" && (
+                <JointActivityWorkspace
+                  clubId={clubId}
+                  refreshToken={jointActivitiesRefreshToken}
+                />
+              )}
             </>
           )}
         </>
