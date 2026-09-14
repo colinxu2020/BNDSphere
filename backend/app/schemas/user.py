@@ -40,7 +40,7 @@ class PublicUserInfo(UserBase, IdMixin):
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None)
+    username: str | None = Field(None, max_length=constants.USER_MAX_USERNAME_LENGTH)
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(

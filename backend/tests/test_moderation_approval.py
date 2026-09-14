@@ -29,6 +29,10 @@ class TestClubUpdateRequestModeration:
         db_session: AsyncSession,
     ) -> Club:
         users = self.configured_users
+        # Earlier tests may roll back a savepoint and expire this ORM instance;
+        # reload it so ``.id`` doesn't trigger sync lazy IO outside a greenlet.
+        president = users["pres_approval"]["user"]
+        await db_session.refresh(president)
         club = Club(
             name=f"ApprovalClub-{uuid4().hex[:12]}",
             summary="s",
@@ -41,7 +45,7 @@ class TestClubUpdateRequestModeration:
         db_session.add(
             ClubMember(
                 club_id=club.id,
-                user_id=users["pres_approval"]["user"].id,
+                user_id=president.id,
                 membership=ClubMembershipEnum.president,
             ),
         )
@@ -126,3 +130,28 @@ class TestClubUpdateRequestModeration:
         )
         assert resp.status_code == 400, resp.text
         assert resp.json()["error_code"] == "MODERATION_PAYLOAD_INVALID"
+
+    async def test_pending_list_tolerates_legacy_overlong_request(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_class_users: None,
+    ) -> None:
+        club = await self._make_club(db_session)
+        db_session.add(
+            ClubUpdateRequest(
+                club_id=club.id,
+                requestor_id=self.configured_users["pres_approval"]["user"].id,
+                moderation_status=ModerationStatusEnum.pending,
+                summary="X" * 60,
+                update_fields=["summary"],
+            ),
+        )
+        await db_session.flush()
+
+        resp = await client.get(
+            "/moderations/clubs/update-requests",
+            headers=self.configured_users["mod_approval"]["headers"],
+            params={"size": 50},
+        )
+        assert resp.status_code == 200, resp.text

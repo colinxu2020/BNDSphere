@@ -17,7 +17,7 @@ class UserUpdateRequestCreate(UpdateRequestCreateBase):
     # Length caps mirror AdminUserUpdate (the schema applied on approval) so a
     # request that passes creation can never fail re-validation on approval.
     username: str | None = Field(None, max_length=constants.USER_MAX_USERNAME_LENGTH)
-    avatar_uri: AvatarUri = Field(None)
+    avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,
         max_length=constants.USER_MAX_DESCRIPTION_LENGTH,

@@ -36,4 +36,4 @@ def build_update_payload[SchemaType: BaseModel](
     try:
         return schema_type.model_validate(data)
     except ValidationError as exc:
-        raise InvalidModerationPayloadError(schema_type.__name__) from exc
+        raise InvalidModerationPayloadError from exc
