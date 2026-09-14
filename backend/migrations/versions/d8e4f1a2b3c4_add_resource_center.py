@@ -32,11 +32,6 @@ def upgrade() -> None:
             server_default=sa.text("now()"),
             nullable=False,
         ),
-        sa.Column(
-            "deletion_requested_at",
-            sa.DateTime(timezone=True),
-            nullable=True,
-        ),
         sa.Column("id", sa.Integer(), autoincrement=True, nullable=False),
         sa.ForeignKeyConstraint(
             ["uploader_id"],
