@@ -165,7 +165,12 @@ async def list_clubs(
 ) -> Page[ClubInfo]:
     """Search Clubs."""
     return Page[ClubInfo].model_validate(
-        await service.get_multi(search, category, status=ClubStatusEnum.normal),
+        await service.get_multi(
+            search,
+            category,
+            status=ClubStatusEnum.normal,
+            public_only=True,
+        ),
     )
 
 

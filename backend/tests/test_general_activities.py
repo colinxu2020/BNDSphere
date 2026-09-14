@@ -321,6 +321,7 @@ class TestPublicClubRecordsEcho:
         request.cls.activity_id = activity.id
         request.cls.normal_club_id = normal_club.id
         request.cls.normal_club_2_id = normal_club_2.id
+        request.cls.unreviewed_club_id = unreviewed_club.id
         request.cls.approved_record_id = approved.id
         request.cls.pending_record_id = pending_dirty.id
         request.cls.unreviewed_club_record_id = unreviewed_club_record.id
@@ -385,3 +386,25 @@ class TestPublicClubRecordsEcho:
         assert [r["id"] for r in resp.json()["general_activity_records"]] == [
             self.approved_record_id
         ]
+
+    async def test_public_club_list_hides_unreviewed_records(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        resp = await client.get("/clubs/")
+        assert resp.status_code == 200
+        items = resp.json()["items"]
+
+        # Non-normal clubs are not listed at all.
+        assert self.unreviewed_club_id not in {c["id"] for c in items}
+
+        # Club with only a pending (legacy dirty) record: nothing is echoed.
+        pending_only = next(i for i in items if i["id"] == self.normal_club_2_id)
+        assert pending_only["general_activity_records"] == []
+
+        # Club with an approved record: only that record is echoed.
+        approved_only = next(i for i in items if i["id"] == self.normal_club_id)
+        assert [r["id"] for r in approved_only["general_activity_records"]] == [
+            self.approved_record_id
+        ]
+        assert "javascript:" not in resp.text

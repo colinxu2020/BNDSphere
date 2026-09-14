@@ -122,8 +122,15 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         search: str | None = None,
         category: ClubCategoryEnum | None = None,
         status: ClubStatusEnum | None = None,
+        *,
+        public_only: bool = False,
     ) -> Page[Club]:
-        return await self.repository.get_multi(search, category, status)
+        return await self.repository.get_multi(
+            search,
+            category,
+            status,
+            public_only=public_only,
+        )
 
     async def get_managed_by_user(self, user: User) -> Page[Club]:
         return await self.repository.get_managed_by_user(user.id)
