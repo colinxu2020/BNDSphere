@@ -203,7 +203,6 @@ export function ResourceCenter() {
       <PageHeader
         eyebrow="RESOURCE CENTER"
         title="资料中心"
-        description="查找并下载社团联合会发布的文件资料。"
         action={
           canManage ? (
             <div className="flex flex-wrap gap-2">
@@ -233,7 +232,6 @@ export function ResourceCenter() {
         }
       />
 
-      {canManage && <p className="text-sm text-slate-500">支持任意文件格式，单个文件最大 50MB。</p>}
       <StatusMessage value={error} />
       <StatusMessage value={success} tone="success" />
 
@@ -330,7 +328,7 @@ export function ResourceCenter() {
         ) : (
           <EmptyState
             title={activeSearch ? "没有找到匹配的资料" : "暂无资料"}
-            description={activeSearch ? "请尝试其他关键词。" : "社团联合会发布资料后会显示在这里。"}
+            description={activeSearch ? "请尝试其他关键词。" : undefined}
             icon={<Folder size={24} />}
           />
         )}
