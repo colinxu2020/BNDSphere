@@ -183,6 +183,23 @@ class DuplicatePendingRequestError(DuplicateResourceError):
         )
 
 
+class InvalidModerationPayloadError(BadRequestError):
+    """Stored request payload no longer validates against the apply schema.
+
+    Raised when a moderator approves a request whose persisted fields fail the
+    (stricter) update schema — e.g. a row created before length caps were added
+    to the request schema. Surfacing it as a 400 keeps the endpoint from
+    returning an unhandled 500.
+    """
+
+    def __init__(self, request_type: str) -> None:
+        super().__init__(
+            "error.moderation.invalid_payload",
+            "MODERATION_PAYLOAD_INVALID",
+            {"request_type": request_type},
+        )
+
+
 class ResourceForbiddenError(BusinessError):
     def __init__(
         self,

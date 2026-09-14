@@ -5944,9 +5944,12 @@
       },
       "ClubUpdateRequestCreatePublic": {
         "properties": {
-          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
@@ -5962,9 +5965,12 @@
       },
       "ClubUpdateRequestInfo": {
         "properties": {
-          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
@@ -7232,7 +7238,10 @@
       },
       "UserUpdateRequestCreate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": {
+            "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }],
+            "title": "Username"
+          },
           "avatar_uri": {
             "anyOf": [
               { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
@@ -7241,7 +7250,7 @@
             "title": "Avatar Uri"
           },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "grade": {

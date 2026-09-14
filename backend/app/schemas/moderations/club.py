@@ -2,6 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
+from app.core import constants
 from app.schemas.generic import ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import (
     RequestInfoBase,
@@ -11,8 +12,13 @@ from app.schemas.upload import LogoUri
 
 
 class ClubUpdateRequestBase(BaseModel):
-    summary: str | None = Field(None)
-    description: str | None = Field(None)
+    # Length caps mirror ClubUpdate (the schema applied on approval) so a request
+    # that passes creation can never fail re-validation when a moderator approves.
+    summary: str | None = Field(None, max_length=constants.CLUB_MAX_SUMMARY_LENGTH)
+    description: str | None = Field(
+        None,
+        max_length=constants.CLUB_MAX_DESCRIPTION_LENGTH,
+    )
     logo_uri: HttpUrl | None = Field(None)
 
 
