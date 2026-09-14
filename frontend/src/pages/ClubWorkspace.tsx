@@ -871,6 +871,7 @@ export function ClubWorkspace() {
           tabs={CLUB_WORKSPACE_TABS}
           activeTab={activeTab}
           onChange={(tab) => {
+            if (tab === activeTab) return;
             setActiveTab(tab);
             setIsJointActivitiesLoading(tab === "jointActivities");
           }}
