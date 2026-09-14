@@ -60,6 +60,7 @@ const FEDERATION_TABS: readonly { key: FederationTab; label: string }[] = [
 export function Federation() {
   const [activeTab, setActiveTab] = useState<FederationTab>("activities");
   const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
+  const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -431,12 +432,13 @@ export function Federation() {
             type="button"
             onClick={() => {
               if (activeTab === "jointActivities") {
+                setIsJointActivitiesLoading(true);
                 setJointActivitiesRefreshToken((token) => token + 1);
               } else {
                 loadWorkspace();
               }
             }}
-            disabled={activeTab !== "jointActivities" && isLoading}
+            disabled={activeTab === "jointActivities" ? isJointActivitiesLoading : isLoading}
           >
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
@@ -446,7 +448,10 @@ export function Federation() {
       <PageTabs
         tabs={FEDERATION_TABS}
         activeTab={activeTab}
-        onChange={setActiveTab}
+        onChange={(tab) => {
+          setActiveTab(tab);
+          setIsJointActivitiesLoading(tab === "jointActivities");
+        }}
         ariaLabel="社联工作台功能"
       />
 
@@ -874,7 +879,10 @@ export function Federation() {
       </Surface>
 
       {activeTab === "jointActivities" && (
-        <FederationJointActivities refreshToken={jointActivitiesRefreshToken} />
+        <FederationJointActivities
+          refreshToken={jointActivitiesRefreshToken}
+          onLoadingChange={setIsJointActivitiesLoading}
+        />
       )}
     </motion.div>
   );

@@ -89,6 +89,46 @@ const CLUB_WORKSPACE_TABS: readonly { key: ClubWorkspaceTab; label: string }[] =
   { key: "profile", label: "社团资料" },
 ];
 
+async function loadAllClubActivities(clubId: number) {
+  const items: ClubActivity[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await client.GET("/api/v1/clubs/{club_id}/activities/", {
+      params: { path: { club_id: clubId }, query: { page, size: 100 } },
+    });
+    if (response.error) {
+      return { items: [], error: response.error, response: response.response };
+    }
+
+    items.push(...(response.data?.items || []));
+    if (!response.data || page >= response.data.pages) {
+      return { items, error: null, response: response.response };
+    }
+    page += 1;
+  }
+}
+
+async function loadAllClubGeneralActivityRecords(clubId: number) {
+  const items: ClubGeneralActivity[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
+      params: { path: { club_id: clubId }, query: { page, size: 100 } },
+    });
+    if (response.error) {
+      return { items: [], error: response.error, response: response.response };
+    }
+
+    items.push(...(response.data?.items || []));
+    if (!response.data || page >= response.data.pages) {
+      return { items, error: null, response: response.response };
+    }
+    page += 1;
+  }
+}
+
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -100,6 +140,7 @@ export function ClubWorkspace() {
     requestedActivityId ? "clubActivities" : "overview",
   );
   const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
+  const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
@@ -249,9 +290,7 @@ export function ClubWorkspace() {
         );
       }
 
-      const activitiesResponse = await client.GET("/api/v1/clubs/{club_id}/activities/", {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      });
+      const activitiesResponse = await loadAllClubActivities(clubId);
       if (activitiesResponse.error) {
         errors.activities = activitiesResponse.error;
         if (isForbiddenResponse(activitiesResponse.response, activitiesResponse.error)) {
@@ -259,7 +298,7 @@ export function ClubWorkspace() {
         }
         setActivities([]);
       } else {
-        setActivities(activitiesResponse.data?.items || []);
+        setActivities(activitiesResponse.items);
       }
 
       const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
@@ -272,14 +311,12 @@ export function ClubWorkspace() {
         setGeneralActivities(generalActivitiesResponse.data?.items || []);
       }
 
-      const recordsResponse = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      });
+      const recordsResponse = await loadAllClubGeneralActivityRecords(clubId);
       if (recordsResponse.error) {
         errors.records = recordsResponse.error;
         setRecords([]);
       } else {
-        setRecords(recordsResponse.data?.items || []);
+        setRecords(recordsResponse.items);
       }
 
       const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
@@ -816,12 +853,13 @@ export function ClubWorkspace() {
           <SecondaryButton
             onClick={() => {
               if (activeTab === "jointActivities") {
+                setIsJointActivitiesLoading(true);
                 setJointActivitiesRefreshToken((token) => token + 1);
               } else {
                 refresh();
               }
             }}
-            disabled={activeTab !== "jointActivities" && isLoading}
+            disabled={activeTab === "jointActivities" ? isJointActivitiesLoading : isLoading}
           >
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
@@ -832,7 +870,10 @@ export function ClubWorkspace() {
         <PageTabs
           tabs={CLUB_WORKSPACE_TABS}
           activeTab={activeTab}
-          onChange={setActiveTab}
+          onChange={(tab) => {
+            setActiveTab(tab);
+            setIsJointActivitiesLoading(tab === "jointActivities");
+          }}
           ariaLabel="社长工作台功能"
         />
       )}
@@ -1664,6 +1705,7 @@ export function ClubWorkspace() {
                 <JointActivityWorkspace
                   clubId={clubId}
                   refreshToken={jointActivitiesRefreshToken}
+                  onLoadingChange={setIsJointActivitiesLoading}
                 />
               )}
             </>

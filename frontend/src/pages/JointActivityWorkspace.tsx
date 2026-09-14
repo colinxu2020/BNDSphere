@@ -36,9 +36,11 @@ const emptyForm = { name: "", description: "", location: "", startsAt: "", endsA
 export function JointActivityWorkspace({
   clubId,
   refreshToken,
+  onLoadingChange,
 }: {
   clubId: number;
   refreshToken: number;
+  onLoadingChange: (isLoading: boolean) => void;
 }) {
   const [clubActivities, setClubActivities] = useState<JointActivity[]>([]);
   const [publicActivities, setPublicActivities] = useState<JointActivityPublic[]>([]);
@@ -63,6 +65,7 @@ export function JointActivityWorkspace({
 
   const refresh = async () => {
     setIsLoading(true);
+    onLoadingChange(true);
     const [managedResponse, publicResponse] = await Promise.all([
       client.GET("/api/v1/clubs/{club_id}/joint-activities/", {
         params: { path: { club_id: clubId }, query: { size: 100 } },
@@ -77,6 +80,7 @@ export function JointActivityWorkspace({
     setClubActivities(managedResponse.error ? [] : managedResponse.data?.items || []);
     setPublicActivities(publicResponse.error ? [] : publicResponse.data?.items || []);
     setIsLoading(false);
+    onLoadingChange(false);
   };
 
   useEffect(() => {
@@ -84,6 +88,7 @@ export function JointActivityWorkspace({
       setMessage(error);
       setMessageTone("error");
       setIsLoading(false);
+      onLoadingChange(false);
     });
     // Refresh when the selected club changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps

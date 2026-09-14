@@ -21,7 +21,13 @@ import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/u
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 
-export function FederationJointActivities({ refreshToken }: { refreshToken: number }) {
+export function FederationJointActivities({
+  refreshToken,
+  onLoadingChange,
+}: {
+  refreshToken: number;
+  onLoadingChange: (isLoading: boolean) => void;
+}) {
   const [items, setItems] = useState<JointActivity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
@@ -41,6 +47,7 @@ export function FederationJointActivities({ refreshToken }: { refreshToken: numb
 
   const refresh = async () => {
     setIsLoading(true);
+    onLoadingChange(true);
     setIsForbidden(false);
     const response = await client.GET("/api/v1/club-federation/joint-activities/", {
       params: { query: { size: 100 } },
@@ -52,6 +59,7 @@ export function FederationJointActivities({ refreshToken }: { refreshToken: numb
       if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
     }
     setIsLoading(false);
+    onLoadingChange(false);
   };
 
   useEffect(() => {
@@ -59,7 +67,10 @@ export function FederationJointActivities({ refreshToken }: { refreshToken: numb
       setMessage(error);
       setMessageTone("error");
       setIsLoading(false);
+      onLoadingChange(false);
     });
+    // Refresh only when requested by the parent workspace.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
 
   const preliminaryReview = async (activityId: number, status: "approved" | "rejected") => {
