@@ -19,7 +19,7 @@ async def get(
     service: GeneralActivityServiceDep,
 ) -> GeneralActivityInfo:
     """Get the general activity with the given ID."""
-    activity = await service.get(activity_id)
+    activity = await service.get_public(activity_id)
     if activity is None:
         raise GeneralActivityNotFoundError(activity_id) from None
     return GeneralActivityInfo.model_validate(activity)
@@ -45,5 +45,6 @@ async def list_activities(
             starts_before=starts_before,
             ends_after=ends_after,
             has_poster=has_poster,
+            public_only=True,
         ),
     )

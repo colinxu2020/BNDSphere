@@ -339,6 +339,74 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/{club_id}/activities/{activity_id}/check-ins": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Club Activity Check Ins
+     * @description List an activity's check-in roster (president/vice-president only).
+     */
+    get: operations["get_club_activity_check_ins_api_v1_clubs__club_id__activities__activity_id__check_ins_get"];
+    put?: never;
+    /**
+     * Check In Club Activity Manual
+     * @description (President/vice-president) record the roster of members who attended,
+     *     after the fact. Resubmitting the same user ids is a no-op for them.
+     */
+    post: operations["check_in_club_activity_manual_api_v1_clubs__club_id__activities__activity_id__check_ins_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Generate Club Activity Check In Qrcode
+     * @description (President/vice-president) mint a check-in token to render as a QR
+     *     code. Only works while the activity is in progress, and the token
+     *     expires with it.
+     */
+    post: operations["generate_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode/scan": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Scan Club Activity Check In Qrcode
+     * @description Self check-in by scanning the activity's QR code. Any logged-in club
+     *     member may call this — no president/vice-president role required.
+     */
+    post: operations["scan_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_scan_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/admin/users/": {
     parameters: {
       query?: never;
@@ -768,6 +836,10 @@ export interface paths {
     /**
      * Get Club General Activities
      * @description List the general activities the given club practiced.
+     *
+     *     Only club president and vice president can perform this operation:
+     *     the response includes pending records whose proof_files have not been
+     *     reviewed yet, so it must not be anonymously readable.
      */
     get: operations["get_club_general_activities_api_v1_clubs__club_id__general_activities__get"];
     put?: never;
@@ -877,7 +949,14 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
-    get?: never;
+    /**
+     * List Activities
+     * @description List general activities for federation review.
+     *
+     *     Unlike the public list endpoint, club_records includes pending and rejected
+     *     records so federation staff can review them.
+     */
+    get: operations["list_activities_api_v1_club_federation_general_activity__get"];
     put?: never;
     /**
      * Create
@@ -1424,6 +1503,38 @@ export interface components {
        */
       client_secret?: string | null;
     };
+    /**
+     * CheckInMethodEnum
+     * @enum {string}
+     */
+    CheckInMethodEnum: "manual" | "qrcode";
+    /** ClubActivityCheckInInfo */
+    ClubActivityCheckInInfo: {
+      /** Id */
+      id: number;
+      /** Club Activity Id */
+      club_activity_id: number;
+      /** User Id */
+      user_id: number;
+      method: components["schemas"]["CheckInMethodEnum"];
+      /**
+       * Checked In At
+       * Format: date-time
+       */
+      checked_in_at: string;
+      /** Recorded By User Id */
+      recorded_by_user_id: number;
+    };
+    /** ClubActivityCheckInQrTokenInfo */
+    ClubActivityCheckInQrTokenInfo: {
+      /** Token */
+      token: string;
+      /**
+       * Expires At
+       * Format: date-time
+       */
+      expires_at: string;
+    };
     /** ClubActivityCreateRequestCreatePublic */
     ClubActivityCreateRequestCreatePublic: {
       /** Name */
@@ -1501,6 +1612,20 @@ export interface components {
       /** Picture Urls */
       picture_urls: string[];
       academic_term: components["schemas"]["AcademicTermInfo"];
+    };
+    /**
+     * ClubActivityManualCheckInRequest
+     * @description Request body for the president/vice-president manually recording the
+     *     roster of members who attended.
+     */
+    ClubActivityManualCheckInRequest: {
+      /** User Ids */
+      user_ids: number[];
+    };
+    /** ClubActivityQrCheckInRequest */
+    ClubActivityQrCheckInRequest: {
+      /** Token */
+      token: string;
     };
     /** ClubActivityUpdateRequestCreatePublic */
     ClubActivityUpdateRequestCreatePublic: {
@@ -2086,6 +2211,19 @@ export interface components {
     Page_AnnouncementInfo_: {
       /** Items */
       items: components["schemas"]["AnnouncementInfo"][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+    };
+    /** Page[ClubActivityCheckInInfo] */
+    Page_ClubActivityCheckInInfo_: {
+      /** Items */
+      items: components["schemas"]["ClubActivityCheckInInfo"][];
       /** Total */
       total: number;
       /** Page */
@@ -3753,6 +3891,267 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ClubActivityUpdateRequestInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_club_activity_check_ins_api_v1_clubs__club_id__activities__activity_id__check_ins_get: {
+    parameters: {
+      query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path: {
+        club_id: number;
+        activity_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_ClubActivityCheckInInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  check_in_club_activity_manual_api_v1_clubs__club_id__activities__activity_id__check_ins_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        activity_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClubActivityManualCheckInRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubActivityCheckInInfo"][];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  generate_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        activity_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubActivityCheckInQrTokenInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  scan_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_scan_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        activity_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClubActivityQrCheckInRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubActivityCheckInInfo"];
         };
       };
       /** @description Unauthorized or Token invalid */
@@ -5841,6 +6240,36 @@ export interface operations {
           "application/json": components["schemas"]["Page_ClubGeneralActivityInfo_"];
         };
       };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
       /** @description Validation Error */
       422: {
         headers: {
@@ -6294,6 +6723,72 @@ export interface operations {
            *       "detail": {
            *         "resource": "requested_resource"
            *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_activities_api_v1_club_federation_general_activity__get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        level?: components["schemas"]["GeneralActivityLevelEnum"] | null;
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_GeneralActivityInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];

@@ -4,12 +4,15 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 from app.models import Club, GeneralActivity, User
+from app.models.club import ClubStatusEnum
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
 )
+from app.models.user import AuditStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
@@ -19,11 +22,28 @@ from app.schemas.general_activities import (
     GeneralActivityUpdate,
 )
 
+# 公开回显只加载「已审核通过 + 社团状态正常」的活动参与记录:
+# pending/rejected 记录的 proof_files 等内容未经社联审核, 匿名访客不应看到.
+_PUBLIC_RECORDS_OPTION = selectinload(
+    GeneralActivity.club_records.and_(
+        ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
+        ClubGeneralActivityRecord.club.has(Club.status == ClubStatusEnum.normal),
+    ),
+)
+
 
 class GeneralActivityRepository(
     RepositoryBase[GeneralActivity, GeneralActivityCreate, GeneralActivityUpdate],
 ):
     model = GeneralActivity
+
+    async def get_public(self, id_: int) -> GeneralActivity | None:
+        stmt = (
+            select(self.model)
+            .where(self.model.id == id_)
+            .options(_PUBLIC_RECORDS_OPTION)
+        )
+        return (await self.db.execute(stmt)).scalars().first()
 
     async def get_multi(
         self,
@@ -33,11 +53,14 @@ class GeneralActivityRepository(
         starts_before: datetime | None = None,
         ends_after: datetime | None = None,
         has_poster: bool | None = None,
+        public_only: bool = False,
     ) -> Page[GeneralActivity]:
         stmt = select(self.model).order_by(
             GeneralActivity.starts_at.desc().nullslast(),
             GeneralActivity.created_at.desc(),
         )
+        if public_only:
+            stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
         if level is not None:
             stmt = stmt.where(self.model.level == level)
         if search is not None:

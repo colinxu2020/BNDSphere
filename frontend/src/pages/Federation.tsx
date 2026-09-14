@@ -120,7 +120,8 @@ export function Federation() {
     setLoadError(null);
     try {
       const [activityResponse, starResponse] = await Promise.all([
-        client.GET("/api/v1/general-activities/", {
+        // 社联审核需要看到 pending 记录, 走社联专用端点 (公开端点只回显已审核记录).
+        client.GET("/api/v1/club-federation/general-activity/", {
           params: { query: { size: 50 } },
         }),
         client.GET("/api/v1/star-level/", {

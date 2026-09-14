@@ -1193,6 +1193,311 @@
         }
       }
     },
+    "/api/v1/clubs/{club_id}/activities/{activity_id}/check-ins": {
+      "get": {
+        "tags": ["Club Activities"],
+        "summary": "Get Club Activity Check Ins",
+        "description": "List an activity's check-in roster (president/vice-president only).",
+        "operationId": "get_club_activity_check_ins_api_v1_clubs__club_id__activities__activity_id__check_ins_get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_ClubActivityCheckInInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Club Activities"],
+        "summary": "Check In Club Activity Manual",
+        "description": "(President/vice-president) record the roster of members who attended,\nafter the fact. Resubmitting the same user ids is a no-op for them.",
+        "operationId": "check_in_club_activity_manual_api_v1_clubs__club_id__activities__activity_id__check_ins_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubActivityManualCheckInRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ClubActivityCheckInInfo" },
+                  "title": "Response Check In Club Activity Manual Api V1 Clubs  Club Id  Activities  Activity Id  Check Ins Post"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode": {
+      "post": {
+        "tags": ["Club Activities"],
+        "summary": "Generate Club Activity Check In Qrcode",
+        "description": "(President/vice-president) mint a check-in token to render as a QR\ncode. Only works while the activity is in progress, and the token\nexpires with it.",
+        "operationId": "generate_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubActivityCheckInQrTokenInfo" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode/scan": {
+      "post": {
+        "tags": ["Club Activities"],
+        "summary": "Scan Club Activity Check In Qrcode",
+        "description": "Self check-in by scanning the activity's QR code. Any logged-in club\nmember may call this — no president/vice-president role required.",
+        "operationId": "scan_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_scan_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubActivityQrCheckInRequest" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubActivityCheckInInfo" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/admin/users/": {
       "get": {
         "tags": ["Admin: Users"],
@@ -3322,8 +3627,9 @@
       "get": {
         "tags": ["Club General Activities"],
         "summary": "Get Club General Activities",
-        "description": "List the general activities the given club practiced.",
+        "description": "List the general activities the given club practiced.\n\nOnly club president and vice president can perform this operation:\nthe response includes pending records whose proof_files have not been\nreviewed yet, so it must not be anonymously readable.",
         "operationId": "get_club_general_activities_api_v1_clubs__club_id__general_activities__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "parameters": [
           {
             "name": "club_id",
@@ -3365,6 +3671,30 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Page_ClubGeneralActivityInfo_" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },
@@ -3873,18 +4203,115 @@
       }
     },
     "/api/v1/club-federation/general-activity/": {
+      "get": {
+        "tags": ["Federation: General Activities"],
+        "summary": "List Activities",
+        "description": "List general activities for federation review.\n\nUnlike the public list endpoint, club_records includes pending and rejected\nrecords so federation staff can review them.",
+        "operationId": "list_activities_api_v1_club_federation_general_activity__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "level",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                { "$ref": "#/components/schemas/GeneralActivityLevelEnum" },
+                { "type": "null" }
+              ],
+              "title": "Level"
+            }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_GeneralActivityInfo_" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "tags": ["Federation: General Activities"],
         "summary": "Create",
         "description": "Create a new general activity.",
         "operationId": "create_api_v1_club_federation_general_activity__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
         "requestBody": {
+          "required": true,
           "content": {
             "application/json": {
               "schema": { "$ref": "#/components/schemas/GeneralActivityCreate" }
             }
-          },
-          "required": true
+          }
         },
         "responses": {
           "201": {
@@ -3899,11 +4326,11 @@
             "description": "Permission Denied",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
                 "example": {
                   "message_key": "error.role.not_allowed",
                   "error_code": "ROLE_NOT_ALLOWED"
-                }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },
@@ -3911,11 +4338,11 @@
             "description": "Unauthorized or Token invalid",
             "content": {
               "application/json": {
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
                 "example": {
                   "message_key": "error.auth.token_invalid",
                   "error_code": "AUTH_TOKEN_INVALID"
-                }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
             }
           },
@@ -3927,8 +4354,7 @@
               }
             }
           }
-        },
-        "security": [{ "OAuth2PasswordBearer": [] }]
+        }
       }
     },
     "/api/v1/club-federation/general-activity/{activity_id}": {
@@ -5557,6 +5983,40 @@
         "required": ["username", "password"],
         "title": "Body_login_api_v1_auth_login_post"
       },
+      "CheckInMethodEnum": {
+        "type": "string",
+        "enum": ["manual", "qrcode"],
+        "title": "CheckInMethodEnum"
+      },
+      "ClubActivityCheckInInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "club_activity_id": { "type": "integer", "title": "Club Activity Id" },
+          "user_id": { "type": "integer", "title": "User Id" },
+          "method": { "$ref": "#/components/schemas/CheckInMethodEnum" },
+          "checked_in_at": { "type": "string", "format": "date-time", "title": "Checked In At" },
+          "recorded_by_user_id": { "type": "integer", "title": "Recorded By User Id" }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "club_activity_id",
+          "user_id",
+          "method",
+          "checked_in_at",
+          "recorded_by_user_id"
+        ],
+        "title": "ClubActivityCheckInInfo"
+      },
+      "ClubActivityCheckInQrTokenInfo": {
+        "properties": {
+          "token": { "type": "string", "title": "Token" },
+          "expires_at": { "type": "string", "format": "date-time", "title": "Expires At" }
+        },
+        "type": "object",
+        "required": ["token", "expires_at"],
+        "title": "ClubActivityCheckInQrTokenInfo"
+      },
       "ClubActivityCreateRequestCreatePublic": {
         "properties": {
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
@@ -5630,6 +6090,27 @@
           "academic_term"
         ],
         "title": "ClubActivityInfo"
+      },
+      "ClubActivityManualCheckInRequest": {
+        "properties": {
+          "user_ids": {
+            "items": { "type": "integer" },
+            "type": "array",
+            "maxItems": 500,
+            "minItems": 1,
+            "title": "User Ids"
+          }
+        },
+        "type": "object",
+        "required": ["user_ids"],
+        "title": "ClubActivityManualCheckInRequest",
+        "description": "Request body for the president/vice-president manually recording the\nroster of members who attended."
+      },
+      "ClubActivityQrCheckInRequest": {
+        "properties": { "token": { "type": "string", "title": "Token" } },
+        "type": "object",
+        "required": ["token"],
+        "title": "ClubActivityQrCheckInRequest"
       },
       "ClubActivityUpdateRequestCreatePublic": {
         "properties": {
@@ -5728,7 +6209,12 @@
         "properties": {
           "activity_id": { "type": "integer", "title": "Activity Id" },
           "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
-          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
+          "proof_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Proof Files"
+          },
           "requested_score": { "type": "integer", "title": "Requested Score" }
         },
         "type": "object",
@@ -5774,7 +6260,12 @@
         "properties": {
           "activity_id": { "type": "integer", "title": "Activity Id" },
           "participation_type": { "$ref": "#/components/schemas/ParticipationTypeEnum" },
-          "proof_files": { "items": { "type": "string" }, "type": "array", "title": "Proof Files" },
+          "proof_files": {
+            "items": { "type": "string" },
+            "type": "array",
+            "maxItems": 20,
+            "title": "Proof Files"
+          },
           "requested_score": { "type": "integer", "title": "Requested Score" }
         },
         "type": "object",
@@ -6494,6 +6985,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[AnnouncementInfo]"
+      },
+      "Page_ClubActivityCheckInInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubActivityCheckInInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubActivityCheckInInfo]"
       },
       "Page_ClubActivityCreateRequestInfo_": {
         "properties": {
