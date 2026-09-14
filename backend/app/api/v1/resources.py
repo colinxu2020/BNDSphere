@@ -104,11 +104,28 @@ async def create_resource_file(
             {"object_key": obj_in.object_key},
         )
 
-    resource_file = await service.create(
-        obj_in,
-        file_size=actual_size,
-        uploader_id=manager.id,
-    )
+    try:
+        resource_file = await service.create(
+            obj_in,
+            file_size=actual_size,
+            uploader_id=manager.id,
+        )
+    except DuplicateResourceError:
+        # The object_key is owned by another record (live or pending deletion);
+        # its object is that record's responsibility, do not touch it.
+        raise
+    except Exception:
+        # Registration failed after the object was uploaded. Pending-deletion
+        # cleanup only scans rows with deletion_requested_at set, so this
+        # orphan would never be reclaimed; delete it as compensation.
+        try:
+            await oss_service.delete_object(obj_in.object_key)
+        except Exception:
+            logger.exception(
+                "Failed to delete orphaned object %s after registration failure",
+                obj_in.object_key,
+            )
+        raise
     return ResourceFileInfo.model_validate(resource_file)
 
 
