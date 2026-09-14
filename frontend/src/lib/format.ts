@@ -52,6 +52,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   GENERAL_ACTIVITY_NOT_FOUND: "没有找到这个大型活动",
   INVALID_MODERATION_STATUS: "审核结果只能选择通过或驳回",
   IS_NOT_MEMBER: "你当前不是该社团成员",
+  MODERATION_PAYLOAD_INVALID: "该申请的内容不符合当前规范，无法通过审核，请驳回并让申请人重新提交",
   NON_NULLABLE_FIELD_NULL: "必填字段不能留空",
   NOT_ALLOWED_LEAVE_CLUB: "社长或副社长不能直接退出社团，请先移交职位",
   CANNOT_CHANGE_PRESIDENT_ROLE: "社长不能直接变更自己的职位，请先交接社团",
@@ -120,6 +121,8 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.general_activity.record_not_found": "没有找到这条申请记录",
   "error.general_activity.record_reviewed": "这条活动记录已经审核过，不能再次修改",
   "error.moderation.duplicate_pending_request": "已经有待审核的申请，请等待处理后再提交",
+  "error.moderation.invalid_payload":
+    "该申请的内容不符合当前规范，无法通过审核，请驳回并让申请人重新提交",
   "error.request_moderate.invalid_moderation_status": "审核结果只能选择通过或驳回",
   "error.role.not_allowed": "你没有执行此操作的权限",
   "error.star_level.denied": "已通过的星级评价申请不能再修改",
