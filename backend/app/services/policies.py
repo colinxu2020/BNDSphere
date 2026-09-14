@@ -22,10 +22,11 @@ class AccessPolicy:
         allowed_roles: Collection[RoleEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role in allowed_roles:
+        effective_role = RoleEnum.admin if user.role == RoleEnum.dev else user.role
+        if effective_role in allowed_roles:
             return
         if (
-            user.role == RoleEnum.federation_staff
+            effective_role == RoleEnum.federation_staff
             and RoleEnum.moderator in allowed_roles
         ):
             return
@@ -42,7 +43,7 @@ class AccessPolicy:
         allowed_roles: Collection[ClubMembershipEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role == RoleEnum.admin:
+        if user.role in (RoleEnum.dev, RoleEnum.admin):
             return
         if membership is not None and membership.membership in allowed_roles:
             return

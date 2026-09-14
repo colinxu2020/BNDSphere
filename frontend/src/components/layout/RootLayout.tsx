@@ -10,7 +10,7 @@ import {
   Shield,
   User,
 } from "@/src/components/ui/Icons";
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
@@ -95,15 +95,10 @@ export function RootLayout({ children }: { children: ReactNode }) {
     };
   }, [isUserMenuOpen]);
 
-  const canOpenFederation = useMemo(
-    () => user?.role === "federation_staff" || user?.role === "admin",
-    [user?.role],
-  );
-  const canOpenModeration = useMemo(
-    () => user?.role === "moderator" || user?.role === "federation_staff" || user?.role === "admin",
-    [user?.role],
-  );
-  const canOpenAdmin = user?.role === "admin";
+  const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
+  const canOpenFederation = user?.role === "federation_staff" || canOpenAdmin;
+  const canOpenModeration =
+    user?.role === "moderator" || user?.role === "federation_staff" || canOpenAdmin;
 
   const handleLogout = () => {
     clearAuthToken();
