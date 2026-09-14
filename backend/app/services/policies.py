@@ -22,7 +22,12 @@ class AccessPolicy:
         allowed_roles: Collection[RoleEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role in allowed_roles or user.role == RoleEnum.dev:
+        if user.role in allowed_roles:
+            return
+        if (
+            user.role == RoleEnum.federation_staff
+            and RoleEnum.moderator in allowed_roles
+        ):
             return
         raise ResourceForbiddenError(
             "error.role.not_allowed",
@@ -37,7 +42,7 @@ class AccessPolicy:
         allowed_roles: Collection[ClubMembershipEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role in (RoleEnum.dev, RoleEnum.admin):
+        if user.role == RoleEnum.admin:
             return
         if membership is not None and membership.membership in allowed_roles:
             return

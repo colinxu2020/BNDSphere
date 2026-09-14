@@ -96,14 +96,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
   }, [isUserMenuOpen]);
 
   const canOpenFederation = useMemo(
-    () => user?.role === "federation_staff" || user?.role === "admin" || user?.role === "dev",
+    () => user?.role === "federation_staff" || user?.role === "admin",
     [user?.role],
   );
   const canOpenModeration = useMemo(
-    () => user?.role === "moderator" || user?.role === "admin" || user?.role === "dev",
+    () => user?.role === "moderator" || user?.role === "federation_staff" || user?.role === "admin",
     [user?.role],
   );
-  const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
+  const canOpenAdmin = user?.role === "admin";
 
   const handleLogout = () => {
     clearAuthToken();
