@@ -31,6 +31,7 @@ from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
 from app.api.dependencies import get_db
+from app.api.rate_limit import auth_rate_limiter
 from app.core.security import create_access_token, get_password_hash
 from app.main import app
 from app.models import User
@@ -299,6 +300,17 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
             sql.SQL("DROP DATABASE IF EXISTS {}").format(sql.Identifier(TEST_DB_NAME)),
         )
     await conn.close()
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Clear the in-process IP budgets before every test.
+
+    The limiter is a module-level singleton keyed by client IP; tests share
+    one client address, so without this reset a burst test would leak its
+    state into the next test.
+    """
+    auth_rate_limiter.clear()
 
 
 # ── per-class fixtures (class-scoped transaction) ────────────────────

@@ -8,7 +8,12 @@
 	encode
 
 	handle /api/* {
-		reverse_proxy http://backend:8000
+		reverse_proxy http://backend:8000 {
+			# Overwrite (never append to) the peer address so the backend's
+			# per-IP rate limiter can trust X-Real-IP. A client-supplied value
+			# is replaced here and never reaches the app.
+			header_up X-Real-IP {remote_host}
+		}
 	}
 
 	handle /assets/* {

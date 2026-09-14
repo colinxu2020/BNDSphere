@@ -28,11 +28,13 @@ from app.repositories.general_activities import (
     GeneralActivityRepository,
 )
 from app.repositories.joint_activities import JointActivityRepository
+from app.repositories.login_attempt import LoginAttemptRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.services.academic_term import AcademicTermService
 from app.services.announcement import AnnouncementService
+from app.services.auth import AuthService
 from app.services.club import (
     ClubMemberService,
     ClubMembershipRequestService,
@@ -121,6 +123,15 @@ type UserServiceDep = Annotated[
     UserService,
     Depends(ServiceFactory(UserService, UserRepository)),
 ]
+
+
+def get_auth_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AuthService:
+    return AuthService(UserRepository(db), LoginAttemptRepository(db))
+
+
+type AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 type UserUpdateRequestServiceDep = Annotated[
     UserUpdateRequestService,
     Depends(ServiceFactory(UserUpdateRequestService, UserUpdateRequestRepository)),
