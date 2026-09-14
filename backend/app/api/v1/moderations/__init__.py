@@ -9,7 +9,7 @@ from app.models.user import RoleEnum
 
 router = APIRouter(
     dependencies=[
-        Depends(RoleChecker([RoleEnum.moderator, RoleEnum.admin, RoleEnum.dev])),
+        Depends(RoleChecker([RoleEnum.moderator, RoleEnum.admin])),
     ],
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )
