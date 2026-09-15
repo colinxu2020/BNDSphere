@@ -14,6 +14,7 @@ from app.core.constants import (
     LOGIN_IP_MAX_PER_MINUTE,
     LOGIN_LOCKOUT_THRESHOLD,
     REGISTER_IP_MAX_PER_HOUR,
+    USER_MAX_USERNAME_LENGTH,
 )
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
 from app.core.settings import web_settings
@@ -187,6 +188,37 @@ class TestLoginThrottle:
         assert len(rows) == LOGIN_LOCKOUT_THRESHOLD
         assert all(not row.successful for row in rows)
         assert all(row.ip is not None for row in rows)
+
+
+class TestLoginUsernameBound:
+    """An over-long submitted username is clamped before it is persisted."""
+
+    async def test_oversized_username_is_clamped(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        oversized = "oversized_" + "z" * 500
+        resp = await client.post(
+            "/auth/login",
+            data={"username": oversized, "password": "whatever"},
+        )
+        assert resp.status_code == 401
+
+        truncated = oversized[:USER_MAX_USERNAME_LENGTH]
+        rows = (
+            (
+                await db_session.execute(
+                    select(LoginAttempt).where(
+                        LoginAttempt.username == truncated,
+                    ),
+                )
+            )
+            .scalars()
+            .all()
+        )
+        assert len(rows) == 1
+        assert len(rows[0].username) == USER_MAX_USERNAME_LENGTH
 
 
 class TestLockoutRetryAfter:

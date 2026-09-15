@@ -4,6 +4,7 @@ from math import ceil
 from app.core.constants import (
     LOGIN_FAILURE_WINDOW_MINUTES,
     LOGIN_LOCKOUT_THRESHOLD,
+    USER_MAX_USERNAME_LENGTH,
 )
 from app.core.security import verify_password
 from app.models.user import User
@@ -35,14 +36,23 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
     ) -> User | None:
         """Verify credentials, recording the attempt and enforcing lockout.
 
-        Counts failures against the raw submitted username — existent or not —
-        so the throttle cannot be used to probe which usernames exist. A
+        Counts failures against the submitted username — existent or not — so
+        the throttle cannot be used to probe which usernames exist. A
         successful login resets the count. The whole check-and-record runs in
         one transaction under a per-username advisory lock, so concurrent
         attempts cannot all read the same count and race past the threshold.
         The attempt row is committed before returning, so a failed login still
         leaves an audit record even though the request handler then raises.
+
+        The username is clamped to ``USER_MAX_USERNAME_LENGTH`` first: the login
+        form (``OAuth2PasswordRequestForm``) puts no bound on it, unlike
+        registration, and the value is hashed into the advisory-lock key,
+        queried, and persisted into an indexed column. Without the clamp a
+        caller could grow the audit table and its index for the whole retention
+        window, or push a value past PostgreSQL's B-tree entry limit and turn a
+        bad login into a 500.
         """
+        username = username[:USER_MAX_USERNAME_LENGTH]
         async with self.transaction():
             await self.login_attempt_repository.lock_username(username)
 
