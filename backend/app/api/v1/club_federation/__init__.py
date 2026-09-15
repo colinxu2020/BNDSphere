@@ -14,7 +14,7 @@ from app.models.user import RoleEnum
 
 router = APIRouter(
     dependencies=[
-        Depends(RoleChecker([RoleEnum.dev, RoleEnum.admin, RoleEnum.federation_staff])),
+        Depends(RoleChecker([RoleEnum.admin, RoleEnum.federation_staff])),
     ],
     responses=PERMISSION_DENIED_RESPONSE | TOKEN_INVALID_RESPONSE,
 )

@@ -28,11 +28,14 @@ from app.repositories.general_activities import (
     GeneralActivityRepository,
 )
 from app.repositories.joint_activities import JointActivityRepository
+from app.repositories.login_attempt import LoginAttemptRepository
+from app.repositories.resource_file import ResourceFileRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.services.academic_term import AcademicTermService
 from app.services.announcement import AnnouncementService
+from app.services.auth import AuthService
 from app.services.club import (
     ClubMemberService,
     ClubMembershipRequestService,
@@ -56,6 +59,7 @@ from app.services.general_activities import (
 from app.services.joint_activities import JointActivityService
 from app.services.oss import ObjectStorageService
 from app.services.policies import AccessPolicy
+from app.services.resource_file import ResourceFileService
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
 from app.services.user import UserService, UserUpdateRequestService
@@ -121,6 +125,15 @@ type UserServiceDep = Annotated[
     UserService,
     Depends(ServiceFactory(UserService, UserRepository)),
 ]
+
+
+def get_auth_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> AuthService:
+    return AuthService(UserRepository(db), LoginAttemptRepository(db))
+
+
+type AuthServiceDep = Annotated[AuthService, Depends(get_auth_service)]
 type UserUpdateRequestServiceDep = Annotated[
     UserUpdateRequestService,
     Depends(ServiceFactory(UserUpdateRequestService, UserUpdateRequestRepository)),
@@ -189,6 +202,10 @@ type StarRatingServiceDep = Annotated[
 type ObjectStorageServiceDep = Annotated[
     ObjectStorageService,
     Depends(ObjectStorageService),
+]
+type ResourceFileServiceDep = Annotated[
+    ResourceFileService,
+    Depends(ServiceFactory(ResourceFileService, ResourceFileRepository)),
 ]
 
 

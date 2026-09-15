@@ -32,6 +32,8 @@ export {
   IconMenu2 as Menu,
   IconMoon as Moon,
   IconDeviceDesktop as Monitor,
+  IconDownload as Download,
+  IconFolder as Folder,
   IconPlus as Plus,
   IconQrcode as QrCode,
   IconRefresh as RefreshCw,

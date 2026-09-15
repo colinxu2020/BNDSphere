@@ -112,7 +112,7 @@ export function JointActivities() {
           ))}
         </div>
       ) : (
-        <EmptyState title="暂无公开的联合活动" description="联合活动通过社联预审后会显示在这里。" />
+        <EmptyState title="暂无公开的联合活动" />
       )}
     </motion.div>
   );

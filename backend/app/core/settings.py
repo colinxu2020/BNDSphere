@@ -13,6 +13,12 @@ class WebSettings(_AppBaseSettings):
     debug: bool
     cors_origin: str
     secret_key: str
+    # Per-IP auth request budgets (``app.core.rate_limit``). Opt-in and off by
+    # default: a whole campus can share one NAT egress IP, so an IP-level block
+    # takes out many legitimate users at once. Set
+    # ``AUTH_IP_RATE_LIMIT_ENABLED=true`` to enforce them. The per-account
+    # failure lockout and the process-wide circuit breaker are always on.
+    auth_ip_rate_limit_enabled: bool = False
 
 
 class DatabaseSettings(_AppBaseSettings):
