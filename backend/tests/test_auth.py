@@ -1,5 +1,7 @@
+import asyncio
 from typing import ClassVar, TypedDict
 
+from altcha import Challenge, Payload, solve_challenge
 from httpx import AsyncClient
 
 from app.models import User
@@ -10,6 +12,18 @@ class ConfiguredUser(TypedDict):
 
     headers: dict[str, str]
     user: User
+
+
+async def create_altcha_payload(client: AsyncClient, purpose: str) -> str:
+    response = await client.get(
+        "/auth/altcha/challenge",
+        params={"purpose": purpose},
+    )
+    assert response.status_code == 200
+    challenge = Challenge.from_dict(response.json())
+    solution = await asyncio.to_thread(solve_challenge, challenge)
+    assert solution is not None
+    return Payload(challenge, solution).to_base64()
 
 
 class TestRegister:
@@ -28,7 +42,11 @@ class TestRegister:
         client: AsyncClient,
         setup_class_users: None,
     ) -> None:
-        payload = {"username": "brand_new_user", "password": "ada8d837f6b62e24"}
+        payload = {
+            "username": "brand_new_user",
+            "password": "ada8d837f6b62e24",
+            "altcha": await create_altcha_payload(client, "register"),
+        }
         resp = await client.post("/auth/register", json=payload)
         assert resp.status_code == 201
         body = resp.json()
@@ -41,7 +59,11 @@ class TestRegister:
         client: AsyncClient,
         setup_class_users: None,
     ) -> None:
-        payload = {"username": "existing_user", "password": "6748dfa41e25ffbf"}
+        payload = {
+            "username": "existing_user",
+            "password": "6748dfa41e25ffbf",
+            "altcha": await create_altcha_payload(client, "register"),
+        }
         resp = await client.post("/auth/register", json=payload)
         assert resp.status_code == 409
         body = resp.json()
@@ -95,7 +117,11 @@ class TestLogin:
         # so the body must be sent with ``data=`` (not ``json=``).
         resp = await client.post(
             "/auth/login",
-            data={"username": "login_user", "password": "correct-horse-battery"},
+            data={
+                "username": "login_user",
+                "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert resp.status_code == 200
         body = resp.json()
@@ -110,7 +136,11 @@ class TestLogin:
     ) -> None:
         resp = await client.post(
             "/auth/login",
-            data={"username": "login_user", "password": "wrong-password"},
+            data={
+                "username": "login_user",
+                "password": "wrong-password",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert resp.status_code == 401
         body = resp.json()
@@ -124,7 +154,11 @@ class TestLogin:
     ) -> None:
         resp = await client.post(
             "/auth/login",
-            data={"username": "ghost_user", "password": "whatever-password"},
+            data={
+                "username": "ghost_user",
+                "password": "whatever-password",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert resp.status_code == 401
         assert resp.json()["error_code"] == "INCORRECT_USER_PASSWD"
@@ -187,14 +221,95 @@ class TestSeededUsersSurviveRollback:
     ) -> None:
         first = await client.post(
             "/auth/register",
-            json={"username": "seeded_user", "password": "6748dfa41e25ffbf"},
+            json={
+                "username": "seeded_user",
+                "password": "6748dfa41e25ffbf",
+                "altcha": await create_altcha_payload(client, "register"),
+            },
         )
         assert first.status_code == 409
 
         # The seeded user must still be present → a second duplicate also 409s.
         second = await client.post(
             "/auth/register",
-            json={"username": "seeded_user", "password": "3f1c9a7b2d4e6f80"},
+            json={
+                "username": "seeded_user",
+                "password": "3f1c9a7b2d4e6f80",
+                "altcha": await create_altcha_payload(client, "register"),
+            },
         )
         assert second.status_code == 409
         assert second.json()["error_code"] == "DUPLICATE_USERNAME"
+
+
+class TestAltcha:
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {"username": "altcha_user", "password": "correct-horse-battery"},
+    ]
+
+    async def test_challenge_is_purpose_bound_and_not_cacheable(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        response = await client.get(
+            "/auth/altcha/challenge",
+            params={"purpose": "login"},
+        )
+        assert response.status_code == 200
+        assert response.headers["cache-control"] == "no-store"
+        body = response.json()
+        assert body["parameters"]["data"] == {"purpose": "login"}
+        assert body["parameters"]["expiresAt"]
+        assert body["signature"]
+
+    async def test_invalid_payload_is_rejected(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        response = await client.post(
+            "/auth/login",
+            data={
+                "username": "altcha_user",
+                "password": "correct-horse-battery",
+                "altcha": "not-a-valid-payload",
+            },
+        )
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "ALTCHA_VERIFICATION_FAILED"
+
+    async def test_challenge_cannot_cross_purposes(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        response = await client.post(
+            "/auth/login",
+            data={
+                "username": "altcha_user",
+                "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "register"),
+            },
+        )
+        assert response.status_code == 400
+        assert response.json()["error_code"] == "ALTCHA_VERIFICATION_FAILED"
+
+    async def test_solved_challenge_is_single_use(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        payload = await create_altcha_payload(client, "login")
+        credentials = {
+            "username": "altcha_user",
+            "password": "correct-horse-battery",
+            "altcha": payload,
+        }
+
+        first = await client.post("/auth/login", data=credentials)
+        second = await client.post("/auth/login", data=credentials)
+
+        assert first.status_code == 200
+        assert second.status_code == 400
+        assert second.json()["error_code"] == "ALTCHA_VERIFICATION_FAILED"

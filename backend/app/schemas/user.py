@@ -17,6 +17,14 @@ class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
 
 
+class UserRegistration(UserCreate):
+    altcha: str = Field(
+        ...,
+        min_length=1,
+        max_length=constants.ALTCHA_MAX_PAYLOAD_LENGTH,
+    )
+
+
 class UserInfo(UserBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 

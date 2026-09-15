@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { LogIn } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import {
+  AltchaVerification,
+  type AltchaVerificationRef,
+} from "../components/ui/AltchaVerification";
+import { readAltchaPayload } from "../lib/altcha";
 
 export function Login() {
   const navigate = useNavigate();
@@ -11,11 +16,19 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const altchaRef = useRef<AltchaVerificationRef>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     setError(null);
+
+    const altcha = readAltchaPayload(e.currentTarget);
+    if (!altcha) {
+      setError("请先完成人机验证。");
+      return;
+    }
+
+    setIsLoading(true);
 
     try {
       const { data, error } = await client.POST("/api/v1/auth/login", {
@@ -23,7 +36,9 @@ export function Login() {
           username: username,
           password: password,
           grant_type: "password",
-        } as any,
+          scope: "",
+          altcha,
+        },
         bodySerializer(body) {
           const params = new URLSearchParams();
           for (const [key, value] of Object.entries(body as Record<string, string>)) {
@@ -38,6 +53,7 @@ export function Login() {
 
       if (error) {
         setError(error);
+        altchaRef.current?.reset();
         return;
       }
 
@@ -49,6 +65,7 @@ export function Login() {
       }
     } catch (err: any) {
       setError(err);
+      altchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -99,6 +116,8 @@ export function Login() {
               required
             />
           </div>
+
+          <AltchaVerification ref={altchaRef} purpose="login" />
 
           <button
             type="submit"

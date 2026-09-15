@@ -2,6 +2,21 @@ from typing import Any, Final
 
 from app.schemas.generic import ErrorResponseModel
 
+ALTCHA_VERIFICATION_FAILED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    400: {
+        "model": ErrorResponseModel,
+        "description": "ALTCHA verification failed",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.altcha.verification_failed",
+                    "error_code": "ALTCHA_VERIFICATION_FAILED",
+                },
+            },
+        },
+    },
+}
+
 TOKEN_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     401: {
         "model": ErrorResponseModel,

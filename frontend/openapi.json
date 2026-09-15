@@ -139,6 +139,40 @@
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
+    "/api/v1/auth/altcha/challenge": {
+      "get": {
+        "tags": ["Auth"],
+        "summary": "Get Altcha Challenge",
+        "description": "Create a short-lived, single-use ALTCHA Core challenge.",
+        "operationId": "get_altcha_challenge_api_v1_auth_altcha_challenge_get",
+        "parameters": [
+          {
+            "name": "purpose",
+            "in": "query",
+            "required": true,
+            "schema": { "$ref": "#/components/schemas/AltchaPurpose" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AltchaChallenge" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/auth/register": {
       "post": {
         "tags": ["Auth"],
@@ -147,7 +181,9 @@
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
-            "application/json": { "schema": { "$ref": "#/components/schemas/UserCreate" } }
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/UserRegistration" }
+            }
           },
           "required": true
         },
@@ -156,6 +192,18 @@
             "description": "Successful Response",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+            }
+          },
+          "400": {
+            "description": "ALTCHA verification failed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.altcha.verification_failed",
+                  "error_code": "ALTCHA_VERIFICATION_FAILED"
+                }
+              }
             }
           },
           "409": {
@@ -194,6 +242,18 @@
             "description": "Successful Response",
             "content": {
               "application/json": { "schema": { "$ref": "#/components/schemas/Token" } }
+            }
+          },
+          "400": {
+            "description": "ALTCHA verification failed",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.altcha.verification_failed",
+                  "error_code": "ALTCHA_VERIFICATION_FAILED"
+                }
+              }
             }
           },
           "401": {
@@ -5960,8 +6020,66 @@
         "enum": ["pending", "approved", "rejected"],
         "title": "AuditStatusEnum"
       },
+      "AltchaChallenge": {
+        "properties": {
+          "parameters": { "$ref": "#/components/schemas/AltchaChallengeParameters" },
+          "signature": { "type": "string", "title": "Signature" }
+        },
+        "type": "object",
+        "required": ["parameters", "signature"],
+        "title": "AltchaChallenge"
+      },
+      "AltchaChallengeParameters": {
+        "properties": {
+          "algorithm": { "type": "string", "title": "Algorithm" },
+          "nonce": { "type": "string", "title": "Nonce" },
+          "salt": { "type": "string", "title": "Salt" },
+          "cost": { "type": "integer", "title": "Cost" },
+          "keyLength": { "type": "integer", "title": "Keylength" },
+          "keyPrefix": { "type": "string", "title": "Keyprefix" },
+          "keySignature": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Keysignature"
+          },
+          "memoryCost": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Memorycost"
+          },
+          "parallelism": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Parallelism"
+          },
+          "expiresAt": { "type": "integer", "title": "Expiresat" },
+          "data": {
+            "additionalProperties": {
+              "anyOf": [
+                { "type": "string" },
+                { "type": "integer" },
+                { "type": "boolean" },
+                { "type": "null" }
+              ]
+            },
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": ["algorithm", "nonce", "salt", "cost", "keyLength", "keyPrefix", "expiresAt", "data"],
+        "title": "AltchaChallengeParameters"
+      },
+      "AltchaPurpose": {
+        "type": "string",
+        "enum": ["login", "register"],
+        "title": "AltchaPurpose"
+      },
       "Body_login_api_v1_auth_login_post": {
         "properties": {
+          "altcha": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Altcha"
+          },
           "grant_type": {
             "anyOf": [{ "type": "string", "pattern": "^password$" }, { "type": "null" }],
             "title": "Grant Type"
@@ -5980,7 +6098,7 @@
           }
         },
         "type": "object",
-        "required": ["username", "password"],
+        "required": ["altcha", "username", "password"],
         "title": "Body_login_api_v1_auth_login_post"
       },
       "CheckInMethodEnum": {
@@ -7685,6 +7803,21 @@
         "type": "object",
         "required": ["username", "password"],
         "title": "UserCreate"
+      },
+      "UserRegistration": {
+        "properties": {
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "password": { "type": "string", "minLength": 6, "title": "Password" },
+          "altcha": {
+            "type": "string",
+            "maxLength": 4096,
+            "minLength": 1,
+            "title": "Altcha"
+          }
+        },
+        "type": "object",
+        "required": ["username", "password", "altcha"],
+        "title": "UserRegistration"
       },
       "UserGradeEnum": {
         "type": "string",

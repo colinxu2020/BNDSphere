@@ -154,6 +154,15 @@ wheels = [
 ]
 
 [[package]]
+name = "altcha"
+version = "2.1.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/5e/64/39892aece7797e936c25a63beb9878c1abb8c9b73a611c7333fa4c3e8c22/altcha-2.1.0.tar.gz", hash = "sha256:5d4d15d89f7833f0f32bb89a1dd650923d3cb113ee9f1178d8a69b2172d087ce", size = 27371, upload-time = "2026-07-27T07:47:51.877Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/69/0e/7c0fde07644a2fde0eaddfb60b5161475bc5718d0fa200ba903de8326628/altcha-2.1.0-py3-none-any.whl", hash = "sha256:843de4146e14c604ceca7e563eb245e0cfb96936323ecac2fd898fab6e034cd2", size = 20924, upload-time = "2026-07-27T07:47:50.708Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.4"
 source = { registry = "https://pypi.org/simple" }
@@ -242,6 +251,7 @@ source = { virtual = "." }
 dependencies = [
     { name = "aioboto3" },
     { name = "alembic" },
+    { name = "altcha" },
     { name = "fastapi", extra = ["standard"] },
     { name = "fastapi-pagination" },
     { name = "passlib", extra = ["argon2"] },
@@ -268,6 +278,7 @@ dev = [
 requires-dist = [
     { name = "aioboto3", specifier = ">=15.5.0" },
     { name = "alembic", specifier = ">=1.18.4" },
+    { name = "altcha", specifier = ">=2.1.0,<3" },
     { name = "fastapi", extras = ["standard"], specifier = ">=0.135.1" },
     { name = "fastapi-pagination", specifier = ">=0.15.12" },
     { name = "passlib", extras = ["argon2"], specifier = ">=1.7.4" },
@@ -1095,18 +1106,6 @@ wheels = [
 ]
 
 [[package]]
-name = "python-dateutil"
-version = "2.9.0.post0"
-source = { registry = "https://pypi.org/simple" }
-dependencies = [
-    { name = "six" },
-]
-sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
-]
-
-[[package]]
 name = "pytest"
 version = "9.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -1132,6 +1131,18 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/43/7c/d36d04db312ecf4298932ef77e6e4a9e8ad017906e24e34f0b0c361a2473/pytest_asyncio-1.4.0.tar.gz", hash = "sha256:c6c0d2259945122819f171a32ecea2c349ead889ee28176caaf492143424be42", size = 58514, upload-time = "2026-05-26T09:56:04.083Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/03/e2/08a497ef684b88559c9cc5f4ad53a37e7b99e727094a86d6ea32536d5d3c/pytest_asyncio-1.4.0-py3-none-any.whl", hash = "sha256:933ca923a23075a87fb7070c0ec272a6848489824d887c85c812670932835aa1", size = 16930, upload-time = "2026-05-26T09:56:02.576Z" },
+]
+
+[[package]]
+name = "python-dateutil"
+version = "2.9.0.post0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "six" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/66/c0/0c8b6ad9f17a802ee498c46e004a0eb49bc148f2fd230864601a86dcf6db/python-dateutil-2.9.0.post0.tar.gz", hash = "sha256:37dd54208da7e1cd875388217d5e00ebd4179249f90fb72437e91a35459a0ad3", size = 342432, upload-time = "2024-03-01T18:36:20.211Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ec/57/56b9bcc3c9c6a792fcbaf139543cee77261f3651ca9da0c93f5c1221264b/python_dateutil-2.9.0.post0-py2.py3-none-any.whl", hash = "sha256:a8b2bc7bffae282281c8140a97d3aa9c14da0b136dfe83f850eea9a5f7470427", size = 229892, upload-time = "2024-03-01T18:36:18.57Z" },
 ]
 
 [[package]]

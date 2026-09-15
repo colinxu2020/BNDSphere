@@ -1,9 +1,14 @@
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { UserPlus } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { StatusMessage } from "../components/ui/AppPrimitives";
+import {
+  AltchaVerification,
+  type AltchaVerificationRef,
+} from "../components/ui/AltchaVerification";
+import { readAltchaPayload } from "../lib/altcha";
 
 export function Register() {
   const navigate = useNavigate();
@@ -12,6 +17,7 @@ export function Register() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const altchaRef = useRef<AltchaVerificationRef>(null);
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -22,6 +28,12 @@ export function Register() {
       return;
     }
 
+    const altcha = readAltchaPayload(e.currentTarget);
+    if (!altcha) {
+      setError("请先完成人机验证。");
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -29,11 +41,13 @@ export function Register() {
         body: {
           username,
           password,
+          altcha,
         },
       });
 
       if (apiError) {
         setError(apiError);
+        altchaRef.current?.reset();
         return;
       }
 
@@ -43,6 +57,7 @@ export function Register() {
       }
     } catch (err: any) {
       setError(err);
+      altchaRef.current?.reset();
     } finally {
       setIsLoading(false);
     }
@@ -104,6 +119,8 @@ export function Register() {
               required
             />
           </div>
+
+          <AltchaVerification ref={altchaRef} purpose="register" />
 
           <button
             type="submit"
