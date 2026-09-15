@@ -69,6 +69,9 @@ services:
       - OSS_ENDPOINT_URL=${OSS_ENDPOINT_URL}
       - OSS_BUCKET=${OSS_BUCKET}
       - OSS_PUBLIC_BASE_URL=${OSS_PUBLIC_BASE_URL}
+      # Per-IP auth request budgets; off unless explicitly enabled (see
+      # WebSettings.auth_ip_rate_limit_enabled).
+      - AUTH_IP_RATE_LIMIT_ENABLED=${AUTH_IP_RATE_LIMIT_ENABLED:-false}
     restart: unless-stopped
     depends_on:
       postgres:
