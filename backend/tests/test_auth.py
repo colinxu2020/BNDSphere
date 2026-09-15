@@ -1,8 +1,17 @@
 from typing import ClassVar, TypedDict
 
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User
+from app.models import LegalConsent, User
+from app.models.legal_consent import CURRENT_LEGAL_DOCUMENT_VERSIONS
+
+VALID_CONSENTS = {
+    "accepted_privacy_policy": True,
+    "accepted_user_agreement": True,
+    "accepted_cross_border_transfer": True,
+}
 
 
 class ConfiguredUser(TypedDict):
@@ -26,9 +35,14 @@ class TestRegister:
     async def test_register_creates_new_user(
         self,
         client: AsyncClient,
+        db_session: AsyncSession,
         setup_class_users: None,
     ) -> None:
-        payload = {"username": "brand_new_user", "password": "ada8d837f6b62e24"}
+        payload = {
+            "username": "brand_new_user",
+            "password": "ada8d837f6b62e24",
+            **VALID_CONSENTS,
+        }
         resp = await client.post("/auth/register", json=payload)
         assert resp.status_code == 201
         body = resp.json()
@@ -36,12 +50,27 @@ class TestRegister:
         assert isinstance(body["id"], int)
         assert "hashed_password" not in body
 
+        consents = (
+            await db_session.scalars(
+                select(LegalConsent).where(LegalConsent.user_id == body["id"]),
+            )
+        ).all()
+        assert len(consents) == len(CURRENT_LEGAL_DOCUMENT_VERSIONS)
+        assert {
+            consent.document: consent.document_version for consent in consents
+        } == dict(CURRENT_LEGAL_DOCUMENT_VERSIONS)
+        assert all(consent.accepted_at is not None for consent in consents)
+
     async def test_register_duplicate_username(
         self,
         client: AsyncClient,
         setup_class_users: None,
     ) -> None:
-        payload = {"username": "existing_user", "password": "6748dfa41e25ffbf"}
+        payload = {
+            "username": "existing_user",
+            "password": "6748dfa41e25ffbf",
+            **VALID_CONSENTS,
+        }
         resp = await client.post("/auth/register", json=payload)
         assert resp.status_code == 409
         body = resp.json()
@@ -57,7 +86,11 @@ class TestRegister:
         # password < min_length(6) → pydantic 422 before any DB write.
         resp = await client.post(
             "/auth/register",
-            json={"username": "short_pw_user", "password": "12345"},
+            json={
+                "username": "short_pw_user",
+                "password": "12345",
+                **VALID_CONSENTS,
+            },
         )
         assert resp.status_code == 422
         detail = resp.json()["detail"]
@@ -71,12 +104,41 @@ class TestRegister:
     ) -> None:
         resp = await client.post(
             "/auth/register",
-            json={"username": "no_password_user"},
+            json={"username": "no_password_user", **VALID_CONSENTS},
         )
         assert resp.status_code == 422
         detail = resp.json()["detail"]
         assert detail[0]["loc"] == ["body", "password"]
         assert detail[0]["type"] == "missing"
+
+    async def test_register_requires_all_three_consents(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        for index, field in enumerate(VALID_CONSENTS):
+            payload = {
+                "username": f"declines_consent_{index}",
+                "password": "ada8d837f6b62e24",
+                **VALID_CONSENTS,
+                field: False,
+            }
+            resp = await client.post("/auth/register", json=payload)
+            assert resp.status_code == 422
+            assert resp.json()["detail"][0]["loc"] == ["body", field]
+
+    async def test_register_requires_explicit_consents(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        resp = await client.post(
+            "/auth/register",
+            json={"username": "no_consents_user", "password": "ada8d837f6b62e24"},
+        )
+        assert resp.status_code == 422
+        missing_fields = {item["loc"][-1] for item in resp.json()["detail"]}
+        assert missing_fields == set(VALID_CONSENTS)
 
 
 class TestLogin:
@@ -187,14 +249,22 @@ class TestSeededUsersSurviveRollback:
     ) -> None:
         first = await client.post(
             "/auth/register",
-            json={"username": "seeded_user", "password": "6748dfa41e25ffbf"},
+            json={
+                "username": "seeded_user",
+                "password": "6748dfa41e25ffbf",
+                **VALID_CONSENTS,
+            },
         )
         assert first.status_code == 409
 
         # The seeded user must still be present → a second duplicate also 409s.
         second = await client.post(
             "/auth/register",
-            json={"username": "seeded_user", "password": "3f1c9a7b2d4e6f80"},
+            json={
+                "username": "seeded_user",
+                "password": "3f1c9a7b2d4e6f80",
+                **VALID_CONSENTS,
+            },
         )
         assert second.status_code == 409
         assert second.json()["error_code"] == "DUPLICATE_USERNAME"

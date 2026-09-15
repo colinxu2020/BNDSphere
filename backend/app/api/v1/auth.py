@@ -26,7 +26,7 @@ router = APIRouter(tags=["Auth"])
     },
 )
 async def register(user: UserCreate, service: UserServiceDep) -> UserInfo:
-    """Register a new user. Username must be unique."""
+    """Register a new user after all legal consents are explicitly accepted."""
     return UserInfo.model_validate(await service.create(user))
 
 
