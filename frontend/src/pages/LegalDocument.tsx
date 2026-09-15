@@ -45,7 +45,7 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
       continue;
     }
 
-    const heading = /^(#{1,3})\s+(.+)$/.exec(line);
+    const heading = /^(#{1,4})\s+(.+)$/.exec(line);
     if (heading) {
       const level = heading[1].length;
       const className =
@@ -53,7 +53,9 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
           ? "mb-6 mt-10 text-2xl font-bold text-slate-950 first:mt-0 sm:text-3xl"
           : level === 2
             ? "mb-4 mt-8 text-xl font-bold text-slate-900"
-            : "mb-3 mt-6 text-lg font-semibold text-slate-900";
+            : level === 3
+              ? "mb-3 mt-6 text-lg font-semibold text-slate-900"
+              : "mb-2 mt-5 font-semibold text-slate-800";
       const children = renderInline(heading[2], `heading-${index}`);
       blocks.push(
         level === 1 ? (
@@ -64,10 +66,14 @@ function MarkdownDocument({ markdown }: { markdown: string }) {
           <h2 key={index} className={className}>
             {children}
           </h2>
-        ) : (
+        ) : level === 3 ? (
           <h3 key={index} className={className}>
             {children}
           </h3>
+        ) : (
+          <h4 key={index} className={className}>
+            {children}
+          </h4>
         ),
       );
       index += 1;

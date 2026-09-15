@@ -192,7 +192,7 @@ function ConsentCheckbox({
       />
       <div className="text-sm leading-5 text-slate-600">
         <label htmlFor={id} className="cursor-pointer">
-          我已{separate ? "单独" : ""}阅读并同意
+          我已阅读并{separate ? "单独" : ""}同意
         </label>{" "}
         <Link
           to={linkTo}

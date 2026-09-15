@@ -11,6 +11,7 @@ from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
     from app.models.clubmember import ClubMember
+    from app.models.legal_consent import LegalConsent
 
 
 class RoleEnum(StrEnum):
@@ -89,6 +90,10 @@ class User(Base):
         server_default=func.now(),
     )
     club_memberships: Mapped[list[ClubMember]] = relationship(back_populates="user")
+    legal_consents: Mapped[list[LegalConsent]] = relationship(
+        back_populates="user",
+        passive_deletes=True,
+    )
 
 
 class AuditMixin:

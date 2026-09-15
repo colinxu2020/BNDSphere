@@ -1,8 +1,11 @@
 from typing import ClassVar, TypedDict
 
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import User
+from app.models import LegalConsent, User
+from app.models.legal_consent import CURRENT_LEGAL_DOCUMENT_VERSIONS
 
 VALID_CONSENTS = {
     "accepted_privacy_policy": True,
@@ -32,6 +35,7 @@ class TestRegister:
     async def test_register_creates_new_user(
         self,
         client: AsyncClient,
+        db_session: AsyncSession,
         setup_class_users: None,
     ) -> None:
         payload = {
@@ -45,6 +49,17 @@ class TestRegister:
         assert body["username"] == "brand_new_user"
         assert isinstance(body["id"], int)
         assert "hashed_password" not in body
+
+        consents = (
+            await db_session.scalars(
+                select(LegalConsent).where(LegalConsent.user_id == body["id"]),
+            )
+        ).all()
+        assert len(consents) == len(CURRENT_LEGAL_DOCUMENT_VERSIONS)
+        assert {
+            consent.document: consent.document_version for consent in consents
+        } == dict(CURRENT_LEGAL_DOCUMENT_VERSIONS)
+        assert all(consent.accepted_at is not None for consent in consents)
 
     async def test_register_duplicate_username(
         self,

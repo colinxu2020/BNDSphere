@@ -8,6 +8,7 @@ from app.models.clubmember import ClubMember
 from app.models.clubtag import club_tag_table  # noqa: F401
 from app.models.general_activity import GeneralActivity
 from app.models.joint_activity import JointActivity, JointActivityParticipation
+from app.models.legal_consent import LegalConsent
 from app.models.login_attempt import LoginAttempt
 from app.models.resource_file import ResourceFile
 from app.models.star_level import StarLevelApplication
@@ -24,6 +25,7 @@ __all__ = [
     "GeneralActivity",
     "JointActivity",
     "JointActivityParticipation",
+    "LegalConsent",
     "LoginAttempt",
     "ResourceFile",
     "StarLevelApplication",
