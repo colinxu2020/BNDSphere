@@ -7,6 +7,7 @@ from httpx import AsyncClient
 from sqlalchemy import BigInteger, cast, func, select
 from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
+from app.api import rate_limit as api_rate_limit
 from app.core import rate_limit as rate_limit_module
 from app.core.constants import (
     LOGIN_FAILURE_WINDOW_MINUTES,
@@ -15,6 +16,7 @@ from app.core.constants import (
     REGISTER_IP_MAX_PER_HOUR,
 )
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
+from app.core.settings import web_settings
 from app.models import LoginAttempt
 from app.repositories.login_attempt import LoginAttemptRepository, _advisory_key
 from app.repositories.user import UserRepository
@@ -272,6 +274,31 @@ class TestRegisterIpRateLimit:
         assert blocked.status_code == 429
         assert blocked.json()["error_code"] == "RATE_LIMITED"
         assert int(blocked.headers["Retry-After"]) >= 1
+
+
+class TestPerIpLimitToggle:
+    """The per-IP budgets are opt-in; off unless the setting is on."""
+
+    async def test_register_burst_passes_when_disabled(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(api_rate_limit, "ip_rate_limit_enabled", lambda: False)
+        payload = {"username": "toggle_user", "password": "12345"}
+        # Well past the register budget, yet every request still reaches the
+        # validator instead of being rejected with 429.
+        for _ in range(REGISTER_IP_MAX_PER_HOUR + 1):
+            resp = await client.post("/auth/register", json=payload)
+            assert resp.status_code == 422
+
+    def test_default_is_off(self, monkeypatch: pytest.MonkeyPatch) -> None:
+        monkeypatch.delenv("AUTH_IP_RATE_LIMIT_ENABLED", raising=False)
+        web_settings.cache_clear()
+        try:
+            assert api_rate_limit.ip_rate_limit_enabled() is False
+        finally:
+            web_settings.cache_clear()
 
 
 class TestLoginIpRateLimit:

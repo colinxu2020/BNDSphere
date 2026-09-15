@@ -11,6 +11,7 @@ from app.core.constants import (
     REGISTER_IP_MAX_PER_HOUR,
 )
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
+from app.core.settings import web_settings
 from app.services.errors import RateLimitError
 
 auth_rate_limiter = InMemoryRateLimiter()
@@ -43,15 +44,28 @@ def client_ip(request: Request) -> str:
     return "unknown"
 
 
+def ip_rate_limit_enabled() -> bool:
+    """Whether the per-IP budgets run (``AUTH_IP_RATE_LIMIT_ENABLED``).
+
+    Read per request through the cached settings so the switch is a deploy-time
+    env change rather than something baked into the module at import.
+    """
+    return web_settings().auth_ip_rate_limit_enabled
+
+
 def rate_limit(
     scope: str,
     rules: Sequence[RateLimitRule],
 ) -> Callable[[Request], Awaitable[None]]:
     async def dependency(request: Request) -> None:
-        entries = (
-            (f"{scope}:{client_ip(request)}", rules),
+        # The process-wide breaker is unconditional; only the per-IP budget is
+        # switchable, so disabling it leaves the shared circuit breaker in
+        # place rather than turning the endpoint wide open.
+        entries: list[tuple[str, Sequence[RateLimitRule]]] = [
             ("auth:global", _GLOBAL_RULES),
-        )
+        ]
+        if ip_rate_limit_enabled():
+            entries.append((f"{scope}:{client_ip(request)}", rules))
         retry_after = await auth_rate_limiter.hit(entries)
         if retry_after is not None:
             raise RateLimitError(retry_after=max(1, ceil(retry_after)))
