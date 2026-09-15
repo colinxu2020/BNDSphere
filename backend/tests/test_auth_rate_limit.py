@@ -1,10 +1,12 @@
 import asyncio
 from typing import ClassVar
 
+import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import BigInteger, cast, func, select
+from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
+from app.core import rate_limit as rate_limit_module
 from app.core.constants import (
     LOGIN_IP_MAX_PER_MINUTE,
     LOGIN_LOCKOUT_THRESHOLD,
@@ -12,6 +14,16 @@ from app.core.constants import (
 )
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
 from app.models import LoginAttempt
+from app.repositories.login_attempt import LoginAttemptRepository, _advisory_key
+
+
+async def _try_advisory_lock(conn: AsyncConnection, username: str) -> bool:
+    result = await conn.execute(
+        select(
+            func.pg_try_advisory_xact_lock(cast(_advisory_key(username), BigInteger)),
+        ),
+    )
+    return bool(result.scalar_one())
 
 
 class TestInMemoryRateLimiter:
@@ -59,6 +71,63 @@ class TestInMemoryRateLimiter:
         limiter = InMemoryRateLimiter()
         limiter.clear()
         assert limiter._buckets == {}  # noqa: SLF001 -- white-box reset check
+
+    async def test_eviction_sheds_only_the_coldest(
+        self,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        monkeypatch.setattr(rate_limit_module, "_MAX_TRACKED_KEYS", 2)
+        limiter = InMemoryRateLimiter()
+        rules = [RateLimitRule(limit=5, window_seconds=60)]
+
+        await limiter.hit([("hot", rules)])
+        await limiter.hit([("cold", rules)])
+        await limiter.hit([("hot", rules)])
+        # Over the cap: the least recently used key goes, not the whole map.
+        await limiter.hit([("new", rules)])
+
+        assert set(limiter._buckets) == {"hot", "new"}  # noqa: SLF001
+
+
+class TestUsernameAdvisoryLock:
+    """A per-username advisory lock serializes check-and-record."""
+
+    async def test_same_username_excludes_other_sessions(
+        self,
+        db_engine: AsyncEngine,
+    ) -> None:
+        async with db_engine.connect() as holder, db_engine.connect() as other:
+            await holder.execute(
+                select(
+                    func.pg_advisory_xact_lock(
+                        cast(_advisory_key("race_user"), BigInteger),
+                    ),
+                ),
+            )
+            # The holder's key is exclusive, but unrelated usernames are free.
+            assert await _try_advisory_lock(other, "race_user") is False
+            assert await _try_advisory_lock(other, "unrelated_user") is True
+
+    async def test_login_takes_the_username_lock(
+        self,
+        client: AsyncClient,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        locked: list[str] = []
+        original = LoginAttemptRepository.lock_username
+
+        async def spy(repository: LoginAttemptRepository, username: str) -> None:
+            locked.append(username)
+            await original(repository, username)
+
+        monkeypatch.setattr(LoginAttemptRepository, "lock_username", spy)
+
+        resp = await client.post(
+            "/auth/login",
+            data={"username": "lock_spy_user", "password": "whatever"},
+        )
+        assert resp.status_code == 401
+        assert locked == ["lock_spy_user"]
 
 
 class TestLoginThrottle:

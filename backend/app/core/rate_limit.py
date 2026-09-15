@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import asyncio
-from collections import deque
+from collections import OrderedDict, deque
 from collections.abc import Sequence
 from dataclasses import dataclass, field
 from time import monotonic
 from typing import Final
 
-# Above this many tracked keys (one per scope+IP), evict stale buckets. Only
-# reachable under a distributed source-IP flood; keeps memory bounded.
+# Above this many tracked keys (one per scope+IP), evict the coldest buckets.
+# Only reachable under a distributed source-IP flood; keeps memory bounded.
 _MAX_TRACKED_KEYS: Final[int] = 100_000
 
 
@@ -34,7 +34,9 @@ class InMemoryRateLimiter:
     """
 
     def __init__(self) -> None:
-        self._buckets: dict[str, _Bucket] = {}
+        # Ordered least- to most-recently-used so the cap can evict the
+        # coldest buckets without discarding the active ones.
+        self._buckets: OrderedDict[str, _Bucket] = OrderedDict()
         self._lock = asyncio.Lock()
 
     async def hit(
@@ -56,7 +58,7 @@ class InMemoryRateLimiter:
             for key, rules in entries:
                 window = max(rule.window_seconds for rule in rules)
                 self._record(key, window, now)
-            self._evict_if_needed(now)
+            self._evict_if_needed()
             return None
 
     def clear(self) -> None:
@@ -91,12 +93,14 @@ class InMemoryRateLimiter:
         cutoff = now - window
         while bucket.hits and bucket.hits[0] <= cutoff:
             bucket.hits.popleft()
+        self._buckets.move_to_end(key)
 
-    def _evict_if_needed(self, now: float) -> None:
-        if len(self._buckets) <= _MAX_TRACKED_KEYS:
-            return
-        for key, bucket in list(self._buckets.items()):
-            if not bucket.hits or bucket.hits[-1] <= now - bucket.window_seconds:
-                del self._buckets[key]
-        if len(self._buckets) > _MAX_TRACKED_KEYS:
-            self._buckets.clear()
+    def _evict_if_needed(self) -> None:
+        """Trim the coldest buckets once the tracked-key cap is exceeded.
+
+        Never clears the whole mapping: the shared global bucket and active
+        clients are the most recently used and survive, so a flood of fresh
+        source keys cannot reset everyone's budget to a clean slate.
+        """
+        while len(self._buckets) > _MAX_TRACKED_KEYS:
+            self._buckets.popitem(last=False)

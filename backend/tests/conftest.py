@@ -28,7 +28,12 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from psycopg import sql
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.api.dependencies import get_db
 from app.api.rate_limit import auth_rate_limiter
@@ -314,6 +319,16 @@ def _reset_rate_limiter() -> None:
 
 
 # ── per-class fixtures (class-scoped transaction) ────────────────────
+
+
+@pytest.fixture(scope="session")
+def db_engine() -> AsyncEngine:
+    """The app_user engine, for tests that need their own connections.
+
+    Unlike ``db_session``, which is joined into one class-scoped transaction,
+    these connections commit and roll back independently.
+    """
+    return engine
 
 
 @pytest_asyncio.fixture(scope="class")

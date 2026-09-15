@@ -43,21 +43,26 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
 
         Counts failures against the raw submitted username — existent or not —
         so the throttle cannot be used to probe which usernames exist. A
-        successful login resets the count. The attempt row is committed before
-        returning, so a failed login still leaves an audit record even though
-        the request handler then raises.
+        successful login resets the count. The whole check-and-record runs in
+        one transaction under a per-username advisory lock, so concurrent
+        attempts cannot all read the same count and race past the threshold.
+        The attempt row is committed before returning, so a failed login still
+        leaves an audit record even though the request handler then raises.
         """
-        failure_count = await self._recent_failure_count(username)
-        if failure_count >= LOGIN_LOCKOUT_THRESHOLD:
-            raise LoginThrottledError(self._backoff_seconds(failure_count))
+        async with self.transaction():
+            await self.login_attempt_repository.lock_username(username)
 
-        user = await self.repository.get_by_username(username)
-        successful = user is not None and verify_password(
-            password,
-            user.hashed_password,
-        )
-        await self._record_attempt(username, ip, successful=successful)
-        return user if successful else None
+            failure_count = await self._recent_failure_count(username)
+            if failure_count >= LOGIN_LOCKOUT_THRESHOLD:
+                raise LoginThrottledError(self._backoff_seconds(failure_count))
+
+            user = await self.repository.get_by_username(username)
+            successful = user is not None and verify_password(
+                password,
+                user.hashed_password,
+            )
+            await self._record_attempt(username, ip, successful=successful)
+            return user if successful else None
 
     async def _recent_failure_count(self, username: str) -> int:
         since = datetime.now(UTC) - timedelta(minutes=LOGIN_FAILURE_WINDOW_MINUTES)
