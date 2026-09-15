@@ -46,10 +46,15 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
         async with self.transaction():
             await self.login_attempt_repository.lock_username(username)
 
-            failure_count = await self._recent_failure_count(username)
+            # Resolve the window once and thread it through: recomputing it for
+            # the expiry boundary would use a later ``now`` (and run another
+            # ``last_success_at`` query), which can shift the boundary by a row
+            # at the window edge and disagree with the count it must match.
+            since = await self._window_start(username)
+            failure_count = await self._recent_failure_count(username, since)
             if failure_count >= LOGIN_LOCKOUT_THRESHOLD:
                 raise LoginThrottledError(
-                    await self._retry_after_seconds(username, failure_count),
+                    await self._retry_after_seconds(username, failure_count, since),
                 )
 
             user = await self.repository.get_by_username(username)
@@ -60,10 +65,10 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
             await self._record_attempt(username, ip, successful=successful)
             return user if successful else None
 
-    async def _recent_failure_count(self, username: str) -> int:
+    async def _recent_failure_count(self, username: str, since: datetime) -> int:
         return await self.login_attempt_repository.count_failures_since(
             username,
-            await self._window_start(username),
+            since,
         )
 
     async def _window_start(self, username: str) -> datetime:
@@ -78,17 +83,25 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
             since = last_success
         return since
 
-    async def _retry_after_seconds(self, username: str, failure_count: int) -> int:
+    async def _retry_after_seconds(
+        self,
+        username: str,
+        failure_count: int,
+        since: datetime,
+    ) -> int:
         """Seconds until enough old failures age out to lift the lockout.
 
         Blocked requests are not recorded, so ``failure_count`` never climbs
         past the threshold; the wait is therefore until the oldest in-window
         failures expire — at most the failure window, and never the fixed,
         misleading 30s the previous backoff always produced.
+
+        ``since`` is the same bound ``failure_count`` was measured with, so the
+        boundary row lines up with the count that triggered the lockout.
         """
         boundary = await self.login_attempt_repository.failure_expiry_boundary(
             username,
-            await self._window_start(username),
+            since,
             failure_count - LOGIN_LOCKOUT_THRESHOLD,
         )
         if boundary is None:  # pragma: no cover - a counted failure must exist

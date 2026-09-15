@@ -214,6 +214,7 @@ class TestLockoutRetryAfter:
         retry_after = await service._retry_after_seconds(  # noqa: SLF001
             "boundary_user",
             12,
+            now - timedelta(minutes=LOGIN_FAILURE_WINDOW_MINUTES),
         )
 
         # Twelve failures one minute apart: the lockout lifts once the
