@@ -72,6 +72,13 @@ const router = createBrowserRouter([
           })),
       },
       {
+        path: "resources",
+        lazy: () =>
+          import("./pages/ResourceCenter").then(({ ResourceCenter }) => ({
+            Component: ResourceCenter,
+          })),
+      },
+      {
         path: "users/:id",
         lazy: () =>
           import("./pages/UserProfile").then(({ UserProfile }) => ({ Component: UserProfile })),

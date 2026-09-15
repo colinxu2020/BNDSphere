@@ -29,6 +29,7 @@ from app.repositories.general_activities import (
 )
 from app.repositories.joint_activities import JointActivityRepository
 from app.repositories.login_attempt import LoginAttemptRepository
+from app.repositories.resource_file import ResourceFileRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
@@ -58,6 +59,7 @@ from app.services.general_activities import (
 from app.services.joint_activities import JointActivityService
 from app.services.oss import ObjectStorageService
 from app.services.policies import AccessPolicy
+from app.services.resource_file import ResourceFileService
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
 from app.services.user import UserService, UserUpdateRequestService
@@ -200,6 +202,10 @@ type StarRatingServiceDep = Annotated[
 type ObjectStorageServiceDep = Annotated[
     ObjectStorageService,
     Depends(ObjectStorageService),
+]
+type ResourceFileServiceDep = Annotated[
+    ResourceFileService,
+    Depends(ServiceFactory(ResourceFileService, ResourceFileRepository)),
 ]
 
 

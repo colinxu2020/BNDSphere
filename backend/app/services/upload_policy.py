@@ -25,6 +25,7 @@ IMAGE_ALLOWED_EXTENSIONS: Final[frozenset[str]] = frozenset(
     {"jpg", "jpeg", "png", "webp"},
 )
 APPLICATION_FILE_MAX_SIZE: Final = 50 * 1024 * 1024
+RESOURCE_FILE_MAX_SIZE: Final = 50 * 1024 * 1024
 APPLICATION_FILE_ALLOWED_CONTENT_TYPES: Final[frozenset[str]] = frozenset(
     {
         "application/msword",
@@ -41,8 +42,8 @@ APPLICATION_FILE_ALLOWED_EXTENSIONS: Final[frozenset[str]] = frozenset(
 class UploadPolicy:
     scene: UploadScene
     max_size: int
-    allowed_content_types: frozenset[str]
-    allowed_extensions: frozenset[str]
+    allowed_content_types: frozenset[str] | None
+    allowed_extensions: frozenset[str] | None
     oss_dir: str
     expires_seconds: int = 600
 
@@ -82,6 +83,13 @@ UPLOAD_POLICIES: Mapping[UploadScene, UploadPolicy] = MappingProxyType(
             scene=UploadScene.JOINT_ACTIVITY_ARCHIVE,
             oss_dir=SCENE_OSS_DIRS[UploadScene.JOINT_ACTIVITY_ARCHIVE],
         ),
+        UploadScene.RESOURCE_FILE: UploadPolicy(
+            scene=UploadScene.RESOURCE_FILE,
+            max_size=RESOURCE_FILE_MAX_SIZE,
+            allowed_content_types=None,
+            allowed_extensions=None,
+            oss_dir=SCENE_OSS_DIRS[UploadScene.RESOURCE_FILE],
+        ),
     },
 )
 
@@ -93,13 +101,19 @@ def validate_file(policy: UploadPolicy, req: InitiateUploadRequest) -> None:
             detail="File too large",
         )
 
-    if req.content_type not in policy.allowed_content_types:
+    if (
+        policy.allowed_content_types is not None
+        and req.content_type not in policy.allowed_content_types
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Unsupported content type",
         )
 
-    if req.extension not in policy.allowed_extensions:
+    if (
+        policy.allowed_extensions is not None
+        and req.extension not in policy.allowed_extensions
+    ):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Unsupported file extension",
