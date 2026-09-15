@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 import pytest
@@ -8,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 
 from app.core import rate_limit as rate_limit_module
 from app.core.constants import (
+    LOGIN_FAILURE_WINDOW_MINUTES,
     LOGIN_IP_MAX_PER_MINUTE,
     LOGIN_LOCKOUT_THRESHOLD,
     REGISTER_IP_MAX_PER_HOUR,
@@ -15,6 +17,8 @@ from app.core.constants import (
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
 from app.models import LoginAttempt
 from app.repositories.login_attempt import LoginAttemptRepository, _advisory_key
+from app.repositories.user import UserRepository
+from app.services.auth import AuthService
 
 
 async def _try_advisory_lock(conn: AsyncConnection, username: str) -> bool:
@@ -160,7 +164,10 @@ class TestLoginThrottle:
         )
         assert blocked.status_code == 429
         assert blocked.json()["error_code"] == "LOGIN_THROTTLED"
-        assert int(blocked.headers["Retry-After"]) >= 1
+        # The failures are seconds old, so the account stays locked for close
+        # to the whole window — not the fixed 30s a dead backoff would report.
+        retry_after = int(blocked.headers["Retry-After"])
+        assert 30 < retry_after <= LOGIN_FAILURE_WINDOW_MINUTES * 60
 
         # Every failure is audited with the source IP; the blocked attempt is
         # not recorded.
@@ -178,6 +185,38 @@ class TestLoginThrottle:
         assert len(rows) == LOGIN_LOCKOUT_THRESHOLD
         assert all(not row.successful for row in rows)
         assert all(row.ip is not None for row in rows)
+
+
+class TestLockoutRetryAfter:
+    """``Retry-After`` points at the moment the lockout actually lifts."""
+
+    async def test_retry_after_tracks_the_expiring_boundary(
+        self,
+        db_session: AsyncSession,
+    ) -> None:
+        now = datetime.now(UTC)
+        for minutes_ago in range(12):
+            db_session.add(
+                LoginAttempt(
+                    username="boundary_user",
+                    successful=False,
+                    created_at=now - timedelta(minutes=minutes_ago),
+                ),
+            )
+        await db_session.flush()
+
+        service = AuthService(
+            UserRepository(db_session),
+            LoginAttemptRepository(db_session),
+        )
+        retry_after = await service._retry_after_seconds(  # noqa: SLF001
+            "boundary_user",
+            12,
+        )
+
+        # Twelve failures one minute apart: the lockout lifts once the
+        # 3rd-oldest (index 2, nine minutes old) ages out, so ~51 minutes.
+        assert 50 * 60 <= retry_after <= 51 * 60 + 1
 
 
 class TestLoginThrottleReset:

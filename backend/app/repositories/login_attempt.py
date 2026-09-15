@@ -51,6 +51,32 @@ class LoginAttemptRepository(
         )
         return int(result.scalar_one())
 
+    async def failure_expiry_boundary(
+        self,
+        username: str,
+        since: datetime,
+        rank: int,
+    ) -> datetime | None:
+        """Creation time of the ``rank``-th oldest in-window failure (0-based).
+
+        The lockout lifts once the in-window failure count drops below the
+        threshold; that happens when the ``count - threshold + 1``-th oldest
+        failure ages out, i.e. the entry at 0-based offset
+        ``count - threshold``. Returns ``None`` when fewer rows exist.
+        """
+        result = await self.db.execute(
+            select(LoginAttempt.created_at)
+            .where(
+                LoginAttempt.username == username,
+                LoginAttempt.successful.is_(False),
+                LoginAttempt.created_at >= since,
+            )
+            .order_by(LoginAttempt.created_at.asc())
+            .offset(rank)
+            .limit(1),
+        )
+        return result.scalar_one_or_none()
+
     async def last_success_at(self, username: str) -> datetime | None:
         result = await self.db.execute(
             select(func.max(LoginAttempt.created_at)).where(

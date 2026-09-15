@@ -20,7 +20,6 @@ class RateLimitRule:
 
 @dataclass(slots=True)
 class _Bucket:
-    window_seconds: float
     hits: deque[float] = field(default_factory=deque)
 
 
@@ -86,9 +85,8 @@ class InMemoryRateLimiter:
     def _record(self, key: str, window: float, now: float) -> None:
         bucket = self._buckets.get(key)
         if bucket is None:
-            bucket = _Bucket(window_seconds=window)
+            bucket = _Bucket()
             self._buckets[key] = bucket
-        bucket.window_seconds = window
         bucket.hits.append(now)
         cutoff = now - window
         while bucket.hits and bucket.hits[0] <= cutoff:
