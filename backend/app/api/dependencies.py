@@ -1,4 +1,5 @@
 from collections.abc import AsyncGenerator
+from functools import cache
 from typing import Annotated, Protocol
 
 from fastapi.params import Depends
@@ -34,6 +35,7 @@ from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.services.academic_term import AcademicTermService
+from app.services.altcha import AltchaService
 from app.services.announcement import AnnouncementService
 from app.services.auth import AuthService
 from app.services.club import (
@@ -206,6 +208,17 @@ type ObjectStorageServiceDep = Annotated[
 type ResourceFileServiceDep = Annotated[
     ResourceFileService,
     Depends(ServiceFactory(ResourceFileService, ResourceFileRepository)),
+]
+
+
+@cache
+def get_altcha_service() -> AltchaService:
+    return AltchaService()
+
+
+type AltchaServiceDep = Annotated[
+    AltchaService,
+    Depends(get_altcha_service),
 ]
 
 

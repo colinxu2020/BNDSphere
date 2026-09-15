@@ -64,6 +64,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/altcha/challenge": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Altcha Challenge
+     * @description Create a short-lived, single-use ALTCHA Core challenge.
+     */
+    get: operations["get_altcha_challenge_api_v1_auth_altcha_challenge_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/auth/register": {
     parameters: {
       query?: never;
@@ -1563,8 +1583,48 @@ export interface components {
      * @enum {string}
      */
     AuditStatusEnum: "pending" | "approved" | "rejected";
+    /** AltchaChallenge */
+    AltchaChallenge: {
+      parameters: components["schemas"]["AltchaChallengeParameters"];
+      /** Signature */
+      signature: string;
+    };
+    /** AltchaChallengeParameters */
+    AltchaChallengeParameters: {
+      /** Algorithm */
+      algorithm: string;
+      /** Nonce */
+      nonce: string;
+      /** Salt */
+      salt: string;
+      /** Cost */
+      cost: number;
+      /** Keylength */
+      keyLength: number;
+      /** Keyprefix */
+      keyPrefix: string;
+      /** Keysignature */
+      keySignature?: string | null;
+      /** Memorycost */
+      memoryCost?: number | null;
+      /** Parallelism */
+      parallelism?: number | null;
+      /** Expiresat */
+      expiresAt: number;
+      /** Data */
+      data: {
+        [key: string]: string | number | boolean | null;
+      };
+    };
+    /**
+     * AltchaPurpose
+     * @enum {string}
+     */
+    AltchaPurpose: "login" | "register";
     /** Body_login_api_v1_auth_login_post */
     Body_login_api_v1_auth_login_post: {
+      /** Altcha */
+      altcha: string;
       /** Grant Type */
       grant_type?: string | null;
       /** Username */
@@ -2815,6 +2875,15 @@ export interface components {
       /** Accepted Cross Border Transfer */
       accepted_cross_border_transfer: true;
     };
+    /** UserRegistration */
+    UserRegistration: {
+      /** Username */
+      username: string;
+      /** Password */
+      password: string;
+      /** Altcha */
+      altcha: string;
+    };
     /**
      * UserGradeEnum
      * @enum {string}
@@ -3058,6 +3127,37 @@ export interface operations {
       };
     };
   };
+  get_altcha_challenge_api_v1_auth_altcha_challenge_get: {
+    parameters: {
+      query: {
+        purpose: components["schemas"]["AltchaPurpose"];
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AltchaChallenge"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   register_api_v1_auth_register_post: {
     parameters: {
       query?: never;
@@ -3067,7 +3167,7 @@ export interface operations {
     };
     requestBody: {
       content: {
-        "application/json": components["schemas"]["UserCreate"];
+        "application/json": components["schemas"]["UserRegistration"];
       };
     };
     responses: {
@@ -3078,6 +3178,21 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["UserInfo"];
+        };
+      };
+      /** @description ALTCHA verification failed */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.altcha.verification_failed",
+           *       "error_code": "ALTCHA_VERIFICATION_FAILED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Username already exists */
@@ -3125,6 +3240,21 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Token"];
+        };
+      };
+      /** @description ALTCHA verification failed */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.altcha.verification_failed",
+           *       "error_code": "ALTCHA_VERIFICATION_FAILED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Incorrect username or password */

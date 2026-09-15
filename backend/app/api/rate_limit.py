@@ -5,6 +5,8 @@ from fastapi import Request
 
 from app.core.constants import (
     AUTH_GLOBAL_MAX_PER_MINUTE,
+    CHALLENGE_IP_MAX_PER_HOUR,
+    CHALLENGE_IP_MAX_PER_MINUTE,
     LOGIN_IP_MAX_PER_HOUR,
     LOGIN_IP_MAX_PER_MINUTE,
     REGISTER_IP_MAX_PER_DAY,
@@ -26,6 +28,10 @@ _LOGIN_RULES: Sequence[RateLimitRule] = (
 _REGISTER_RULES: Sequence[RateLimitRule] = (
     RateLimitRule(REGISTER_IP_MAX_PER_HOUR, 3600),
     RateLimitRule(REGISTER_IP_MAX_PER_DAY, 86400),
+)
+_CHALLENGE_RULES: Sequence[RateLimitRule] = (
+    RateLimitRule(CHALLENGE_IP_MAX_PER_MINUTE, 60),
+    RateLimitRule(CHALLENGE_IP_MAX_PER_HOUR, 3600),
 )
 
 
@@ -75,3 +81,4 @@ def rate_limit(
 
 login_rate_limit = rate_limit("auth:login", _LOGIN_RULES)
 register_rate_limit = rate_limit("auth:register", _REGISTER_RULES)
+challenge_rate_limit = rate_limit("auth:challenge", _CHALLENGE_RULES)

@@ -16,6 +16,7 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
+    "altcha": "^3.2.2",
     "clsx": "^2.1.1",
     "motion": "^12.23.24",
     "openapi-fetch": "^0.17.0",

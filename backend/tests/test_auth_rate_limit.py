@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
 from app.api import rate_limit as api_rate_limit
 from app.core import rate_limit as rate_limit_module
 from app.core.constants import (
+    CHALLENGE_IP_MAX_PER_MINUTE,
     LOGIN_FAILURE_WINDOW_MINUTES,
     LOGIN_IP_MAX_PER_MINUTE,
     LOGIN_LOCKOUT_THRESHOLD,
@@ -22,6 +23,7 @@ from app.models import LoginAttempt
 from app.repositories.login_attempt import LoginAttemptRepository, _advisory_key
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService
+from tests.test_auth import create_altcha_payload
 
 
 async def _try_advisory_lock(conn: AsyncConnection, username: str) -> bool:
@@ -131,7 +133,11 @@ class TestUsernameAdvisoryLock:
 
         resp = await client.post(
             "/auth/login",
-            data={"username": "lock_spy_user", "password": "whatever"},
+            data={
+                "username": "lock_spy_user",
+                "password": "whatever",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert resp.status_code == 401
         assert locked == ["lock_spy_user"]
@@ -153,7 +159,13 @@ class TestLoginThrottle:
         for _ in range(LOGIN_LOCKOUT_THRESHOLD):
             resp = await client.post(
                 "/auth/login",
-                data={"username": "throttle_user", "password": "wrong-password"},
+                data={
+                    "username": "throttle_user",
+                    "password": "wrong-password",
+                    # Each attempt consumes its challenge, so every retry
+                    # needs a freshly solved one.
+                    "altcha": await create_altcha_payload(client, "login"),
+                },
             )
             assert resp.status_code == 401
 
@@ -163,6 +175,7 @@ class TestLoginThrottle:
             data={
                 "username": "throttle_user",
                 "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "login"),
             },
         )
         assert blocked.status_code == 429
@@ -201,7 +214,11 @@ class TestLoginUsernameBound:
         oversized = "oversized_" + "z" * 500
         resp = await client.post(
             "/auth/login",
-            data={"username": oversized, "password": "whatever"},
+            data={
+                "username": oversized,
+                "password": "whatever",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert resp.status_code == 401
 
@@ -269,13 +286,21 @@ class TestLoginThrottleReset:
         for _ in range(3):
             resp = await client.post(
                 "/auth/login",
-                data={"username": "reset_user", "password": "wrong-password"},
+                data={
+                    "username": "reset_user",
+                    "password": "wrong-password",
+                    "altcha": await create_altcha_payload(client, "login"),
+                },
             )
             assert resp.status_code == 401
 
         ok = await client.post(
             "/auth/login",
-            data={"username": "reset_user", "password": "correct-horse-battery"},
+            data={
+                "username": "reset_user",
+                "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
         )
         assert ok.status_code == 200
 
@@ -284,7 +309,11 @@ class TestLoginThrottleReset:
         for _ in range(LOGIN_LOCKOUT_THRESHOLD - 1):
             resp = await client.post(
                 "/auth/login",
-                data={"username": "reset_user", "password": "wrong-password"},
+                data={
+                    "username": "reset_user",
+                    "password": "wrong-password",
+                    "altcha": await create_altcha_payload(client, "login"),
+                },
             )
             assert resp.status_code == 401
 
@@ -341,18 +370,41 @@ class TestLoginIpRateLimit:
         self,
         client: AsyncClient,
     ) -> None:
-        # Distinct usernames so the per-account throttle never fires; the
-        # per-IP limiter is what must stop the burst.
+        # A missing ALTCHA payload is rejected with 422, but the rate-limit
+        # dependency runs first, so each request still consumes the IP budget.
         for index in range(LOGIN_IP_MAX_PER_MINUTE):
             resp = await client.post(
                 "/auth/login",
                 data={"username": f"ghost_{index}", "password": "whatever"},
             )
-            assert resp.status_code == 401
+            assert resp.status_code == 422
 
         blocked = await client.post(
             "/auth/login",
             data={"username": "ghost_final", "password": "whatever"},
+        )
+        assert blocked.status_code == 429
+        assert blocked.json()["error_code"] == "RATE_LIMITED"
+        assert int(blocked.headers["Retry-After"]) >= 1
+
+
+class TestChallengeIpRateLimit:
+    """Challenge issuance is unauthenticated, so it gets its own IP budget."""
+
+    async def test_challenge_burst_is_rate_limited(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        for _ in range(CHALLENGE_IP_MAX_PER_MINUTE):
+            resp = await client.get(
+                "/auth/altcha/challenge",
+                params={"purpose": "login"},
+            )
+            assert resp.status_code == 200
+
+        blocked = await client.get(
+            "/auth/altcha/challenge",
+            params={"purpose": "login"},
         )
         assert blocked.status_code == 429
         assert blocked.json()["error_code"] == "RATE_LIMITED"

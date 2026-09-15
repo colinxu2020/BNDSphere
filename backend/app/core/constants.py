@@ -4,6 +4,8 @@ USER_MAX_USERNAME_LENGTH: Final[int] = 32
 USER_MAX_EMAIL_LENGTH: Final[int] = 64
 USER_MAX_DESCRIPTION_LENGTH: Final[int] = 400
 
+ALTCHA_MAX_PAYLOAD_LENGTH: Final[int] = 4096
+
 CLUB_MAX_NAME_LENGTH: Final[int] = 128
 CLUB_MAX_DESCRIPTION_LENGTH: Final[int] = 400
 CLUB_MAX_SUMMARY_LENGTH: Final[int] = 50
@@ -37,6 +39,13 @@ LOGIN_IP_MAX_PER_MINUTE: Final[int] = 60
 LOGIN_IP_MAX_PER_HOUR: Final[int] = 1200
 REGISTER_IP_MAX_PER_HOUR: Final[int] = 15
 REGISTER_IP_MAX_PER_DAY: Final[int] = 150
+
+# ALTCHA challenge issuance. The endpoint is unauthenticated by design, so a
+# per-IP budget is what keeps a single source from minting challenges in
+# bulk. It must stay above the login budget: every login or registration
+# attempt consumes a fresh challenge, including retries after a failure.
+CHALLENGE_IP_MAX_PER_MINUTE: Final[int] = 120
+CHALLENGE_IP_MAX_PER_HOUR: Final[int] = 2400
 
 # Process-wide circuit breaker over all auth traffic. It is the only budget a
 # flood from many source IPs cannot dodge, but because it is shared it also

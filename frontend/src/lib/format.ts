@@ -21,6 +21,7 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   ACADEMIC_TERM_NOT_FOUND: "没有找到这个学期",
   ANNOUNCEMENT_INVALID_TIME_RANGE: "公告结束时间不能早于开始时间",
   ANNOUNCEMENT_NOT_FOUND: "没有找到这条公告",
+  ALTCHA_VERIFICATION_FAILED: "人机验证失败或已过期，请重新验证",
   INCORRECT_USER_PASSWD: "用户名或密码不正确",
   LOGIN_THROTTLED: "登录尝试次数过多，请稍后再试",
   RATE_LIMITED: "操作过于频繁，请稍后再试",
@@ -91,6 +92,7 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.academic_term.not_found": "没有找到这个学期",
   "error.announcement.invalid_time_range": "公告结束时间不能早于开始时间",
   "error.announcement.not_found": "没有找到这条公告",
+  "error.altcha.verification_failed": "人机验证失败或已过期，请重新验证",
   "error.auth.incorrect_user_passwd": "用户名或密码不正确",
   "error.auth.login_throttled": "登录尝试次数过多，请稍后再试",
   "error.auth.token_invalid": "登录状态已失效，请重新登录",
@@ -256,6 +258,7 @@ function formatDetails(details: unknown): string {
 
 const FIELD_LABELS: Record<string, string> = {
   activity_id: "活动",
+  altcha: "人机验证",
   article_url: "文章链接",
   audit_status: "审核状态",
   avatar_uri: "头像",
