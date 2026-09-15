@@ -2,7 +2,6 @@ import hashlib
 import hmac
 import time
 from collections import OrderedDict
-from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from threading import Lock
 
@@ -15,17 +14,22 @@ from app.services.errors import BadRequestError
 _ALGORITHM = "PBKDF2/SHA-256"
 _COST = 5_000
 _CHALLENGE_TTL = timedelta(minutes=2)
-_MAX_PENDING_CHALLENGES = 10_000
 _HMAC_CONTEXT = b"bndsphere:altcha-core:v2"
 
 
-@dataclass(frozen=True)
-class _PendingChallenge:
-    expires_at: int
-    purpose: AltchaPurpose
-
-
 class AltchaService:
+    """Issue and verify ALTCHA Core proof-of-work challenges.
+
+    Challenges are self-authenticating: the HMAC signature covers the expiry
+    and the purpose, so issuance keeps no server-side state. Only *consumed*
+    signatures are tracked, and only until the challenge would have expired
+    anyway. Flooding the unauthenticated issuance endpoint therefore cannot
+    evict live challenges (there is nothing to evict), and the consumed set
+    can grow no faster than clients actually solve challenges — each entry
+    costs the proof-of-work plus a trip through the rate-limited login or
+    registration endpoint.
+    """
+
     def __init__(
         self,
         *,
@@ -41,7 +45,10 @@ class AltchaService:
             )
         self._hmac_secret = hmac_secret
         self._cost = cost
-        self._pending: OrderedDict[str, _PendingChallenge] = OrderedDict()
+        # Consumed signature -> challenge expiry. Insertion order tracks
+        # expiry order because the TTL is constant, so expired entries
+        # always cluster at the front.
+        self._consumed: OrderedDict[str, int] = OrderedDict()
         self._lock = Lock()
 
     def create_challenge(self, purpose: AltchaPurpose) -> Challenge:
@@ -55,13 +62,6 @@ class AltchaService:
         )
         if challenge.signature is None or challenge.parameters.expires_at is None:
             raise RuntimeError("ALTCHA created an unsigned or non-expiring challenge")
-
-        pending = _PendingChallenge(challenge.parameters.expires_at, purpose)
-        with self._lock:
-            self._prune_expired(time.time())
-            while len(self._pending) >= _MAX_PENDING_CHALLENGES:
-                self._pending.popitem(last=False)
-            self._pending[challenge.signature] = pending
         return challenge
 
     def verify(self, encoded_payload: str, purpose: AltchaPurpose) -> None:
@@ -72,31 +72,34 @@ class AltchaService:
 
         signature = payload.challenge.signature
         challenge_purpose = (payload.challenge.parameters.data or {}).get("purpose")
-        if not isinstance(signature, str) or challenge_purpose != purpose.value:
+        expires_at = payload.challenge.parameters.expires_at
+        if (
+            not isinstance(signature, str)
+            or challenge_purpose != purpose.value
+            or not isinstance(expires_at, int)
+        ):
             raise self._verification_error()
 
-        with self._lock:
-            self._prune_expired(time.time())
-            pending = self._pending.get(signature)
-        if pending is None or pending.purpose != purpose:
-            raise self._verification_error()
-
+        # Stateless check: expiry, HMAC signature, and the proof-of-work
+        # itself are all validated against the signed parameters.
         result = verify_solution(payload, self._hmac_secret)
         if not result.verified:
             raise self._verification_error()
 
-        # A solved challenge is consumed atomically. If two requests race with
-        # the same payload, exactly one can pass.
+        # Consume the signature atomically: if two requests race with the
+        # same payload, exactly one can pass.
         with self._lock:
-            if self._pending.pop(signature, None) != pending:
+            self._prune_expired(time.time())
+            if signature in self._consumed:
                 raise self._verification_error()
+            self._consumed[signature] = expires_at
 
     def _prune_expired(self, now: float) -> None:
-        while self._pending:
-            _signature, pending = next(iter(self._pending.items()))
-            if pending.expires_at >= now:
+        while self._consumed:
+            _signature, expires_at = next(iter(self._consumed.items()))
+            if expires_at >= now:
                 break
-            self._pending.popitem(last=False)
+            self._consumed.popitem(last=False)
 
     @staticmethod
     def _verification_error() -> BadRequestError:

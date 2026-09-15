@@ -29,6 +29,7 @@ import {
   EmptyState,
   Field,
   PageHeader,
+  PageTabs,
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
@@ -39,6 +40,7 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { FederationJointActivities } from "./FederationJointActivities";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
@@ -47,8 +49,19 @@ type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
+type FederationTab = "activities" | "starLevel" | "jointActivities";
+
+const FEDERATION_TABS: readonly { key: FederationTab; label: string }[] = [
+  { key: "activities", label: "大型活动" },
+  { key: "starLevel", label: "星级评价" },
+  { key: "jointActivities", label: "联合活动" },
+];
 
 export function Federation() {
+  const [activeTab, setActiveTab] = useState<FederationTab>("activities");
+  const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
+  const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
+  const [jointActivitiesVisited, setJointActivitiesVisited] = useState(false);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -416,25 +429,42 @@ export function Federation() {
         eyebrow="Federation"
         title="社联工作台"
         action={
-          <div className="flex flex-wrap justify-between gap-2">
-            <Link
-              to="/federation/joint-activities"
-              className="inline-flex items-center justify-center gap-2 rounded-md border border-primary-100 bg-primary-50 px-4 py-2.5 font-semibold text-primary-700 hover:bg-primary-100"
-            >
-              <CalendarDays size={16} /> 联合活动审核
-            </Link>
-            <SecondaryButton type="button" onClick={loadWorkspace} disabled={isLoading}>
-              <RefreshCw size={16} /> 刷新
-            </SecondaryButton>
-          </div>
+          <SecondaryButton
+            type="button"
+            onClick={() => {
+              if (activeTab === "jointActivities") {
+                setIsJointActivitiesLoading(true);
+                setJointActivitiesRefreshToken((token) => token + 1);
+              } else {
+                loadWorkspace();
+              }
+            }}
+            disabled={activeTab === "jointActivities" ? isJointActivitiesLoading : isLoading}
+          >
+            <RefreshCw size={16} /> 刷新
+          </SecondaryButton>
         }
       />
 
-      {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
+      <PageTabs
+        tabs={FEDERATION_TABS}
+        activeTab={activeTab}
+        onChange={(tab) => {
+          if (tab === activeTab) return;
+          setActiveTab(tab);
+          setIsJointActivitiesLoading(tab === "jointActivities");
+          if (tab === "jointActivities") setJointActivitiesVisited(true);
+        }}
+        ariaLabel="社联工作台功能"
+      />
 
-      <Surface>
-        <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团综评记录" />
+      {activeTab !== "jointActivities" && message && (
+        <StatusMessage value={message} tone={messageTone} />
+      )}
+      {activeTab !== "jointActivities" && loadError && <StatusMessage value={loadError} />}
+
+      <Surface className={activeTab === "activities" ? undefined : "hidden"}>
+        <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团大型活动记录" />
         <div className={cn("grid gap-6", selectedRecord && "lg:grid-cols-[1fr_360px]")}>
           <div className="grid gap-3">
             {isLoading ? (
@@ -542,7 +572,7 @@ export function Federation() {
         </div>
       </Surface>
 
-      <Surface>
+      <Surface className={activeTab === "starLevel" ? undefined : "hidden"}>
         <SectionTitle icon={<Award size={20} />} title="审核星级评价表" />
         <div className={cn("grid gap-6", selectedStarApplication && "lg:grid-cols-[1fr_380px]")}>
           <div className="grid gap-3">
@@ -693,7 +723,7 @@ export function Federation() {
         </div>
       </Surface>
 
-      <Surface>
+      <Surface className={activeTab === "activities" ? undefined : "hidden"}>
         <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <SectionTitle className="mb-0" icon={<CalendarDays size={20} />} title="管理大型活动" />
           <SecondaryButton
@@ -850,6 +880,15 @@ export function Federation() {
           )}
         </div>
       </Surface>
+
+      {jointActivitiesVisited && (
+        <div className={activeTab === "jointActivities" ? undefined : "hidden"}>
+          <FederationJointActivities
+            refreshToken={jointActivitiesRefreshToken}
+            onLoadingChange={setIsJointActivitiesLoading}
+          />
+        </div>
+      )}
     </motion.div>
   );
 }

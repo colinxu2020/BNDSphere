@@ -32,6 +32,28 @@ class AuthenticationError(BusinessError):
         )
 
 
+class RateLimitError(BusinessError):
+    def __init__(self, retry_after: int) -> None:
+        super().__init__(
+            "error.rate_limit.too_many_requests",
+            429,
+            "RATE_LIMITED",
+            {"retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
+class LoginThrottledError(BusinessError):
+    def __init__(self, retry_after: int) -> None:
+        super().__init__(
+            "error.auth.login_throttled",
+            429,
+            "LOGIN_THROTTLED",
+            {"retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )
+
+
 class BadRequestError(BusinessError):
     def __init__(
         self,

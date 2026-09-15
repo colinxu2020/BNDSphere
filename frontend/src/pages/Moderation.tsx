@@ -9,13 +9,13 @@ import {
   Badge,
   EmptyState,
   PageHeader,
+  PageTabs,
   PrimaryButton,
   SecondaryButton,
   SectionTitle,
   StatusMessage,
   Surface,
 } from "../components/ui/AppPrimitives";
-import { cn } from "../lib/utils";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
@@ -235,33 +235,16 @@ export function Moderation() {
       {message && <StatusMessage value={message} tone={messageTone} />}
       {loadError && <StatusMessage value={loadError} />}
 
-      <div className="w-full overflow-x-auto hide-scrollbar">
-        <div className="flex min-w-max gap-2 pb-2">
-          {QUEUES.map((queue) => (
-            <button
-              key={queue.key}
-              type="button"
-              onClick={() => setActiveQueue(queue.key)}
-              className={cn(
-                "rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition-all",
-                activeQueue === queue.key
-                  ? "bg-slate-900 text-white shadow-slate-900/10"
-                  : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
-              )}
-            >
-              {queue.label}
-            </button>
-          ))}
-        </div>
-      </div>
+      <PageTabs
+        tabs={QUEUES}
+        activeTab={activeQueue}
+        onChange={setActiveQueue}
+        ariaLabel="审核类型"
+      />
 
       {activeQueue === "activities" ? (
         <Surface>
-          <SectionTitle
-            icon={<FilePenLine size={20} />}
-            title="审核社团活动"
-            description="处理社团提交的活动创建和修改申请。"
-          />
+          <SectionTitle icon={<FilePenLine size={20} />} title="审核社团活动" />
           {isLoading ? (
             <PageLoading compact />
           ) : (
@@ -285,8 +268,7 @@ export function Moderation() {
         </Surface>
       ) : (
         <ModerationRequestList
-          title={activeQueue === "users" ? "用户资料" : "社团资料"}
-          description={activeQueue === "users" ? "用户资料修改请求" : "社团资料修改请求"}
+          title={activeQueue === "users" ? "用户资料修改请求" : "社团资料修改请求"}
           items={items}
           isLoading={isLoading}
           busyId={busyId}
@@ -299,14 +281,12 @@ export function Moderation() {
 
 function ModerationRequestList({
   title,
-  description,
   items,
   isLoading,
   busyId,
   onModerate,
 }: {
   title: string;
-  description: string;
   items: ModerationItem[];
   isLoading: boolean;
   busyId: number | null;
@@ -314,7 +294,7 @@ function ModerationRequestList({
 }) {
   return (
     <Surface>
-      <SectionTitle icon={<FilePenLine size={20} />} title={title} description={description} />
+      <SectionTitle icon={<FilePenLine size={20} />} title={title} />
       {isLoading ? (
         <PageLoading compact />
       ) : items.length ? (

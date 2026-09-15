@@ -41,6 +41,42 @@ export function PageHeader({
   );
 }
 
+export function PageTabs<T extends string>({
+  tabs,
+  activeTab,
+  onChange,
+  ariaLabel,
+}: {
+  tabs: readonly { key: T; label: string }[];
+  activeTab: T;
+  onChange: (tab: T) => void;
+  ariaLabel: string;
+}) {
+  return (
+    <div className="w-full overflow-x-auto hide-scrollbar">
+      <div className="flex min-w-max gap-2 pb-2" role="tablist" aria-label={ariaLabel}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            type="button"
+            role="tab"
+            aria-selected={activeTab === tab.key}
+            onClick={() => onChange(tab.key)}
+            className={cn(
+              "rounded-md px-4 py-2 text-sm font-semibold shadow-sm transition-all",
+              activeTab === tab.key
+                ? "bg-slate-900 text-white shadow-slate-900/10"
+                : "border border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+            )}
+          >
+            {tab.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export function Surface({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <section

@@ -64,6 +64,9 @@ services:
       # Required by OSSSettings but never actually used by tests: upload-route
       # tests override ObjectStorageServiceDep directly. Placeholder value only.
       - OSS_PUBLIC_BASE_URL=http://localhost:9000
+      # Per-IP auth budgets are opt-in (off in production); the burst tests
+      # below need them on, and the disabled path is covered explicitly.
+      - AUTH_IP_RATE_LIMIT_ENABLED=true
     read_only: false
     depends_on:
       postgres:

@@ -28,9 +28,15 @@ import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from psycopg import sql
 from sqlalchemy import event
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.api.dependencies import get_db
+from app.api.rate_limit import auth_rate_limiter
 from app.core.security import create_access_token, get_password_hash
 from app.main import app
 from app.models import User
@@ -301,7 +307,28 @@ async def _initialize_test_database() -> AsyncGenerator[None]:
     await conn.close()
 
 
+@pytest.fixture(autouse=True)
+def _reset_rate_limiter() -> None:
+    """Clear the in-process IP budgets before every test.
+
+    The limiter is a module-level singleton keyed by client IP; tests share
+    one client address, so without this reset a burst test would leak its
+    state into the next test.
+    """
+    auth_rate_limiter.clear()
+
+
 # ── per-class fixtures (class-scoped transaction) ────────────────────
+
+
+@pytest.fixture(scope="session")
+def db_engine() -> AsyncEngine:
+    """The app_user engine, for tests that need their own connections.
+
+    Unlike ``db_session``, which is joined into one class-scoped transaction,
+    these connections commit and roll back independently.
+    """
+    return engine
 
 
 @pytest_asyncio.fixture(scope="class")

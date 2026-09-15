@@ -18,6 +18,7 @@ class UploadScene(StrEnum):
     ACTIVITY_POSTER = "activity_poster"
     APPLICATION_FILE = "application_file"
     JOINT_ACTIVITY_ARCHIVE = "joint_activity_archive"
+    RESOURCE_FILE = "resource_file"
 
 
 # Single source of truth for scene -> object-key prefix, shared by the upload
@@ -31,6 +32,7 @@ SCENE_OSS_DIRS: Final[MappingProxyType[UploadScene, str]] = MappingProxyType(
         UploadScene.ACTIVITY_POSTER: "activity_poster",
         UploadScene.APPLICATION_FILE: "application_files",
         UploadScene.JOINT_ACTIVITY_ARCHIVE: "joint_activity_archives",
+        UploadScene.RESOURCE_FILE: "resource_files",
     },
 )
 
