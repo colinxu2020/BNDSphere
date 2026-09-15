@@ -56,7 +56,10 @@ async def register(
     service: UserServiceDep,
     altcha_service: AltchaServiceDep,
 ) -> UserInfo:
-    """Register a new user. Username must be unique."""
+    """Register a new user after all legal consents are explicitly accepted.
+
+    Username must be unique.
+    """
     altcha_service.verify(user.altcha, AltchaPurpose.register)
     return UserInfo.model_validate(await service.create(user))
 

@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { UserPlus } from "@/src/components/ui/Icons";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import {
@@ -15,6 +15,9 @@ export function Register() {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
+  const [acceptedPrivacyPolicy, setAcceptedPrivacyPolicy] = useState(false);
+  const [acceptedUserAgreement, setAcceptedUserAgreement] = useState(false);
+  const [acceptedCrossBorderTransfer, setAcceptedCrossBorderTransfer] = useState(false);
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
   const altchaRef = useRef<AltchaVerificationRef>(null);
@@ -25,6 +28,11 @@ export function Register() {
 
     if (password !== confirmPassword) {
       setError("两次输入的密码不一致。");
+      return;
+    }
+
+    if (!acceptedPrivacyPolicy || !acceptedUserAgreement || !acceptedCrossBorderTransfer) {
+      setError("请分别阅读并同意全部三份合规文件。");
       return;
     }
 
@@ -41,6 +49,9 @@ export function Register() {
         body: {
           username,
           password,
+          accepted_privacy_policy: acceptedPrivacyPolicy,
+          accepted_user_agreement: acceptedUserAgreement,
+          accepted_cross_border_transfer: acceptedCrossBorderTransfer,
           altcha,
         },
       });
@@ -120,6 +131,32 @@ export function Register() {
             />
           </div>
 
+          <fieldset className="flex flex-col gap-3 rounded-md border border-slate-200 bg-slate-50 p-4">
+            <legend className="px-1 text-sm font-semibold text-slate-700">注册前请逐项确认</legend>
+            <ConsentCheckbox
+              id="accept-privacy-policy"
+              checked={acceptedPrivacyPolicy}
+              onChange={setAcceptedPrivacyPolicy}
+              linkTo="/legal/privacy-policy"
+              documentName="《BNDSphere 隐私政策》"
+            />
+            <ConsentCheckbox
+              id="accept-user-agreement"
+              checked={acceptedUserAgreement}
+              onChange={setAcceptedUserAgreement}
+              linkTo="/legal/user-agreement"
+              documentName="《BNDSphere 用户协议》"
+            />
+            <ConsentCheckbox
+              id="accept-cross-border-transfer"
+              checked={acceptedCrossBorderTransfer}
+              onChange={setAcceptedCrossBorderTransfer}
+              linkTo="/legal/cross-border-transfer-consent"
+              documentName="《BNDSphere 个人信息跨境传输单独同意书》"
+              separate
+            />
+          </fieldset>
+
           <AltchaVerification ref={altchaRef} purpose="register" />
 
           <button
@@ -142,5 +179,47 @@ export function Register() {
         </form>
       </div>
     </motion.div>
+  );
+}
+
+function ConsentCheckbox({
+  id,
+  checked,
+  onChange,
+  linkTo,
+  documentName,
+  separate = false,
+}: {
+  id: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  linkTo: string;
+  documentName: string;
+  separate?: boolean;
+}) {
+  return (
+    <div className="flex items-start gap-3">
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        required
+        className="mt-0.5 h-4 w-4 shrink-0 accent-primary-500"
+      />
+      <div className="text-sm leading-5 text-slate-600">
+        <label htmlFor={id} className="cursor-pointer">
+          我已阅读并{separate ? "单独" : ""}同意
+        </label>{" "}
+        <Link
+          to={linkTo}
+          target="_blank"
+          rel="noreferrer"
+          className="font-semibold text-primary-600 hover:text-primary-700 hover:underline"
+        >
+          {documentName}
+        </Link>
+      </div>
+    </div>
   );
 }

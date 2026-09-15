@@ -95,7 +95,7 @@ export interface paths {
     put?: never;
     /**
      * Register
-     * @description Register a new user. Username must be unique.
+     * @description Register a new user after all legal consents are explicitly accepted.
      */
     post: operations["register_api_v1_auth_register_post"];
     delete?: never;
@@ -2868,6 +2868,12 @@ export interface components {
       username: string;
       /** Password */
       password: string;
+      /** Accepted Privacy Policy */
+      accepted_privacy_policy: true;
+      /** Accepted User Agreement */
+      accepted_user_agreement: true;
+      /** Accepted Cross Border Transfer */
+      accepted_cross_border_transfer: true;
     };
     /** UserRegistration */
     UserRegistration: {

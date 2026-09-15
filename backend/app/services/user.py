@@ -5,6 +5,7 @@ from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
 from app.core.security import get_password_hash, verify_password
+from app.models.legal_consent import CURRENT_LEGAL_DOCUMENT_VERSIONS
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import RoleEnum, User
@@ -60,11 +61,16 @@ class UserService(
         hashed_password = get_password_hash(obj_in.password)
         try:
             async with self.transaction():
-                return await self.repository.create_with_hashed_password(
+                user = await self.repository.create_with_hashed_password(
                     obj_in.username,
                     hashed_password,
                     **kwargs,
                 )
+                await self.repository.create_legal_consents(
+                    user.id,
+                    CURRENT_LEGAL_DOCUMENT_VERSIONS,
+                )
+                return user
         except IntegrityError:
             raise DuplicateResourceError(
                 message_key="error.user.duplicate_username",

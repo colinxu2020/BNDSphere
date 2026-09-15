@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Self
+from typing import Literal, Self
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator
 
@@ -15,6 +15,9 @@ class UserBase(BaseModel):
 
 class UserCreate(UserBase):
     password: str = Field(..., min_length=6)
+    accepted_privacy_policy: Literal[True]
+    accepted_user_agreement: Literal[True]
+    accepted_cross_border_transfer: Literal[True]
 
 
 class UserRegistration(UserCreate):

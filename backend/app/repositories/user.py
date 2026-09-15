@@ -1,9 +1,12 @@
+from collections.abc import Mapping
+from datetime import date
 from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import or_, select, update
 
+from app.models.legal_consent import LegalConsent, LegalDocumentEnum
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.moderations.user_update_request import UserUpdateRequest
 from app.models.user import RoleEnum, User
@@ -39,6 +42,23 @@ class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
         await self.db.flush()
         await self.db.refresh(db_obj)
         return db_obj
+
+    async def create_legal_consents(
+        self,
+        user_id: int,
+        document_versions: Mapping[LegalDocumentEnum, date],
+    ) -> list[LegalConsent]:
+        consents = [
+            LegalConsent(
+                user_id=user_id,
+                document=document,
+                document_version=document_version,
+            )
+            for document, document_version in document_versions.items()
+        ]
+        self.db.add_all(consents)
+        await self.db.flush()
+        return consents
 
     async def get_multi(
         self,

@@ -177,7 +177,7 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Register",
-        "description": "Register a new user. Username must be unique.",
+        "description": "Register a new user after all legal consents are explicitly accepted.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
@@ -7798,10 +7798,31 @@
       "UserCreate": {
         "properties": {
           "username": { "type": "string", "maxLength": 32, "title": "Username" },
-          "password": { "type": "string", "minLength": 6, "title": "Password" }
+          "password": { "type": "string", "minLength": 6, "title": "Password" },
+          "accepted_privacy_policy": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted Privacy Policy"
+          },
+          "accepted_user_agreement": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted User Agreement"
+          },
+          "accepted_cross_border_transfer": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted Cross Border Transfer"
+          }
         },
         "type": "object",
-        "required": ["username", "password"],
+        "required": [
+          "username",
+          "password",
+          "accepted_privacy_policy",
+          "accepted_user_agreement",
+          "accepted_cross_border_transfer"
+        ],
         "title": "UserCreate"
       },
       "UserRegistration": {

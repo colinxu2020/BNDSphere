@@ -120,6 +120,13 @@ const router = createBrowserRouter([
         path: "register",
         lazy: () => import("./pages/Register").then(({ Register }) => ({ Component: Register })),
       },
+      {
+        path: "legal/:document",
+        lazy: () =>
+          import("./pages/LegalDocument").then(({ LegalDocument }) => ({
+            Component: LegalDocument,
+          })),
+      },
     ],
   },
 ]);
