@@ -4,15 +4,25 @@ from fastapi import APIRouter, Depends
 from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
-from app.api.dependencies import ClubClaimRequestServiceDep, get_current_user
-from app.models.user import User
+from app.api.dependencies import (
+    ClubClaimRequestServiceDep,
+    RoleChecker,
+    get_current_user,
+)
+from app.models.user import RoleEnum, User
 from app.schemas.verifications.club_claim import (
     ClubClaimRequestInfo,
     ClubClaimRequestReviewInfo,
 )
 from app.schemas.verifications.verification_common import RequestVerifyPublic
 
-router = APIRouter(tags=["Federation: Club Claims"])
+# Approving a claim appoints a club president, which docs/business_process.md
+# documents as an admin act, so this router is narrower than its parent
+# (which also admits federation staff).
+router = APIRouter(
+    tags=["Federation: Club Claims"],
+    dependencies=[Depends(RoleChecker([RoleEnum.admin]))],
+)
 
 
 @router.get("/")

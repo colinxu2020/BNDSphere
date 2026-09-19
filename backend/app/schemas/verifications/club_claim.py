@@ -1,15 +1,16 @@
 from pydantic import BaseModel, ConfigDict, Field
 
+from app.core import constants
 from app.schemas.generic import IdMixin
 from app.schemas.verifications.verification_common import VerificationInfoBase
 
 
 class ClubClaimRequestBase(BaseModel):
-    message: str = Field(..., max_length=1000)
+    message: str = Field(..., max_length=constants.CLUB_CLAIM_MAX_MESSAGE_LENGTH)
 
 
 class ClubClaimRequestCreatePublic(ClubClaimRequestBase):
-    message: str = Field(default="", max_length=1000)
+    message: str = Field(default="", max_length=constants.CLUB_CLAIM_MAX_MESSAGE_LENGTH)
 
 
 class ClubClaimRequestCreate(ClubClaimRequestCreatePublic):

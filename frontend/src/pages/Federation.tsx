@@ -67,6 +67,7 @@ export function Federation() {
   const [clubClaimsRefreshToken, setClubClaimsRefreshToken] = useState(0);
   const [isClubClaimsLoading, setIsClubClaimsLoading] = useState(false);
   const [clubClaimsVisited, setClubClaimsVisited] = useState(false);
+  const [canReviewClaims, setCanReviewClaims] = useState(false);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -173,6 +174,23 @@ export function Federation() {
   useEffect(() => {
     loadWorkspace();
   }, []);
+
+  // Approving a claim appoints a president, so the backend limits club claims
+  // to admins; hide the tab from the federation staff who share this page.
+  useEffect(() => {
+    let cancelled = false;
+    void client.GET("/api/v1/users/me").then(({ data }) => {
+      if (!cancelled) setCanReviewClaims(data?.role === "admin" || data?.role === "dev");
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const tabs = useMemo(
+    () => FEDERATION_TABS.filter((tab) => tab.key !== "clubClaims" || canReviewClaims),
+    [canReviewClaims],
+  );
 
   useEffect(() => {
     if (!selectedStarApplication) {
@@ -461,7 +479,7 @@ export function Federation() {
       />
 
       <PageTabs
-        tabs={FEDERATION_TABS}
+        tabs={tabs}
         activeTab={activeTab}
         onChange={(tab) => {
           if (tab === activeTab) return;
