@@ -234,6 +234,29 @@ class ClubMembershipRequestRepository(
         )
         return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
 
+    async def reject_pending_requests(
+        self,
+        club_id: int,
+        applicant_id: int,
+        verifier_id: int,
+        verify_at: datetime,
+    ) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.club_id == club_id,
+                self.model.applicant_id == applicant_id,
+                self.model.verification_status == VerificationStatusEnum.pending,
+            )
+            .values(
+                verification_status=VerificationStatusEnum.rejected,
+                verifier_id=verifier_id,
+                verify_at=verify_at,
+            )
+        )
+        await self.db.execute(stmt)
+        await self.db.flush()
+
 
 class ClubClaimRequestRepository(
     RepositoryBase[

@@ -469,7 +469,10 @@ export function Federation() {
           setIsJointActivitiesLoading(tab === "jointActivities");
           setIsClubClaimsLoading(tab === "clubClaims");
           if (tab === "jointActivities") setJointActivitiesVisited(true);
-          if (tab === "clubClaims") setClubClaimsVisited(true);
+          if (tab === "clubClaims") {
+            setClubClaimsVisited(true);
+            setClubClaimsRefreshToken((token) => token + 1);
+          }
         }}
         ariaLabel="社联工作台功能"
       />

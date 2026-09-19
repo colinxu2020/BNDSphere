@@ -533,12 +533,17 @@ class ClubClaimRequestService(
         repository: ClubClaimRequestRepository,
         club_repository: ClubRepository | None = None,
         member_repository: ClubMemberRepository | None = None,
+        membership_request_repository: ClubMembershipRequestRepository | None = None,
         user_repository: UserRepository | None = None,
     ) -> None:
         super().__init__(repository)
         self.club_repository = club_repository or ClubRepository(repository.db)
         self.member_repository = member_repository or ClubMemberRepository(
             repository.db,
+        )
+        self.membership_request_repository = (
+            membership_request_repository
+            or ClubMembershipRequestRepository(repository.db)
         )
         self.user_repository = user_repository or UserRepository(repository.db)
 
@@ -603,15 +608,15 @@ class ClubClaimRequestService(
             club = await self.club_repository.get_with_lock(request.club_id)
             if club is None:
                 raise ClubNotFoundError(request.club_id) from None
-            if club.status != ClubStatusEnum.normal:
-                raise ResourceForbiddenError(
-                    "error.club.not_active",
-                    "CLUB_NOT_ACTIVE",
-                    {"club_id": request.club_id},
-                ) from None
 
             verified_at = datetime.now(tz=UTC)
             if verification.verification_status == VerificationStatusEnum.approved:
+                if club.status != ClubStatusEnum.normal:
+                    raise ResourceForbiddenError(
+                        "error.club.not_active",
+                        "CLUB_NOT_ACTIVE",
+                        {"club_id": request.club_id},
+                    ) from None
                 if await self.member_repository.has_president(club.id):
                     raise ResourceForbiddenError(
                         "error.club_claim_request.club_already_claimed",
@@ -625,6 +630,12 @@ class ClubClaimRequestService(
                     club,
                     applicant,
                     ClubMembershipEnum.president,
+                )
+                await self.membership_request_repository.reject_pending_requests(
+                    club.id,
+                    applicant.id,
+                    verifier.id,
+                    verified_at,
                 )
                 await self.repository.reject_other_pending_requests(
                     club.id,
