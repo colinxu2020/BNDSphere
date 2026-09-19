@@ -974,7 +974,7 @@ export function ClubWorkspace() {
                   <textarea
                     className={textareaClassName}
                     value={clubDescription}
-                    maxLength={400}
+                    maxLength={4000}
                     onChange={(event) => setClubDescription(event.target.value)}
                   />
                 </Field>
