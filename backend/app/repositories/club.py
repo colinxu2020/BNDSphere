@@ -1,4 +1,5 @@
 from collections.abc import Sequence
+from datetime import datetime
 from typing import cast
 
 from fastapi_pagination import Page
@@ -13,12 +14,14 @@ from app.models.general_activity import ClubGeneralActivityRecord
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import AuditStatusEnum, User
+from app.models.verifications.club_claim import ClubClaimRequest
 from app.models.verifications.club_membership import ClubMembershipRequest
 from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.club import ClubCreate, ClubMemberUpdate, ClubUpdate
 from app.schemas.moderations.club import ClubUpdateRequestCreate
 from app.schemas.moderations.moderation_common import RequestModerate
+from app.schemas.verifications.club_claim import ClubClaimRequestCreate
 from app.schemas.verifications.club_membership import ClubMembershipRequestCreate
 from app.schemas.verifications.verification_common import RequestVerify
 
@@ -146,6 +149,17 @@ class ClubMemberRepository(
         )
         return set(result.scalars().all())
 
+    async def has_president(self, club_id: int) -> bool:
+        result = await self.db.execute(
+            select(self.model.id)
+            .where(
+                self.model.club_id == club_id,
+                self.model.membership == ClubMembershipEnum.president,
+            )
+            .limit(1),
+        )
+        return result.scalar_one_or_none() is not None
+
     async def set_membership(
         self,
         member: ClubMember,
@@ -219,3 +233,48 @@ class ClubMembershipRequestRepository(
             self.model.club_id == club_id,
         )
         return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
+
+
+class ClubClaimRequestRepository(
+    RepositoryBase[
+        ClubClaimRequest,
+        ClubClaimRequestCreate,
+        RequestVerify,
+    ],
+):
+    model = ClubClaimRequest
+
+    async def get_pending_requests(self) -> Page[ClubClaimRequest]:
+        stmt = (
+            select(self.model)
+            .where(self.model.verification_status == VerificationStatusEnum.pending)
+            .options(
+                selectinload(self.model.club),
+                selectinload(self.model.applicant),
+            )
+            .order_by(self.model.apply_at.asc(), self.model.id.asc())
+        )
+        return cast("Page[ClubClaimRequest]", await apaginate(self.db, stmt))
+
+    async def reject_other_pending_requests(
+        self,
+        club_id: int,
+        approved_request_id: int,
+        verifier_id: int,
+        verify_at: datetime,
+    ) -> None:
+        stmt = (
+            update(self.model)
+            .where(
+                self.model.club_id == club_id,
+                self.model.id != approved_request_id,
+                self.model.verification_status == VerificationStatusEnum.pending,
+            )
+            .values(
+                verification_status=VerificationStatusEnum.rejected,
+                verifier_id=verifier_id,
+                verify_at=verify_at,
+            )
+        )
+        await self.db.execute(stmt)
+        await self.db.flush()

@@ -1,15 +1,11 @@
-from typing import Annotated
-
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, status
 from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import (
     ClubServiceDep,
-    get_current_user,
 )
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
-from app.models.user import User
 from app.schemas.club import (
     AdminClubCreate,
     AdminClubUpdate,
@@ -41,15 +37,10 @@ router = APIRouter(tags=["Admin: Clubs"])
 async def create_club(
     club: AdminClubCreate,
     service: ClubServiceDep,
-    admin: Annotated[User, Depends(get_current_user)],
 ) -> ClubInfo:
-    """Create an active club with an optional historical creation time."""
+    """Create an active, unclaimed club with an optional historical creation time."""
     try:
-        club_created = await service.create_club(
-            club,
-            admin,
-            status=ClubStatusEnum.normal,
-        )
+        club_created = await service.create(club, status=ClubStatusEnum.normal)
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",

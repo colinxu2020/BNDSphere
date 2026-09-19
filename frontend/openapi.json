@@ -846,6 +846,98 @@
         }
       }
     },
+    "/api/v1/clubs/{club_id}/claim-requests": {
+      "post": {
+        "tags": ["Clubs"],
+        "summary": "Request Claim Club",
+        "description": "Request to become president of an unclaimed club.",
+        "operationId": "request_claim_club_api_v1_clubs__club_id__claim_requests_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": { "$ref": "#/components/schemas/ClubClaimRequestCreatePublic" }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubClaimRequestInfo" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict - A pending request already exists.",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.moderation.duplicate_pending_request",
+                  "error_code": "DUPLICATE_PENDING_REQUEST"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clubs/{club_id}/members/me": {
       "delete": {
         "tags": ["Clubs"],
@@ -1731,7 +1823,7 @@
       "post": {
         "tags": ["Admin: Clubs"],
         "summary": "Create Club",
-        "description": "Create an active club with an optional historical creation time.",
+        "description": "Create an active, unclaimed club with an optional historical creation time.",
         "operationId": "create_club_api_v1_admin_clubs__post",
         "security": [{ "OAuth2PasswordBearer": [] }],
         "requestBody": {
@@ -5078,6 +5170,164 @@
         }
       }
     },
+    "/api/v1/club-federation/club-claims/": {
+      "get": {
+        "tags": ["Federation: Club Claims"],
+        "summary": "Get Pending Claim Requests",
+        "description": "List pending club claim requests.",
+        "operationId": "get_pending_claim_requests_api_v1_club_federation_club_claims__get",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_ClubClaimRequestReviewInfo_" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/club-federation/club-claims/{request_id}": {
+      "patch": {
+        "tags": ["Federation: Club Claims"],
+        "summary": "Verify Claim Request",
+        "description": "Approve or reject a club claim request.",
+        "operationId": "verify_claim_request_api_v1_club_federation_club_claims__request_id__patch",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "request_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Request Id" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/RequestVerifyPublic" } }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubClaimRequestInfo" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/moderations/users/update-requests": {
       "get": {
         "tags": ["Moderation: Users"],
@@ -6401,6 +6651,76 @@
         ],
         "title": "ClubCategoryEnum"
       },
+      "ClubClaimApplicantInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "username": { "type": "string", "title": "Username" }
+        },
+        "type": "object",
+        "required": ["id", "username"],
+        "title": "ClubClaimApplicantInfo"
+      },
+      "ClubClaimClubInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "title": "Name" }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "ClubClaimClubInfo"
+      },
+      "ClubClaimRequestCreatePublic": {
+        "properties": {
+          "message": { "type": "string", "maxLength": 1000, "title": "Message", "default": "" }
+        },
+        "type": "object",
+        "title": "ClubClaimRequestCreatePublic"
+      },
+      "ClubClaimRequestInfo": {
+        "properties": {
+          "message": { "type": "string", "maxLength": 1000, "title": "Message" },
+          "id": { "type": "integer", "title": "Id" },
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
+          "verify_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Verify At"
+          },
+          "applicant_id": { "type": "integer", "title": "Applicant Id" },
+          "apply_at": { "type": "string", "format": "date-time", "title": "Apply At" },
+          "club_id": { "type": "integer", "title": "Club Id" }
+        },
+        "type": "object",
+        "required": ["message", "id", "verification_status", "applicant_id", "apply_at", "club_id"],
+        "title": "ClubClaimRequestInfo"
+      },
+      "ClubClaimRequestReviewInfo": {
+        "properties": {
+          "message": { "type": "string", "maxLength": 1000, "title": "Message" },
+          "id": { "type": "integer", "title": "Id" },
+          "verification_status": { "$ref": "#/components/schemas/VerificationStatusEnum" },
+          "verify_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Verify At"
+          },
+          "applicant_id": { "type": "integer", "title": "Applicant Id" },
+          "apply_at": { "type": "string", "format": "date-time", "title": "Apply At" },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "club": { "$ref": "#/components/schemas/ClubClaimClubInfo" },
+          "applicant": { "$ref": "#/components/schemas/ClubClaimApplicantInfo" }
+        },
+        "type": "object",
+        "required": [
+          "message",
+          "id",
+          "verification_status",
+          "applicant_id",
+          "apply_at",
+          "club_id",
+          "club",
+          "applicant"
+        ],
+        "title": "ClubClaimRequestReviewInfo"
+      },
       "ClubCreate": {
         "properties": {
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
@@ -7279,6 +7599,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubGeneralActivityInfo]"
+      },
+      "Page_ClubClaimRequestReviewInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubClaimRequestReviewInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubClaimRequestReviewInfo]"
       },
       "Page_ClubInfo_": {
         "properties": {
