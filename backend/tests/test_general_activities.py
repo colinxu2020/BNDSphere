@@ -68,7 +68,7 @@ class TestProofFilesValidation:
             name="proof validation club",
             summary="s",
             description="d",
-            category=ClubCategoryEnum.other,
+            category=ClubCategoryEnum.natural_science,
             status=ClubStatusEnum.normal,
         )
         db_session.add_all([term, club])
@@ -260,7 +260,7 @@ class TestPublicClubRecordsEcho:
             name="echo normal club",
             summary="s",
             description="d",
-            category=ClubCategoryEnum.other,
+            category=ClubCategoryEnum.natural_science,
             status=ClubStatusEnum.normal,
         )
         # (club_id, activity_id) 有唯一约束, pending 脏数据记录挂到另一个正常社团.
@@ -268,14 +268,14 @@ class TestPublicClubRecordsEcho:
             name="echo normal club 2",
             summary="s",
             description="d",
-            category=ClubCategoryEnum.other,
+            category=ClubCategoryEnum.natural_science,
             status=ClubStatusEnum.normal,
         )
         unreviewed_club = Club(
             name="echo unreviewed club",
             summary="s",
             description="d",
-            category=ClubCategoryEnum.other,
+            category=ClubCategoryEnum.natural_science,
             status=ClubStatusEnum.unreviewed,
         )
         db_session.add_all([term, normal_club, normal_club_2, unreviewed_club])

@@ -5,7 +5,7 @@ import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
-import { CATEGORY_MAP } from "../lib/labels";
+import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 
@@ -14,14 +14,7 @@ type Category = components["schemas"]["ClubCategoryEnum"];
 
 const CATEGORIES: { label: string; value: Category | "all" }[] = [
   { label: "全部", value: "all" },
-  { label: "科学", value: "science" },
-  { label: "人文", value: "humanity" },
-  { label: "艺术", value: "arts" },
-  { label: "体育", value: "sports" },
-  { label: "商务", value: "business" },
-  { label: "公益", value: "charity" },
-  { label: "校园", value: "campus" },
-  { label: "其他", value: "other" },
+  ...CATEGORY_OPTIONS,
 ];
 
 export function ExploreClubs() {

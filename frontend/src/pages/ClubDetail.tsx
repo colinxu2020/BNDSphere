@@ -18,21 +18,10 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
-import { MEMBERSHIP_MAP } from "../lib/labels";
+import { CATEGORY_MAP, MEMBERSHIP_MAP } from "../lib/labels";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
-
-const CATEGORY_MAP: Record<string, string> = {
-  science: "科学",
-  humanity: "人文",
-  arts: "艺术",
-  sports: "体育",
-  business: "商业",
-  charity: "公益",
-  campus: "校园",
-  other: "其他",
-};
 
 const STAR_LEVEL_MAP: Record<string, string> = {
   one_star: "一星社团",

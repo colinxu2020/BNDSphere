@@ -69,7 +69,7 @@ async def setup_activity(
         summary="summary",
         description="description",
         status=ClubStatusEnum.normal,
-        category=ClubCategoryEnum.other,
+        category=ClubCategoryEnum.natural_science,
     )
     db_session.add(club)
     await db_session.flush()
@@ -128,7 +128,7 @@ async def setup_activity(
         summary="summary",
         description="description",
         status=ClubStatusEnum.archived,
-        category=ClubCategoryEnum.other,
+        category=ClubCategoryEnum.natural_science,
     )
     db_session.add(archived_club)
     await db_session.flush()

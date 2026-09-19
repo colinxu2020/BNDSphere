@@ -1820,7 +1820,21 @@ export interface components {
      * @enum {string}
      */
     ClubCategoryEnum:
-      "sports" | "humanity" | "arts" | "science" | "charity" | "business" | "campus" | "other";
+      | "stage_design"
+      | "information_technology"
+      | "charity"
+      | "performing_arts"
+      | "social_science"
+      | "handicraft"
+      | "literature_publishing"
+      | "business"
+      | "art_design"
+      | "campus_management"
+      | "natural_science"
+      | "language_learning"
+      | "sports"
+      | "anime"
+      | "film_news_media";
     /** ClubCreate */
     ClubCreate: {
       /** Name */
