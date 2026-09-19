@@ -966,6 +966,7 @@ export function ClubWorkspace() {
                   <input
                     className={inputClassName}
                     value={clubSummary}
+                    maxLength={50}
                     onChange={(event) => setClubSummary(event.target.value)}
                   />
                 </Field>
@@ -973,6 +974,7 @@ export function ClubWorkspace() {
                   <textarea
                     className={textareaClassName}
                     value={clubDescription}
+                    maxLength={400}
                     onChange={(event) => setClubDescription(event.target.value)}
                   />
                 </Field>

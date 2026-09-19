@@ -2,6 +2,7 @@ from typing import Self
 
 from pydantic import BaseModel, Field, HttpUrl, model_validator
 
+from app.core import constants
 from app.schemas.generic import ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import (
     RequestInfoBase,
@@ -11,8 +12,11 @@ from app.schemas.upload import LogoUri
 
 
 class ClubUpdateRequestBase(BaseModel):
-    summary: str | None = Field(None)
-    description: str | None = Field(None)
+    summary: str | None = Field(None, max_length=constants.CLUB_MAX_SUMMARY_LENGTH)
+    description: str | None = Field(
+        None,
+        max_length=constants.CLUB_MAX_DESCRIPTION_LENGTH,
+    )
     logo_uri: HttpUrl | None = Field(None)
 
 
@@ -23,7 +27,7 @@ class ClubUpdateRequestInfo(RequestInfoBase, ClubUpdateRequestBase):
 class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase, UpdateRequestCreateBase):
     # Overrides ClubUpdateRequestBase.logo_uri: reject a non-uploaded URL at
     # request time instead of only when a moderator later approves it.
-    logo_uri: LogoUri = Field(None)
+    logo_uri: LogoUri = Field(None, max_length=255)
 
     @model_validator(mode="after")
     def validate_non_nullable_fields(self) -> Self:
