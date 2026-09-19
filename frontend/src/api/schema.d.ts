@@ -480,7 +480,11 @@ export interface paths {
      */
     get: operations["list_clubs_api_v1_admin_clubs__get"];
     put?: never;
-    post?: never;
+    /**
+     * Create Club
+     * @description Create an active club with an optional historical creation time.
+     */
+    post: operations["create_club_api_v1_admin_clubs__post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1495,6 +1499,20 @@ export interface components {
       start_date?: string | null;
       /** End Date */
       end_date?: string | null;
+    };
+    /** AdminClubCreate */
+    AdminClubCreate: {
+      /** Name */
+      name: string;
+      category: components["schemas"]["ClubCategoryEnum"];
+      /** Summary */
+      summary: string;
+      /** Description */
+      description: string;
+      /** Logo Uri */
+      logo_uri?: string | null;
+      /** Created At */
+      created_at?: string;
     };
     /** AdminClubUpdate */
     AdminClubUpdate: {
@@ -4617,6 +4635,78 @@ export interface operations {
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_club_api_v1_admin_clubs__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdminClubCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Club with the same name already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          [key: string]: unknown;
         };
       };
       /** @description Validation Error */

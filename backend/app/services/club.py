@@ -85,9 +85,15 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         except IntegrityError as exc:
             raise DuplicateClubNameError from exc
 
-    async def create_club(self, obj_in: ClubCreate, president: User) -> Club:
+    async def create_club(
+        self,
+        obj_in: ClubCreate,
+        president: User,
+        *,
+        status: ClubStatusEnum = ClubStatusEnum.unreviewed,
+    ) -> Club:
         async with self.transaction():
-            club = await self.create(obj_in)
+            club = await self.create(obj_in, status=status)
             await self.member_repository.set_relationship(
                 club,
                 president,

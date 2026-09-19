@@ -1728,6 +1728,67 @@
       }
     },
     "/api/v1/admin/clubs/": {
+      "post": {
+        "tags": ["Admin: Clubs"],
+        "summary": "Create Club",
+        "description": "Create an active club with an optional historical creation time.",
+        "operationId": "create_club_api_v1_admin_clubs__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/AdminClubCreate" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ClubInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "409": {
+            "description": "Club with the same name already exists",
+            "content": {
+              "application/json": {
+                "example": { "detail": "Club with name HCC already exists." }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
       "get": {
         "tags": ["Admin: Clubs"],
         "summary": "List Clubs",
@@ -5876,6 +5937,25 @@
         },
         "type": "object",
         "title": "AcademicTermUpdate"
+      },
+      "AdminClubCreate": {
+        "properties": {
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
+        },
+        "type": "object",
+        "required": ["name", "category", "summary", "description"],
+        "title": "AdminClubCreate"
       },
       "AdminClubUpdate": {
         "properties": {

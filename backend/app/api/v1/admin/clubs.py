@@ -1,18 +1,61 @@
-from fastapi import APIRouter
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
 from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import (
     ClubServiceDep,
+    get_current_user,
 )
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
+from app.models.user import User
 from app.schemas.club import (
+    AdminClubCreate,
     AdminClubUpdate,
     ClubInfo,
 )
-from app.services.errors import ClubNotFoundError
+from app.services.errors import (
+    ClubNotFoundError,
+    DuplicateClubNameError,
+    DuplicateResourceError,
+)
 
 router = APIRouter(tags=["Admin: Clubs"])
+
+
+@router.post(
+    "/",
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        409: {
+            "description": "Club with the same name already exists",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Club with name HCC already exists."},
+                },
+            },
+        },
+    },
+)
+async def create_club(
+    club: AdminClubCreate,
+    service: ClubServiceDep,
+    admin: Annotated[User, Depends(get_current_user)],
+) -> ClubInfo:
+    """Create an active club with an optional historical creation time."""
+    try:
+        club_created = await service.create_club(
+            club,
+            admin,
+            status=ClubStatusEnum.normal,
+        )
+    except DuplicateClubNameError:
+        raise DuplicateResourceError(
+            message_key="error.club.duplicate_club_name",
+            error_code="DUPLICATE_CLUB_NAME",
+        ) from None
+    return ClubInfo.model_validate(club_created)
 
 
 @router.get(
