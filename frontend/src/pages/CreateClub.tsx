@@ -23,7 +23,7 @@ type Category = components["schemas"]["ClubCategoryEnum"];
 export function CreateClub() {
   const navigate = useNavigate();
   const [name, setName] = useState("");
-  const [category, setCategory] = useState<Category>("science");
+  const [category, setCategory] = useState<Category>("stage_design");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [logoUri, setLogoUri] = useState("");

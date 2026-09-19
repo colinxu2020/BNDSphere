@@ -13,6 +13,7 @@ from app.models.user import RoleEnum, User
 from app.repositories.academic_term import AcademicTermRepository
 from app.repositories.announcement import AnnouncementRepository
 from app.repositories.club import (
+    ClubClaimRequestRepository,
     ClubMemberRepository,
     ClubMembershipRequestRepository,
     ClubRepository,
@@ -39,6 +40,7 @@ from app.services.altcha import AltchaService
 from app.services.announcement import AnnouncementService
 from app.services.auth import AuthService
 from app.services.club import (
+    ClubClaimRequestService,
     ClubMemberService,
     ClubMembershipRequestService,
     ClubService,
@@ -122,6 +124,10 @@ type ClubMembershipRequestServiceDep = Annotated[
             ClubMembershipRequestRepository,
         ),
     ),
+]
+type ClubClaimRequestServiceDep = Annotated[
+    ClubClaimRequestService,
+    Depends(ServiceFactory(ClubClaimRequestService, ClubClaimRequestRepository)),
 ]
 type UserServiceDep = Annotated[
     UserService,

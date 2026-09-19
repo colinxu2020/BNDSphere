@@ -38,14 +38,21 @@ class ClubStarLevelEnum(StrEnum):
 
 
 class ClubCategoryEnum(StrEnum):
-    sports = "sports"
-    humanity = "humanity"
-    arts = "arts"
-    science = "science"
+    stage_design = "stage_design"
+    information_technology = "information_technology"
     charity = "charity"
+    performing_arts = "performing_arts"
+    social_science = "social_science"
+    handicraft = "handicraft"
+    literature_publishing = "literature_publishing"
     business = "business"
-    campus = "campus"
-    other = "other"
+    art_design = "art_design"
+    campus_management = "campus_management"
+    natural_science = "natural_science"
+    language_learning = "language_learning"
+    sports = "sports"
+    anime = "anime"
+    film_news_media = "film_news_media"
 
 
 class Club(Base):

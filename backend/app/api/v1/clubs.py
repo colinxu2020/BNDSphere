@@ -10,6 +10,7 @@ from app.api.common_responses import (
     TOKEN_INVALID_RESPONSE,
 )
 from app.api.dependencies import (
+    ClubClaimRequestServiceDep,
     ClubRoleChecker,
     ClubServiceDep,
     get_current_user,
@@ -27,6 +28,10 @@ from app.schemas.club import (
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreatePublic,
     ClubUpdateRequestInfo,
+)
+from app.schemas.verifications.club_claim import (
+    ClubClaimRequestCreatePublic,
+    ClubClaimRequestInfo,
 )
 from app.schemas.verifications.club_membership import (
     ClubMembershipRequestCreatePublic,
@@ -188,6 +193,28 @@ async def request_join_club(
     """Apply to join a club, pending the club president's verification."""
     return ClubMembershipRequestInfo.model_validate(
         await service.request_join_club(club_id, user, obj_in),
+    )
+
+
+@router.post(
+    "/{club_id}/claim-requests",
+    status_code=status.HTTP_201_CREATED,
+    responses=(
+        TOKEN_INVALID_RESPONSE
+        | PERMISSION_DENIED_RESPONSE
+        | RESOURCE_NOT_FOUND_RESPONSE
+        | DUPLICATE_REQUEST_RESPONSE
+    ),
+)
+async def request_claim_club(
+    club_id: int,
+    obj_in: ClubClaimRequestCreatePublic,
+    service: ClubClaimRequestServiceDep,
+    applicant: Annotated[User, Depends(get_current_user)],
+) -> ClubClaimRequestInfo:
+    """Request to become president of an unclaimed club."""
+    return ClubClaimRequestInfo.model_validate(
+        await service.request_claim(club_id, obj_in, applicant),
     )
 
 

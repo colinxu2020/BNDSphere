@@ -255,6 +255,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/{club_id}/claim-requests": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Request Claim Club
+     * @description Request to become president of an unclaimed club.
+     */
+    post: operations["request_claim_club_api_v1_clubs__club_id__claim_requests_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/clubs/{club_id}/members/me": {
     parameters: {
       query?: never;
@@ -480,7 +500,11 @@ export interface paths {
      */
     get: operations["list_clubs_api_v1_admin_clubs__get"];
     put?: never;
-    post?: never;
+    /**
+     * Create Club
+     * @description Create an active, unclaimed club with an optional historical creation time.
+     */
+    post: operations["create_club_api_v1_admin_clubs__post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1115,6 +1139,46 @@ export interface paths {
     patch: operations["review_joint_activity_finally_api_v1_club_federation_joint_activities__activity_id__final_review_patch"];
     trace?: never;
   };
+  "/api/v1/club-federation/club-claims/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Pending Claim Requests
+     * @description List pending club claim requests.
+     */
+    get: operations["get_pending_claim_requests_api_v1_club_federation_club_claims__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/club-federation/club-claims/{request_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    /**
+     * Verify Claim Request
+     * @description Approve or reject a club claim request.
+     */
+    patch: operations["verify_claim_request_api_v1_club_federation_club_claims__request_id__patch"];
+    trace?: never;
+  };
   "/api/v1/moderations/users/update-requests": {
     parameters: {
       query?: never;
@@ -1496,6 +1560,20 @@ export interface components {
       /** End Date */
       end_date?: string | null;
     };
+    /** AdminClubCreate */
+    AdminClubCreate: {
+      /** Name */
+      name: string;
+      category: components["schemas"]["ClubCategoryEnum"];
+      /** Summary */
+      summary: string;
+      /** Description */
+      description: string;
+      /** Logo Uri */
+      logo_uri?: string | null;
+      /** Created At */
+      created_at?: string;
+    };
     /** AdminClubUpdate */
     AdminClubUpdate: {
       /** Summary */
@@ -1820,7 +1898,83 @@ export interface components {
      * @enum {string}
      */
     ClubCategoryEnum:
-      "sports" | "humanity" | "arts" | "science" | "charity" | "business" | "campus" | "other";
+      | "stage_design"
+      | "information_technology"
+      | "charity"
+      | "performing_arts"
+      | "social_science"
+      | "handicraft"
+      | "literature_publishing"
+      | "business"
+      | "art_design"
+      | "campus_management"
+      | "natural_science"
+      | "language_learning"
+      | "sports"
+      | "anime"
+      | "film_news_media";
+    /** ClubClaimApplicantInfo */
+    ClubClaimApplicantInfo: {
+      /** Id */
+      id: number;
+      /** Username */
+      username: string;
+    };
+    /** ClubClaimClubInfo */
+    ClubClaimClubInfo: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+    };
+    /** ClubClaimRequestCreatePublic */
+    ClubClaimRequestCreatePublic: {
+      /**
+       * Message
+       * @default
+       */
+      message?: string;
+    };
+    /** ClubClaimRequestInfo */
+    ClubClaimRequestInfo: {
+      /** Message */
+      message: string;
+      /** Id */
+      id: number;
+      verification_status: components["schemas"]["VerificationStatusEnum"];
+      /** Verify At */
+      verify_at?: string | null;
+      /** Applicant Id */
+      applicant_id: number;
+      /**
+       * Apply At
+       * Format: date-time
+       */
+      apply_at: string;
+      /** Club Id */
+      club_id: number;
+    };
+    /** ClubClaimRequestReviewInfo */
+    ClubClaimRequestReviewInfo: {
+      /** Message */
+      message: string;
+      /** Id */
+      id: number;
+      verification_status: components["schemas"]["VerificationStatusEnum"];
+      /** Verify At */
+      verify_at?: string | null;
+      /** Applicant Id */
+      applicant_id: number;
+      /**
+       * Apply At
+       * Format: date-time
+       */
+      apply_at: string;
+      /** Club Id */
+      club_id: number;
+      club: components["schemas"]["ClubClaimClubInfo"];
+      applicant: components["schemas"]["ClubClaimApplicantInfo"];
+    };
     /** ClubCreate */
     ClubCreate: {
       /** Name */
@@ -2420,6 +2574,19 @@ export interface components {
     Page_ClubGeneralActivityInfo_: {
       /** Items */
       items: components["schemas"]["ClubGeneralActivityInfo"][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+    };
+    /** Page[ClubClaimRequestReviewInfo] */
+    Page_ClubClaimRequestReviewInfo_: {
+      /** Items */
+      items: components["schemas"]["ClubClaimRequestReviewInfo"][];
       /** Total */
       total: number;
       /** Page */
@@ -3815,6 +3982,104 @@ export interface operations {
       };
     };
   };
+  request_claim_club_api_v1_clubs__club_id__claim_requests_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["ClubClaimRequestCreatePublic"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubClaimRequestInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Conflict - A pending request already exists. */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.moderation.duplicate_pending_request",
+           *       "error_code": "DUPLICATE_PENDING_REQUEST"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   leave_club_api_v1_clubs__club_id__members_me_delete: {
     parameters: {
       query?: never;
@@ -4603,6 +4868,78 @@ export interface operations {
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  create_club_api_v1_admin_clubs__post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["AdminClubCreate"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Club with the same name already exists */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          [key: string]: unknown;
         };
       };
       /** @description Validation Error */
@@ -7685,6 +8022,153 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["JointActivityInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Resource Not Found */
+      404: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.resource.not_found",
+           *       "error_code": "RESOURCE_NOT_FOUND",
+           *       "detail": {
+           *         "resource": "requested_resource"
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_pending_claim_requests_api_v1_club_federation_club_claims__get: {
+    parameters: {
+      query?: {
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_ClubClaimRequestReviewInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  verify_claim_request_api_v1_club_federation_club_claims__request_id__patch: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        request_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["RequestVerifyPublic"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubClaimRequestInfo"];
         };
       };
       /** @description Unauthorized or Token invalid */

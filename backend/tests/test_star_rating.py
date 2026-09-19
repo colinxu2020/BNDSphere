@@ -28,7 +28,7 @@ class StubStarRatingRepository:
             name="Test Club",
             summary="Test",
             description="Test",
-            category=ClubCategoryEnum.other,
+            category=ClubCategoryEnum.natural_science,
             created_at=datetime.now(tz=UTC) - timedelta(days=3 * 366),
         )
         self.activity_score = activity_score

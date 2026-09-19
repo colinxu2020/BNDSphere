@@ -40,6 +40,7 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
+import { FederationClubClaims } from "./FederationClubClaims";
 import { FederationJointActivities } from "./FederationJointActivities";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
@@ -49,11 +50,12 @@ type AuditStatus = components["schemas"]["AuditStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
-type FederationTab = "activities" | "starLevel" | "jointActivities";
+type FederationTab = "activities" | "starLevel" | "clubClaims" | "jointActivities";
 
 const FEDERATION_TABS: readonly { key: FederationTab; label: string }[] = [
   { key: "activities", label: "大型活动" },
   { key: "starLevel", label: "星级评价" },
+  { key: "clubClaims", label: "社团认领" },
   { key: "jointActivities", label: "联合活动" },
 ];
 
@@ -62,6 +64,9 @@ export function Federation() {
   const [jointActivitiesRefreshToken, setJointActivitiesRefreshToken] = useState(0);
   const [isJointActivitiesLoading, setIsJointActivitiesLoading] = useState(false);
   const [jointActivitiesVisited, setJointActivitiesVisited] = useState(false);
+  const [clubClaimsRefreshToken, setClubClaimsRefreshToken] = useState(0);
+  const [isClubClaimsLoading, setIsClubClaimsLoading] = useState(false);
+  const [clubClaimsVisited, setClubClaimsVisited] = useState(false);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -435,11 +440,20 @@ export function Federation() {
               if (activeTab === "jointActivities") {
                 setIsJointActivitiesLoading(true);
                 setJointActivitiesRefreshToken((token) => token + 1);
+              } else if (activeTab === "clubClaims") {
+                setIsClubClaimsLoading(true);
+                setClubClaimsRefreshToken((token) => token + 1);
               } else {
                 loadWorkspace();
               }
             }}
-            disabled={activeTab === "jointActivities" ? isJointActivitiesLoading : isLoading}
+            disabled={
+              activeTab === "jointActivities"
+                ? isJointActivitiesLoading
+                : activeTab === "clubClaims"
+                  ? isClubClaimsLoading
+                  : isLoading
+            }
           >
             <RefreshCw size={16} /> 刷新
           </SecondaryButton>
@@ -453,15 +467,22 @@ export function Federation() {
           if (tab === activeTab) return;
           setActiveTab(tab);
           setIsJointActivitiesLoading(tab === "jointActivities");
+          setIsClubClaimsLoading(tab === "clubClaims");
           if (tab === "jointActivities") setJointActivitiesVisited(true);
+          if (tab === "clubClaims") {
+            setClubClaimsVisited(true);
+            setClubClaimsRefreshToken((token) => token + 1);
+          }
         }}
         ariaLabel="社联工作台功能"
       />
 
-      {activeTab !== "jointActivities" && message && (
+      {activeTab !== "jointActivities" && activeTab !== "clubClaims" && message && (
         <StatusMessage value={message} tone={messageTone} />
       )}
-      {activeTab !== "jointActivities" && loadError && <StatusMessage value={loadError} />}
+      {activeTab !== "jointActivities" && activeTab !== "clubClaims" && loadError && (
+        <StatusMessage value={loadError} />
+      )}
 
       <Surface className={activeTab === "activities" ? undefined : "hidden"}>
         <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团大型活动记录" />
@@ -880,6 +901,15 @@ export function Federation() {
           )}
         </div>
       </Surface>
+
+      {clubClaimsVisited && (
+        <div className={activeTab === "clubClaims" ? undefined : "hidden"}>
+          <FederationClubClaims
+            refreshToken={clubClaimsRefreshToken}
+            onLoadingChange={setIsClubClaimsLoading}
+          />
+        </div>
+      )}
 
       {jointActivitiesVisited && (
         <div className={activeTab === "jointActivities" ? undefined : "hidden"}>

@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime
+from datetime import UTC, datetime
 from enum import StrEnum
 from typing import Self
 
@@ -39,6 +39,10 @@ class ClubCreate(ClubBase):
     # Overrides ClubBase.logo_uri: club creation writes straight to the DB with
     # no moderation gate, so it must not accept an arbitrary external URL.
     logo_uri: LogoUri = Field(None, max_length=255)
+
+
+class AdminClubCreate(ClubCreate):
+    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
 
 class ClubUpdate(BaseModel):

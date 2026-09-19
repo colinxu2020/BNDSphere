@@ -18,21 +18,10 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
-import { MEMBERSHIP_MAP } from "../lib/labels";
+import { CATEGORY_MAP, MEMBERSHIP_MAP } from "../lib/labels";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
-
-const CATEGORY_MAP: Record<string, string> = {
-  science: "科学",
-  humanity: "人文",
-  arts: "艺术",
-  sports: "体育",
-  business: "商业",
-  charity: "公益",
-  campus: "校园",
-  other: "其他",
-};
 
 const STAR_LEVEL_MAP: Record<string, string> = {
   one_star: "一星社团",
@@ -58,6 +47,7 @@ export function ClubDetail() {
   const [actionTone, setActionTone] = useState<"error" | "success">("error");
   const [isActionLoading, setIsActionLoading] = useState(false);
   const [hasSubmittedJoinRequest, setHasSubmittedJoinRequest] = useState(false);
+  const [hasSubmittedClaimRequest, setHasSubmittedClaimRequest] = useState(false);
   const [highlightedActivityId, setHighlightedActivityId] = useState<number | null>(null);
   const [copiedActivityId, setCopiedActivityId] = useState<number | null>(null);
   const [isQrShareOpen, setIsQrShareOpen] = useState(false);
@@ -68,6 +58,7 @@ export function ClubDetail() {
       setIsLoading(true);
       setError(null);
       setHasSubmittedJoinRequest(false);
+      setHasSubmittedClaimRequest(false);
       try {
         const { data, error } = await client.GET("/api/v1/clubs/{club_id}", {
           params: { path: { club_id: Number(id) } },
@@ -202,6 +193,8 @@ export function ClubDetail() {
   const canJoin = !currentMembership && !hasSubmittedJoinRequest;
   const canLeave = currentMembership === "member" || currentMembership === "pending";
   const canManage = currentMembership ? MANAGER_ROLES.has(currentMembership) : false;
+  const hasPresident = club?.members.some((member) => member.membership === "president") ?? false;
+  const canClaim = !hasPresident && !hasSubmittedClaimRequest;
   const activeMembers = useMemo(
     () =>
       (club?.members || []).filter((member) =>
@@ -258,6 +251,39 @@ export function ClubDetail() {
             ),
           });
         }
+      }
+    } catch (requestError) {
+      setActionTone("error");
+      setActionMessage(requestError);
+    } finally {
+      setIsActionLoading(false);
+    }
+  };
+
+  const claimClub = async () => {
+    if (!user) {
+      setActionTone("error");
+      setActionMessage("请先登录后认领社团");
+      return;
+    }
+
+    const message = window.prompt("请输入认领附言（可以留空）", "");
+    if (message === null) return;
+
+    setIsActionLoading(true);
+    setActionMessage(null);
+    try {
+      const { error } = await client.POST("/api/v1/clubs/{club_id}/claim-requests", {
+        params: { path: { club_id: Number(id) } },
+        body: { message },
+      });
+      if (error) {
+        setActionTone("error");
+        setActionMessage(error);
+      } else {
+        setActionTone("success");
+        setActionMessage("认领申请已提交，等待社联审核");
+        setHasSubmittedClaimRequest(true);
       }
     } catch (requestError) {
       setActionTone("error");
@@ -328,8 +354,19 @@ export function ClubDetail() {
             >
               <QrCode size={17} /> 分享社团
             </button>
+            {canClaim && (
+              <button
+                type="button"
+                onClick={claimClub}
+                disabled={isActionLoading}
+                className="flex-1 md:flex-none px-6 py-3 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-semibold rounded-md shadow-lg shadow-primary-500/25 transition-all text-center disabled:opacity-70"
+              >
+                认领社团
+              </button>
+            )}
             {canJoin && (
               <button
+                type="button"
                 onClick={joinClub}
                 disabled={isActionLoading}
                 className="flex-1 md:flex-none px-6 py-3 bg-primary-500 hover:bg-primary-600 active:scale-95 text-white font-semibold rounded-md shadow-lg shadow-primary-500/25 transition-all text-center disabled:opacity-70"

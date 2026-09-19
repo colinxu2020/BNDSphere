@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.api.common_responses import PERMISSION_DENIED_RESPONSE, TOKEN_INVALID_RESPONSE
 from app.api.dependencies import RoleChecker
+from app.api.v1.club_federation.club_claims import router as club_claims_router
 from app.api.v1.club_federation.club_general_activities import (
     router as club_general_activity_router,
 )
@@ -25,3 +26,4 @@ router.include_router(
 )
 router.include_router(star_level_router, prefix="/star-level")
 router.include_router(joint_activity_router, prefix="/joint-activities")
+router.include_router(club_claims_router, prefix="/club-claims")
