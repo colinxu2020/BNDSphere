@@ -3,6 +3,7 @@ from typing import Self
 
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
 
+from app.core import constants
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import UserGradeEnum
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
@@ -13,9 +14,14 @@ from app.schemas.upload import AvatarUri
 class UserUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None)
-    avatar_uri: AvatarUri = Field(None)
-    description: str | None = Field(None)
+    # Length caps mirror AdminUserUpdate (the schema applied on approval) so a
+    # request that passes creation can never fail re-validation on approval.
+    username: str | None = Field(None, max_length=constants.USER_MAX_USERNAME_LENGTH)
+    avatar_uri: AvatarUri = Field(None, max_length=255)
+    description: str | None = Field(
+        None,
+        max_length=constants.USER_MAX_DESCRIPTION_LENGTH,
+    )
     grade: UserGradeEnum | None = Field(None)
     update_fields: list[str] = Field(default_factory=list)
 

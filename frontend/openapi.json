@@ -5906,7 +5906,10 @@
       },
       "AdminUserUpdate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": {
+            "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }],
+            "title": "Username"
+          },
           "email": {
             "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
             "title": "Email"
@@ -6553,14 +6556,17 @@
       },
       "ClubUpdateRequestCreatePublic": {
         "properties": {
-          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
             "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
@@ -7893,16 +7899,19 @@
       },
       "UserUpdateRequestCreate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": {
+            "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }],
+            "title": "Username"
+          },
           "avatar_uri": {
             "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
           },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "grade": {

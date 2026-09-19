@@ -212,6 +212,7 @@ export function Profile() {
                     type="text"
                     value={updateUsername}
                     onChange={(e) => setUpdateUsername(e.target.value)}
+                    maxLength={32}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
                   />
                 </div>
@@ -230,6 +231,7 @@ export function Profile() {
                   <textarea
                     value={updateDescription}
                     onChange={(e) => setUpdateDescription(e.target.value)}
+                    maxLength={400}
                     className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 min-h-[100px] resize-none"
                   />
                 </div>

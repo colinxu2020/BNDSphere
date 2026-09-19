@@ -967,6 +967,7 @@ export function ClubWorkspace() {
                     className={inputClassName}
                     value={clubSummary}
                     onChange={(event) => setClubSummary(event.target.value)}
+                    maxLength={50}
                   />
                 </Field>
                 <Field label="详细介绍">
@@ -974,6 +975,7 @@ export function ClubWorkspace() {
                     className={textareaClassName}
                     value={clubDescription}
                     onChange={(event) => setClubDescription(event.target.value)}
+                    maxLength={400}
                   />
                 </Field>
                 <FileUploadField
