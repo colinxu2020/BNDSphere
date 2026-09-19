@@ -114,12 +114,12 @@ export function CreateClub() {
           </div>
 
           <div className="md:col-span-2">
-            <Field label="详细介绍" hint="最多 400 字。">
+            <Field label="详细介绍" hint="最多 4000 字。">
               <textarea
                 className={textareaClassName}
                 value={description}
                 onChange={(event) => setDescription(event.target.value)}
-                maxLength={400}
+                maxLength={4000}
                 required
               />
             </Field>
