@@ -111,6 +111,12 @@ VERIFICATION_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     },
 }
 
+# Reset confirm can only fail on the code itself — there is no address being
+# claimed here, so the 409 the binding flow can return does not apply.
+PASSWORD_RESET_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    400: VERIFICATION_CODE_INVALID_RESPONSE[400],
+}
+
 CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
     400: {
         "model": ErrorResponseModel,

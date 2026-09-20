@@ -14,6 +14,20 @@ class VerificationChannelEnum(StrEnum):
     sms = "sms"
 
 
+class VerificationPurposeEnum(StrEnum):
+    """What answering the code is allowed to do.
+
+    Codes are bound to a purpose so one cannot be redeemed as the other. The
+    attack this closes is social: "confirm your email address, here is your
+    code" is a far easier thing to talk someone into reading aloud than
+    "reset your password", and without this column the two are the same
+    six digits.
+    """
+
+    bind = "bind"
+    password_reset = "password_reset"  # noqa: S105 - a purpose, not a secret
+
+
 class VerificationCode(Base):
     """One one-time code sent to an email address or a phone number.
 
@@ -28,6 +42,11 @@ class VerificationCode(Base):
     ``target`` is stored per row rather than read off ``users``: the whole
     point is to confirm an address the account does not have yet, so until
     the code is confirmed there is nowhere else the value could live.
+
+    The send budgets ignore ``purpose`` on purpose — total spend per account
+    and per number is what costs money, and counting each purpose separately
+    would let a caller double the real ceiling by alternating between them.
+    Only redemption is purpose-scoped.
     """
 
     __tablename__ = "verification_codes"
@@ -36,6 +55,9 @@ class VerificationCode(Base):
         ForeignKey("users.id", ondelete="CASCADE"),
     )
     channel: Mapped[VerificationChannelEnum] = mapped_column()
+    purpose: Mapped[VerificationPurposeEnum] = mapped_column(
+        default=VerificationPurposeEnum.bind,
+    )
     # Normalized destination: a lowercased email address, or an E.164 phone
     # number. Normalization happens before the row is written so the send
     # budgets cannot be dodged by re-casing an address or dropping a "+86".

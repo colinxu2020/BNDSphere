@@ -3,7 +3,11 @@ from hashlib import blake2b
 
 from sqlalchemy import BigInteger, cast, delete, func, select
 
-from app.models.verification_code import VerificationChannelEnum, VerificationCode
+from app.models.verification_code import (
+    VerificationChannelEnum,
+    VerificationCode,
+    VerificationPurposeEnum,
+)
 from app.repositories.base import RepositoryBase
 from app.schemas.verification_code import VerificationCodeCreate
 
@@ -49,6 +53,7 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
         now: datetime,
     ) -> VerificationCode | None:
@@ -57,12 +62,16 @@ class VerificationCodeRepository(
         Newest wins: requesting a fresh code has to make the previous one
         unusable, otherwise every resend would widen the set of codes that
         open the account rather than replace it.
+
+        Filtered on ``purpose`` as well, so a code minted to confirm an email
+        address cannot be handed to the password-reset endpoint.
         """
         result = await self.db.execute(
             select(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose == purpose,
                 VerificationCode.target == target,
                 VerificationCode.consumed_at.is_(None),
                 VerificationCode.expires_at > now,

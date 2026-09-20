@@ -66,6 +66,7 @@ from app.services.general_activities import (
 )
 from app.services.joint_activities import JointActivityService
 from app.services.oss import ObjectStorageService
+from app.services.password import PasswordService
 from app.services.policies import AccessPolicy
 from app.services.resource_file import ResourceFileService
 from app.services.star_level import StarLevelService
@@ -260,6 +261,33 @@ def get_contact_verification_service(
 type ContactVerificationServiceDep = Annotated[
     ContactVerificationService,
     Depends(get_contact_verification_service),
+]
+
+
+def get_password_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_service: AuthServiceDep,
+    session_service: UserSessionServiceDep,
+    verification_service: ContactVerificationServiceDep,
+) -> PasswordService:
+    """Assemble the password service from the services it borrows.
+
+    Composed out of the existing providers rather than built from scratch so
+    every collaborator shares this request's session — the transaction depth
+    that lets ``ServiceBase.transaction()`` nest lives on the session, and two
+    sessions would mean the inner service committing the outer one's work.
+    """
+    return PasswordService(
+        UserRepository(db),
+        auth_service,
+        session_service,
+        verification_service,
+    )
+
+
+type PasswordServiceDep = Annotated[
+    PasswordService,
+    Depends(get_password_service),
 ]
 
 

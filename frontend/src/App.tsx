@@ -121,6 +121,13 @@ const router = createBrowserRouter([
         lazy: () => import("./pages/Register").then(({ Register }) => ({ Component: Register })),
       },
       {
+        path: "password-reset",
+        lazy: () =>
+          import("./pages/PasswordReset").then(({ PasswordReset }) => ({
+            Component: PasswordReset,
+          })),
+      },
+      {
         path: "legal/:document",
         lazy: () =>
           import("./pages/LegalDocument").then(({ LegalDocument }) => ({

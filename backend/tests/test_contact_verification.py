@@ -20,6 +20,7 @@ from app.api.dependencies import get_contact_verification_service
 from app.core import constants
 from app.main import app
 from app.models import User, VerificationCode
+from app.models.verification_code import VerificationPurposeEnum
 from app.repositories.verification_code import VerificationCodeRepository
 from app.services.contact_verification import (
     ContactVerificationService,
@@ -34,14 +35,24 @@ class RecordingSender:
     """Stands in for both senders and keeps what it was handed."""
 
     def __init__(self) -> None:
-        self.sent: list[tuple[str, str, int]] = []
+        self.sent: list[tuple[str, str, int, VerificationPurposeEnum]] = []
 
-    async def send_code(self, target: str, code: str, minutes: int) -> None:
-        self.sent.append((target, code, minutes))
+    async def send_code(
+        self,
+        target: str,
+        code: str,
+        minutes: int,
+        purpose: VerificationPurposeEnum = VerificationPurposeEnum.bind,
+    ) -> None:
+        self.sent.append((target, code, minutes, purpose))
 
     @property
     def last_code(self) -> str:
         return self.sent[-1][1]
+
+    @property
+    def last_purpose(self) -> VerificationPurposeEnum:
+        return self.sent[-1][3]
 
 
 @pytest_asyncio.fixture(scope="class")
@@ -111,8 +122,9 @@ class TestEmailVerification:
 
         # Normalized before it was handed to the sender, so the budgets and
         # the stored address agree on one spelling.
-        target, code, _ = sender.sent[-1]
+        target, code, _, purpose = sender.sent[-1]
         assert target == "student@example.com"
+        assert purpose is VerificationPurposeEnum.bind
 
         resp = await client.post(
             "/verification/email/confirm",
@@ -297,9 +309,10 @@ class TestPhoneVerification:
             headers=headers,
         )
         assert resp.status_code == 202
-        target, code, minutes = sender.sent[-1]
+        target, code, minutes, purpose = sender.sent[-1]
         assert target == "+8613800138000"
         assert minutes == constants.SMS_CODE_TTL_MINUTES
+        assert purpose is VerificationPurposeEnum.bind
 
         # Confirmed with a different spelling of the same number: if these
         # normalized differently, the budgets would be per-spelling too.

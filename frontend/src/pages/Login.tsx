@@ -130,7 +130,16 @@ export function Login() {
             {isLoading ? "正在登录..." : "登录"}
           </button>
 
-          <div className="mt-4 text-center text-sm text-slate-500">
+          <div className="text-center text-sm text-slate-500">
+            <span
+              onClick={() => navigate("/password-reset")}
+              className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+            >
+              忘记密码？
+            </span>
+          </div>
+
+          <div className="text-center text-sm text-slate-500">
             没有账号？{" "}
             <span
               onClick={() => navigate("/register")}

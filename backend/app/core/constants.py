@@ -2,6 +2,11 @@ from typing import Final
 
 USER_MAX_USERNAME_LENGTH: Final[int] = 32
 USER_MAX_EMAIL_LENGTH: Final[int] = 64
+USER_MIN_PASSWORD_LENGTH: Final[int] = 6
+# Argon2 hashes whatever it is handed, so an unbounded password field is a
+# free way to make the server spend CPU on request. 128 is far past
+# anything a person types and well inside what a password manager makes.
+USER_MAX_PASSWORD_LENGTH: Final[int] = 128
 USER_MAX_DESCRIPTION_LENGTH: Final[int] = 400
 
 ALTCHA_MAX_PAYLOAD_LENGTH: Final[int] = 4096
@@ -39,6 +44,12 @@ LOGIN_IP_MAX_PER_MINUTE: Final[int] = 60
 LOGIN_IP_MAX_PER_HOUR: Final[int] = 1200
 REGISTER_IP_MAX_PER_HOUR: Final[int] = 15
 REGISTER_IP_MAX_PER_DAY: Final[int] = 150
+# Password reset is unauthenticated and names an account, so it is the one
+# auth route that doubles as a username oracle if it is cheap enough to grind.
+# Tighter than login because nobody legitimately asks for many resets, and the
+# per-account send budgets already cap what a single account can cost.
+PASSWORD_RESET_IP_MAX_PER_HOUR: Final[int] = 20
+PASSWORD_RESET_IP_MAX_PER_DAY: Final[int] = 60
 
 # ALTCHA challenge issuance. The endpoint is unauthenticated by design, so a
 # per-IP budget is what keeps a single source from minting challenges in

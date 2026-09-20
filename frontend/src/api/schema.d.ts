@@ -157,6 +157,81 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/password/change": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Change Password
+     * @description Change the current account's password, re-checking the old one.
+     *
+     *     Every session is ended and a new one opened for this caller, so the
+     *     change signs out every other device — which is the reason most people
+     *     change a password in the first place. The cookie is replaced in the same
+     *     response, so this device stays signed in.
+     */
+    post: operations["change_password_api_v1_auth_password_change_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/password/reset/request": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Request Password Reset
+     * @description Send a reset code to a verified address on the named account.
+     *
+     *     Always answers 202 with the same body, whether or not the account exists
+     *     and whether or not it has anything verified on that channel: this route
+     *     is unauthenticated, and any observable difference would turn it into a
+     *     username oracle. The 429 it can still return comes from the per-IP
+     *     budget, which does not depend on the account named.
+     */
+    post: operations["request_password_reset_api_v1_auth_password_reset_request_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/password/reset/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Password Reset
+     * @description Answer a reset code and set a new password.
+     *
+     *     Ends every session on the account and opens none: whoever answered the
+     *     code has to log in with the new password, so a code that leaked is not by
+     *     itself a way in.
+     */
+    post: operations["confirm_password_reset_api_v1_auth_password_reset_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/clubs/managed/": {
     parameters: {
       query?: never;
@@ -1753,7 +1828,7 @@ export interface components {
      * AltchaPurpose
      * @enum {string}
      */
-    AltchaPurpose: "login" | "register";
+    AltchaPurpose: "login" | "register" | "password_reset";
     /** AnnouncementCreate */
     AnnouncementCreate: {
       /** Title */
@@ -2215,8 +2290,7 @@ export interface components {
      * ClubMembershipEnum
      * @enum {string}
      */
-    ClubMembershipEnum:
-      "pending" | "member" | "president" | "vice_president" | "left";
+    ClubMembershipEnum: "pending" | "member" | "president" | "vice_president" | "left";
     /** ClubMembershipRequestCreatePublic */
     ClubMembershipRequestCreatePublic: {
       /** Message */
@@ -2246,13 +2320,7 @@ export interface components {
      * @enum {string}
      */
     ClubStarLevelEnum:
-      | "none"
-      | "one_star"
-      | "two_star"
-      | "three_star"
-      | "four_star"
-      | "five_star"
-      | "honorary";
+      "none" | "one_star" | "two_star" | "three_star" | "four_star" | "five_star" | "honorary";
     /**
      * ClubStatusEnum
      * @enum {string}
@@ -2887,6 +2955,31 @@ export interface components {
      * @enum {string}
      */
     ParticipationTypeEnum: "participate_only" | "organize";
+    /** PasswordChange */
+    PasswordChange: {
+      /** Current Password */
+      current_password: string;
+      /** New Password */
+      new_password: string;
+    };
+    /** PasswordResetConfirm */
+    PasswordResetConfirm: {
+      /** Username */
+      username: string;
+      channel: components["schemas"]["VerificationChannelEnum"];
+      /** Code */
+      code: string;
+      /** New Password */
+      new_password: string;
+    };
+    /** PasswordResetRequest */
+    PasswordResetRequest: {
+      /** Username */
+      username: string;
+      channel: components["schemas"]["VerificationChannelEnum"];
+      /** Altcha */
+      altcha: string;
+    };
     /** PendingDeletionRetryResult */
     PendingDeletionRetryResult: {
       /** Attempted */
@@ -2971,8 +3064,7 @@ export interface components {
      * RoleEnum
      * @enum {string}
      */
-    RoleEnum:
-      "ban" | "user" | "moderator" | "federation_staff" | "admin" | "dev";
+    RoleEnum: "ban" | "user" | "moderator" | "federation_staff" | "admin" | "dev";
     /** StarLevelApplicationCreate */
     StarLevelApplicationCreate: {
       /** Contest Attachment */
@@ -3297,6 +3389,11 @@ export interface components {
       /** Context */
       ctx?: Record<string, never>;
     };
+    /**
+     * VerificationChannelEnum
+     * @enum {string}
+     */
+    VerificationChannelEnum: "email" | "sms";
     /**
      * VerificationCodeSent
      * @description What the client needs to drive the "enter the code" screen.
@@ -3648,6 +3745,166 @@ export interface operations {
           [name: string]: unknown;
         };
         content?: never;
+      };
+    };
+  };
+  change_password_api_v1_auth_password_change_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordChange"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Token"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  request_password_reset_api_v1_auth_password_reset_request_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetRequest"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerificationCodeSent"];
+        };
+      };
+      /** @description ALTCHA verification failed */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.altcha.verification_failed",
+           *       "error_code": "ALTCHA_VERIFICATION_FAILED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description A send budget was hit; retry after the given delay */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.send_throttled",
+           *       "error_code": "VERIFICATION_SEND_THROTTLED",
+           *       "details": {
+           *         "retry_after": 60
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+    };
+  };
+  confirm_password_reset_api_v1_auth_password_reset_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PasswordResetConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description The code is wrong, expired, already used, or out of attempts — deliberately not distinguished. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.code_invalid",
+           *       "error_code": "VERIFICATION_CODE_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
       };
     };
   };

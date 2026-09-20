@@ -3,24 +3,39 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.api.common_responses import ALTCHA_VERIFICATION_FAILED_RESPONSE
+from app.api.common_responses import (
+    ALTCHA_VERIFICATION_FAILED_RESPONSE,
+    CONTACT_VERIFICATION_SEND_RESPONSES,
+    PASSWORD_RESET_CODE_INVALID_RESPONSE,
+    TOKEN_INVALID_RESPONSE,
+)
 from app.api.dependencies import (
     AltchaServiceDep,
     AuthServiceDep,
+    PasswordServiceDep,
     UserServiceDep,
     UserSessionServiceDep,
+    get_current_user,
     session_token,
 )
 from app.api.rate_limit import (
     challenge_rate_limit,
     client_ip,
     login_rate_limit,
+    password_reset_rate_limit,
     register_rate_limit,
 )
 from app.core import constants
 from app.core.settings import web_settings
+from app.models.user import User
 from app.schemas.altcha import AltchaChallenge, AltchaPurpose
+from app.schemas.password import (
+    PasswordChange,
+    PasswordResetConfirm,
+    PasswordResetRequest,
+)
 from app.schemas.user import Token, UserInfo, UserRegistration
+from app.schemas.verification_code import VerificationCodeSent
 from app.services.errors import AuthenticationError
 
 router = APIRouter(tags=["Auth"])
@@ -174,4 +189,84 @@ async def logout(
         httponly=True,
         secure=not web_settings().debug,
         samesite="lax",
+    )
+
+
+@router.post(
+    "/password/change",
+    response_model=Token,
+    responses=TOKEN_INVALID_RESPONSE,
+)
+async def change_password(
+    body: PasswordChange,
+    service: PasswordServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+    request: Request,
+    response: Response,
+) -> Token:
+    """Change the current account's password, re-checking the old one.
+
+    Every session is ended and a new one opened for this caller, so the
+    change signs out every other device — which is the reason most people
+    change a password in the first place. The cookie is replaced in the same
+    response, so this device stays signed in.
+    """
+    token = await service.change(
+        user,
+        body.current_password,
+        body.new_password,
+        ip=client_ip(request),
+    )
+    _set_session_cookie(response, token)
+    return Token(
+        access_token=token,
+        token_type="bearer",  # noqa: S106
+    )
+
+
+@router.post(
+    "/password/reset/request",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(password_reset_rate_limit)],
+    responses=ALTCHA_VERIFICATION_FAILED_RESPONSE
+    | {429: CONTACT_VERIFICATION_SEND_RESPONSES[429]},
+)
+async def request_password_reset(
+    body: PasswordResetRequest,
+    service: PasswordServiceDep,
+    altcha_service: AltchaServiceDep,
+) -> VerificationCodeSent:
+    """Send a reset code to a verified address on the named account.
+
+    Always answers 202 with the same body, whether or not the account exists
+    and whether or not it has anything verified on that channel: this route
+    is unauthenticated, and any observable difference would turn it into a
+    username oracle. The 429 it can still return comes from the per-IP
+    budget, which does not depend on the account named.
+    """
+    altcha_service.verify(body.altcha, AltchaPurpose.password_reset)
+    return await service.request_reset(body.username, body.channel)
+
+
+@router.post(
+    "/password/reset/confirm",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(password_reset_rate_limit)],
+    responses=PASSWORD_RESET_CODE_INVALID_RESPONSE,
+)
+async def confirm_password_reset(
+    body: PasswordResetConfirm,
+    service: PasswordServiceDep,
+) -> None:
+    """Answer a reset code and set a new password.
+
+    Ends every session on the account and opens none: whoever answered the
+    code has to log in with the new password, so a code that leaked is not by
+    itself a way in.
+    """
+    await service.confirm_reset(
+        body.username,
+        body.channel,
+        body.code,
+        body.new_password,
     )

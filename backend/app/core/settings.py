@@ -118,7 +118,18 @@ class SmsSettings(_AppBaseSettings):
     # approved in the Tencent console before they will send.
     tencent_sms_sign_name: str = ""
     tencent_sms_template_id: str = ""
+    # Optional. Tencent templates are pre-registered and their text is fixed,
+    # so telling a password-reset code apart from a binding code in the SMS
+    # itself needs a second one. Left empty the reset code reuses the template
+    # above — correct, just less specific about what answering it does.
+    tencent_sms_reset_template_id: str = ""
     tencent_sms_region: str = "ap-guangzhou"
+
+    def template_for(self, purpose: str) -> str:
+        """Template id for this purpose, falling back to the binding one."""
+        if purpose == "password_reset" and self.tencent_sms_reset_template_id:
+            return self.tencent_sms_reset_template_id
+        return self.tencent_sms_template_id
 
     @property
     def configured(self) -> bool:

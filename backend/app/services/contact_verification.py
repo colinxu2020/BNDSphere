@@ -9,7 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from app.core import constants
 from app.core.security import hash_verification_code
 from app.models.user import User
-from app.models.verification_code import VerificationChannelEnum, VerificationCode
+from app.models.verification_code import (
+    VerificationChannelEnum,
+    VerificationCode,
+    VerificationPurposeEnum,
+)
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
 from app.schemas.verification_code import VerificationCodeCreate, VerificationCodeSent
@@ -135,7 +139,12 @@ class ContactVerificationService(
     async def send_email_code(self, user: User, raw_email: str) -> VerificationCodeSent:
         email = normalize_email(raw_email)
         await self._ensure_target_free(VerificationChannelEnum.email, email, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.email, email)
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.email,
+            VerificationPurposeEnum.bind,
+            email,
+        )
         await self.email_sender.send_code(
             email,
             code,
@@ -146,14 +155,67 @@ class ContactVerificationService(
     async def send_phone_code(self, user: User, raw_phone: str) -> VerificationCodeSent:
         phone = normalize_phone(raw_phone)
         await self._ensure_target_free(VerificationChannelEnum.sms, phone, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.sms, phone)
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.bind,
+            phone,
+        )
         await self.sms_sender.send_code(phone, code, constants.SMS_CODE_TTL_MINUTES)
         return sent
+
+    async def send_reset_code(
+        self,
+        user: User,
+        channel: VerificationChannelEnum,
+        target: str,
+    ) -> VerificationCodeSent:
+        """Send a password-reset code to an address the account already owns.
+
+        No ``_ensure_target_free`` here: ``target`` comes off the account
+        rather than off the request, because a reset is asked for by someone
+        who is not logged in and letting them name the destination would make
+        this a way to mail a code anywhere.
+        """
+        purpose = VerificationPurposeEnum.password_reset
+        code, sent = await self._issue(user, channel, purpose, target)
+        if channel is VerificationChannelEnum.email:
+            await self.email_sender.send_code(
+                target,
+                code,
+                constants.EMAIL_CODE_TTL_MINUTES,
+                purpose,
+            )
+        else:
+            await self.sms_sender.send_code(
+                target,
+                code,
+                constants.SMS_CODE_TTL_MINUTES,
+                purpose,
+            )
+        return sent
+
+    async def consume_reset_code(
+        self,
+        user: User,
+        channel: VerificationChannelEnum,
+        target: str,
+        code: str,
+    ) -> None:
+        """Burn a password-reset code, or raise. Binds nothing."""
+        await self._consume(
+            user,
+            channel,
+            VerificationPurposeEnum.password_reset,
+            target,
+            code,
+        )
 
     async def _issue(
         self,
         user: User,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
     ) -> tuple[str, VerificationCodeSent]:
         """Reserve budget and store one code. Returns it for the sender.
@@ -178,6 +240,7 @@ class ContactVerificationService(
                 VerificationCodeCreate(
                     user_id=user.id,
                     channel=channel,
+                    purpose=purpose,
                     target=target,
                     code_hash=hash_verification_code(code),
                     expires_at=now + policy.ttl,
@@ -234,18 +297,31 @@ class ContactVerificationService(
 
     async def confirm_email_code(self, user: User, raw_email: str, code: str) -> User:
         email = normalize_email(raw_email)
-        await self._consume(user, VerificationChannelEnum.email, email, code)
+        await self._consume(
+            user,
+            VerificationChannelEnum.email,
+            VerificationPurposeEnum.bind,
+            email,
+            code,
+        )
         return await self._bind(user, email=email)
 
     async def confirm_phone_code(self, user: User, raw_phone: str, code: str) -> User:
         phone = normalize_phone(raw_phone)
-        await self._consume(user, VerificationChannelEnum.sms, phone, code)
+        await self._consume(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.bind,
+            phone,
+            code,
+        )
         return await self._bind(user, phone=phone)
 
     async def _consume(
         self,
         user: User,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
         submitted: str,
     ) -> None:
@@ -256,7 +332,13 @@ class ContactVerificationService(
             # the same wrong code each read ``attempts`` before the other's
             # increment lands, and the cap counts one attempt instead of two.
             await self.repository.lock_user_channel(user.id, channel)
-            record = await self.repository.get_active(user.id, channel, target, now)
+            record = await self.repository.get_active(
+                user.id,
+                channel,
+                purpose,
+                target,
+                now,
+            )
             if record is not None and (
                 record.attempts < constants.VERIFICATION_CODE_MAX_ATTEMPTS
             ):
@@ -331,6 +413,17 @@ class ContactVerificationService(
         )
         if owner is not None and owner.id != user.id:
             raise VerificationTargetTakenError(channel.value)
+
+
+def verified_target(user: User, channel: VerificationChannelEnum) -> str | None:
+    """Return the confirmed address on this channel, or None if there is not one.
+
+    Unverified is the same as absent on purpose: an address nobody proved
+    they can read is not something a password may be reset through.
+    """
+    if channel is VerificationChannelEnum.email:
+        return user.email if user.email_verified_at is not None else None
+    return user.phone if user.phone_verified_at is not None else None
 
 
 def _seconds_until(moment: datetime, now: datetime) -> int:
