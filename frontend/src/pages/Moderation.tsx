@@ -235,7 +235,7 @@ export function Moderation() {
       {message && <StatusMessage value={message} tone={messageTone} />}
       {loadError && <StatusMessage value={loadError} />}
 
-      <PageTabs
+      <PageTabs<QueueKey>
         tabs={QUEUES}
         activeTab={activeQueue}
         onChange={setActiveQueue}
