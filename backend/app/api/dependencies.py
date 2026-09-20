@@ -256,8 +256,15 @@ type UserSessionServiceDep = Annotated[
 
 def get_contact_verification_service(
     db: Annotated[AsyncSession, Depends(get_db)],
+    auth_service: AuthServiceDep,
 ) -> ContactVerificationService:
-    return ContactVerificationService(VerificationCodeRepository(db))
+    """Build the service on the *same* session the auth service holds.
+
+    ``AuthServiceDep`` resolves to one instance per request, so the password
+    re-check and the code insert commit together rather than as two units of
+    work that can half-succeed.
+    """
+    return ContactVerificationService(VerificationCodeRepository(db), auth_service)
 
 
 type ContactVerificationServiceDep = Annotated[

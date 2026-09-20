@@ -159,10 +159,11 @@ CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
 }
 
 
-# Every route under /auth/2fa that re-checks the password can answer 401 with
-# this, in addition to the 401 an absent session already produces.
+# Every route that re-checks the account password answers 401 with this, in
+# addition to the 401 an absent or expired session already produces.
 PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     401: {
+        "model": ErrorResponseModel,
         "description": "Session missing or password incorrect",
         "content": {
             "application/json": {

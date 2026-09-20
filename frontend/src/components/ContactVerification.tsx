@@ -33,10 +33,14 @@ type Channel = keyof typeof CHANNELS;
 /** The one place that knows a channel's two endpoints differ only by field name. */
 function api(channel: Channel) {
   return {
-    send: (target: string) =>
+    send: (target: string, password: string) =>
       channel === "email"
-        ? client.POST("/api/v1/verification/email/send", { body: { email: target } })
-        : client.POST("/api/v1/verification/phone/send", { body: { phone: target } }),
+        ? client.POST("/api/v1/verification/email/send", {
+            body: { email: target, password },
+          })
+        : client.POST("/api/v1/verification/phone/send", {
+            body: { phone: target, password },
+          }),
     confirm: (target: string, code: string) =>
       channel === "email"
         ? client.POST("/api/v1/verification/email/confirm", {
@@ -63,6 +67,7 @@ function ChannelRow({
   const verifiedAt = channel === "email" ? user.email_verified_at : user.phone_verified_at;
 
   const [target, setTarget] = useState(current || "");
+  const [password, setPassword] = useState("");
   const [code, setCode] = useState("");
   const [codeSent, setCodeSent] = useState(false);
   const [cooldown, setCooldown] = useState(0);
@@ -82,7 +87,7 @@ function ChannelRow({
     setBusy(true);
     setMessage(null);
     try {
-      const { data, error } = await api(channel).send(target.trim());
+      const { data, error } = await api(channel).send(target.trim(), password);
       if (error) {
         setTone("error");
         setMessage(error);
@@ -110,6 +115,7 @@ function ChannelRow({
         setMessage(error);
       } else if (data) {
         setCode("");
+        setPassword("");
         setCodeSent(false);
         setCooldown(0);
         setTone("success");
@@ -144,6 +150,18 @@ function ChannelRow({
 
       <p className="text-xs text-slate-500">{config.hint}</p>
 
+      {/* The server refuses a send without it: a bound address is where
+          password resets land, so a session left open must not be enough to
+          move it. */}
+      <input
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        placeholder="账号密码"
+        onChange={(e) => setPassword(e.target.value)}
+        className={FIELD_CLASS}
+      />
+
       <div className="flex gap-2">
         <input
           type={config.inputType}
@@ -155,7 +173,7 @@ function ChannelRow({
         <button
           type="button"
           onClick={handleSend}
-          disabled={busy || cooldown > 0 || !target.trim()}
+          disabled={busy || cooldown > 0 || !target.trim() || !password}
           className="shrink-0 px-4 py-3 bg-slate-900 text-white text-sm font-semibold rounded-md hover:bg-slate-800 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100"
         >
           {cooldown > 0 ? `${cooldown} 秒后重发` : codeSent ? "重新发送" : "发送验证码"}
