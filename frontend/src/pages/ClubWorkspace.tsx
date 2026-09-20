@@ -19,6 +19,7 @@ import {
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
+import { changedRequiredText } from "../lib/clubActivityUpdate";
 import {
   AUDIT_STATUS_MAP,
   CATEGORY_MAP,
@@ -549,21 +550,24 @@ export function ClubWorkspace() {
     const originalPictures = selectedUpdateActivity.picture_urls || [];
     const body: components["schemas"]["ClubActivityUpdateRequestCreatePublic"] = {};
 
-    if (updateActivityName.trim() !== selectedUpdateActivity.name) {
-      body.name = nullableText(updateActivityName);
-    }
-    if (updateActivityDescription.trim() !== selectedUpdateActivity.description) {
-      body.description = nullableText(updateActivityDescription);
-    }
+    const changedName = changedRequiredText(updateActivityName, selectedUpdateActivity.name);
+    if (changedName !== undefined) body.name = changedName;
+    const changedDescription = changedRequiredText(
+      updateActivityDescription,
+      selectedUpdateActivity.description,
+    );
+    if (changedDescription !== undefined) body.description = changedDescription;
     if (updateActivityStart && updateActivityStart !== originalStart) {
       body.start_time = fromDateTimeLocalValue(updateActivityStart);
     }
     if (updateActivityEnd && updateActivityEnd !== originalEnd) {
       body.end_time = fromDateTimeLocalValue(updateActivityEnd);
     }
-    if (updateActivityLocation.trim() !== selectedUpdateActivity.location) {
-      body.location = nullableText(updateActivityLocation);
-    }
+    const changedLocation = changedRequiredText(
+      updateActivityLocation,
+      selectedUpdateActivity.location,
+    );
+    if (changedLocation !== undefined) body.location = changedLocation;
     if (!sameStringArray(updateActivityPictureUrls, originalPictures)) {
       body.picture_urls = updateActivityPictureUrls;
     }

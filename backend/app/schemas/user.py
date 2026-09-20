@@ -1,7 +1,15 @@
 from datetime import datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    HttpUrl,
+    field_validator,
+    model_validator,
+)
 
 from app.core import constants
 from app.models.user import RoleEnum, UserGradeEnum
@@ -51,7 +59,11 @@ class PublicUserInfo(UserBase, IdMixin):
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None)
+    username: str | None = Field(
+        None,
+        min_length=1,
+        max_length=constants.USER_MAX_USERNAME_LENGTH,
+    )
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
@@ -60,6 +72,11 @@ class AdminUserUpdate(BaseModel):
     )
     role: RoleEnum | None = Field(None)
     grade: UserGradeEnum | None = Field(None)
+
+    @field_validator("username", mode="before")
+    @classmethod
+    def strip_username(cls, value: object) -> object:
+        return value.strip() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def validate_non_nullable_fields(self) -> Self:
