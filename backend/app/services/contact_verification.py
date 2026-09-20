@@ -9,7 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from app.core import constants
 from app.core.security import hash_verification_code
 from app.models.user import User
-from app.models.verification_code import VerificationChannelEnum, VerificationCode
+from app.models.verification_code import (
+    VerificationChannelEnum,
+    VerificationCode,
+    VerificationPurposeEnum,
+)
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
 from app.schemas.verification_code import VerificationCodeCreate, VerificationCodeSent
@@ -82,7 +86,7 @@ def _generate_code() -> str:
 
 @dataclass(frozen=True)
 class _ChannelPolicy:
-    """Everything that differs between email and SMS."""
+    """Everything that differs between email and SMS, and between pools."""
 
     ttl: timedelta
     per_account_hourly: int
@@ -90,22 +94,52 @@ class _ChannelPolicy:
     # Deployment-wide daily ceiling, or None when the channel costs nothing
     # to send and only needs the per-account and per-target budgets.
     global_daily: int | None
+    # Which purposes this policy's budgets count over. Sends in one pool are
+    # invisible to the other, so the two cannot starve each other.
+    purposes: tuple[VerificationPurposeEnum, ...]
 
 
+# Binding an address and recovering an account: occasional, per-account,
+# one-off. A person does each a handful of times ever.
+_CONTACT_PURPOSES = (
+    VerificationPurposeEnum.bind,
+    VerificationPurposeEnum.password_reset,
+)
 _POLICIES: dict[VerificationChannelEnum, _ChannelPolicy] = {
     VerificationChannelEnum.email: _ChannelPolicy(
         ttl=timedelta(minutes=constants.EMAIL_CODE_TTL_MINUTES),
         per_account_hourly=constants.EMAIL_SEND_MAX_PER_ACCOUNT_PER_HOUR,
         per_target_daily=constants.EMAIL_SEND_MAX_PER_TARGET_PER_DAY,
         global_daily=None,
+        purposes=_CONTACT_PURPOSES,
     ),
     VerificationChannelEnum.sms: _ChannelPolicy(
         ttl=timedelta(minutes=constants.SMS_CODE_TTL_MINUTES),
         per_account_hourly=constants.SMS_SEND_MAX_PER_ACCOUNT_PER_HOUR,
         per_target_daily=constants.SMS_SEND_MAX_PER_TARGET_PER_DAY,
         global_daily=constants.SMS_GLOBAL_MAX_PER_DAY,
+        purposes=_CONTACT_PURPOSES,
     ),
 }
+
+# Logging in, which an SMS-second-factor account does every single time. On
+# the binding budgets that account would be allowed five logins a day.
+_SMS_LOGIN_POLICY = _ChannelPolicy(
+    ttl=timedelta(minutes=constants.SMS_CODE_TTL_MINUTES),
+    per_account_hourly=constants.SMS_TWO_FACTOR_MAX_PER_ACCOUNT_PER_HOUR,
+    per_target_daily=constants.SMS_TWO_FACTOR_MAX_PER_TARGET_PER_DAY,
+    global_daily=constants.SMS_TWO_FACTOR_GLOBAL_MAX_PER_DAY,
+    purposes=(VerificationPurposeEnum.two_factor,),
+)
+
+
+def _policy_for(
+    channel: VerificationChannelEnum,
+    purpose: VerificationPurposeEnum,
+) -> _ChannelPolicy:
+    if purpose is VerificationPurposeEnum.two_factor:
+        return _SMS_LOGIN_POLICY
+    return _POLICIES[channel]
 
 
 class ContactVerificationService(
@@ -155,7 +189,12 @@ class ContactVerificationService(
         await self.auth_service.reauthenticate(user, password, ip=ip)
         email = normalize_email(raw_email)
         await self._ensure_target_free(VerificationChannelEnum.email, email, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.email, email)
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.email,
+            VerificationPurposeEnum.bind,
+            email,
+        )
         await self.email_sender.send_code(
             email,
             code,
@@ -174,14 +213,107 @@ class ContactVerificationService(
         await self.auth_service.reauthenticate(user, password, ip=ip)
         phone = normalize_phone(raw_phone)
         await self._ensure_target_free(VerificationChannelEnum.sms, phone, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.sms, phone)
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.bind,
+            phone,
+        )
         await self.sms_sender.send_code(phone, code, constants.SMS_CODE_TTL_MINUTES)
         return sent
+
+    async def send_reset_code(
+        self,
+        user: User,
+        channel: VerificationChannelEnum,
+        target: str,
+    ) -> VerificationCodeSent:
+        """Send a password-reset code to an address the account already owns.
+
+        No ``_ensure_target_free`` here: ``target`` comes off the account
+        rather than off the request, because a reset is asked for by someone
+        who is not logged in and letting them name the destination would make
+        this a way to mail a code anywhere.
+        """
+        purpose = VerificationPurposeEnum.password_reset
+        code, sent = await self._issue(user, channel, purpose, target)
+        if channel is VerificationChannelEnum.email:
+            await self.email_sender.send_code(
+                target,
+                code,
+                constants.EMAIL_CODE_TTL_MINUTES,
+                purpose,
+            )
+        else:
+            await self.sms_sender.send_code(
+                target,
+                code,
+                constants.SMS_CODE_TTL_MINUTES,
+                purpose,
+            )
+        return sent
+
+    async def send_two_factor_code(
+        self,
+        user: User,
+        target: str,
+    ) -> VerificationCodeSent:
+        """Send a login second-factor code to the account's verified number.
+
+        SMS only: email is too slow and too often open in the same browser
+        session to be a second factor worth the name.
+        """
+        purpose = VerificationPurposeEnum.two_factor
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.sms,
+            purpose,
+            target,
+        )
+        await self.sms_sender.send_code(
+            target,
+            code,
+            constants.SMS_CODE_TTL_MINUTES,
+            purpose,
+        )
+        return sent
+
+    async def consume_two_factor_code(
+        self,
+        user: User,
+        target: str,
+        code: str,
+    ) -> None:
+        """Burn a login second-factor code, or raise. Binds nothing."""
+        await self._consume(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.two_factor,
+            target,
+            code,
+        )
+
+    async def consume_reset_code(
+        self,
+        user: User,
+        channel: VerificationChannelEnum,
+        target: str,
+        code: str,
+    ) -> None:
+        """Burn a password-reset code, or raise. Binds nothing."""
+        await self._consume(
+            user,
+            channel,
+            VerificationPurposeEnum.password_reset,
+            target,
+            code,
+        )
 
     async def _issue(
         self,
         user: User,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
     ) -> tuple[str, VerificationCodeSent]:
         """Reserve budget and store one code. Returns it for the sender.
@@ -193,7 +325,7 @@ class ContactVerificationService(
         retry — which is exactly the loop an attacker would aim for on a
         channel that costs money per message.
         """
-        policy = _POLICIES[channel]
+        policy = _policy_for(channel, purpose)
         code = _generate_code()
         now = datetime.now(UTC)
 
@@ -206,6 +338,7 @@ class ContactVerificationService(
                 VerificationCodeCreate(
                     user_id=user.id,
                     channel=channel,
+                    purpose=purpose,
                     target=target,
                     code_hash=hash_verification_code(code),
                     expires_at=now + policy.ttl,
@@ -226,7 +359,11 @@ class ContactVerificationService(
         now: datetime,
     ) -> None:
         cooldown = timedelta(seconds=constants.VERIFICATION_RESEND_INTERVAL_SECONDS)
-        last_sent = await self.repository.last_sent_at(user.id, channel)
+        last_sent = await self.repository.last_sent_at(
+            user.id,
+            channel,
+            policy.purposes,
+        )
         if last_sent is not None and now - last_sent < cooldown:
             raise VerificationSendThrottledError(
                 _seconds_until(last_sent + cooldown, now),
@@ -234,7 +371,12 @@ class ContactVerificationService(
 
         hour_ago = now - timedelta(hours=1)
         if (
-            await self.repository.count_for_user_since(user.id, channel, hour_ago)
+            await self.repository.count_for_user_since(
+                user.id,
+                channel,
+                policy.purposes,
+                hour_ago,
+            )
             >= policy.per_account_hourly
         ):
             raise VerificationSendThrottledError(
@@ -243,7 +385,12 @@ class ContactVerificationService(
 
         day_ago = now - timedelta(days=1)
         if (
-            await self.repository.count_for_target_since(channel, target, day_ago)
+            await self.repository.count_for_target_since(
+                channel,
+                policy.purposes,
+                target,
+                day_ago,
+            )
             >= policy.per_target_daily
         ):
             raise VerificationSendThrottledError(
@@ -251,7 +398,11 @@ class ContactVerificationService(
             )
 
         if policy.global_daily is not None and (
-            await self.repository.count_for_channel_since(channel, day_ago)
+            await self.repository.count_for_channel_since(
+                channel,
+                policy.purposes,
+                day_ago,
+            )
             >= policy.global_daily
         ):
             # The whole deployment is out of budget for the day. Nothing the
@@ -262,18 +413,31 @@ class ContactVerificationService(
 
     async def confirm_email_code(self, user: User, raw_email: str, code: str) -> User:
         email = normalize_email(raw_email)
-        await self._consume(user, VerificationChannelEnum.email, email, code)
+        await self._consume(
+            user,
+            VerificationChannelEnum.email,
+            VerificationPurposeEnum.bind,
+            email,
+            code,
+        )
         return await self._bind(user, email=email)
 
     async def confirm_phone_code(self, user: User, raw_phone: str, code: str) -> User:
         phone = normalize_phone(raw_phone)
-        await self._consume(user, VerificationChannelEnum.sms, phone, code)
+        await self._consume(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.bind,
+            phone,
+            code,
+        )
         return await self._bind(user, phone=phone)
 
     async def _consume(
         self,
         user: User,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
         submitted: str,
     ) -> None:
@@ -284,7 +448,13 @@ class ContactVerificationService(
             # the same wrong code each read ``attempts`` before the other's
             # increment lands, and the cap counts one attempt instead of two.
             await self.repository.lock_user_channel(user.id, channel)
-            record = await self.repository.get_active(user.id, channel, target, now)
+            record = await self.repository.get_active(
+                user.id,
+                channel,
+                purpose,
+                target,
+                now,
+            )
             if record is not None and (
                 record.attempts < constants.VERIFICATION_CODE_MAX_ATTEMPTS
             ):
@@ -323,6 +493,12 @@ class ContactVerificationService(
                     user.email = email
                     user.email_verified_at = now
                 if phone is not None:
+                    if phone != user.phone:
+                        # A different handset is not the one the owner armed
+                        # as a second factor. Carrying the flag over would
+                        # move 2FA onto the new number silently — turning the
+                        # account's protection into the new holder's.
+                        user.sms_two_factor_enabled_at = None
                     user.phone = phone
                     user.phone_verified_at = now
                 self.user_repository.db.add(user)
@@ -359,6 +535,17 @@ class ContactVerificationService(
         )
         if owner is not None and owner.id != user.id:
             raise VerificationTargetTakenError(channel.value)
+
+
+def verified_target(user: User, channel: VerificationChannelEnum) -> str | None:
+    """Return the confirmed address on this channel, or None if there is not one.
+
+    Unverified is the same as absent on purpose: an address nobody proved
+    they can read is not something a password may be reset through.
+    """
+    if channel is VerificationChannelEnum.email:
+        return user.email if user.email_verified_at is not None else None
+    return user.phone if user.phone_verified_at is not None else None
 
 
 def _seconds_until(moment: datetime, now: datetime) -> int:

@@ -9,6 +9,8 @@ import {
   type AltchaVerificationRef,
 } from "../components/ui/AltchaVerification";
 import { readAltchaPayload } from "../lib/altcha";
+import { TwoFactorPrompt } from "../components/TwoFactorPrompt";
+import { readTwoFactorChallenge, type TwoFactorChallenge } from "../lib/twoFactor";
 
 export function Login() {
   const navigate = useNavigate();
@@ -16,6 +18,7 @@ export function Login() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [challenge, setChallenge] = useState<TwoFactorChallenge | null>(null);
   const altchaRef = useRef<AltchaVerificationRef>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,6 +55,13 @@ export function Login() {
       });
 
       if (error) {
+        // A correct password on an account with two-step verification comes
+        // back as a 401 carrying the challenge ticket, not as a failure.
+        const pending = readTwoFactorChallenge(error);
+        if (pending) {
+          setChallenge(pending);
+          return;
+        }
         setError(error);
         altchaRef.current?.reset();
         return;
@@ -82,64 +92,94 @@ export function Login() {
       className="flex flex-col items-center justify-center min-h-[70vh] px-4"
     >
       <div className="w-full max-w-md bg-white p-8 rounded-md border border-slate-100 shadow-sm relative overflow-hidden">
-        <div className="flex flex-col gap-2 mb-8 text-center relative z-10">
-          <div className="mx-auto bg-primary-50 p-3 rounded-md text-primary-600 mb-2">
-            <LogIn size={28} />
+        {challenge ? (
+          <div className="relative z-10">
+            <TwoFactorPrompt
+              challenge={challenge}
+              onAuthenticated={() => {
+                markAuthenticated();
+                navigate("/profile");
+              }}
+              onCancel={() => {
+                setChallenge(null);
+                setPassword("");
+                altchaRef.current?.reset();
+              }}
+            />
           </div>
-          <h1 className="text-2xl font-display font-bold text-slate-900">登录 BNDSphere</h1>
-          <p className="text-slate-500 text-sm">请输入您的账号密码</p>
-        </div>
+        ) : (
+          <>
+            <div className="flex flex-col gap-2 mb-8 text-center relative z-10">
+              <div className="mx-auto bg-primary-50 p-3 rounded-md text-primary-600 mb-2">
+                <LogIn size={28} />
+              </div>
+              <h1 className="text-2xl font-display font-bold text-slate-900">登录 BNDSphere</h1>
+              <p className="text-slate-500 text-sm">请输入您的账号密码</p>
+            </div>
 
-        {error && (
-          <div className="mb-6 relative z-10">
-            <StatusMessage value={error} />
-          </div>
+            {error && (
+              <div className="mb-6 relative z-10">
+                <StatusMessage value={error} />
+              </div>
+            )}
+
+            <form onSubmit={handleLogin} className="flex flex-col gap-5 relative z-10">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+                  用户名
+                </label>
+                <input
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
+                  placeholder="您的用户名"
+                  required
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">密码</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
+                  placeholder="••••••••"
+                  required
+                />
+              </div>
+
+              <AltchaVerification ref={altchaRef} purpose="login" />
+
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="mt-4 w-full py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-500/20"
+              >
+                {isLoading ? "正在登录..." : "登录"}
+              </button>
+
+              <div className="text-center text-sm text-slate-500">
+                <span
+                  onClick={() => navigate("/password-reset")}
+                  className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+                >
+                  忘记密码？
+                </span>
+              </div>
+
+              <div className="text-center text-sm text-slate-500">
+                没有账号？{" "}
+                <span
+                  onClick={() => navigate("/register")}
+                  className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
+                >
+                  立即注册
+                </span>
+              </div>
+            </form>
+          </>
         )}
-
-        <form onSubmit={handleLogin} className="flex flex-col gap-5 relative z-10">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">用户名</label>
-            <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
-              placeholder="您的用户名"
-              required
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">密码</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900"
-              placeholder="••••••••"
-              required
-            />
-          </div>
-
-          <AltchaVerification ref={altchaRef} purpose="login" />
-
-          <button
-            type="submit"
-            disabled={isLoading}
-            className="mt-4 w-full py-3.5 bg-primary-500 hover:bg-primary-600 text-white font-semibold rounded-md transition-all active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed shadow-md shadow-primary-500/20"
-          >
-            {isLoading ? "正在登录..." : "登录"}
-          </button>
-
-          <div className="mt-4 text-center text-sm text-slate-500">
-            没有账号？{" "}
-            <span
-              onClick={() => navigate("/register")}
-              className="text-primary-600 hover:text-primary-700 font-medium cursor-pointer"
-            >
-              立即注册
-            </span>
-          </div>
-        </form>
       </div>
     </motion.div>
   );

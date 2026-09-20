@@ -9,6 +9,7 @@ from typing import Any, Final
 import httpx
 
 from app.core.settings import SmsSettings, sms_settings, web_settings
+from app.models.verification_code import VerificationPurposeEnum
 from app.services.errors import NotificationChannelUnavailableError
 
 logger = logging.getLogger(__name__)
@@ -137,7 +138,13 @@ def _raise_for_api_error(body: dict[str, Any], phone: str) -> None:
 class SmsSender:
     """Deliver verification codes through Tencent Cloud SMS."""
 
-    async def send_code(self, phone: str, code: str, minutes: int) -> None:
+    async def send_code(
+        self,
+        phone: str,
+        code: str,
+        minutes: int,
+        purpose: VerificationPurposeEnum = VerificationPurposeEnum.bind,
+    ) -> None:
         settings = sms_settings()
         if not settings.configured:
             if web_settings().debug:
@@ -151,7 +158,7 @@ class SmsSender:
                 return
             raise NotificationChannelUnavailableError("sms")
 
-        await self._post(settings, phone, code, minutes)
+        await self._post(settings, phone, code, minutes, purpose)
 
     async def _post(
         self,
@@ -159,6 +166,7 @@ class SmsSender:
         phone: str,
         code: str,
         minutes: int,
+        purpose: VerificationPurposeEnum,
     ) -> None:
         # Compact separators keep the signed string and the sent body
         # identical; any reformatting between the two invalidates the
@@ -168,7 +176,7 @@ class SmsSender:
                 "PhoneNumberSet": [phone],
                 "SmsSdkAppId": settings.tencent_sms_sdk_app_id,
                 "SignName": settings.tencent_sms_sign_name,
-                "TemplateId": settings.tencent_sms_template_id,
+                "TemplateId": settings.template_for(purpose),
                 # Template placeholders, in order: the code, then how long it
                 # stays valid. The template registered in the Tencent console
                 # must take these two parameters in this order.

@@ -1,9 +1,14 @@
+from collections.abc import Collection
 from datetime import datetime
 from hashlib import blake2b
 
 from sqlalchemy import BigInteger, cast, delete, func, select
 
-from app.models.verification_code import VerificationChannelEnum, VerificationCode
+from app.models.verification_code import (
+    VerificationChannelEnum,
+    VerificationCode,
+    VerificationPurposeEnum,
+)
 from app.repositories.base import RepositoryBase
 from app.schemas.verification_code import VerificationCodeCreate
 
@@ -49,6 +54,7 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purpose: VerificationPurposeEnum,
         target: str,
         now: datetime,
     ) -> VerificationCode | None:
@@ -57,12 +63,16 @@ class VerificationCodeRepository(
         Newest wins: requesting a fresh code has to make the previous one
         unusable, otherwise every resend would widen the set of codes that
         open the account rather than replace it.
+
+        Filtered on ``purpose`` as well, so a code minted to confirm an email
+        address cannot be handed to the password-reset endpoint.
         """
         result = await self.db.execute(
             select(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose == purpose,
                 VerificationCode.target == target,
                 VerificationCode.consumed_at.is_(None),
                 VerificationCode.expires_at > now,
@@ -76,16 +86,23 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
     ) -> datetime | None:
         """When this account last had a code sent on this channel.
 
         Keyed on the account, not the target, so switching the address being
         verified does not reset the resend cooldown.
+
+        ``purposes`` scopes every budget to the pool it belongs to: binding a
+        number and logging in with one are different activities with different
+        shapes, and a login must not be refused because a binding code went
+        out a minute ago.
         """
         result = await self.db.execute(
             select(func.max(VerificationCode.created_at)).where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
             ),
         )
         return result.scalar_one_or_none()
@@ -94,6 +111,7 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         since: datetime,
     ) -> int:
         result = await self.db.execute(
@@ -102,6 +120,7 @@ class VerificationCodeRepository(
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.created_at >= since,
             ),
         )
@@ -110,6 +129,7 @@ class VerificationCodeRepository(
     async def count_for_target_since(
         self,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         target: str,
         since: datetime,
     ) -> int:
@@ -123,6 +143,7 @@ class VerificationCodeRepository(
             .select_from(VerificationCode)
             .where(
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.target == target,
                 VerificationCode.created_at >= since,
             ),
@@ -132,14 +153,16 @@ class VerificationCodeRepository(
     async def count_for_channel_since(
         self,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         since: datetime,
     ) -> int:
-        """Every send on this channel, deployment-wide — the spend ceiling."""
+        """Every send in this pool, deployment-wide — the spend ceiling."""
         result = await self.db.execute(
             select(func.count())
             .select_from(VerificationCode)
             .where(
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.created_at >= since,
             ),
         )

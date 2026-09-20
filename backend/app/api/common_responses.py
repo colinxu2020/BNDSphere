@@ -111,6 +111,12 @@ VERIFICATION_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     },
 }
 
+# Reset confirm can only fail on the code itself — there is no address being
+# claimed here, so the 409 the binding flow can return does not apply.
+PASSWORD_RESET_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    400: VERIFICATION_CODE_INVALID_RESPONSE[400],
+}
+
 CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
     400: {
         "model": ErrorResponseModel,
@@ -165,6 +171,33 @@ PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
                     "message_key": "error.auth.incorrect_user_passwd",
                     "error_code": "INCORRECT_USER_PASSWD",
                     "details": {},
+                },
+            },
+        },
+    },
+}
+
+TWO_FACTOR_LOGIN_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "description": "Challenge ticket expired or second factor wrong",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_code_invalid",
+                    "error_code": "TWO_FACTOR_CODE_INVALID",
+                    "details": {},
+                },
+            },
+        },
+    },
+    400: {
+        "description": "That method is not armed on this account",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_method_unavailable",
+                    "error_code": "TWO_FACTOR_METHOD_UNAVAILABLE",
+                    "details": {"method": "sms"},
                 },
             },
         },

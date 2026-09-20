@@ -4,12 +4,16 @@ from typing import Annotated
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core import constants
-from app.models.verification_code import VerificationChannelEnum
+from app.models.verification_code import (
+    VerificationChannelEnum,
+    VerificationPurposeEnum,
+)
 
 
 class VerificationCodeCreate(BaseModel):
     user_id: int
     channel: VerificationChannelEnum
+    purpose: VerificationPurposeEnum
     target: str
     code_hash: str
     expires_at: datetime

@@ -327,3 +327,75 @@ class VerificationSendThrottledError(BusinessError):
             {"retry_after": retry_after},
             headers={"Retry-After": str(retry_after)},
         )
+
+
+class TwoFactorRequiredError(BusinessError):
+    """The password was right and it was not enough.
+
+    401 with the challenge ticket in ``details``: nothing has been
+    authenticated yet, and the caller's next move is to answer one of the
+    listed methods rather than to retry the password.
+
+    Only ever raised after the password has been verified, so naming the
+    account's second-factor methods here tells the caller nothing they could
+    not already learn by logging in.
+    """
+
+    def __init__(self, two_factor_token: str, methods: list[str]) -> None:
+        super().__init__(
+            "error.auth.two_factor_required",
+            401,
+            "TWO_FACTOR_REQUIRED",
+            {"two_factor_token": two_factor_token, "methods": methods},
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+class TwoFactorChallengeInvalidError(AuthenticationError):
+    """The ticket is malformed, expired, or names an account without 2FA."""
+
+    def __init__(self) -> None:
+        super().__init__(
+            "error.auth.two_factor_challenge_invalid",
+            "TWO_FACTOR_CHALLENGE_INVALID",
+        )
+
+
+class TwoFactorCodeInvalidError(AuthenticationError):
+    """Wrong TOTP, wrong SMS code, or a recovery code that does not exist.
+
+    One error for all three, and deliberately no hint about how many tries
+    are left: the count is what an attacker would pace themselves against.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "error.auth.two_factor_code_invalid",
+            "TWO_FACTOR_CODE_INVALID",
+        )
+
+
+class TwoFactorMethodUnavailableError(BadRequestError):
+    """The named method is not armed on this account, so it cannot be answered."""
+
+    def __init__(self, method: str) -> None:
+        super().__init__(
+            "error.auth.two_factor_method_unavailable",
+            "TWO_FACTOR_METHOD_UNAVAILABLE",
+            {"method": method},
+        )
+
+
+class TwoFactorAlreadyEnabledError(DuplicateResourceError):
+    """Enrolling over a working authenticator would disarm it mid-way.
+
+    Turn it off first: an enrollment that is started and abandoned would
+    otherwise leave the account with 2FA silently switched off.
+    """
+
+    def __init__(self, method: str) -> None:
+        super().__init__(
+            "error.auth.two_factor_already_enabled",
+            "TWO_FACTOR_ALREADY_ENABLED",
+            {"method": method},
+        )
