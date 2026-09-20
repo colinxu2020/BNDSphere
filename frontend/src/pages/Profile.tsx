@@ -8,6 +8,7 @@ import { ROLE_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
+import { ContactVerification } from "../components/ContactVerification";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -167,6 +168,8 @@ export function Profile() {
           )}
         </div>
       </div>
+
+      <ContactVerification user={user} onVerified={setUser} />
 
       <AnimatePresence>
         {isUpdateModalOpen && (

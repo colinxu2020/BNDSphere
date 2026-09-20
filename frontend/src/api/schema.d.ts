@@ -1525,6 +1525,89 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/verification/email/send": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send Email Code
+     * @description Send a verification code to an email address for the current account.
+     *
+     *     202, not 200: the provider accepting the message is not delivery, and the
+     *     response says nothing about whether it arrived.
+     */
+    post: operations["send_email_code_api_v1_verification_email_send_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/verification/email/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Email Code
+     * @description Answer an emailed code and bind the address to the current account.
+     */
+    post: operations["confirm_email_code_api_v1_verification_email_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/verification/phone/send": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send Phone Code
+     * @description Send a verification code by SMS for the current account.
+     */
+    post: operations["send_phone_code_api_v1_verification_phone_send_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/verification/phone/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Phone Code
+     * @description Answer an SMS code and bind the number to the current account.
+     */
+    post: operations["confirm_phone_code_api_v1_verification_phone_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -2230,6 +2313,24 @@ export interface components {
        */
       url: string;
     };
+    /** EmailVerificationConfirm */
+    EmailVerificationConfirm: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+      /** Code */
+      code: string;
+    };
+    /** EmailVerificationSend */
+    EmailVerificationSend: {
+      /**
+       * Email
+       * Format: email
+       */
+      email: string;
+    };
     /** ErrorResponseModel */
     ErrorResponseModel: {
       /**
@@ -2795,6 +2896,18 @@ export interface components {
       /** Failed */
       failed: number;
     };
+    /** PhoneVerificationConfirm */
+    PhoneVerificationConfirm: {
+      /** Phone */
+      phone: string;
+      /** Code */
+      code: string;
+    };
+    /** PhoneVerificationSend */
+    PhoneVerificationSend: {
+      /** Phone */
+      phone: string;
+    };
     /** PublicUserInfo */
     PublicUserInfo: {
       /** Id */
@@ -3095,6 +3208,12 @@ export interface components {
       username: string;
       /** Email */
       email: string | null;
+      /** Email Verified At */
+      email_verified_at?: string | null;
+      /** Phone */
+      phone?: string | null;
+      /** Phone Verified At */
+      phone_verified_at?: string | null;
       /** Avatar Uri */
       avatar_uri: string | null;
       /** Description */
@@ -3177,6 +3296,26 @@ export interface components {
       input?: unknown;
       /** Context */
       ctx?: Record<string, never>;
+    };
+    /**
+     * VerificationCodeSent
+     * @description What the client needs to drive the "enter the code" screen.
+     *
+     *     Carries no hint about whether the code was actually delivered: a bad
+     *     address or a dead handset is not something the send path can observe, and
+     *     reporting the provider's acceptance as delivery would be a lie.
+     */
+    VerificationCodeSent: {
+      /**
+       * Expires In
+       * @description Seconds until the code expires.
+       */
+      expires_in: number;
+      /**
+       * Resend After
+       * @description Seconds until another code may be requested.
+       */
+      resend_after: number;
     };
     /**
      * VerificationStatusEnum
@@ -9258,6 +9397,384 @@ export interface operations {
            *       "detail": {
            *         "resource": "requested_resource"
            *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  send_email_code_api_v1_verification_email_send_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmailVerificationSend"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerificationCodeSent"];
+        };
+      };
+      /** @description The address or number is not one this deployment can reach */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_invalid",
+           *       "error_code": "VERIFICATION_TARGET_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The address or number already belongs to another account */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_taken",
+           *       "error_code": "VERIFICATION_TARGET_TAKEN"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description A send budget was hit; retry after the given delay */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.send_throttled",
+           *       "error_code": "VERIFICATION_SEND_THROTTLED",
+           *       "details": {
+           *         "retry_after": 60
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The email or SMS provider could not be reached */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.channel_unavailable",
+           *       "error_code": "VERIFICATION_CHANNEL_UNAVAILABLE"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+    };
+  };
+  confirm_email_code_api_v1_verification_email_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["EmailVerificationConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserInfo"];
+        };
+      };
+      /** @description The code is wrong, expired, already used, or out of attempts — deliberately not distinguished. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.code_invalid",
+           *       "error_code": "VERIFICATION_CODE_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The address or number already belongs to another account */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_taken",
+           *       "error_code": "VERIFICATION_TARGET_TAKEN"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  send_phone_code_api_v1_verification_phone_send_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PhoneVerificationSend"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerificationCodeSent"];
+        };
+      };
+      /** @description The address or number is not one this deployment can reach */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_invalid",
+           *       "error_code": "VERIFICATION_TARGET_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The address or number already belongs to another account */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_taken",
+           *       "error_code": "VERIFICATION_TARGET_TAKEN"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description A send budget was hit; retry after the given delay */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.send_throttled",
+           *       "error_code": "VERIFICATION_SEND_THROTTLED",
+           *       "details": {
+           *         "retry_after": 60
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The email or SMS provider could not be reached */
+      503: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.channel_unavailable",
+           *       "error_code": "VERIFICATION_CHANNEL_UNAVAILABLE"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+    };
+  };
+  confirm_phone_code_api_v1_verification_phone_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PhoneVerificationConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserInfo"];
+        };
+      };
+      /** @description The code is wrong, expired, already used, or out of attempts — deliberately not distinguished. */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.code_invalid",
+           *       "error_code": "VERIFICATION_CODE_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description The address or number already belongs to another account */
+      409: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.target_taken",
+           *       "error_code": "VERIFICATION_TARGET_TAKEN"
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];

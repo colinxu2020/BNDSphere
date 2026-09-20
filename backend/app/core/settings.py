@@ -75,6 +75,62 @@ class OSSSettings(_AppBaseSettings):
     oss_public_base_url: str
 
 
+class SmtpSettings(_AppBaseSettings):
+    """Outbound mail for verification codes.
+
+    Every field has a blank default so the app still boots with no mail
+    server configured; ``configured`` is what the sender checks, and an
+    unconfigured deployment falls back to logging the code in debug or
+    refuses the request outright in production. Silently accepting a send
+    nobody will receive is the one behaviour that is never acceptable here.
+    """
+
+    smtp_host: str = ""
+    smtp_port: int = 587
+    smtp_username: str = ""
+    smtp_password: str = ""
+    # Envelope sender. Falls back to smtp_username, which is the address most
+    # relay providers require the From header to match anyway.
+    smtp_from: str = ""
+    smtp_starttls: bool = True
+
+    @property
+    def configured(self) -> bool:
+        return bool(self.smtp_host)
+
+    @property
+    def sender(self) -> str:
+        return self.smtp_from or self.smtp_username
+
+
+class SmsSettings(_AppBaseSettings):
+    """Tencent Cloud SMS credentials and the template to send.
+
+    Blank by default for the same reason as ``SmtpSettings``: phone
+    verification is opt-in per deployment, and an unconfigured one must fail
+    loudly rather than pretend.
+    """
+
+    tencent_sms_secret_id: str = ""
+    tencent_sms_secret_key: str = ""
+    tencent_sms_sdk_app_id: str = ""
+    # The signature (签名) and template (模板) both have to be registered and
+    # approved in the Tencent console before they will send.
+    tencent_sms_sign_name: str = ""
+    tencent_sms_template_id: str = ""
+    tencent_sms_region: str = "ap-guangzhou"
+
+    @property
+    def configured(self) -> bool:
+        return bool(
+            self.tencent_sms_secret_id
+            and self.tencent_sms_secret_key
+            and self.tencent_sms_sdk_app_id
+            and self.tencent_sms_sign_name
+            and self.tencent_sms_template_id,
+        )
+
+
 @cache
 def db_settings() -> DatabaseSettings:
     return DatabaseSettings()  # type: ignore[call-arg]
@@ -88,3 +144,13 @@ def web_settings() -> WebSettings:
 @cache
 def oss_settings() -> OSSSettings:
     return OSSSettings()  # type: ignore[call-arg]
+
+
+@cache
+def smtp_settings() -> SmtpSettings:
+    return SmtpSettings()
+
+
+@cache
+def sms_settings() -> SmsSettings:
+    return SmsSettings()

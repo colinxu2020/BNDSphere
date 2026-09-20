@@ -23,6 +23,10 @@ class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
         result = await self.db.execute(select(User).where(User.email == email))
         return result.scalars().first()
 
+    async def get_by_phone(self, phone: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.phone == phone))
+        return result.scalars().first()
+
     async def get_by_username(self, username: str) -> User | None:
         result = await self.db.execute(select(User).where(User.username == username))
         return result.scalars().first()
