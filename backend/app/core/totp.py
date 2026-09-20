@@ -49,8 +49,12 @@ def _hotp(secret: str, counter: int) -> str:
     return f"{truncated % 10**digits:0{digits}d}"
 
 
-def verify_totp(secret: str, submitted: str, *, at: float | None = None) -> bool:
-    """Report whether ``submitted`` is a live code for ``secret``.
+def match_totp(secret: str, submitted: str, *, at: float | None = None) -> int | None:
+    """Return the time step ``submitted`` matches for ``secret``, or None.
+
+    The step rather than a boolean because RFC 6238 §5.2 requires the verifier
+    to refuse a code it has already accepted, and the step is what the caller
+    records to do that.
 
     ``at`` is a Unix timestamp, for tests and for nothing else.
     """
@@ -62,12 +66,13 @@ def verify_totp(secret: str, submitted: str, *, at: float | None = None) -> bool
         or not submitted.isascii()
         or not submitted.isdigit()
     ):
-        return False
+        return None
     counter = int((time.time() if at is None else at) // _PERIOD_SECONDS)
-    return any(
-        secrets.compare_digest(_hotp(secret, counter + drift), submitted)
-        for drift in _DRIFT_STEPS
-    )
+    for drift in _DRIFT_STEPS:
+        step = counter + drift
+        if secrets.compare_digest(_hotp(secret, step), submitted):
+            return step
+    return None
 
 
 def provisioning_uri(secret: str, account: str, issuer: str) -> str:

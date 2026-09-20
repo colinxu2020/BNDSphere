@@ -8,19 +8,19 @@ every round-trip test written against itself.
 """
 
 import time
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
 from httpx import AsyncClient
-from sqlalchemy import func, select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core import constants
 from app.core.security import get_password_hash, hash_recovery_code
 from app.core.totp import _hotp as hotp
-from app.core.totp import generate_totp_secret, provisioning_uri, verify_totp
+from app.core.totp import generate_totp_secret, match_totp, provisioning_uri
 from app.models import RecoveryCode, User
-from app.models.verification_code import VerificationPurposeEnum
+from app.models.verification_code import VerificationCode, VerificationPurposeEnum
 from tests.test_auth import ConfiguredUser, create_altcha_payload
 
 # Imported for their side effect of registering as fixtures here: the SMS
@@ -58,9 +58,12 @@ class TestTotpPrimitives:
         now = time.time()
         counter = int(now // 30)
         for drift in (-1, 0, 1):
-            assert verify_totp(RFC_SECRET, hotp(RFC_SECRET, counter + drift), at=now)
+            # The step it matched is what the caller records to refuse a
+            # replay, so it has to be the drifted one, not "now".
+            matched = match_totp(RFC_SECRET, hotp(RFC_SECRET, counter + drift), at=now)
+            assert matched == counter + drift
         # Two steps out is a code that has been dead for a minute.
-        assert not verify_totp(RFC_SECRET, hotp(RFC_SECRET, counter + 2), at=now)
+        assert match_totp(RFC_SECRET, hotp(RFC_SECRET, counter + 2), at=now) is None
 
     def test_malformed_submissions_are_refused_not_crashed(self) -> None:
         # ``compare_digest`` raises on non-ASCII, and ``str.isdigit`` is true
@@ -68,7 +71,7 @@ class TestTotpPrimitives:
         # carry, so the length-and-digits guard has to run before the compare.
         fullwidth = "".join(chr(0xFF10 + digit) for digit in range(6))
         for bad in ("", "abcdef", "12345", "1234567", fullwidth):
-            assert not verify_totp(RFC_SECRET, bad)
+            assert match_totp(RFC_SECRET, bad) is None
 
     def test_provisioning_uri_names_the_account(self) -> None:
         secret = generate_totp_secret()
@@ -85,14 +88,24 @@ class TestTotpPrimitives:
         assert hash_recovery_code("a1b2-c3d4-e5f6-7891") != canonical
 
 
-async def _current_code(db_session: AsyncSession, username: str) -> str:
-    """Compute the code the account's authenticator would be showing."""
+async def _current_code(
+    db_session: AsyncSession,
+    username: str,
+    *,
+    steps_ahead: int = 0,
+) -> str:
+    """Compute the code the account's authenticator would be showing.
+
+    ``steps_ahead`` reaches the next 30-second window, which is still inside
+    the accepted drift. Tests need it because a step this account has already
+    spent is refused — see ``_spend_totp_step``.
+    """
     result = await db_session.execute(
         select(User.totp_secret).where(User.username == username),
     )
     secret = result.scalar_one()
     assert secret is not None
-    return hotp(secret, int(time.time() // 30))
+    return hotp(secret, int(time.time() // 30) + steps_ahead)
 
 
 async def _recovery_code_count(db_session: AsyncSession, username: str) -> int:
@@ -203,7 +216,8 @@ class TestTotpEnrollmentAndLogin:
             json={
                 "two_factor_token": ticket,
                 "method": "totp",
-                "code": await _current_code(db_session, "totp_user"),
+                # One step on: ``confirm`` just spent the current one.
+                "code": await _current_code(db_session, "totp_user", steps_ahead=1),
             },
         )
         assert resp.status_code == 200
@@ -225,6 +239,52 @@ class TestTotpEnrollmentAndLogin:
                 "two_factor_token": body["details"]["two_factor_token"],
                 "method": "totp",
                 "code": "000000",
+            },
+        )
+        assert resp.status_code == 401
+        assert resp.json()["error_code"] == "TWO_FACTOR_CODE_INVALID"
+
+    async def test_a_code_cannot_be_spent_twice(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_class_users: None,
+    ) -> None:
+        """RFC 6238 §5.2. A code is good for 90 seconds; a login is not.
+
+        Whoever reads it over a shoulder gets the rest of that window, which
+        is several logins' worth, unless the verifier remembers the step.
+        """
+        # Rewind the ledger so this window's code is unspent regardless of
+        # which step the enrollment above happened to consume.
+        await db_session.execute(
+            update(User)
+            .where(User.username == "totp_user")
+            .values(last_totp_counter=int(time.time() // 30) - 1),
+        )
+        await db_session.flush()
+
+        code = await _current_code(db_session, "totp_user")
+        body = (await _login(client, "totp_user"))["body"]
+        assert isinstance(body, dict)
+        resp = await client.post(
+            "/auth/login/2fa",
+            json={
+                "two_factor_token": body["details"]["two_factor_token"],
+                "method": "totp",
+                "code": code,
+            },
+        )
+        assert resp.status_code == 200
+
+        body = (await _login(client, "totp_user"))["body"]
+        assert isinstance(body, dict)
+        resp = await client.post(
+            "/auth/login/2fa",
+            json={
+                "two_factor_token": body["details"]["two_factor_token"],
+                "method": "totp",
+                "code": code,
             },
         )
         assert resp.status_code == 401
@@ -509,3 +569,229 @@ class TestSmsSecondFactor:
             headers=self.configured_users["sms_user"]["headers"],
         )
         assert resp.status_code == 400
+
+
+async def _age_bind_codes(
+    db_session: AsyncSession,
+    username: str,
+    seconds: int = 90,
+) -> None:
+    """Push this account's binding codes just past the resend cooldown.
+
+    Not ``_clear_cooldown``: that backdates by two hours, which also takes the
+    codes out of the hourly budget window — the very thing these tests are
+    trying to fill up.
+    """
+    await db_session.execute(
+        update(VerificationCode)
+        .where(
+            VerificationCode.user_id
+            == select(User.id).where(User.username == username).scalar_subquery(),
+            VerificationCode.purpose == VerificationPurposeEnum.bind,
+        )
+        .values(created_at=datetime.now(UTC) - timedelta(seconds=seconds)),
+    )
+    await db_session.flush()
+
+
+class TestEnrollmentExpiry:
+    """A started-but-never-finished enrollment is not a standing offer."""
+
+    configured_users: ClassVar[dict[str, ConfiguredUser]]
+
+    USER_SPECS: ClassVar[list[dict[str, object]]] = [
+        {"username": "dawdler", "password": PASSWORD},
+    ]
+
+    async def test_a_stale_secret_cannot_be_confirmed_and_is_forgotten(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_class_users: None,
+    ) -> None:
+        headers = self.configured_users["dawdler"]["headers"]
+        resp = await client.post(
+            "/auth/2fa/totp/start",
+            json={"password": PASSWORD},
+            headers=headers,
+        )
+        secret = resp.json()["secret"]
+
+        await db_session.execute(
+            update(User)
+            .where(User.username == "dawdler")
+            .values(
+                totp_secret_issued_at=datetime.now(UTC)
+                - timedelta(minutes=constants.TWO_FACTOR_ENROLLMENT_TTL_MINUTES + 1),
+            ),
+        )
+        await db_session.flush()
+
+        resp = await client.post(
+            "/auth/2fa/totp/confirm",
+            json={"code": hotp(secret, int(time.time() // 30))},
+            headers=headers,
+        )
+        assert resp.status_code == 400
+        assert resp.json()["error_code"] == "TWO_FACTOR_METHOD_UNAVAILABLE"
+
+        # The secret is gone, not merely unusable: a credential nobody holds
+        # is one only whoever has the session can still finish arming.
+        left = await db_session.scalar(
+            select(User.totp_secret).where(User.username == "dawdler"),
+        )
+        assert left is None
+
+
+class TestASecondMethodKeepsTheFirstsCodes:
+    configured_users: ClassVar[dict[str, ConfiguredUser]]
+
+    NUMBER = "+8613800138001"
+
+    USER_SPECS: ClassVar[list[dict[str, object]]] = [
+        {
+            "username": "doubler",
+            "hashed_password": get_password_hash(PASSWORD),
+            "phone": NUMBER,
+            "phone_verified_at": datetime(2026, 1, 1, tzinfo=UTC),
+        },
+    ]
+
+    async def test_arming_sms_after_totp_does_not_reissue(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_class_users: None,
+    ) -> None:
+        """The paper in the drawer has to keep working.
+
+        A fresh set is shown once, on a screen that is about something else
+        entirely; the codes printed when TOTP was armed would stop working
+        with nobody told.
+        """
+        headers = self.configured_users["doubler"]["headers"]
+        resp = await client.post(
+            "/auth/2fa/totp/start",
+            json={"password": PASSWORD},
+            headers=headers,
+        )
+        secret = resp.json()["secret"]
+        resp = await client.post(
+            "/auth/2fa/totp/confirm",
+            json={"code": hotp(secret, int(time.time() // 30))},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        printed = resp.json()["recovery_codes"]
+        assert len(printed) == constants.RECOVERY_CODE_COUNT
+
+        resp = await client.post(
+            "/auth/2fa/sms/enable",
+            json={"password": PASSWORD},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+        # Empty means "what you already have still works".
+        assert resp.json()["recovery_codes"] == []
+
+        stored = await db_session.execute(
+            select(RecoveryCode.code_hash).where(
+                RecoveryCode.user_id
+                == select(User.id).where(User.username == "doubler").scalar_subquery(),
+            ),
+        )
+        assert set(stored.scalars()) == {hash_recovery_code(c) for c in printed}
+
+    async def test_moving_the_number_disarms_the_sms_factor(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,  # noqa: F811
+        setup_class_users: None,
+    ) -> None:
+        """2FA must not follow the account onto a handset nobody armed."""
+        headers = self.configured_users["doubler"]["headers"]
+        assert (await client.get("/auth/2fa", headers=headers)).json()["sms_enabled"]
+
+        await _clear_cooldown(db_session, "doubler")
+        resp = await client.post(
+            "/verification/phone/send",
+            json={"phone": "13700137000", "password": PASSWORD},
+            headers=headers,
+        )
+        assert resp.status_code == 202
+        _, code, _, _ = sender.sent[-1]
+        resp = await client.post(
+            "/verification/phone/confirm",
+            json={"phone": "13700137000", "code": code},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+        status = (await client.get("/auth/2fa", headers=headers)).json()
+        assert status["sms_enabled"] is False
+        # Still offered — the new number is verified — but it has to be armed
+        # deliberately, with the password, like the first one was.
+        assert status["sms_available"] is True
+
+
+class TestSendBudgetsAreScopedToTheirPurpose:
+    configured_users: ClassVar[dict[str, ConfiguredUser]]
+
+    NUMBER = "+8613800138002"
+
+    USER_SPECS: ClassVar[list[dict[str, object]]] = [
+        {
+            "username": "budgeted",
+            "hashed_password": get_password_hash(PASSWORD),
+            "phone": NUMBER,
+            "phone_verified_at": datetime(2026, 1, 1, tzinfo=UTC),
+        },
+    ]
+
+    async def test_binding_sends_cannot_starve_the_login_factor(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,  # noqa: F811
+        setup_class_users: None,
+    ) -> None:
+        """One shared pool would cap an SMS-2FA account at five logins a day.
+
+        Binding happens a handful of times in an account's life; logging in
+        happens forever. Counted together, ordinary logins also drain the
+        deployment-wide ceiling and take phone verification down with them.
+        """
+        headers = self.configured_users["budgeted"]["headers"]
+        resp = await client.post(
+            "/auth/2fa/sms/enable",
+            json={"password": PASSWORD},
+            headers=headers,
+        )
+        assert resp.status_code == 200
+
+        for _ in range(constants.SMS_SEND_MAX_PER_ACCOUNT_PER_HOUR):
+            await _age_bind_codes(db_session, "budgeted")
+            resp = await client.post(
+                "/verification/phone/send",
+                json={"phone": self.NUMBER, "password": PASSWORD},
+                headers=headers,
+            )
+            assert resp.status_code == 202
+        await _age_bind_codes(db_session, "budgeted")
+        resp = await client.post(
+            "/verification/phone/send",
+            json={"phone": self.NUMBER, "password": PASSWORD},
+            headers=headers,
+        )
+        assert resp.status_code == 429
+
+        body = (await _login(client, "budgeted"))["body"]
+        assert isinstance(body, dict)
+        before = len(sender.sent)
+        resp = await client.post(
+            "/auth/login/2fa/send",
+            json={"two_factor_token": body["details"]["two_factor_token"]},
+        )
+        assert resp.status_code == 202
+        assert len(sender.sent) == before + 1

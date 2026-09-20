@@ -1,7 +1,7 @@
 """Two-factor authentication: TOTP, SMS second factor, recovery codes.
 
-Adds the TOTP secret and the two arming timestamps to ``users``, a
-``recovery_codes`` table, and the ``two_factor`` value to the verification
+Adds the TOTP secret, its enrollment and arming timestamps, the spent-step
+counter and the SMS arming timestamp to ``users``, a ``recovery_codes`` table, and the ``two_factor`` value to the verification
 purpose enum so a login code cannot be redeemed as a binding or reset code.
 
 Revision ID: f2c8a4d6b1e3
@@ -36,7 +36,17 @@ def upgrade() -> None:
     )
     op.add_column(
         "users",
+        sa.Column("totp_secret_issued_at", sa.DateTime(timezone=True), nullable=True),
+        schema="app",
+    )
+    op.add_column(
+        "users",
         sa.Column("totp_confirmed_at", sa.DateTime(timezone=True), nullable=True),
+        schema="app",
+    )
+    op.add_column(
+        "users",
+        sa.Column("last_totp_counter", sa.BigInteger(), nullable=True),
         schema="app",
     )
     op.add_column(
@@ -77,7 +87,9 @@ def downgrade() -> None:
     op.drop_index("ix_recovery_codes_user_id", table_name="recovery_codes", schema="app")
     op.drop_table("recovery_codes", schema="app")
     op.drop_column("users", "sms_two_factor_enabled_at", schema="app")
+    op.drop_column("users", "last_totp_counter", schema="app")
     op.drop_column("users", "totp_confirmed_at", schema="app")
+    op.drop_column("users", "totp_secret_issued_at", schema="app")
     op.drop_column("users", "totp_secret", schema="app")
     # The enum value is deliberately left in place. PostgreSQL cannot drop one,
     # and recreating the type would mean rewriting every column that uses it —

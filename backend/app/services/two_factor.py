@@ -7,7 +7,7 @@ from app.core.security import (
     hash_recovery_code,
     verify_two_factor_token,
 )
-from app.core.totp import generate_totp_secret, provisioning_uri, verify_totp
+from app.core.totp import generate_totp_secret, match_totp, provisioning_uri
 from app.models.recovery_code import RecoveryCode
 from app.models.user import User
 from app.repositories.recovery_code import RecoveryCodeRepository
@@ -24,7 +24,6 @@ from app.services.auth import AuthService
 from app.services.base import ServiceBase
 from app.services.contact_verification import ContactVerificationService
 from app.services.errors import (
-    AuthenticationError,
     TwoFactorAlreadyEnabledError,
     TwoFactorChallengeInvalidError,
     TwoFactorCodeInvalidError,
@@ -136,7 +135,7 @@ class TwoFactorService(
             # safe answer either way.
             if user.totp_secret is None:
                 return False
-            return verify_totp(user.totp_secret, code)
+            return await self._spend_totp_step(user, code)
         if method is TwoFactorMethodEnum.sms:
             if user.phone is None:
                 return False
@@ -154,6 +153,26 @@ class TwoFactorService(
                 return False
             return True
         return await self._redeem_recovery_code(user, code)
+
+    async def _spend_totp_step(self, user: User, code: str) -> bool:
+        """Accept a TOTP once, and only once.
+
+        RFC 6238 §5.2: a verifier must refuse a code it has already taken.
+        Without the ledger a code read over a shoulder — or lifted from a
+        request — stays good for the rest of its 90-second window, which is
+        several logins' worth.
+        """
+        if user.totp_secret is None:  # pragma: no cover - callers check first
+            return False
+        step = match_totp(user.totp_secret, code)
+        if step is None or (
+            user.last_totp_counter is not None and step <= user.last_totp_counter
+        ):
+            return False
+        async with self.transaction():
+            user.last_totp_counter = step
+            await self._save(user)
+        return True
 
     async def _user_for_challenge(self, token: str) -> User:
         try:
@@ -197,7 +216,11 @@ class TwoFactorService(
         secret = generate_totp_secret()
         async with self.transaction():
             user.totp_secret = secret
+            user.totp_secret_issued_at = datetime.now(UTC)
             user.totp_confirmed_at = None
+            # A fresh secret starts an empty ledger: the steps the previous
+            # one spent say nothing about this one.
+            user.last_totp_counter = None
             await self._save(user)
         return TotpEnrollment(
             secret=secret,
@@ -208,22 +231,56 @@ class TwoFactorService(
             ),
         )
 
-    async def confirm_totp(self, user: User, code: str) -> RecoveryCodes:
+    async def confirm_totp(
+        self,
+        user: User,
+        code: str,
+        *,
+        ip: str | None,
+    ) -> RecoveryCodes:
         """Prove the app holds the secret, then arm TOTP.
 
         No password here: ``start_totp`` already asked, and the code itself is
-        proof of possession. No attempt cap either — the secret being guessed
-        at is the caller's own, and they were handed it a minute ago.
+        proof of possession. The guesses are counted as login attempts all the
+        same. Six digits with nothing counting is 230k requests for even odds,
+        and what a guess wins is not a login — it is arming the account with a
+        secret nobody holds and walking off with the recovery codes.
         """
-        if user.totp_secret is None or user.totp_enabled:
+        if not await self._enrollment_is_live(user):
             raise TwoFactorMethodUnavailableError(TwoFactorMethodEnum.totp.value)
-        if not verify_totp(user.totp_secret, code):
+
+        await self.auth_service.ensure_not_locked_out(user.username)
+        accepted = await self._spend_totp_step(user, code)
+        await self.auth_service.record_attempt(user.username, ip, successful=accepted)
+        if not accepted:
             raise TwoFactorCodeInvalidError
 
+        # One transaction with the codes below it: arming TOTP and having a
+        # way back in are the same decision, and a failure between them would
+        # leave an account demanding a factor with no recovery set behind it.
         async with self.transaction():
             user.totp_confirmed_at = datetime.now(UTC)
             await self._save(user)
-        return await self._mint_recovery_codes(user)
+            return await self._ensure_recovery_codes(user)
+
+    async def _enrollment_is_live(self, user: User) -> bool:
+        """Whether there is an unconfirmed secret still inside its window.
+
+        An expired one is cleared on the way out rather than left lying
+        around: it is a credential nobody holds, and the only party who can
+        still use it is whoever has the session.
+        """
+        if user.totp_secret is None or user.totp_enabled:
+            return False
+        issued = user.totp_secret_issued_at
+        ttl = timedelta(minutes=constants.TWO_FACTOR_ENROLLMENT_TTL_MINUTES)
+        if issued is not None and datetime.now(UTC) - issued <= ttl:
+            return True
+        async with self.transaction():
+            user.totp_secret = None
+            user.totp_secret_issued_at = None
+            await self._save(user)
+        return False
 
     async def disable_totp(
         self,
@@ -235,6 +292,7 @@ class TwoFactorService(
         await self._reauthenticate(user, password, ip=ip)
         async with self.transaction():
             user.totp_secret = None
+            user.totp_secret_issued_at = None
             user.totp_confirmed_at = None
             await self._save(user)
             await self._drop_recovery_codes_if_disarmed(user)
@@ -260,7 +318,7 @@ class TwoFactorService(
         async with self.transaction():
             user.sms_two_factor_enabled_at = datetime.now(UTC)
             await self._save(user)
-        return await self._mint_recovery_codes(user)
+            return await self._ensure_recovery_codes(user)
 
     async def disable_sms(
         self,
@@ -296,22 +354,20 @@ class TwoFactorService(
         *,
         ip: str | None,
     ) -> None:
-        """Re-check the password through the throttled, audited path.
+        await self.auth_service.reauthenticate(user, password, ip=ip)
 
-        ``AuthService.authenticate`` rather than ``verify_password`` directly,
-        so these routes cannot be used as an unthrottled password oracle that
-        happens to need a session.
+    async def _ensure_recovery_codes(self, user: User) -> RecoveryCodes:
+        """Mint a set only if the account has none left.
+
+        Arming a second method must not quietly invalidate the codes the
+        owner printed when they armed the first: the new set is shown once,
+        on a screen that is about something else, and the paper in the drawer
+        silently stops working. An empty list means "what you have still
+        works" — regenerating on purpose is its own route.
         """
-        verified = await self.auth_service.authenticate(
-            user.username,
-            password,
-            ip=ip,
-        )
-        if verified is None:
-            raise AuthenticationError(
-                "error.auth.incorrect_user_passwd",
-                "INCORRECT_USER_PASSWD",
-            )
+        if await self.repository.count_unconsumed(user.id):
+            return RecoveryCodes(recovery_codes=[])
+        return await self._mint_recovery_codes(user)
 
     async def _mint_recovery_codes(self, user: User) -> RecoveryCodes:
         """Replace the account's recovery codes and return the new set.

@@ -1798,9 +1798,9 @@ export interface paths {
      * Confirm Totp Enrollment
      * @description Answer a code from the new secret and arm TOTP.
      *
-     *     Returns a fresh set of recovery codes, shown once. Any previous set stops
-     *     working — the server holds only hashes, so a partial reissue would leave a
-     *     set nobody has a complete copy of.
+     *     Returns a set of recovery codes, shown once — but only if the account had
+     *     none left. An account that already printed a set keeps it and gets an
+     *     empty list back: replacing it is what ``/recovery-codes`` is for.
      */
     post: operations["confirm_totp_enrollment_api_v1_auth_2fa_totp_confirm_post"];
     delete?: never;
@@ -10528,7 +10528,7 @@ export interface operations {
            *       "details": {}
            *     }
            */
-          "application/json": unknown;
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
@@ -10608,7 +10608,7 @@ export interface operations {
            *       "details": {}
            *     }
            */
-          "application/json": unknown;
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
@@ -10657,7 +10657,7 @@ export interface operations {
            *       "details": {}
            *     }
            */
-          "application/json": unknown;
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
@@ -10704,7 +10704,7 @@ export interface operations {
            *       "details": {}
            *     }
            */
-          "application/json": unknown;
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
@@ -10753,7 +10753,7 @@ export interface operations {
            *       "details": {}
            *     }
            */
-          "application/json": unknown;
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */

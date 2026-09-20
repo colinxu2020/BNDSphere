@@ -88,9 +88,16 @@ export function TwoFactorSettings() {
   const [message, setMessage] = useState<unknown>(null);
   const [tone, setTone] = useState<"error" | "success">("error");
 
+  const [loadFailed, setLoadFailed] = useState(false);
+
   const refresh = useCallback(async () => {
-    const { data } = await client.GET("/api/v1/auth/2fa");
+    const { data, error } = await client.GET("/api/v1/auth/2fa");
+    setLoadFailed(!data);
     if (data) setStatus(data);
+    else if (error) {
+      setTone("error");
+      setMessage(error);
+    }
   }, []);
 
   useEffect(() => {
@@ -121,8 +128,10 @@ export function TwoFactorSettings() {
       } else {
         // Everything else either returns a fresh set of codes or nothing
         // at all (the disable routes answer 204).
+        // An empty list means the account kept the codes it already had, so
+        // there is nothing to show once — only a non-empty set is new.
         const fresh = (data as components["schemas"]["RecoveryCodes"] | undefined)?.recovery_codes;
-        if (fresh) setCodes(fresh);
+        if (fresh?.length) setCodes(fresh);
         setTone("success");
         setMessage(
           action === "recovery" ? "恢复码已重新生成，旧的恢复码已全部失效。" : "设置已更新。",
@@ -150,7 +159,7 @@ export function TwoFactorSettings() {
       } else if (data) {
         setEnrollment(null);
         setTotpCode("");
-        setCodes(data.recovery_codes);
+        if (data.recovery_codes.length) setCodes(data.recovery_codes);
         setTone("success");
         setMessage("认证器已绑定，下次登录时会要求输入验证码。");
         await refresh();
@@ -163,7 +172,15 @@ export function TwoFactorSettings() {
     }
   };
 
-  if (!status) return null;
+  if (!status) {
+    // Without this the card vanishes on a failed load and the account looks
+    // like it has no 2FA settings at all.
+    return loadFailed ? (
+      <div className="bg-white rounded-md border border-slate-100 shadow-sm p-8">
+        <StatusMessage value={message ?? "两步验证设置加载失败。"} tone="error" />
+      </div>
+    ) : null;
+  }
 
   return (
     <div className="bg-white rounded-md border border-slate-100 shadow-sm p-8">

@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import BigInteger, DateTime, ForeignKey, String, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.core.database import Base
@@ -100,11 +100,27 @@ class User(Base):
     # *trusted* once ``totp_confirmed_at`` is set: an unconfirmed secret is
     # one nobody has proved their authenticator actually holds, and enforcing
     # it would lock the account out of itself.
+    #
+    # ponytail: stored in the clear. A second factor that the database alone
+    # gives away is worth less than one it does not, but encrypting it needs
+    # a key this deployment has nowhere to keep — an app-held key sits in the
+    # same backup as the rows. Revisit when there is a KMS to put it in.
     totp_secret: Mapped[str | None] = mapped_column(Text, default=None)
+    # When the secret above was minted. An enrollment nobody finished expires
+    # (``TWO_FACTOR_ENROLLMENT_TTL_MINUTES``) rather than waiting forever for
+    # someone to confirm it.
+    totp_secret_issued_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
     totp_confirmed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),
         default=None,
     )
+    # Highest TOTP time-step this account has already spent. RFC 6238 §5.2:
+    # a code must not be accepted twice, or one glimpsed over a shoulder is
+    # good for every login inside its 90-second window.
+    last_totp_counter: Mapped[int | None] = mapped_column(BigInteger, default=None)
     # SMS as a second factor, sent to the number in ``phone``. Separate from
     # ``phone_verified_at`` because a verified number is a recovery channel by
     # default and being asked for a code at every login is not.

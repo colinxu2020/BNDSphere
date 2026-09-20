@@ -1,3 +1,4 @@
+from collections.abc import Collection
 from datetime import datetime
 from hashlib import blake2b
 
@@ -85,16 +86,23 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
     ) -> datetime | None:
         """When this account last had a code sent on this channel.
 
         Keyed on the account, not the target, so switching the address being
         verified does not reset the resend cooldown.
+
+        ``purposes`` scopes every budget to the pool it belongs to: binding a
+        number and logging in with one are different activities with different
+        shapes, and a login must not be refused because a binding code went
+        out a minute ago.
         """
         result = await self.db.execute(
             select(func.max(VerificationCode.created_at)).where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
             ),
         )
         return result.scalar_one_or_none()
@@ -103,6 +111,7 @@ class VerificationCodeRepository(
         self,
         user_id: int,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         since: datetime,
     ) -> int:
         result = await self.db.execute(
@@ -111,6 +120,7 @@ class VerificationCodeRepository(
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.created_at >= since,
             ),
         )
@@ -119,6 +129,7 @@ class VerificationCodeRepository(
     async def count_for_target_since(
         self,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         target: str,
         since: datetime,
     ) -> int:
@@ -132,6 +143,7 @@ class VerificationCodeRepository(
             .select_from(VerificationCode)
             .where(
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.target == target,
                 VerificationCode.created_at >= since,
             ),
@@ -141,14 +153,16 @@ class VerificationCodeRepository(
     async def count_for_channel_since(
         self,
         channel: VerificationChannelEnum,
+        purposes: Collection[VerificationPurposeEnum],
         since: datetime,
     ) -> int:
-        """Every send on this channel, deployment-wide — the spend ceiling."""
+        """Every send in this pool, deployment-wide — the spend ceiling."""
         result = await self.db.execute(
             select(func.count())
             .select_from(VerificationCode)
             .where(
                 VerificationCode.channel == channel,
+                VerificationCode.purpose.in_(purposes),
                 VerificationCode.created_at >= since,
             ),
         )

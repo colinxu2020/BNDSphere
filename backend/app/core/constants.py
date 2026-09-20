@@ -124,6 +124,16 @@ SMS_SEND_MAX_PER_TARGET_PER_DAY: Final[int] = 5
 # rolls — deliberately, because an unbounded spend is the worse failure.
 SMS_GLOBAL_MAX_PER_DAY: Final[int] = 500
 
+# Login second-factor codes are budgeted separately from the ones above, and
+# counted only against each other. Binding a number happens once in an
+# account's life; logging in happens forever, so sharing a pool would mean
+# the fifth login of the day is refused — and would let ordinary login
+# traffic exhaust the deployment-wide ceiling and take phone verification
+# down with it.
+SMS_TWO_FACTOR_MAX_PER_ACCOUNT_PER_HOUR: Final[int] = 6
+SMS_TWO_FACTOR_MAX_PER_TARGET_PER_DAY: Final[int] = 20
+SMS_TWO_FACTOR_GLOBAL_MAX_PER_DAY: Final[int] = 1000
+
 # Codes are kept after use so the send budgets above can still see them; this
 # is how long before the retention sweep removes them.
 VERIFICATION_CODE_RETENTION_DAYS: Final[int] = 7
@@ -139,6 +149,11 @@ TWO_FACTOR_ISSUER: Final[str] = "BNDSphere"
 # enough that a ticket left on a shared machine is worthless by the time
 # anyone finds it.
 TWO_FACTOR_CHALLENGE_TTL_MINUTES: Final[int] = 10
+# How long a started-but-unconfirmed TOTP secret stays usable. An enrollment
+# nobody finished is a credential nobody holds: left forever, it is something
+# a stolen session can finish on its own and arm the account against its
+# owner.
+TWO_FACTOR_ENROLLMENT_TTL_MINUTES: Final[int] = 30
 # Shown once, when a second factor is first turned on. Ten is enough to cover
 # a lost phone several times over without being a list nobody will keep.
 RECOVERY_CODE_COUNT: Final[int] = 10
