@@ -4,7 +4,13 @@ from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.common_responses import ALTCHA_VERIFICATION_FAILED_RESPONSE
-from app.api.dependencies import AltchaServiceDep, AuthServiceDep, UserServiceDep
+from app.api.dependencies import (
+    AltchaServiceDep,
+    AuthServiceDep,
+    UserServiceDep,
+    UserSessionServiceDep,
+    session_token,
+)
 from app.api.rate_limit import (
     challenge_rate_limit,
     client_ip,
@@ -12,12 +18,38 @@ from app.api.rate_limit import (
     register_rate_limit,
 )
 from app.core import constants
-from app.core.security import create_access_token
+from app.core.settings import web_settings
 from app.schemas.altcha import AltchaChallenge, AltchaPurpose
 from app.schemas.user import Token, UserInfo, UserRegistration
 from app.services.errors import AuthenticationError
 
 router = APIRouter(tags=["Auth"])
+
+
+def _set_session_cookie(response: Response, token: str) -> None:
+    """Hand the session token to the browser as a cookie.
+
+    ``HttpOnly`` keeps it out of reach of page scripts, which is the point of
+    moving off the previous ``localStorage`` token: an XSS can no longer read
+    the credential and walk away with a week of access.
+
+    ``SameSite=Lax`` is the CSRF defence. Every state-changing route here is
+    POST/PUT/PATCH/DELETE, and Lax withholds the cookie from cross-site
+    requests with those methods; it is only sent on top-level GET navigations,
+    which change nothing.
+
+    ``Secure`` is dropped in debug so local development over plain HTTP still
+    works; production runs behind Caddy over TLS and sets it.
+    """
+    response.set_cookie(
+        constants.SESSION_COOKIE_NAME,
+        token,
+        max_age=constants.SESSION_LIFETIME_DAYS * 24 * 60 * 60,
+        httponly=True,
+        secure=not web_settings().debug,
+        samesite="lax",
+        path="/",
+    )
 
 
 @router.get(
@@ -83,14 +115,21 @@ async def register(
 async def login(
     form_data: Annotated[OAuth2PasswordRequestForm, Depends()],
     service: AuthServiceDep,
+    session_service: UserSessionServiceDep,
     altcha_service: AltchaServiceDep,
     request: Request,
+    response: Response,
     altcha: Annotated[
         str,
         Form(min_length=1, max_length=constants.ALTCHA_MAX_PAYLOAD_LENGTH),
     ],
 ) -> Token:
-    """Login with username and password. Returns a JWT token if successful.
+    """Login with username and password. Opens a session if successful.
+
+    The session token is returned two ways for one credential: as an
+    ``HttpOnly`` cookie, which is what the web app uses and never exposes to
+    page scripts, and in the response body, which keeps ``/api/docs`` and
+    non-browser clients working. Browser callers should ignore the body.
 
     Note that all optional fields in the form data are ignored.
     """
@@ -105,7 +144,34 @@ async def login(
             "error.auth.incorrect_user_passwd",
             "INCORRECT_USER_PASSWD",
         )
+    token = await session_service.issue(user)
+    _set_session_cookie(response, token)
     return Token(
-        access_token=create_access_token({"sub": str(user.id)}),
+        access_token=token,
         token_type="bearer",  # noqa: S106
+    )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    response: Response,
+    session_service: UserSessionServiceDep,
+    token: Annotated[str | None, Depends(session_token)],
+) -> None:
+    """End the current session and clear the cookie.
+
+    Deliberately unauthenticated and idempotent: a caller whose session has
+    already expired or been revoked still wants the cookie gone, and making
+    them authenticate first would turn signing out into an error.
+    """
+    if token:
+        await session_service.revoke(token)
+    # The attributes must match the ones the cookie was set with, or the
+    # browser treats this as a different cookie and leaves the original.
+    response.delete_cookie(
+        constants.SESSION_COOKIE_NAME,
+        path="/",
+        httponly=True,
+        secure=not web_settings().debug,
+        samesite="lax",
     )

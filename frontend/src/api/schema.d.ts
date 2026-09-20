@@ -96,6 +96,8 @@ export interface paths {
     /**
      * Register
      * @description Register a new user after all legal consents are explicitly accepted.
+     *
+     *     Username must be unique.
      */
     post: operations["register_api_v1_auth_register_post"];
     delete?: never;
@@ -115,11 +117,40 @@ export interface paths {
     put?: never;
     /**
      * Login
-     * @description Login with username and password. Returns a JWT token if successful.
+     * @description Login with username and password. Opens a session if successful.
+     *
+     *     The session token is returned two ways for one credential: as an
+     *     ``HttpOnly`` cookie, which is what the web app uses and never exposes to
+     *     page scripts, and in the response body, which keeps ``/api/docs`` and
+     *     non-browser clients working. Browser callers should ignore the body.
      *
      *     Note that all optional fields in the form data are ignored.
      */
     post: operations["login_api_v1_auth_login_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/logout": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Logout
+     * @description End the current session and clear the cookie.
+     *
+     *     Deliberately unauthenticated and idempotent: a caller whose session has
+     *     already expired or been revoked still wants the cookie gone, and making
+     *     them authenticate first would turn signing out into an error.
+     */
+    post: operations["logout_api_v1_auth_logout_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1441,13 +1472,13 @@ export interface paths {
       path?: never;
       cookie?: never;
     };
+    get?: never;
+    put?: never;
     /**
      * Retry Pending Resource Deletions
      * @description Retry object and database cleanup for all pending resource deletions.
      */
     post: operations["retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post"];
-    get?: never;
-    put?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -1571,7 +1602,10 @@ export interface components {
       description: string;
       /** Logo Uri */
       logo_uri?: string | null;
-      /** Created At */
+      /**
+       * Created At
+       * Format: date-time
+       */
       created_at?: string;
     };
     /** AdminClubUpdate */
@@ -1598,6 +1632,45 @@ export interface components {
       role?: components["schemas"]["RoleEnum"] | null;
       grade?: components["schemas"]["UserGradeEnum"] | null;
     };
+    /** AltchaChallenge */
+    AltchaChallenge: {
+      parameters: components["schemas"]["AltchaChallengeParameters"];
+      /** Signature */
+      signature: string;
+    };
+    /** AltchaChallengeParameters */
+    AltchaChallengeParameters: {
+      /** Algorithm */
+      algorithm: string;
+      /** Nonce */
+      nonce: string;
+      /** Salt */
+      salt: string;
+      /** Cost */
+      cost: number;
+      /** Keylength */
+      keyLength: number;
+      /** Keyprefix */
+      keyPrefix: string;
+      /** Keysignature */
+      keySignature?: string | null;
+      /** Memorycost */
+      memoryCost?: number | null;
+      /** Parallelism */
+      parallelism?: number | null;
+      /** Expiresat */
+      expiresAt: number;
+      /** Data */
+      data: {
+        [key: string]: components["schemas"]["AltchaDataValue"];
+      };
+    };
+    AltchaDataValue: string | number | boolean | null;
+    /**
+     * AltchaPurpose
+     * @enum {string}
+     */
+    AltchaPurpose: "login" | "register";
     /** AnnouncementCreate */
     AnnouncementCreate: {
       /** Title */
@@ -1661,44 +1734,6 @@ export interface components {
      * @enum {string}
      */
     AuditStatusEnum: "pending" | "approved" | "rejected";
-    /** AltchaChallenge */
-    AltchaChallenge: {
-      parameters: components["schemas"]["AltchaChallengeParameters"];
-      /** Signature */
-      signature: string;
-    };
-    /** AltchaChallengeParameters */
-    AltchaChallengeParameters: {
-      /** Algorithm */
-      algorithm: string;
-      /** Nonce */
-      nonce: string;
-      /** Salt */
-      salt: string;
-      /** Cost */
-      cost: number;
-      /** Keylength */
-      keyLength: number;
-      /** Keyprefix */
-      keyPrefix: string;
-      /** Keysignature */
-      keySignature?: string | null;
-      /** Memorycost */
-      memoryCost?: number | null;
-      /** Parallelism */
-      parallelism?: number | null;
-      /** Expiresat */
-      expiresAt: number;
-      /** Data */
-      data: {
-        [key: string]: string | number | boolean | null;
-      };
-    };
-    /**
-     * AltchaPurpose
-     * @enum {string}
-     */
-    AltchaPurpose: "login" | "register";
     /** Body_login_api_v1_auth_login_post */
     Body_login_api_v1_auth_login_post: {
       /** Altcha */
@@ -1933,7 +1968,7 @@ export interface components {
        * Message
        * @default
        */
-      message?: string;
+      message: string;
     };
     /** ClubClaimRequestInfo */
     ClubClaimRequestInfo: {
@@ -2097,7 +2132,8 @@ export interface components {
      * ClubMembershipEnum
      * @enum {string}
      */
-    ClubMembershipEnum: "pending" | "member" | "president" | "vice_president" | "left";
+    ClubMembershipEnum:
+      "pending" | "member" | "president" | "vice_president" | "left";
     /** ClubMembershipRequestCreatePublic */
     ClubMembershipRequestCreatePublic: {
       /** Message */
@@ -2127,7 +2163,13 @@ export interface components {
      * @enum {string}
      */
     ClubStarLevelEnum:
-      "none" | "one_star" | "two_star" | "three_star" | "four_star" | "five_star" | "honorary";
+      | "none"
+      | "one_star"
+      | "two_star"
+      | "three_star"
+      | "four_star"
+      | "five_star"
+      | "honorary";
     /**
      * ClubStatusEnum
      * @enum {string}
@@ -2570,10 +2612,10 @@ export interface components {
       /** Pages */
       pages: number;
     };
-    /** Page[ClubGeneralActivityInfo] */
-    Page_ClubGeneralActivityInfo_: {
+    /** Page[ClubClaimRequestReviewInfo] */
+    Page_ClubClaimRequestReviewInfo_: {
       /** Items */
-      items: components["schemas"]["ClubGeneralActivityInfo"][];
+      items: components["schemas"]["ClubClaimRequestReviewInfo"][];
       /** Total */
       total: number;
       /** Page */
@@ -2583,10 +2625,10 @@ export interface components {
       /** Pages */
       pages: number;
     };
-    /** Page[ClubClaimRequestReviewInfo] */
-    Page_ClubClaimRequestReviewInfo_: {
+    /** Page[ClubGeneralActivityInfo] */
+    Page_ClubGeneralActivityInfo_: {
       /** Items */
-      items: components["schemas"]["ClubClaimRequestReviewInfo"][];
+      items: components["schemas"]["ClubGeneralActivityInfo"][];
       /** Total */
       total: number;
       /** Page */
@@ -2739,6 +2781,11 @@ export interface components {
       /** Pages */
       pages: number;
     };
+    /**
+     * ParticipationTypeEnum
+     * @enum {string}
+     */
+    ParticipationTypeEnum: "participate_only" | "organize";
     /** PendingDeletionRetryResult */
     PendingDeletionRetryResult: {
       /** Attempted */
@@ -2748,11 +2795,6 @@ export interface components {
       /** Failed */
       failed: number;
     };
-    /**
-     * ParticipationTypeEnum
-     * @enum {string}
-     */
-    ParticipationTypeEnum: "participate_only" | "organize";
     /** PublicUserInfo */
     PublicUserInfo: {
       /** Id */
@@ -2816,7 +2858,8 @@ export interface components {
      * RoleEnum
      * @enum {string}
      */
-    RoleEnum: "ban" | "user" | "moderator" | "federation_staff" | "admin" | "dev";
+    RoleEnum:
+      "ban" | "user" | "moderator" | "federation_staff" | "admin" | "dev";
     /** StarLevelApplicationCreate */
     StarLevelApplicationCreate: {
       /** Contest Attachment */
@@ -3029,28 +3072,6 @@ export interface components {
       | "application_file"
       | "joint_activity_archive"
       | "resource_file";
-    /** UserCreate */
-    UserCreate: {
-      /** Username */
-      username: string;
-      /** Password */
-      password: string;
-      /** Accepted Privacy Policy */
-      accepted_privacy_policy: true;
-      /** Accepted User Agreement */
-      accepted_user_agreement: true;
-      /** Accepted Cross Border Transfer */
-      accepted_cross_border_transfer: true;
-    };
-    /** UserRegistration */
-    UserRegistration: {
-      /** Username */
-      username: string;
-      /** Password */
-      password: string;
-      /** Altcha */
-      altcha: string;
-    };
     /**
      * UserGradeEnum
      * @enum {string}
@@ -3085,6 +3106,30 @@ export interface components {
        * Format: date-time
        */
       created_at: string;
+    };
+    /** UserRegistration */
+    UserRegistration: {
+      /** Username */
+      username: string;
+      /** Password */
+      password: string;
+      /**
+       * Accepted Privacy Policy
+       * @constant
+       */
+      accepted_privacy_policy: true;
+      /**
+       * Accepted User Agreement
+       * @constant
+       */
+      accepted_user_agreement: true;
+      /**
+       * Accepted Cross Border Transfer
+       * @constant
+       */
+      accepted_cross_border_transfer: true;
+      /** Altcha */
+      altcha: string;
     };
     /** UserUpdateRequestCreate */
     UserUpdateRequestCreate: {
@@ -3446,6 +3491,24 @@ export interface operations {
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
         };
+      };
+    };
+  };
+  logout_api_v1_auth_logout_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
       };
     };
   };
@@ -4881,6 +4944,73 @@ export interface operations {
       };
     };
   };
+  list_clubs_api_v1_admin_clubs__get: {
+    parameters: {
+      query?: {
+        search?: string | null;
+        category?: components["schemas"]["ClubCategoryEnum"] | null;
+        club_status?: components["schemas"]["ClubStatusEnum"] | null;
+        /** @description Page number */
+        page?: number;
+        /** @description Page size */
+        size?: number;
+      };
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Page_ClubInfo_"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   create_club_api_v1_admin_clubs__post: {
     parameters: {
       query?: never;
@@ -4939,74 +5069,12 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          [key: string]: unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_clubs_api_v1_admin_clubs__get: {
-    parameters: {
-      query?: {
-        search?: string | null;
-        category?: components["schemas"]["ClubCategoryEnum"] | null;
-        club_status?: components["schemas"]["ClubStatusEnum"] | null;
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Page_ClubInfo_"];
-        };
-      };
-      /** @description Unauthorized or Token invalid */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
           /**
            * @example {
-           *       "message_key": "error.auth.token_invalid",
-           *       "error_code": "AUTH_TOKEN_INVALID"
+           *       "detail": "Club with name HCC already exists."
            *     }
            */
-          "application/json": components["schemas"]["ErrorResponseModel"];
-        };
-      };
-      /** @description Permission Denied */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "message_key": "error.role.not_allowed",
-           *       "error_code": "ROLE_NOT_ALLOWED"
-           *     }
-           */
-          "application/json": components["schemas"]["ErrorResponseModel"];
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -8967,53 +9035,6 @@ export interface operations {
       };
     };
   };
-  retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post: {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["PendingDeletionRetryResult"];
-        };
-      };
-      /** @description Unauthorized or Token invalid */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponseModel"];
-        };
-      };
-      /** @description Permission Denied */
-      403: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["ErrorResponseModel"];
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
   create_resource_file_api_v1_resources__post: {
     parameters: {
       query?: never;
@@ -9073,6 +9094,56 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PendingDeletionRetryResult"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
     };

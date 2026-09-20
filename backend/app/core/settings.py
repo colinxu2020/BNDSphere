@@ -1,7 +1,8 @@
 from functools import cache
+from typing import Self
 from urllib.parse import quote
 
-from pydantic import computed_field
+from pydantic import computed_field, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -19,6 +20,29 @@ class WebSettings(_AppBaseSettings):
     # ``AUTH_IP_RATE_LIMIT_ENABLED=true`` to enforce them. The per-account
     # failure lockout and the process-wide circuit breaker are always on.
     auth_ip_rate_limit_enabled: bool = False
+
+    @model_validator(mode="after")
+    def _reject_wildcard_cors_outside_debug(self) -> Self:
+        """Refuse to boot with ``CORS_ORIGIN=*`` once auth rides on a cookie.
+
+        Starlette echoes the caller's origin instead of ``*`` when
+        ``allow_credentials`` is on (which it is, in ``app.main``), so a
+        wildcard does not merely relax reads — it authorizes *credentialed*
+        cross-origin requests from any site on the internet, each one carrying
+        the visitor's session cookie. That was harmless when the credential was
+        a bearer token another origin could not obtain; it is a session-riding
+        hole now that the browser attaches the cookie by itself.
+
+        Allowed under ``DEBUG=true`` so local development keeps working.
+        """
+        if not self.debug and self.cors_origin.strip() == "*":
+            raise ValueError(
+                "CORS_ORIGIN='*' is refused when DEBUG is false: it would let "
+                "any origin make credentialed requests with the visitor's "
+                "session cookie. Set CORS_ORIGIN to the site's own origin "
+                "(e.g. https://bnd.fun).",
+            )
+        return self
 
 
 class DatabaseSettings(_AppBaseSettings):

@@ -64,3 +64,12 @@ LOGIN_LOCKOUT_THRESHOLD: Final[int] = 10
 # ``login_attempts`` rows are audit-only after the failure window elapses;
 # they are pruned this many days after creation.
 LOGIN_ATTEMPT_RETENTION_DAYS: Final[int] = 90
+
+# ── Sessions ─────────────────────────────────────────────────────────────
+#
+# Login issues an opaque token backed by a ``user_sessions`` row rather than a
+# self-contained JWT, so signing out (and, later, a password change) takes
+# effect on the next request instead of whenever a signed token would have
+# expired on its own.
+SESSION_LIFETIME_DAYS: Final[int] = 7
+SESSION_COOKIE_NAME: Final[str] = "bnd_session"

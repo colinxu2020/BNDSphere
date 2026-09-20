@@ -2,12 +2,13 @@ from collections.abc import AsyncGenerator
 from functools import cache
 from typing import Annotated, Protocol
 
+from fastapi import Request
 from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.constants import SESSION_COOKIE_NAME
 from app.core.database import SessionLocal
-from app.core.security import verify_access_token
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.repositories.academic_term import AcademicTermRepository
@@ -35,6 +36,7 @@ from app.repositories.resource_file import ResourceFileRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
+from app.repositories.user_session import UserSessionRepository
 from app.services.academic_term import AcademicTermService
 from app.services.altcha import AltchaService
 from app.services.announcement import AnnouncementService
@@ -67,8 +69,15 @@ from app.services.resource_file import ResourceFileService
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
 from app.services.user import UserService, UserUpdateRequestService
+from app.services.user_session import UserSessionService
 
-oauth2_schema = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_schema = OAuth2PasswordBearer(
+    tokenUrl="/api/v1/auth/login",
+    # A cookie-bearing browser request has no Authorization header and is
+    # still valid, so the scheme cannot reject it by itself; ``session_token``
+    # below decides, and ``get_current_user`` raises.
+    auto_error=False,
+)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession]:
@@ -228,22 +237,53 @@ type AltchaServiceDep = Annotated[
 ]
 
 
+def get_user_session_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+) -> UserSessionService:
+    return UserSessionService(UserSessionRepository(db))
+
+
+type UserSessionServiceDep = Annotated[
+    UserSessionService,
+    Depends(get_user_session_service),
+]
+
+
+def session_token(
+    request: Request,
+    bearer: Annotated[str | None, Depends(oauth2_schema)],
+) -> str | None:
+    """Resolve the caller's session token from the header, then the cookie.
+
+    Browsers send the cookie; it is ``HttpOnly`` so page scripts can neither
+    read it nor leak it to an attacker. The bearer header is what ``/api/docs``
+    and non-browser clients use, and it resolves to the same server-side
+    session — one credential, two transports.
+
+    The header wins when both are present. It is the explicit, per-request
+    credential, so a stale cookie left over from the SPA cannot silently
+    override the identity a Swagger user deliberately pasted in.
+    """
+    return bearer or request.cookies.get(SESSION_COOKIE_NAME)
+
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_schema)],
+    token: Annotated[str | None, Depends(session_token)],
+    session_service: UserSessionServiceDep,
     user_service: UserServiceDep,
 ) -> User:
     exc = AuthenticationError(
         "error.auth.token_invalid",
         "AUTH_TOKEN_INVALID",
     )
-    try:
-        payload = verify_access_token(token)
-        if "sub" not in payload:
-            raise exc
-    except ValueError as err:
-        raise exc from err
+    if not token:
+        raise exc
 
-    user = await user_service.get(int(payload["sub"]))
+    session = await session_service.resolve(token)
+    if session is None:
+        raise exc
+
+    user = await user_service.get(session.user_id)
     if user is None:
         raise exc
 

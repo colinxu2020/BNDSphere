@@ -9,7 +9,7 @@ import {
   Users,
 } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
-import { client } from "../api/client";
+import { client, isAuthenticated } from "../api/client";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
@@ -46,7 +46,7 @@ export function Home() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
-  const isLoggedIn = Boolean(localStorage.getItem("bnd_token"));
+  const isLoggedIn = isAuthenticated();
 
   useEffect(() => {
     let cancelled = false;

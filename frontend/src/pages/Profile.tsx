@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
-import { client } from "../api/client";
+import { client, isAuthenticated, logout } from "../api/client";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
 import { StatusMessage } from "../components/ui/AppPrimitives";
@@ -29,8 +29,7 @@ export function Profile() {
   useEffect(() => {
     const fetchUser = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("bnd_token");
-      if (!token) {
+      if (!isAuthenticated()) {
         navigate("/login");
         return;
       }
@@ -56,8 +55,8 @@ export function Profile() {
     fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("bnd_token");
+  const handleLogout = async () => {
+    await logout();
     navigate("/login");
   };
 
