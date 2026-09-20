@@ -195,6 +195,46 @@ class ContactVerificationService(
             )
         return sent
 
+    async def send_two_factor_code(
+        self,
+        user: User,
+        target: str,
+    ) -> VerificationCodeSent:
+        """Send a login second-factor code to the account's verified number.
+
+        SMS only: email is too slow and too often open in the same browser
+        session to be a second factor worth the name.
+        """
+        purpose = VerificationPurposeEnum.two_factor
+        code, sent = await self._issue(
+            user,
+            VerificationChannelEnum.sms,
+            purpose,
+            target,
+        )
+        await self.sms_sender.send_code(
+            target,
+            code,
+            constants.SMS_CODE_TTL_MINUTES,
+            purpose,
+        )
+        return sent
+
+    async def consume_two_factor_code(
+        self,
+        user: User,
+        target: str,
+        code: str,
+    ) -> None:
+        """Burn a login second-factor code, or raise. Binds nothing."""
+        await self._consume(
+            user,
+            VerificationChannelEnum.sms,
+            VerificationPurposeEnum.two_factor,
+            target,
+            code,
+        )
+
     async def consume_reset_code(
         self,
         user: User,

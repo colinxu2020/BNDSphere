@@ -157,3 +157,48 @@ CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+
+
+# Every route under /auth/2fa that re-checks the password can answer 401 with
+# this, in addition to the 401 an absent session already produces.
+PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "description": "Session missing or password incorrect",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.incorrect_user_passwd",
+                    "error_code": "INCORRECT_USER_PASSWD",
+                    "details": {},
+                },
+            },
+        },
+    },
+}
+
+TWO_FACTOR_LOGIN_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "description": "Challenge ticket expired or second factor wrong",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_code_invalid",
+                    "error_code": "TWO_FACTOR_CODE_INVALID",
+                    "details": {},
+                },
+            },
+        },
+    },
+    400: {
+        "description": "That method is not armed on this account",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_method_unavailable",
+                    "error_code": "TWO_FACTOR_METHOD_UNAVAILABLE",
+                    "details": {"method": "sms"},
+                },
+            },
+        },
+    },
+}

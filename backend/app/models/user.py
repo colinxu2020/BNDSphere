@@ -96,6 +96,22 @@ class User(Base):
         default=None,
     )
     hashed_password: Mapped[str] = mapped_column(String(255))
+    # Base32 TOTP shared secret. Written when enrollment starts and only
+    # *trusted* once ``totp_confirmed_at`` is set: an unconfirmed secret is
+    # one nobody has proved their authenticator actually holds, and enforcing
+    # it would lock the account out of itself.
+    totp_secret: Mapped[str | None] = mapped_column(Text, default=None)
+    totp_confirmed_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
+    # SMS as a second factor, sent to the number in ``phone``. Separate from
+    # ``phone_verified_at`` because a verified number is a recovery channel by
+    # default and being asked for a code at every login is not.
+    sms_two_factor_enabled_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
     avatar_uri: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
     description: Mapped[str] = mapped_column(Text, default="这位用户还没有设置简介")
     real_name: Mapped[str | None] = mapped_column(String(20), default=None)
@@ -116,6 +132,30 @@ class User(Base):
         back_populates="user",
         passive_deletes=True,
     )
+
+    @property
+    def totp_enabled(self) -> bool:
+        """Report whether a TOTP secret exists that an authenticator has answered."""
+        return self.totp_secret is not None and self.totp_confirmed_at is not None
+
+    @property
+    def sms_two_factor_enabled(self) -> bool:
+        """Report whether SMS is armed and still has a number to send to.
+
+        Re-checks ``phone_verified_at`` rather than trusting the flag alone:
+        unbinding a number must not leave an account demanding a code that can
+        no longer be sent anywhere.
+        """
+        return (
+            self.sms_two_factor_enabled_at is not None
+            and self.phone is not None
+            and self.phone_verified_at is not None
+        )
+
+    @property
+    def two_factor_enabled(self) -> bool:
+        """Report whether a correct password falls short of logging this account in."""
+        return self.totp_enabled or self.sms_two_factor_enabled
 
 
 class AuditMixin:

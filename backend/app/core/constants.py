@@ -127,3 +127,20 @@ SMS_GLOBAL_MAX_PER_DAY: Final[int] = 500
 # Codes are kept after use so the send budgets above can still see them; this
 # is how long before the retention sweep removes them.
 VERIFICATION_CODE_RETENTION_DAYS: Final[int] = 7
+
+# ── Two-factor authentication ────────────────────────────────────────────
+#
+# Opt-in per account. Once on, a correct password buys only a short-lived
+# challenge ticket; the session is issued when the second factor is answered.
+# Second-factor failures are recorded as failed logins, so the existing
+# per-account lockout is what keeps a six-digit TOTP out of reach.
+TWO_FACTOR_ISSUER: Final[str] = "BNDSphere"
+# Long enough to fetch a phone and read an SMS that is still in flight, short
+# enough that a ticket left on a shared machine is worthless by the time
+# anyone finds it.
+TWO_FACTOR_CHALLENGE_TTL_MINUTES: Final[int] = 10
+# Shown once, when a second factor is first turned on. Ten is enough to cover
+# a lost phone several times over without being a list nobody will keep.
+RECOVERY_CODE_COUNT: Final[int] = 10
+# "1234-5678-9abc-def0" plus room for however someone retypes it.
+RECOVERY_CODE_MAX_INPUT_LENGTH: Final[int] = 32

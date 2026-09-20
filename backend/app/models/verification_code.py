@@ -26,6 +26,7 @@ class VerificationPurposeEnum(StrEnum):
 
     bind = "bind"
     password_reset = "password_reset"  # noqa: S105 - a purpose, not a secret
+    two_factor = "two_factor"
 
 
 class VerificationCode(Base):

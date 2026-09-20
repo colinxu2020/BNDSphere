@@ -44,6 +44,11 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
         The attempt row is committed before returning, so a failed login still
         leaves an audit record even though the request handler then raises.
 
+        On an account with a second factor the correct password records
+        nothing at all — see below. Callers that use this purely to re-check a
+        password (changing one, disarming 2FA) get the same treatment, which
+        is the harmless direction: they neither consume nor reset the budget.
+
         The username is clamped to ``USER_MAX_USERNAME_LENGTH`` first: the login
         form (``OAuth2PasswordRequestForm``) puts no bound on it, unlike
         registration, and the value is hashed into the advisory-lock key,
@@ -55,25 +60,72 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
         username = username[:USER_MAX_USERNAME_LENGTH]
         async with self.transaction():
             await self.login_attempt_repository.lock_username(username)
-
-            # Resolve the window once and thread it through: recomputing it for
-            # the expiry boundary would use a later ``now`` (and run another
-            # ``last_success_at`` query), which can shift the boundary by a row
-            # at the window edge and disagree with the count it must match.
-            since = await self._window_start(username)
-            failure_count = await self._recent_failure_count(username, since)
-            if failure_count >= LOGIN_LOCKOUT_THRESHOLD:
-                raise LoginThrottledError(
-                    await self._retry_after_seconds(username, failure_count, since),
-                )
+            await self._ensure_not_locked_out(username)
 
             user = await self.repository.get_by_username(username)
             successful = user is not None and verify_password(
                 password,
                 user.hashed_password,
             )
+            if successful and user is not None and user.two_factor_enabled:
+                # Nothing recorded yet: a correct password on a 2FA account
+                # has not logged anyone in, and writing a success here would
+                # reset the failure window — which would hand someone who
+                # already has the password unlimited guesses at the six
+                # digits. ``TwoFactorService`` records the outcome once the
+                # challenge is answered.
+                #
+                # ponytail: the cost is an audit gap — a correct password
+                # whose challenge is never answered leaves no row at all.
+                # Closing it means a stage column on ``login_attempts``; the
+                # table is a lockout counter first and a log second, so it
+                # can wait.
+                return user
             await self._record_attempt(username, ip, successful=successful)
             return user if successful else None
+
+    async def ensure_not_locked_out(self, username: str) -> None:
+        """Raise ``LoginThrottledError`` if this account is locked out.
+
+        For the second-factor step, which is a login attempt in its own right
+        and has to count against the same budget: six digits are within reach
+        of a grinder that nothing throttles.
+
+        ponytail: unlike ``authenticate`` this does not hold the lock across
+        the verification that follows, so concurrent guesses can slip a few
+        past the threshold. Closing it means threading the whole second-factor
+        check through here — worth it only if the few turns out to matter.
+        """
+        async with self.transaction():
+            await self.login_attempt_repository.lock_username(username)
+            await self._ensure_not_locked_out(username)
+
+    async def record_attempt(
+        self,
+        username: str,
+        ip: str | None,
+        *,
+        successful: bool,
+    ) -> None:
+        """Record how a second-factor attempt ended.
+
+        Success resets the failure window, exactly as a one-step login does:
+        the login is finished either way, and this is the step that finished
+        it.
+        """
+        await self._record_attempt(username, ip, successful=successful)
+
+    async def _ensure_not_locked_out(self, username: str) -> None:
+        # Resolve the window once and thread it through: recomputing it for
+        # the expiry boundary would use a later ``now`` (and run another
+        # ``last_success_at`` query), which can shift the boundary by a row at
+        # the window edge and disagree with the count it must match.
+        since = await self._window_start(username)
+        failure_count = await self._recent_failure_count(username, since)
+        if failure_count >= LOGIN_LOCKOUT_THRESHOLD:
+            raise LoginThrottledError(
+                await self._retry_after_seconds(username, failure_count, since),
+            )
 
     async def _recent_failure_count(self, username: str, since: datetime) -> int:
         return await self.login_attempt_repository.count_failures_since(
