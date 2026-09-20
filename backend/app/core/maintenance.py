@@ -5,10 +5,14 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Final
 
-from app.core.constants import LOGIN_ATTEMPT_RETENTION_DAYS
+from app.core.constants import (
+    LOGIN_ATTEMPT_RETENTION_DAYS,
+    VERIFICATION_CODE_RETENTION_DAYS,
+)
 from app.core.database import SessionLocal
 from app.repositories.login_attempt import LoginAttemptRepository
 from app.repositories.user_session import UserSessionRepository
+from app.repositories.verification_code import VerificationCodeRepository
 
 logger = logging.getLogger(__name__)
 
@@ -35,11 +39,27 @@ async def prune_expired_sessions() -> None:
         await session.commit()
 
 
+async def prune_verification_codes() -> None:
+    """Delete verification codes past the retention window.
+
+    Consumed codes are kept until now because the send budgets count them;
+    once a row is older than any budget window it has no reader left.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=VERIFICATION_CODE_RETENTION_DAYS)
+    async with SessionLocal() as session:
+        await VerificationCodeRepository(session).prune_before(cutoff)
+        await session.commit()
+
+
 async def run_retention_sweep() -> None:
     """Run every retention job. Each is independent, so one failure is logged
     and the rest still run.
     """
-    for job in (prune_login_attempts, prune_expired_sessions):
+    for job in (
+        prune_login_attempts,
+        prune_expired_sessions,
+        prune_verification_codes,
+    ):
         try:
             await job()
         except Exception:

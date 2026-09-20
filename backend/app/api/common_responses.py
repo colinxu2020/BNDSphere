@@ -79,3 +79,94 @@ DUPLICATE_REQUEST_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+
+
+VERIFICATION_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    400: {
+        "model": ErrorResponseModel,
+        "description": (
+            "The code is wrong, expired, already used, or out of attempts — "
+            "deliberately not distinguished."
+        ),
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.code_invalid",
+                    "error_code": "VERIFICATION_CODE_INVALID",
+                },
+            },
+        },
+    },
+    409: {
+        "model": ErrorResponseModel,
+        "description": "The address or number already belongs to another account",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.target_taken",
+                    "error_code": "VERIFICATION_TARGET_TAKEN",
+                },
+            },
+        },
+    },
+}
+
+CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
+    400: {
+        "model": ErrorResponseModel,
+        "description": "The address or number is not one this deployment can reach",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.target_invalid",
+                    "error_code": "VERIFICATION_TARGET_INVALID",
+                },
+            },
+        },
+    },
+    409: VERIFICATION_CODE_INVALID_RESPONSE[409],
+    429: {
+        "model": ErrorResponseModel,
+        "description": "A send budget was hit; retry after the given delay",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.send_throttled",
+                    "error_code": "VERIFICATION_SEND_THROTTLED",
+                    "details": {"retry_after": 60},
+                },
+            },
+        },
+    },
+    503: {
+        "model": ErrorResponseModel,
+        "description": "The email or SMS provider could not be reached",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.channel_unavailable",
+                    "error_code": "VERIFICATION_CHANNEL_UNAVAILABLE",
+                },
+            },
+        },
+    },
+}
+
+
+# Every route that re-checks the account password answers 401 with this, in
+# addition to the 401 an absent or expired session already produces.
+PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "model": ErrorResponseModel,
+        "description": "Session missing or password incorrect",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.incorrect_user_passwd",
+                    "error_code": "INCORRECT_USER_PASSWD",
+                    "details": {},
+                },
+            },
+        },
+    },
+}

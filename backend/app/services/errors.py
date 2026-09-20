@@ -261,3 +261,69 @@ class UploadObjectTooLargeError(BadRequestError):
             "UPLOAD_OBJECT_TOO_LARGE",
             {"object_key": object_key, "max_size": max_size},
         )
+
+
+class NotificationChannelUnavailableError(BusinessError):
+    """The code could not be handed to the provider.
+
+    503 rather than 500: nothing about the request was wrong, and the caller
+    should retry. The provider's own complaint stays in the log — a delivery
+    error is a side channel for probing which addresses exist.
+    """
+
+    def __init__(self, channel: str) -> None:
+        super().__init__(
+            "error.verification.channel_unavailable",
+            503,
+            "VERIFICATION_CHANNEL_UNAVAILABLE",
+            {"channel": channel},
+        )
+
+
+class VerificationCodeInvalidError(BadRequestError):
+    """Wrong, expired, already used, or out of attempts.
+
+    One error for all four so a caller cannot learn *which* by trying: that
+    difference tells them whether a code is still live and worth grinding.
+    """
+
+    def __init__(self) -> None:
+        super().__init__(
+            "error.verification.code_invalid",
+            "VERIFICATION_CODE_INVALID",
+        )
+
+
+class VerificationTargetInvalidError(BadRequestError):
+    def __init__(self, channel: str) -> None:
+        super().__init__(
+            "error.verification.target_invalid",
+            "VERIFICATION_TARGET_INVALID",
+            {"channel": channel},
+        )
+
+
+class VerificationTargetTakenError(DuplicateResourceError):
+    def __init__(self, channel: str) -> None:
+        super().__init__(
+            "error.verification.target_taken",
+            "VERIFICATION_TARGET_TAKEN",
+            {"channel": channel},
+        )
+
+
+class VerificationSendThrottledError(BusinessError):
+    """A send budget was hit — per account, per target, or deployment-wide.
+
+    Which budget is not reported: the deployment-wide one would otherwise
+    tell an attacker exactly how close their spending attack is to working.
+    """
+
+    def __init__(self, retry_after: int) -> None:
+        super().__init__(
+            "error.verification.send_throttled",
+            429,
+            "VERIFICATION_SEND_THROTTLED",
+            {"retry_after": retry_after},
+            headers={"Retry-After": str(retry_after)},
+        )

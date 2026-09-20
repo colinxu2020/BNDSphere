@@ -9,6 +9,9 @@ from app.api.v1.club_general_activities import router as club_general_activities
 from app.api.v1.club_joint_activities import router as club_joint_activities_router
 from app.api.v1.club_star_level import router as club_star_level_router
 from app.api.v1.clubs import router as clubs_router
+from app.api.v1.contact_verification import (
+    router as contact_verification_router,
+)
 from app.api.v1.general_activities import router as general_activities_router
 from app.api.v1.joint_activities import router as joint_activities_router
 from app.api.v1.moderations import router as moderation_router
@@ -53,3 +56,4 @@ router.include_router(verification_router, prefix="/clubs/{club_id}")
 router.include_router(uploads_router, prefix="/uploads")
 router.include_router(announcements_router, prefix="/announcements")
 router.include_router(resources_router, prefix="/resources")
+router.include_router(contact_verification_router, prefix="/verification")

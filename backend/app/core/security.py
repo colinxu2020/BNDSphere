@@ -36,6 +36,20 @@ def hash_session_token(token: str) -> str:
     return hashlib.sha256(token.encode()).hexdigest()
 
 
+def hash_verification_code(code: str) -> str:
+    """Hash a one-time verification code for storage.
+
+    Same SHA-256 as ``hash_session_token`` but a different bargain: a
+    six-digit code is only ~20 bits, so anyone holding the table can recover
+    it by exhaustion in microseconds. This is not the defence — the minutes-
+    long expiry and the attempt cap are. Hashing is here so a leaked backup
+    or a log line does not hand over codes that are still live, and it is
+    kept as a separate function from the session one so neither docstring has
+    to claim a guarantee the other's callers do not get.
+    """
+    return hashlib.sha256(code.encode()).hexdigest()
+
+
 _CHECK_IN_TOKEN_TYPE = "club_activity_check_in"  # noqa: S105 -- not a password
 
 

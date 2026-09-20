@@ -37,6 +37,7 @@ from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
 from app.repositories.user import UserRepository, UserUpdateRequestRepository
 from app.repositories.user_session import UserSessionRepository
+from app.repositories.verification_code import VerificationCodeRepository
 from app.services.academic_term import AcademicTermService
 from app.services.altcha import AltchaService
 from app.services.announcement import AnnouncementService
@@ -54,6 +55,7 @@ from app.services.club_activity import (
     ClubActivityUpdateRequestService,
 )
 from app.services.club_activity_check_in import ClubActivityCheckInService
+from app.services.contact_verification import ContactVerificationService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
@@ -246,6 +248,25 @@ def get_user_session_service(
 type UserSessionServiceDep = Annotated[
     UserSessionService,
     Depends(get_user_session_service),
+]
+
+
+def get_contact_verification_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_service: AuthServiceDep,
+) -> ContactVerificationService:
+    """Build the service on the *same* session the auth service holds.
+
+    ``AuthServiceDep`` resolves to one instance per request, so the password
+    re-check and the code insert commit together rather than as two units of
+    work that can half-succeed.
+    """
+    return ContactVerificationService(VerificationCodeRepository(db), auth_service)
+
+
+type ContactVerificationServiceDep = Annotated[
+    ContactVerificationService,
+    Depends(get_contact_verification_service),
 ]
 
 

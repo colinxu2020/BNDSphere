@@ -72,6 +72,19 @@ services:
       # Per-IP auth request budgets; off unless explicitly enabled (see
       # WebSettings.auth_ip_rate_limit_enabled).
       - AUTH_IP_RATE_LIMIT_ENABLED=${AUTH_IP_RATE_LIMIT_ENABLED:-false}
+      # Email verification. Leave SMTP_HOST empty to run without it: the
+      # channel then reports itself unavailable rather than pretending to send.
+      - SMTP_HOST=${SMTP_HOST:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_FROM=${SMTP_FROM:-}
+      - SMTP_STARTTLS=${SMTP_STARTTLS:-true}
+      # Tencent Cloud SMS. The two credentials are Docker secrets; these four
+      # identify the app, signature and template and are not secret.
+      - TENCENT_SMS_SDK_APP_ID=${TENCENT_SMS_SDK_APP_ID:-}
+      - TENCENT_SMS_SIGN_NAME=${TENCENT_SMS_SIGN_NAME:-}
+      - TENCENT_SMS_TEMPLATE_ID=${TENCENT_SMS_TEMPLATE_ID:-}
+      - TENCENT_SMS_REGION=${TENCENT_SMS_REGION:-ap-guangzhou}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -92,6 +105,9 @@ services:
       - secret_key
       - oss_access_key_id
       - oss_access_key
+      - smtp_password
+      - tencent_sms_secret_id
+      - tencent_sms_secret_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
 
@@ -169,3 +185,9 @@ secrets:
     file: ./secrets/oss_access_key_id.txt
   oss_access_key:
     file: ./secrets/oss_access_key.txt
+  smtp_password:
+    file: ./secrets/smtp_password.txt
+  tencent_sms_secret_id:
+    file: ./secrets/tencent_sms_secret_id.txt
+  tencent_sms_secret_key:
+    file: ./secrets/tencent_sms_secret_key.txt
