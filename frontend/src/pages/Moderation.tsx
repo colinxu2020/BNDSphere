@@ -3,7 +3,7 @@ import { motion } from "motion/react";
 import { Check, Clock, FilePenLine, RefreshCw, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { MODERATION_STATUS_MAP } from "../lib/labels";
+import { GRADE_MAP, MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -39,15 +39,20 @@ function getTargetLabel(item: ModerationItem) {
 }
 
 function renderRequestDetails(item: ModerationItem) {
+  // 用户请求和社团请求都有 description, 必须互斥分支: 否则用户简介会被渲染两次
+  // (既是"简介"又是"描述").
   const rows: [string, unknown][] = [];
-  if ("username" in item) {
+  if ("user_id" in item) {
     rows.push(["用户名", item.username]);
     rows.push(["头像", item.avatar_uri]);
     rows.push(["简介", item.description]);
+    // grade 可以出现在请求里并在通过时写入用户资料, 不展示等于让审核员盲审.
+    rows.push(["年级", item.grade ? GRADE_MAP[item.grade] : null]);
+  } else {
+    rows.push(["简介", item.summary]);
+    rows.push(["描述", item.description]);
+    rows.push(["Logo", item.logo_uri]);
   }
-  if ("summary" in item) rows.push(["简介", item.summary]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("logo_uri" in item) rows.push(["Logo", item.logo_uri]);
 
   const visibleRows = rows.filter(([, value]) => value != null && value !== "");
   if (!visibleRows.length) {
