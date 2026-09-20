@@ -24,6 +24,14 @@ class ClubBase(BaseModel):
     logo_uri: HttpUrl | None = Field(None, max_length=255)
 
 
+class ClubRef(IdMixin, BaseModel):
+    """Ref 档: 只含 id 与 name, 用于下拉选择与被其它实体内嵌引用."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+
+
 class ClubInfo(ClubBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
