@@ -176,3 +176,30 @@ PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+
+TWO_FACTOR_LOGIN_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "description": "Challenge ticket expired or second factor wrong",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_code_invalid",
+                    "error_code": "TWO_FACTOR_CODE_INVALID",
+                    "details": {},
+                },
+            },
+        },
+    },
+    400: {
+        "description": "That method is not armed on this account",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.two_factor_method_unavailable",
+                    "error_code": "TWO_FACTOR_METHOD_UNAVAILABLE",
+                    "details": {"method": "sms"},
+                },
+            },
+        },
+    },
+}

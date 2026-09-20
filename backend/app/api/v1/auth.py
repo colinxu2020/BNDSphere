@@ -8,11 +8,13 @@ from app.api.common_responses import (
     CONTACT_VERIFICATION_SEND_RESPONSES,
     PASSWORD_RESET_CODE_INVALID_RESPONSE,
     TOKEN_INVALID_RESPONSE,
+    TWO_FACTOR_LOGIN_RESPONSES,
 )
 from app.api.dependencies import (
     AltchaServiceDep,
     AuthServiceDep,
     PasswordServiceDep,
+    TwoFactorServiceDep,
     UserServiceDep,
     UserSessionServiceDep,
     get_current_user,
@@ -34,9 +36,10 @@ from app.schemas.password import (
     PasswordResetConfirm,
     PasswordResetRequest,
 )
+from app.schemas.two_factor import TwoFactorChallenge, TwoFactorSubmit
 from app.schemas.user import Token, UserInfo, UserRegistration
 from app.schemas.verification_code import VerificationCodeSent
-from app.services.errors import AuthenticationError
+from app.services.errors import AuthenticationError, TwoFactorRequiredError
 
 router = APIRouter(tags=["Auth"])
 
@@ -132,6 +135,7 @@ async def login(
     service: AuthServiceDep,
     session_service: UserSessionServiceDep,
     altcha_service: AltchaServiceDep,
+    two_factor_service: TwoFactorServiceDep,
     request: Request,
     response: Response,
     altcha: Annotated[
@@ -146,6 +150,11 @@ async def login(
     page scripts, and in the response body, which keeps ``/api/docs`` and
     non-browser clients working. Browser callers should ignore the body.
 
+    An account with a second factor gets no session here: the response is
+    401 ``TWO_FACTOR_REQUIRED`` carrying a short-lived challenge ticket and
+    the list of methods that can answer it, and ``/auth/login/2fa`` is what
+    finishes the login.
+
     Note that all optional fields in the form data are ignored.
     """
     altcha_service.verify(altcha, AltchaPurpose.login)
@@ -158,6 +167,11 @@ async def login(
         raise AuthenticationError(
             "error.auth.incorrect_user_passwd",
             "INCORRECT_USER_PASSWD",
+        )
+    if user.two_factor_enabled:
+        raise TwoFactorRequiredError(
+            two_factor_service.begin_challenge(user),
+            [method.value for method in two_factor_service.methods_for(user)],
         )
     token = await session_service.issue(user)
     _set_session_cookie(response, token)
@@ -269,4 +283,57 @@ async def confirm_password_reset(
         body.channel,
         body.code,
         body.new_password,
+    )
+
+
+@router.post(
+    "/login/2fa/send",
+    status_code=status.HTTP_202_ACCEPTED,
+    dependencies=[Depends(login_rate_limit)],
+    responses=TWO_FACTOR_LOGIN_RESPONSES
+    | {429: CONTACT_VERIFICATION_SEND_RESPONSES[429]},
+)
+async def send_two_factor_login_code(
+    body: TwoFactorChallenge,
+    two_factor_service: TwoFactorServiceDep,
+) -> VerificationCodeSent:
+    """Text a second-factor code to the account the challenge names.
+
+    Unauthenticated by necessity — the caller is mid-login — but the ticket
+    is only issued after a correct password, so this cannot be used to make a
+    stranger's phone buzz.
+    """
+    return await two_factor_service.send_login_code(body.two_factor_token)
+
+
+@router.post(
+    "/login/2fa",
+    response_model=Token,
+    dependencies=[Depends(login_rate_limit)],
+    responses=TWO_FACTOR_LOGIN_RESPONSES,
+)
+async def complete_two_factor_login(
+    body: TwoFactorSubmit,
+    two_factor_service: TwoFactorServiceDep,
+    session_service: UserSessionServiceDep,
+    request: Request,
+    response: Response,
+) -> Token:
+    """Answer the second factor and open the session.
+
+    No ALTCHA: the proof of work was already spent on the password step, and
+    asking again would mean a caller whose challenge is about to expire has to
+    solve one before they can use it.
+    """
+    user = await two_factor_service.complete_challenge(
+        body.two_factor_token,
+        body.method,
+        body.code,
+        ip=client_ip(request),
+    )
+    token = await session_service.issue(user)
+    _set_session_cookie(response, token)
+    return Token(
+        access_token=token,
+        token_type="bearer",  # noqa: S106
     )

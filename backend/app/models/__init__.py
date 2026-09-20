@@ -10,6 +10,7 @@ from app.models.general_activity import GeneralActivity
 from app.models.joint_activity import JointActivity, JointActivityParticipation
 from app.models.legal_consent import LegalConsent
 from app.models.login_attempt import LoginAttempt
+from app.models.recovery_code import RecoveryCode
 from app.models.resource_file import ResourceFile
 from app.models.star_level import StarLevelApplication
 from app.models.tag import Tag
@@ -29,6 +30,7 @@ __all__ = [
     "JointActivityParticipation",
     "LegalConsent",
     "LoginAttempt",
+    "RecoveryCode",
     "ResourceFile",
     "StarLevelApplication",
     "Tag",

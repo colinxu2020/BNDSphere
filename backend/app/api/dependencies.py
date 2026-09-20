@@ -32,6 +32,7 @@ from app.repositories.general_activities import (
 )
 from app.repositories.joint_activities import JointActivityRepository
 from app.repositories.login_attempt import LoginAttemptRepository
+from app.repositories.recovery_code import RecoveryCodeRepository
 from app.repositories.resource_file import ResourceFileRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
@@ -71,6 +72,7 @@ from app.services.policies import AccessPolicy
 from app.services.resource_file import ResourceFileService
 from app.services.star_level import StarLevelService
 from app.services.star_rating import StarRatingService
+from app.services.two_factor import TwoFactorService
 from app.services.user import UserService, UserUpdateRequestService
 from app.services.user_session import UserSessionService
 
@@ -295,6 +297,31 @@ def get_password_service(
 type PasswordServiceDep = Annotated[
     PasswordService,
     Depends(get_password_service),
+]
+
+
+def get_two_factor_service(
+    db: Annotated[AsyncSession, Depends(get_db)],
+    auth_service: AuthServiceDep,
+    verification_service: ContactVerificationServiceDep,
+) -> TwoFactorService:
+    """Assemble the two-factor service from the services it borrows.
+
+    Same reason as ``get_password_service``: every collaborator has to share
+    this request's session, because the transaction depth that lets
+    ``ServiceBase.transaction()`` nest lives on the session itself.
+    """
+    return TwoFactorService(
+        RecoveryCodeRepository(db),
+        UserRepository(db),
+        auth_service,
+        verification_service,
+    )
+
+
+type TwoFactorServiceDep = Annotated[
+    TwoFactorService,
+    Depends(get_two_factor_service),
 ]
 
 

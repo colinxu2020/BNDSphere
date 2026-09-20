@@ -124,6 +124,11 @@ export interface paths {
      *     page scripts, and in the response body, which keeps ``/api/docs`` and
      *     non-browser clients working. Browser callers should ignore the body.
      *
+     *     An account with a second factor gets no session here: the response is
+     *     401 ``TWO_FACTOR_REQUIRED`` carrying a short-lived challenge ticket and
+     *     the list of methods that can answer it, and ``/auth/login/2fa`` is what
+     *     finishes the login.
+     *
      *     Note that all optional fields in the form data are ignored.
      */
     post: operations["login_api_v1_auth_login_post"];
@@ -226,6 +231,54 @@ export interface paths {
      *     itself a way in.
      */
     post: operations["confirm_password_reset_api_v1_auth_password_reset_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/login/2fa/send": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Send Two Factor Login Code
+     * @description Text a second-factor code to the account the challenge names.
+     *
+     *     Unauthenticated by necessity — the caller is mid-login — but the ticket
+     *     is only issued after a correct password, so this cannot be used to make a
+     *     stranger's phone buzz.
+     */
+    post: operations["send_two_factor_login_code_api_v1_auth_login_2fa_send_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/login/2fa": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Complete Two Factor Login
+     * @description Answer the second factor and open the session.
+     *
+     *     No ALTCHA: the proof of work was already spent on the password step, and
+     *     asking again would mean a caller whose challenge is about to expire has to
+     *     solve one before they can use it.
+     */
+    post: operations["complete_two_factor_login_api_v1_auth_login_2fa_post"];
     delete?: never;
     options?: never;
     head?: never;
@@ -1689,6 +1742,150 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/auth/2fa": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Two Factor Status
+     * @description Report what is armed on this account and how many recovery codes are left.
+     */
+    get: operations["get_two_factor_status_api_v1_auth_2fa_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/totp/start": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Start Totp Enrollment
+     * @description Mint a TOTP secret for an authenticator app.
+     *
+     *     Nothing is armed yet: the secret is stored unconfirmed, and it only starts
+     *     being demanded at login once an app has answered a code from it.
+     */
+    post: operations["start_totp_enrollment_api_v1_auth_2fa_totp_start_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/totp/confirm": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Confirm Totp Enrollment
+     * @description Answer a code from the new secret and arm TOTP.
+     *
+     *     Returns a set of recovery codes, shown once — but only if the account had
+     *     none left. An account that already printed a set keeps it and gets an
+     *     empty list back: replacing it is what ``/recovery-codes`` is for.
+     */
+    post: operations["confirm_totp_enrollment_api_v1_auth_2fa_totp_confirm_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/totp/disable": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Disable Totp
+     * @description Disarm TOTP and forget the secret.
+     */
+    post: operations["disable_totp_api_v1_auth_2fa_totp_disable_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/sms/enable": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Enable Sms Two Factor
+     * @description Arm the account's verified number as a second factor.
+     */
+    post: operations["enable_sms_two_factor_api_v1_auth_2fa_sms_enable_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/sms/disable": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /** Disable Sms Two Factor */
+    post: operations["disable_sms_two_factor_api_v1_auth_2fa_sms_disable_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/v1/auth/2fa/recovery-codes": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Regenerate Recovery Codes
+     * @description Replace the recovery codes, invalidating the old set.
+     */
+    post: operations["regenerate_recovery_codes_api_v1_auth_2fa_recovery_codes_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/health": {
     parameters: {
       query?: never;
@@ -3037,6 +3234,14 @@ export interface components {
       /** Condition Id */
       condition_id: number;
     };
+    /**
+     * RecoveryCodes
+     * @description Shown once. The server keeps only hashes, so it cannot show them again.
+     */
+    RecoveryCodes: {
+      /** Recovery Codes */
+      recovery_codes: string[];
+    };
     /** RequestModeratePublic */
     RequestModeratePublic: {
       moderation_status: components["schemas"]["ModerationStatusEnum"];
@@ -3275,6 +3480,62 @@ export interface components {
       access_token: string;
       /** Token Type */
       token_type: string;
+    };
+    /** TotpConfirm */
+    TotpConfirm: {
+      /** Code */
+      code: string;
+    };
+    /**
+     * TotpEnrollment
+     * @description The shared secret, the only time the server hands it back.
+     *
+     *     Both forms of the same thing: the URI for a QR code or a deep link, and
+     *     the bare secret for typing into an app that will not scan.
+     */
+    TotpEnrollment: {
+      /** Secret */
+      secret: string;
+      /** Provisioning Uri */
+      provisioning_uri: string;
+    };
+    /**
+     * TwoFactorChallenge
+     * @description The ticket handed out when a correct password is not yet a login.
+     */
+    TwoFactorChallenge: {
+      /** Two Factor Token */
+      two_factor_token: string;
+    };
+    /**
+     * TwoFactorMethodEnum
+     * @description What can answer a second-factor challenge.
+     * @enum {string}
+     */
+    TwoFactorMethodEnum: "totp" | "sms" | "recovery";
+    /** TwoFactorPasswordConfirm */
+    TwoFactorPasswordConfirm: {
+      /** Password */
+      password: string;
+    };
+    /** TwoFactorStatus */
+    TwoFactorStatus: {
+      /** Totp Enabled */
+      totp_enabled: boolean;
+      /** Sms Enabled */
+      sms_enabled: boolean;
+      /** Sms Available */
+      sms_available: boolean;
+      /** Recovery Codes Remaining */
+      recovery_codes_remaining: number;
+    };
+    /** TwoFactorSubmit */
+    TwoFactorSubmit: {
+      /** Two Factor Token */
+      two_factor_token: string;
+      method: components["schemas"]["TwoFactorMethodEnum"];
+      /** Code */
+      code: string;
     };
     /**
      * UploadScene
@@ -3905,6 +4166,158 @@ export interface operations {
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  send_two_factor_login_code_api_v1_auth_login_2fa_send_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorChallenge"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      202: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["VerificationCodeSent"];
+        };
+      };
+      /** @description That method is not armed on this account */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.two_factor_method_unavailable",
+           *       "error_code": "TWO_FACTOR_METHOD_UNAVAILABLE",
+           *       "details": {
+           *         "method": "sms"
+           *       }
+           *     }
+           */
+          "application/json": unknown;
+        };
+      };
+      /** @description Challenge ticket expired or second factor wrong */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.two_factor_code_invalid",
+           *       "error_code": "TWO_FACTOR_CODE_INVALID",
+           *       "details": {}
+           *     }
+           */
+          "application/json": unknown;
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+      /** @description A send budget was hit; retry after the given delay */
+      429: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.verification.send_throttled",
+           *       "error_code": "VERIFICATION_SEND_THROTTLED",
+           *       "details": {
+           *         "retry_after": 60
+           *       }
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+    };
+  };
+  complete_two_factor_login_api_v1_auth_login_2fa_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorSubmit"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["Token"];
+        };
+      };
+      /** @description That method is not armed on this account */
+      400: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.two_factor_method_unavailable",
+           *       "error_code": "TWO_FACTOR_METHOD_UNAVAILABLE",
+           *       "details": {
+           *         "method": "sms"
+           *       }
+           *     }
+           */
+          "application/json": unknown;
+        };
+      };
+      /** @description Challenge ticket expired or second factor wrong */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.two_factor_code_invalid",
+           *       "error_code": "TWO_FACTOR_CODE_INVALID",
+           *       "details": {}
+           *     }
+           */
+          "application/json": unknown;
         };
       };
       /** @description Validation Error */
@@ -10044,6 +10457,300 @@ export interface operations {
            * @example {
            *       "message_key": "error.verification.target_taken",
            *       "error_code": "VERIFICATION_TARGET_TAKEN"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_two_factor_status_api_v1_auth_2fa_get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TwoFactorStatus"];
+        };
+      };
+    };
+  };
+  start_totp_enrollment_api_v1_auth_2fa_totp_start_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorPasswordConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["TotpEnrollment"];
+        };
+      };
+      /** @description Session missing or password incorrect */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  confirm_totp_enrollment_api_v1_auth_2fa_totp_confirm_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TotpConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RecoveryCodes"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  disable_totp_api_v1_auth_2fa_totp_disable_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorPasswordConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Session missing or password incorrect */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  enable_sms_two_factor_api_v1_auth_2fa_sms_enable_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorPasswordConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RecoveryCodes"];
+        };
+      };
+      /** @description Session missing or password incorrect */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  disable_sms_two_factor_api_v1_auth_2fa_sms_disable_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorPasswordConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      204: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content?: never;
+      };
+      /** @description Session missing or password incorrect */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  regenerate_recovery_codes_api_v1_auth_2fa_recovery_codes_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["TwoFactorPasswordConfirm"];
+      };
+    };
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["RecoveryCodes"];
+        };
+      };
+      /** @description Session missing or password incorrect */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
