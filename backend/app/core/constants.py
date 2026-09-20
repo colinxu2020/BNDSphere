@@ -2,6 +2,10 @@ from typing import Final
 
 USER_MAX_USERNAME_LENGTH: Final[int] = 32
 USER_MAX_EMAIL_LENGTH: Final[int] = 64
+# Argon2 hashes whatever it is handed, so an unbounded password field is a
+# free way to make the server spend CPU on request. 128 is far past
+# anything a person types and well inside what a password manager makes.
+USER_MAX_PASSWORD_LENGTH: Final[int] = 128
 USER_MAX_DESCRIPTION_LENGTH: Final[int] = 400
 
 ALTCHA_MAX_PAYLOAD_LENGTH: Final[int] = 4096

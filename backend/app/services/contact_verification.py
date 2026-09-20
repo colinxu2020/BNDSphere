@@ -13,6 +13,7 @@ from app.models.verification_code import VerificationChannelEnum, VerificationCo
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
 from app.schemas.verification_code import VerificationCodeCreate, VerificationCodeSent
+from app.services.auth import AuthService
 from app.services.base import ServiceBase
 from app.services.email_sender import EmailSender
 from app.services.errors import (
@@ -114,6 +115,10 @@ class ContactVerificationService(
 
     Both channels run the same two-step flow — send a code, answer it — and
     differ only in the policy above and which sender carries the message.
+
+    Starting that flow costs the account password. A bound address is where
+    password resets are delivered, so a session alone must not be enough to
+    move it: otherwise an unattended logged-in browser is a full takeover.
     """
 
     repository: VerificationCodeRepository
@@ -121,18 +126,33 @@ class ContactVerificationService(
     def __init__(
         self,
         repository: VerificationCodeRepository,
+        auth_service: AuthService,
         user_repository: UserRepository | None = None,
         email_sender: EmailSender | None = None,
         sms_sender: SmsSender | None = None,
     ) -> None:
         super().__init__(repository)
+        self.auth_service = auth_service
         self.user_repository = user_repository or UserRepository(repository.db)
         self.email_sender = email_sender or EmailSender()
         self.sms_sender = sms_sender or SmsSender()
 
     # ── send ─────────────────────────────────────────────────────────
 
-    async def send_email_code(self, user: User, raw_email: str) -> VerificationCodeSent:
+    async def send_email_code(
+        self,
+        user: User,
+        raw_email: str,
+        password: str,
+        *,
+        ip: str | None,
+    ) -> VerificationCodeSent:
+        """Send a binding code, after the account owner proves it is them.
+
+        The password is checked before the budget is touched, so a wrong one
+        costs the account nothing but a recorded failed attempt.
+        """
+        await self.auth_service.reauthenticate(user, password, ip=ip)
         email = normalize_email(raw_email)
         await self._ensure_target_free(VerificationChannelEnum.email, email, user)
         code, sent = await self._issue(user, VerificationChannelEnum.email, email)
@@ -143,7 +163,15 @@ class ContactVerificationService(
         )
         return sent
 
-    async def send_phone_code(self, user: User, raw_phone: str) -> VerificationCodeSent:
+    async def send_phone_code(
+        self,
+        user: User,
+        raw_phone: str,
+        password: str,
+        *,
+        ip: str | None,
+    ) -> VerificationCodeSent:
+        await self.auth_service.reauthenticate(user, password, ip=ip)
         phone = normalize_phone(raw_phone)
         await self._ensure_target_free(VerificationChannelEnum.sms, phone, user)
         code, sent = await self._issue(user, VerificationChannelEnum.sms, phone)

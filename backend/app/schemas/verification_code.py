@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Annotated
 
 from pydantic import BaseModel, EmailStr, Field
 
@@ -14,31 +15,48 @@ class VerificationCodeCreate(BaseModel):
     expires_at: datetime
 
 
-class EmailVerificationSend(BaseModel):
+# Bounded at the same ceiling as the password itself: it is fed to the same
+# argon2 verify, so leaving it open would only move the CPU-burning field.
+CurrentPassword = Annotated[
+    str,
+    Field(min_length=1, max_length=constants.USER_MAX_PASSWORD_LENGTH),
+]
+VerificationCodeDigits = Annotated[
+    str,
+    Field(
+        min_length=constants.VERIFICATION_CODE_DIGITS,
+        max_length=constants.VERIFICATION_CODE_DIGITS,
+    ),
+]
+
+
+class EmailVerificationTarget(BaseModel):
     email: EmailStr = Field(..., max_length=constants.USER_MAX_EMAIL_LENGTH)
 
 
-class EmailVerificationConfirm(EmailVerificationSend):
-    code: str = Field(
-        ...,
-        min_length=constants.VERIFICATION_CODE_DIGITS,
-        max_length=constants.VERIFICATION_CODE_DIGITS,
-    )
+class EmailVerificationSend(EmailVerificationTarget):
+    # Only on the send step. Answering the code needs no password because no
+    # code exists to answer until one was sent with it.
+    password: CurrentPassword
 
 
-class PhoneVerificationSend(BaseModel):
+class EmailVerificationConfirm(EmailVerificationTarget):
+    code: VerificationCodeDigits
+
+
+class PhoneVerificationTarget(BaseModel):
     # Validated and normalized to E.164 by ``normalize_phone``; kept a plain
     # string here so the user sees one domain-specific error message instead
     # of a pydantic pattern dump.
     phone: str = Field(..., max_length=constants.USER_MAX_PHONE_INPUT_LENGTH)
 
 
-class PhoneVerificationConfirm(PhoneVerificationSend):
-    code: str = Field(
-        ...,
-        min_length=constants.VERIFICATION_CODE_DIGITS,
-        max_length=constants.VERIFICATION_CODE_DIGITS,
-    )
+class PhoneVerificationSend(PhoneVerificationTarget):
+    password: CurrentPassword
+
+
+class PhoneVerificationConfirm(PhoneVerificationTarget):
+    code: VerificationCodeDigits
 
 
 class VerificationCodeSent(BaseModel):
