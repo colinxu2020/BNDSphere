@@ -8,11 +8,13 @@ from app.api.common_responses import (
     TOKEN_INVALID_RESPONSE,
 )
 from app.api.dependencies import (
+    ClubServiceDep,
     UserServiceDep,
     UserUpdateRequestServiceDep,
     get_current_user,
 )
 from app.models.user import User
+from app.schemas.club import UserClubMembership
 from app.schemas.moderations.user_update_request import (
     UserUpdateRequestCreate,
     UserUpdateRequestInfo,
@@ -32,6 +34,21 @@ async def get_current_user_info(
 ) -> UserInfo:
     """Get public profile of current user."""
     return UserInfo.model_validate(current_user)
+
+
+@router.get(
+    "/me/clubs/",
+    responses=TOKEN_INVALID_RESPONSE,
+)
+async def list_current_user_clubs(
+    service: ClubServiceDep,
+    current_user: Annotated[User, Depends(get_current_user)],
+) -> list[UserClubMembership]:
+    """List the current user's clubs with their role in each (Summary tier).
+
+    Includes pending / member / president / vice_president; excludes left.
+    """
+    return await service.get_user_clubs(current_user)
 
 
 @router.get(
