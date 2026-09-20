@@ -157,3 +157,22 @@ CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
         },
     },
 }
+
+
+# Every route that re-checks the account password answers 401 with this, in
+# addition to the 401 an absent or expired session already produces.
+PASSWORD_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    401: {
+        "model": ErrorResponseModel,
+        "description": "Session missing or password incorrect",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.incorrect_user_passwd",
+                    "error_code": "INCORRECT_USER_PASSWD",
+                    "details": {},
+                },
+            },
+        },
+    },
+}

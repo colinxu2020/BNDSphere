@@ -319,7 +319,7 @@ class TestPurposeBinding:
         headers = self.configured_users["crosser"]["headers"]
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "crosser@example.com"},
+            json={"email": "crosser@example.com", "password": OLD_PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 202

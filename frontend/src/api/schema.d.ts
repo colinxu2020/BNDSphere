@@ -1613,6 +1613,9 @@ export interface paths {
      * Send Email Code
      * @description Send a verification code to an email address for the current account.
      *
+     *     The account password is required: this address becomes where password
+     *     resets are delivered, so a live session alone must not be able to move it.
+     *
      *     202, not 200: the provider accepting the message is not delivery, and the
      *     response says nothing about whether it arrived.
      */
@@ -1655,6 +1658,9 @@ export interface paths {
     /**
      * Send Phone Code
      * @description Send a verification code by SMS for the current account.
+     *
+     *     Password-gated for the same reason as the email route, and more so: a
+     *     number is both the reset channel and the SMS second factor.
      */
     post: operations["send_phone_code_api_v1_verification_phone_send_post"];
     delete?: never;
@@ -2398,6 +2404,8 @@ export interface components {
        * Format: email
        */
       email: string;
+      /** Password */
+      password: string;
     };
     /** ErrorResponseModel */
     ErrorResponseModel: {
@@ -3000,6 +3008,8 @@ export interface components {
     PhoneVerificationSend: {
       /** Phone */
       phone: string;
+      /** Password */
+      password: string;
     };
     /** PublicUserInfo */
     PublicUserInfo: {
@@ -9707,7 +9717,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
-      /** @description Unauthorized or Token invalid */
+      /** @description Session missing or password incorrect */
       401: {
         headers: {
           [name: string]: unknown;
@@ -9715,8 +9725,9 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message_key": "error.auth.token_invalid",
-           *       "error_code": "AUTH_TOKEN_INVALID"
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];
@@ -9896,7 +9907,7 @@ export interface operations {
           "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
-      /** @description Unauthorized or Token invalid */
+      /** @description Session missing or password incorrect */
       401: {
         headers: {
           [name: string]: unknown;
@@ -9904,8 +9915,9 @@ export interface operations {
         content: {
           /**
            * @example {
-           *       "message_key": "error.auth.token_invalid",
-           *       "error_code": "AUTH_TOKEN_INVALID"
+           *       "message_key": "error.auth.incorrect_user_passwd",
+           *       "error_code": "INCORRECT_USER_PASSWD",
+           *       "details": {}
            *     }
            */
           "application/json": components["schemas"]["ErrorResponseModel"];

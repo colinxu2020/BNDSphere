@@ -21,7 +21,10 @@ from app.core import constants
 from app.main import app
 from app.models import User, VerificationCode
 from app.models.verification_code import VerificationPurposeEnum
+from app.repositories.login_attempt import LoginAttemptRepository
+from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
+from app.services.auth import AuthService
 from app.services.contact_verification import (
     ContactVerificationService,
     normalize_phone,
@@ -29,6 +32,10 @@ from app.services.contact_verification import (
 from app.services.errors import VerificationTargetInvalidError
 from app.services.sms_sender import build_authorization, canonical_request
 from tests.test_auth import ConfiguredUser
+
+# Every binding send re-checks this, so the seeded accounts need a password
+# the tests can type back.
+PASSWORD = "contact-binder-pw"  # noqa: S105 -- a fixture credential
 
 
 class RecordingSender:
@@ -63,6 +70,10 @@ async def sender(db_session: AsyncSession) -> AsyncGenerator[RecordingSender]:
     def _override() -> ContactVerificationService:
         return ContactVerificationService(
             VerificationCodeRepository(db_session),
+            AuthService(
+                UserRepository(db_session),
+                LoginAttemptRepository(db_session),
+            ),
             email_sender=recorder,  # type: ignore[arg-type]
             sms_sender=recorder,  # type: ignore[arg-type]
         )
@@ -98,8 +109,8 @@ class TestEmailVerification:
     configured_users: ClassVar[dict[str, ConfiguredUser]]
 
     USER_SPECS: ClassVar[list[dict[str, str]]] = [
-        {"username": "email_binder"},
-        {"username": "email_rival", "email": "taken@example.com"},
+        {"username": "email_binder", "password": PASSWORD},
+        {"username": "email_rival", "email": "taken@example.com", "password": PASSWORD},
     ]
 
     async def test_send_then_confirm_binds_the_address(
@@ -112,7 +123,7 @@ class TestEmailVerification:
         headers = self.configured_users["email_binder"]["headers"]
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "Student@Example.com"},
+            json={"email": "Student@Example.com", "password": PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 202
@@ -170,7 +181,7 @@ class TestEmailVerification:
         before = len(sender.sent)
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "student@example.com"},
+            json={"email": "student@example.com", "password": PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 429
@@ -190,7 +201,7 @@ class TestEmailVerification:
         before = len(sender.sent)
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "taken@example.com"},
+            json={"email": "taken@example.com", "password": PASSWORD},
             headers=self.configured_users["email_binder"]["headers"],
         )
         assert resp.status_code == 409
@@ -207,7 +218,7 @@ class TestEmailVerification:
     ) -> None:
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "nobody@example.com"},
+            json={"email": "nobody@example.com", "password": PASSWORD},
         )
         assert resp.status_code == 401
 
@@ -215,7 +226,9 @@ class TestEmailVerification:
 class TestWrongCodes:
     configured_users: ClassVar[dict[str, ConfiguredUser]]
 
-    USER_SPECS: ClassVar[list[dict[str, str]]] = [{"username": "code_guesser"}]
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {"username": "code_guesser", "password": PASSWORD}
+    ]
 
     async def test_attempts_are_capped_and_burn_the_code(
         self,
@@ -227,7 +240,7 @@ class TestWrongCodes:
         headers = self.configured_users["code_guesser"]["headers"]
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "guesser@example.com"},
+            json={"email": "guesser@example.com", "password": PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 202
@@ -264,7 +277,7 @@ class TestWrongCodes:
 
         resp = await client.post(
             "/verification/email/send",
-            json={"email": "guesser@example.com"},
+            json={"email": "guesser@example.com", "password": PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 202
@@ -294,7 +307,9 @@ class TestWrongCodes:
 class TestPhoneVerification:
     configured_users: ClassVar[dict[str, ConfiguredUser]]
 
-    USER_SPECS: ClassVar[list[dict[str, str]]] = [{"username": "phone_binder"}]
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {"username": "phone_binder", "password": PASSWORD}
+    ]
 
     async def test_number_is_normalized_before_it_is_stored(
         self,
@@ -305,7 +320,7 @@ class TestPhoneVerification:
         headers = self.configured_users["phone_binder"]["headers"]
         resp = await client.post(
             "/verification/phone/send",
-            json={"phone": "+86 138 0013 8000"},
+            json={"phone": "+86 138 0013 8000", "password": PASSWORD},
             headers=headers,
         )
         assert resp.status_code == 202
@@ -336,12 +351,38 @@ class TestPhoneVerification:
         before = len(sender.sent)
         resp = await client.post(
             "/verification/phone/send",
-            json={"phone": "+1 202 555 0143"},
+            json={"phone": "+1 202 555 0143", "password": PASSWORD},
             headers=self.configured_users["phone_binder"]["headers"],
         )
         assert resp.status_code == 400
         assert resp.json()["error_code"] == "VERIFICATION_TARGET_INVALID"
         assert len(sender.sent) == before
+
+    async def test_a_stolen_session_cannot_repoint_the_number(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,
+        setup_class_users: None,
+    ) -> None:
+        # The whole reason the send step asks for a password: a bound number
+        # is where password resets are delivered, so a session someone walked
+        # away from must not be enough to move it to an attacker's handset.
+        await _clear_cooldown(db_session, "phone_binder")
+        before = len(sender.sent)
+        resp = await client.post(
+            "/verification/phone/send",
+            json={"phone": "13900139000", "password": "not-the-password"},
+            headers=self.configured_users["phone_binder"]["headers"],
+        )
+        assert resp.status_code == 401
+        assert resp.json()["error_code"] == "INCORRECT_USER_PASSWD"
+        assert len(sender.sent) == before
+
+        bound = await db_session.scalar(
+            select(User.phone).where(User.username == "phone_binder"),
+        )
+        assert bound == "+8613800138000"
 
 
 class TestPhoneNormalization:
