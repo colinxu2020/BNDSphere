@@ -32,6 +32,8 @@ class UserUpdateRequestCreate(UpdateRequestCreateBase):
 class UserUpdateRequestInfo(IdMixin, BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
+    update_fields: list[str] = Field(default_factory=list)
+
     moderation_status: ModerationStatusEnum = Field(...)
     moderate_at: datetime | None = Field(None)
 
