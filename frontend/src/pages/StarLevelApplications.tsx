@@ -4,7 +4,7 @@ import { Award, Building2, CalendarDays, ExternalLink, FileText } from "@/src/co
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
+import { AUDIT_STATUS_MAP, CATEGORY_MAP, GRADE_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -16,20 +16,6 @@ import {
 
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
-type UserGrade = components["schemas"]["UserGradeEnum"];
-
-const GRADE_MAP: Record<UserGrade, string> = {
-  grade_7: "初一",
-  grade_8: "初二",
-  grade_9: "初三",
-  grade_10: "高一",
-  grade_11: "高二",
-  grade_12: "高三",
-  inter_grade_9: "国际初三",
-  inter_grade_10: "国际高一",
-  inter_grade_11: "国际高二",
-  inter_grade_12: "国际高三",
-};
 
 const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
   pending: "yellow",

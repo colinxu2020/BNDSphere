@@ -70,7 +70,7 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
                 + func.similarity(Club.description, search) * 0.3
             )
             stmt = (
-                select(Club, score_func)
+                select(Club)
                 .where(
                     or_(
                         Club.name.bool_op("%")(search),

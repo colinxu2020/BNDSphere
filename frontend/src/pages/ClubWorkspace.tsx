@@ -33,10 +33,10 @@ import {
   fromDateTimeLocalValue,
   nullableNumber,
   nullableText,
-  stringifyBackendValue,
   toDateTimeLocalValue,
   toNumberOrZero,
 } from "../lib/format";
+import { formatWorkspaceLoadErrors } from "../lib/workspaceErrors";
 import {
   Badge,
   DangerButton,
@@ -885,13 +885,13 @@ export function ClubWorkspace() {
         <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
       ) : (
         <>
-          {Object.keys(loadErrors).length > 0 && (
+          {formatWorkspaceLoadErrors(loadErrors).length > 0 && (
             <Surface>
-              <SectionTitle title="加载反馈" description="以下内容直接来自后端响应。" />
+              <SectionTitle title="加载反馈" description="部分内容暂时无法加载。" />
               <div className="grid gap-3">
-                {Object.entries(loadErrors).map(([key, value]) => (
-                  <div key={key}>
-                    <InlineError value={`${key}: ${stringifyBackendValue(value)}`} />
+                {formatWorkspaceLoadErrors(loadErrors).map((entry) => (
+                  <div key={entry.key}>
+                    <InlineError value={entry.text} />
                   </div>
                 ))}
               </div>
@@ -974,7 +974,7 @@ export function ClubWorkspace() {
                   <textarea
                     className={textareaClassName}
                     value={clubDescription}
-                    maxLength={400}
+                    maxLength={4000}
                     onChange={(event) => setClubDescription(event.target.value)}
                   />
                 </Field>

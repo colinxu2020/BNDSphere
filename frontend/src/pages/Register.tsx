@@ -22,7 +22,7 @@ export function Register() {
   const [isLoading, setIsLoading] = useState(false);
   const altchaRef = useRef<AltchaVerificationRef>(null);
 
-  const handleRegister = async (e: React.FormEvent) => {
+  const handleRegister = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 
