@@ -3100,6 +3100,8 @@ export interface components {
     };
     /** UserUpdateRequestInfo */
     UserUpdateRequestInfo: {
+      /** Update Fields */
+      update_fields?: string[];
       /** Id */
       id: number;
       moderation_status: components["schemas"]["ModerationStatusEnum"];
