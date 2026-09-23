@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
+from app.core import constants
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
@@ -58,6 +59,7 @@ from app.services.errors import (
     ResourceForbiddenError,
     ResourceNotFoundError,
     UserNotFoundError,
+    VicePresidentLimitReachedError,
 )
 from app.services.moderation_payload import (
     build_update_payload,
@@ -286,6 +288,14 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                     "CANNOT_CHANGE_PRESIDENT_ROLE",
                     {"club_id": club_id},
                 ) from None
+
+            if (
+                desired_membership == ClubMembershipEnum.vice_president
+                and target.membership != ClubMembershipEnum.vice_president
+                and await self.member_repository.count_vice_presidents(club_id)
+                >= constants.CLUB_MAX_VICE_PRESIDENTS
+            ):
+                raise VicePresidentLimitReachedError(club_id)
 
             if desired_membership == ClubMembershipEnum.president:
                 await self.member_repository.set_membership(
