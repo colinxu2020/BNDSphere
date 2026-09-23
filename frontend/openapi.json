@@ -16,7 +16,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/UserInfo" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/CurrentUserInfo" } }
             }
           },
           "401": {
@@ -6144,6 +6144,89 @@
   },
   "components": {
     "schemas": {
+      "CurrentUserInfo": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "username": {
+            "type": "string",
+            "maxLength": 32,
+            "title": "Username"
+          },
+          "email": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 64,
+                "format": "email"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Email"
+          },
+          "avatar_uri": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 255,
+                "minLength": 1,
+                "format": "uri"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Avatar Uri"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 400,
+            "title": "Description"
+          },
+          "role": {
+            "$ref": "#/components/schemas/RoleEnum"
+          },
+          "grade": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/UserGradeEnum"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "type": "string",
+            "format": "date-time",
+            "title": "Created At"
+          },
+          "effective_roles": {
+            "items": {
+              "$ref": "#/components/schemas/RoleEnum"
+            },
+            "type": "array",
+            "title": "Effective Roles"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "username",
+          "email",
+          "avatar_uri",
+          "description",
+          "role",
+          "grade",
+          "created_at",
+          "effective_roles"
+        ],
+        "title": "CurrentUserInfo"
+      },
       "AcademicTermCreate": {
         "properties": {
           "term_name": {

@@ -17,8 +17,9 @@ from app.schemas.moderations.user_update_request import (
     UserUpdateRequestCreate,
     UserUpdateRequestInfo,
 )
-from app.schemas.user import PublicUserInfo, UserInfo
+from app.schemas.user import CurrentUserInfo, PublicUserInfo, UserInfo
 from app.services.errors import ResourceNotFoundError
+from app.services.policies import AccessPolicy
 
 router = APIRouter(tags=["Users"])
 
@@ -29,9 +30,12 @@ router = APIRouter(tags=["Users"])
 )
 async def get_current_user_info(
     current_user: Annotated[User, Depends(get_current_user)],
-) -> UserInfo:
+) -> CurrentUserInfo:
     """Get public profile of current user."""
-    return UserInfo.model_validate(current_user)
+    return CurrentUserInfo(
+        **UserInfo.model_validate(current_user).model_dump(),
+        effective_roles=AccessPolicy.effective_roles(current_user.role),
+    )
 
 
 @router.get(

@@ -1515,6 +1515,28 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** CurrentUserInfo */
+    CurrentUserInfo: {
+      /** Id */
+      id: number;
+      /** Username */
+      username: string;
+      /** Email */
+      email: string | null;
+      /** Avatar Uri */
+      avatar_uri: string | null;
+      /** Description */
+      description: string;
+      role: components["schemas"]["RoleEnum"];
+      grade: components["schemas"]["UserGradeEnum"] | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      /** Effective Roles */
+      effective_roles: components["schemas"]["RoleEnum"][];
+    };
     /** AcademicTermCreate */
     AcademicTermCreate: {
       /** Term Name */
@@ -3162,7 +3184,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UserInfo"];
+          "application/json": components["schemas"]["CurrentUserInfo"];
         };
       };
       /** @description Unauthorized or Token invalid */
