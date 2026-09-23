@@ -1,5 +1,7 @@
 # BNDSphere
 
+角色继承与社团权限规则见[角色权限](access-control.md)。
+
 ## 功能
 
 ### User
