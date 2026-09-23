@@ -17,7 +17,7 @@ import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/clie
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
 
-type UserInfo = components["schemas"]["UserInfo"];
+type UserInfo = components["schemas"]["CurrentUserInfo"];
 
 const navLinks = [
   { name: "发现社团", path: "/explore", icon: Compass },
@@ -97,10 +97,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
     };
   }, [isUserMenuOpen]);
 
-  const canOpenAdmin = user?.role === "admin" || user?.role === "dev";
-  const canOpenFederation = user?.role === "federation_staff" || canOpenAdmin;
-  const canOpenModeration =
-    user?.role === "moderator" || user?.role === "federation_staff" || canOpenAdmin;
+  const canOpenAdmin = user?.effective_roles?.includes("admin") ?? false;
+  const canOpenFederation = user?.effective_roles?.includes("federation_staff") ?? false;
+  const canOpenModeration = user?.effective_roles?.includes("moderator") ?? false;
 
   const handleLogout = () => {
     clearAuthToken();

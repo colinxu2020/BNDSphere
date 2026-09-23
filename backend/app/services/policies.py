@@ -29,6 +29,26 @@ ROLE_CAPABILITIES = {
 
 class AccessPolicy:
     @staticmethod
+    def effective_roles(role: RoleEnum) -> list[RoleEnum]:
+        """Active role requirements this role can satisfy for UI visibility.
+
+        The banned state is not a navigable capability. Authorization still
+        goes through ensure_role_allowed, including its ban-first rejection.
+        """
+        if role == RoleEnum.ban:
+            return []
+        capabilities = ROLE_CAPABILITIES[role]
+        return [
+            required
+            for required in RoleEnum
+            if required != RoleEnum.ban
+            and (
+                capabilities.bypass_role_checks
+                or required in capabilities.allowed_roles
+            )
+        ]
+
+    @staticmethod
     def ensure_user_active(user: User) -> None:
         if user.role == RoleEnum.ban:
             raise ResourceForbiddenError(

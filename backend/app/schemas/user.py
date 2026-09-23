@@ -1,7 +1,14 @@
 from datetime import datetime
 from typing import Literal, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    HttpUrl,
+    model_validator,
+)
 
 from app.core import constants
 from app.models.user import RoleEnum, UserGradeEnum
@@ -37,6 +44,10 @@ class UserInfo(UserBase, IdMixin):
     role: RoleEnum
     grade: UserGradeEnum | None
     created_at: datetime
+
+
+class CurrentUserInfo(UserInfo):
+    effective_roles: list[RoleEnum]
 
 
 class PublicUserInfo(UserBase, IdMixin):
