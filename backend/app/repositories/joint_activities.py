@@ -15,6 +15,7 @@ from app.schemas.joint_activities import (
     JointActivityUpdate,
 )
 from app.schemas.verifications.joint_activity import JointActivityFinalVerification
+from app.utils.like import escape_like
 
 
 class JointActivityRepository(
@@ -38,7 +39,8 @@ class JointActivityRepository(
                 self.model.preliminary_status == ModerationStatusEnum.approved,
             )
         if search:
-            stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
+            pattern = f"%{escape_like(search)}%"
+            stmt = stmt.where(self.model.name.ilike(pattern, escape="\\"))
         if club_id is not None:
             stmt = stmt.join(
                 JointActivityParticipation,

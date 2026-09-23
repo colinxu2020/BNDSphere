@@ -21,6 +21,7 @@ from app.schemas.general_activities import (
     GeneralActivityCreate,
     GeneralActivityUpdate,
 )
+from app.utils.like import escape_like
 
 # 公开回显只加载「已审核通过 + 社团状态正常」的活动参与记录:
 # pending/rejected 记录的 proof_files 等内容未经社联审核, 匿名访客不应看到.
@@ -64,7 +65,8 @@ class GeneralActivityRepository(
         if level is not None:
             stmt = stmt.where(self.model.level == level)
         if search is not None:
-            stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
+            pattern = f"%{escape_like(search)}%"
+            stmt = stmt.where(self.model.name.ilike(pattern, escape="\\"))
         if starts_before is not None:
             stmt = stmt.where(self.model.starts_at <= starts_before)
         if ends_after is not None:
