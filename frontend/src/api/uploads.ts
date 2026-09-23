@@ -1,5 +1,6 @@
 import { client } from "./client";
 import type { components } from "./schema";
+import { uploadContentType } from "../lib/uploadContentType";
 
 export type UploadScene = components["schemas"]["UploadScene"];
 
@@ -35,7 +36,7 @@ export async function uploadFileWithDetails(
         quality: options.quality || 0.86,
       })
     : file;
-  const contentType = uploadTarget.type || "application/octet-stream";
+  const contentType = uploadContentType(uploadTarget);
   const { data, error } = await client.POST("/api/v1/uploads/initiate", {
     body: {
       scene,
