@@ -18,6 +18,7 @@ export function stringifyBackendValue(value: unknown): string {
 }
 
 const ERROR_CODE_MESSAGES: Record<string, string> = {
+  VICE_PRESIDENT_LIMIT_REACHED: "每个社团最多任命两位副社长，请先调整现有副社长的身份。",
   ACADEMIC_TERM_NOT_FOUND: "没有找到这个学期",
   ANNOUNCEMENT_INVALID_TIME_RANGE: "公告结束时间不能早于开始时间",
   ANNOUNCEMENT_NOT_FOUND: "没有找到这条公告",
@@ -89,6 +90,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
 };
 
 const MESSAGE_KEY_TEXT: Record<string, string> = {
+  "error.club.vice_president_limit_reached":
+    "每个社团最多任命两位副社长，请先调整现有副社长的身份。",
   "error.academic_term.not_found": "没有找到这个学期",
   "error.announcement.invalid_time_range": "公告结束时间不能早于开始时间",
   "error.announcement.not_found": "没有找到这条公告",

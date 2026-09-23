@@ -111,6 +111,19 @@ class ClubMemberRepository(
 ):
     model = ClubMember
 
+    async def count_vice_presidents(self, club_id: int) -> int:
+        return (
+            await self.db.scalar(
+                select(func.count())
+                .select_from(ClubMember)
+                .where(
+                    ClubMember.club_id == club_id,
+                    ClubMember.membership == ClubMembershipEnum.vice_president,
+                ),
+            )
+            or 0
+        )
+
     async def get_by_club_user(self, club: Club, user: User) -> ClubMember | None:
         return await self.get_by_club_user_id(club.id, user.id)
 
