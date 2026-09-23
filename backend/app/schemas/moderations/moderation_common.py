@@ -39,6 +39,7 @@ class RequestInfoBase(IdMixin, BaseModel):
     moderate_at: datetime | None = Field(None)
 
     requestor_id: int = Field(...)
+    requestor_username: str | None = Field(None)
     request_at: datetime = Field(...)
 
 
