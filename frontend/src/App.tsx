@@ -32,6 +32,13 @@ const router = createBrowserRouter([
           import("./pages/ClubDetail").then(({ ClubDetail }) => ({ Component: ClubDetail })),
       },
       {
+        path: "club/:id/activity/:activityId",
+        lazy: () =>
+          import("./pages/ClubActivityDetail").then(({ ClubActivityDetail }) => ({
+            Component: ClubActivityDetail,
+          })),
+      },
+      {
         path: "club/:id/manage",
         lazy: () =>
           import("./pages/ClubWorkspace").then(({ ClubWorkspace }) => ({

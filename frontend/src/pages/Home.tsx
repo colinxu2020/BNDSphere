@@ -406,7 +406,7 @@ function MyClubActivityList({
       {items.map((item) => (
         <Link
           key={`${item.club.id}-${item.activity.id}`}
-          to={`/club/${item.club.id}`}
+          to={`/club/${item.club.id}/activity/${item.activity.id}`}
           className="block rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
         >
           <div className="flex items-center justify-between gap-3">
