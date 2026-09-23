@@ -1,15 +1,15 @@
 from datetime import datetime
 
 from pydantic import HttpUrl
-from sqlalchemy import JSON, DateTime, ForeignKey, Index, Text, func
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+from sqlalchemy import JSON, DateTime, ForeignKey, Index, Text, func, select
+from sqlalchemy.orm import Mapped, column_property, declared_attr, mapped_column
 
 from app.core.database import Base
 from app.models.moderations.moderation_common import (
     ModerationMixin,
     ModerationStatusEnum,
 )
-from app.models.user import UserGradeEnum
+from app.models.user import User, UserGradeEnum
 from app.utils.custom_types import HttpUrlType
 
 
@@ -18,6 +18,13 @@ class UserUpdateRequest(Base, ModerationMixin):
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
+    )
+
+    requestor_username: Mapped[str | None] = column_property(
+        select(User.username)
+        .where(User.id == user_id)
+        .correlate_except(User)
+        .scalar_subquery(),
     )
 
     username: Mapped[str | None] = mapped_column(Text, default=None)
