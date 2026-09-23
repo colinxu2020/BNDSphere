@@ -16,6 +16,13 @@
 
 公开可访问，只返回 `status=normal` 的社团；不装载成员、活动、记录等任何关系集合
 
+#### GET /clubs/{club_id}/activities/refs/
+
+返回 `list[ClubActivityRef]`，每项仅含 `id`、`name`，不分页。
+按活动开始时间倒序、ID 倒序排列；不存在的社团返回 `CLUB_NOT_FOUND`。
+可见性与现有 `GET /clubs/{club_id}/activities/` 一致：匿名可访问，
+不按社团状态过滤。查询仅获取引用字段，不装载活动详情或关联集合。
+
 #### GET /clubs/{club_id}/
 
 | 参数    | 类型 | 描述                |
