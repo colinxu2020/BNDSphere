@@ -14,6 +14,8 @@ from app.models.resource_file import ResourceFile
 from app.models.star_level import StarLevelApplication
 from app.models.tag import Tag
 from app.models.user import User
+from app.models.user_session import UserSession
+from app.models.verification_code import VerificationCode
 
 __all__ = [
     "AcademicTerm",
@@ -31,6 +33,8 @@ __all__ = [
     "StarLevelApplication",
     "Tag",
     "User",
+    "UserSession",
+    "VerificationCode",
     "moderations",
     "verifications",
 ]

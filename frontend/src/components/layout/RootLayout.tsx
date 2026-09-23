@@ -13,7 +13,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { ThemeToggle } from "../ui/ThemeToggle";
-import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
+import { AUTH_STATE_CHANGED_EVENT, client, isAuthenticated, logout } from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
 
@@ -31,14 +31,14 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [isLoggedIn, setIsLoggedIn] = useState(() => Boolean(localStorage.getItem("bnd_token")));
+  const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("bnd_token");
-    setIsLoggedIn(Boolean(token));
-    if (!token) {
+    const authed = isAuthenticated();
+    setIsLoggedIn(authed);
+    if (!authed) {
       setUser(null);
       return;
     }
@@ -61,9 +61,9 @@ export function RootLayout({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const syncAuthState = () => {
-      const hasToken = Boolean(localStorage.getItem("bnd_token"));
-      setIsLoggedIn(hasToken);
-      if (!hasToken) setUser(null);
+      const authed = isAuthenticated();
+      setIsLoggedIn(authed);
+      if (!authed) setUser(null);
     };
     window.addEventListener("storage", syncAuthState);
     window.addEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
@@ -102,8 +102,8 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const canOpenModeration =
     user?.role === "moderator" || user?.role === "federation_staff" || canOpenAdmin;
 
-  const handleLogout = () => {
-    clearAuthToken();
+  const handleLogout = async () => {
+    await logout();
     setIsLoggedIn(false);
     setUser(null);
     navigate("/login");

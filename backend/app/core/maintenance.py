@@ -5,9 +5,14 @@ import logging
 from datetime import UTC, datetime, timedelta
 from typing import Final
 
-from app.core.constants import LOGIN_ATTEMPT_RETENTION_DAYS
+from app.core.constants import (
+    LOGIN_ATTEMPT_RETENTION_DAYS,
+    VERIFICATION_CODE_RETENTION_DAYS,
+)
 from app.core.database import SessionLocal
 from app.repositories.login_attempt import LoginAttemptRepository
+from app.repositories.user_session import UserSessionRepository
+from app.repositories.verification_code import VerificationCodeRepository
 
 logger = logging.getLogger(__name__)
 
@@ -22,13 +27,49 @@ async def prune_login_attempts() -> None:
         await session.commit()
 
 
+async def prune_expired_sessions() -> None:
+    """Delete sessions that are already past their expiry.
+
+    Housekeeping only. ``UserSessionRepository.get_active_by_token_hash``
+    filters on expiry itself, so an unswept row cannot authenticate in the
+    meantime; this just stops the table growing without bound.
+    """
+    async with SessionLocal() as session:
+        await UserSessionRepository(session).prune_expired(datetime.now(UTC))
+        await session.commit()
+
+
+async def prune_verification_codes() -> None:
+    """Delete verification codes past the retention window.
+
+    Consumed codes are kept until now because the send budgets count them;
+    once a row is older than any budget window it has no reader left.
+    """
+    cutoff = datetime.now(UTC) - timedelta(days=VERIFICATION_CODE_RETENTION_DAYS)
+    async with SessionLocal() as session:
+        await VerificationCodeRepository(session).prune_before(cutoff)
+        await session.commit()
+
+
+async def run_retention_sweep() -> None:
+    """Run every retention job. Each is independent, so one failure is logged
+    and the rest still run.
+    """
+    for job in (
+        prune_login_attempts,
+        prune_expired_sessions,
+        prune_verification_codes,
+    ):
+        try:
+            await job()
+        except Exception:
+            logger.exception("Retention job %s failed", job.__name__)
+
+
 async def _prune_loop() -> None:
     while True:
         await asyncio.sleep(_PRUNE_INTERVAL_SECONDS)
-        try:
-            await prune_login_attempts()
-        except Exception:
-            logger.exception("Pruning login attempts failed")
+        await run_retention_sweep()
 
 
 def start_prune_task() -> asyncio.Task[None]:

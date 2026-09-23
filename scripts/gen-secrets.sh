@@ -56,6 +56,30 @@ for name in "${!SECRETS[@]}"; do
   echo "[gen-secrets] wrote ${file}"
 done
 
+# Credentials this script cannot invent: an SMTP password and Tencent Cloud API
+# keys come from the provider, so a random value would be worse than none. They
+# are created empty purely so the compose `secrets:` bind mounts resolve — an
+# empty value leaves the channel unconfigured, which the backend reports as
+# unavailable rather than silently swallowing messages.
+#
+# --force deliberately does NOT touch these: regenerating them would mean
+# overwriting a real credential the operator pasted in.
+PLACEHOLDER_SECRETS=(
+  smtp_password
+  tencent_sms_secret_id
+  tencent_sms_secret_key
+)
+
+for name in "${PLACEHOLDER_SECRETS[@]}"; do
+  file="${SECRETS_DIR}/${name}.txt"
+  if [[ -f "${file}" ]]; then
+    continue
+  fi
+  # shellcheck disable=SC2312
+  (umask 077 && : > "${file}")
+  echo "[gen-secrets] wrote empty ${file} — paste the real value to enable it"
+done
+
 # Enforce 600 on pre-existing files we skipped above. Best-effort: a file already
 # chowned to uid 1000 by an earlier run cannot be chmod'ed by a non-root invoker,
 # but such a file was written 600 by this script in the first place.

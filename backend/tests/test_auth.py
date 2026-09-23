@@ -187,8 +187,10 @@ class TestLogin:
         assert resp.status_code == 200
         body = resp.json()
         assert body["token_type"] == "bearer"  # noqa: S105
-        # JWT is three dot-separated segments: header.payload.signature.
-        assert body["access_token"].count(".") == 2
+        # An opaque session token, not a signed one: it carries no structure
+        # and no claims, and only the server can say what it refers to.
+        assert body["access_token"]
+        assert "." not in body["access_token"]
 
     async def test_login_wrong_password(
         self,
@@ -226,7 +228,7 @@ class TestLogin:
 
 
 class TestTokenValidation:
-    """Token chain: verify_access_token → get_current_user → user lookup."""
+    """Token chain: session lookup → get_current_user → user lookup."""
 
     # Populated by the ``setup_class_users`` fixture at class setup time.
     configured_users: ClassVar[dict[str, ConfiguredUser]]

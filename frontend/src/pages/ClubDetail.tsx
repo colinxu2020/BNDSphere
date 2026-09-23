@@ -14,7 +14,7 @@ import { QRCodeSVG } from "qrcode.react";
 import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { client } from "../api/client";
+import { client, isAuthenticated } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
@@ -63,8 +63,7 @@ export function ClubDetail() {
         const { data, error } = await client.GET("/api/v1/clubs/{club_id}", {
           params: { path: { club_id: Number(id) } },
         });
-        const token = localStorage.getItem("bnd_token");
-        if (token) {
+        if (isAuthenticated()) {
           const userResult = await client.GET("/api/v1/users/me");
           setUser(userResult.error ? null : userResult.data || null);
         } else {
