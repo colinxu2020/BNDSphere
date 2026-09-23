@@ -3,6 +3,11 @@ import type { paths } from "./schema";
 
 export const AUTH_STATE_CHANGED_EVENT = "bnd-auth-state-changed";
 
+export function setAuthToken(token: string) {
+  localStorage.setItem("bnd_token", token);
+  window.dispatchEvent(new Event(AUTH_STATE_CHANGED_EVENT));
+}
+
 export function clearAuthToken() {
   if (!localStorage.getItem("bnd_token")) return;
 

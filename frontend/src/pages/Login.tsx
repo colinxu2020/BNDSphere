@@ -2,7 +2,7 @@ import React, { useRef, useState } from "react";
 import { motion } from "motion/react";
 import { LogIn } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
-import { client } from "../api/client";
+import { client, setAuthToken } from "../api/client";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import {
   AltchaVerification,
@@ -58,7 +58,7 @@ export function Login() {
       }
 
       if (data?.access_token) {
-        localStorage.setItem("bnd_token", data.access_token);
+        setAuthToken(data.access_token);
         navigate("/profile");
       } else {
         throw new Error("未获取到授权令牌。");

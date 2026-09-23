@@ -16,6 +16,7 @@ import { ThemeToggle } from "../ui/ThemeToggle";
 import { AUTH_STATE_CHANGED_EVENT, clearAuthToken, client } from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
+import { watchAuthProfile } from "../../lib/authProfile";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -36,41 +37,19 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("bnd_token");
-    setIsLoggedIn(Boolean(token));
-    if (!token) {
-      setUser(null);
-      return;
-    }
-
-    let cancelled = false;
-    const fetchUser = async () => {
-      const { data, error } = await client.GET("/api/v1/users/me");
-      if (cancelled) return;
-      if (error || !data) {
-        setUser(null);
-        return;
-      }
-      setUser(data);
-    };
-    fetchUser();
-    return () => {
-      cancelled = true;
-    };
-  }, [location.pathname]);
-
-  useEffect(() => {
-    const syncAuthState = () => {
-      const hasToken = Boolean(localStorage.getItem("bnd_token"));
-      setIsLoggedIn(hasToken);
-      if (!hasToken) setUser(null);
-    };
-    window.addEventListener("storage", syncAuthState);
-    window.addEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
-    return () => {
-      window.removeEventListener("storage", syncAuthState);
-      window.removeEventListener(AUTH_STATE_CHANGED_EVENT, syncAuthState);
-    };
+    return watchAuthProfile({
+      events: window,
+      authEvent: AUTH_STATE_CHANGED_EVENT,
+      readToken: () => localStorage.getItem("bnd_token"),
+      fetchUser: async () => {
+        const { data, error } = await client.GET("/api/v1/users/me");
+        return error ? null : (data ?? null);
+      },
+      update: (loggedIn, profile) => {
+        setIsLoggedIn(loggedIn);
+        setUser(profile);
+      },
+    });
   }, []);
 
   useEffect(() => {
