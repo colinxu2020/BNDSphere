@@ -6,6 +6,53 @@
     "version": "0.1.0"
   },
   "paths": {
+    "/api/v1/clubs/{club_id}/activities/refs/": {
+      "get": {
+        "tags": [
+          "Club Activities"
+        ],
+        "summary": "Get Club Activity Refs",
+        "description": "List activity identities with the same visibility as the full list.",
+        "operationId": "get_club_activity_refs_api_v1_clubs__club_id__activities_refs__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Club Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClubActivityRef"
+                  },
+                  "title": "Response Get Club Activity Refs Api V1 Clubs  Club Id  Activities Refs  Get"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/users/me": {
       "get": {
         "tags": ["Users"],
@@ -6464,6 +6511,25 @@
   },
   "components": {
     "schemas": {
+      "ClubActivityRef": {
+        "properties": {
+          "id": {
+            "type": "integer",
+            "title": "Id"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name"
+        ],
+        "title": "ClubActivityRef",
+        "description": "Minimal activity identity for references and selectors."
+      },
       "AcademicTermCreate": {
         "properties": {
           "term_name": {

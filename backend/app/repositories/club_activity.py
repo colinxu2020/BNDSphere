@@ -12,7 +12,11 @@ from app.models.moderations.club_activity import (
 )
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.repositories.base import RepositoryBase
-from app.schemas.club_activity import ClubActivityCreate, ClubActivityUpdate
+from app.schemas.club_activity import (
+    ClubActivityCreate,
+    ClubActivityRef,
+    ClubActivityUpdate,
+)
 from app.schemas.moderations.club_activity import (
     ClubActivityCreateRequestCreate,
     ClubActivityUpdateRequestCreate,
@@ -24,6 +28,14 @@ class ClubActivityRepository(
     RepositoryBase[ClubActivity, ClubActivityCreate, ClubActivityUpdate],
 ):
     model = ClubActivity
+
+    async def get_refs(self, club_id: int) -> list[ClubActivityRef]:
+        rows = await self.db.execute(
+            select(ClubActivity.id, ClubActivity.name)
+            .where(ClubActivity.club_id == club_id)
+            .order_by(ClubActivity.start_time.desc(), ClubActivity.id.desc()),
+        )
+        return [ClubActivityRef.model_validate(row) for row in rows]
 
     async def get_club_activities(
         self,

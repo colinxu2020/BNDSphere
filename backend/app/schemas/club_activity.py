@@ -30,6 +30,14 @@ class ClubActivityBase(BaseModel):
         return self
 
 
+class ClubActivityRef(IdMixin, BaseModel):
+    """Minimal activity identity for references and selectors."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    name: str
+
+
 class ClubActivityInfo(ClubActivityBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
