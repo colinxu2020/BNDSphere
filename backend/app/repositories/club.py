@@ -55,6 +55,11 @@ def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     model = Club
 
+    async def exists(self, club_id: int) -> bool:
+        return (
+            await self.db.scalar(select(Club.id).where(Club.id == club_id)) is not None
+        )
+
     async def get_public(self, id_: int) -> Club | None:
         """公开详情读取: general_activity_records 只加载已审核通过的记录."""
         stmt = (
