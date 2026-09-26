@@ -8748,6 +8748,11 @@
       },
       "UserUpdateRequestInfo": {
         "properties": {
+          "update_fields": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Update Fields"
+          },
           "id": { "type": "integer", "title": "Id" },
           "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {

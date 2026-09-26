@@ -3,8 +3,9 @@ import { motion } from "motion/react";
 import { Check, Clock, FilePenLine, RefreshCw, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { MODERATION_STATUS_MAP } from "../lib/labels";
+import { GRADE_MAP, MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
+import { moderationDetails } from "../lib/moderationDetails";
 import {
   Badge,
   EmptyState,
@@ -39,17 +40,22 @@ function getTargetLabel(item: ModerationItem) {
 }
 
 function renderRequestDetails(item: ModerationItem) {
-  const rows: [string, unknown][] = [];
-  if ("username" in item) {
-    rows.push(["用户名", item.username]);
-    rows.push(["头像", item.avatar_uri]);
-    rows.push(["简介", item.description]);
+  // 用户请求和社团请求都有 description, 必须互斥分支: 否则用户简介会被渲染两次
+  // (既是"简介"又是"描述").
+  const rows: [string, string, unknown][] = [];
+  if ("user_id" in item) {
+    rows.push(["username", "用户名", item.username]);
+    rows.push(["avatar_uri", "头像", item.avatar_uri]);
+    rows.push(["description", "简介", item.description]);
+    // grade 可以出现在请求里并在通过时写入用户资料, 不展示等于让审核员盲审.
+    rows.push(["grade", "年级", item.grade ? GRADE_MAP[item.grade] : null]);
+  } else {
+    rows.push(["summary", "简介", item.summary]);
+    rows.push(["description", "描述", item.description]);
+    rows.push(["logo_uri", "Logo", item.logo_uri]);
   }
-  if ("summary" in item) rows.push(["简介", item.summary]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("logo_uri" in item) rows.push(["Logo", item.logo_uri]);
 
-  const visibleRows = rows.filter(([, value]) => value != null && value !== "");
+  const visibleRows = moderationDetails("user_id" in item ? item.update_fields : undefined, rows);
   if (!visibleRows.length) {
     return <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>;
   }
