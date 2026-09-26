@@ -22,7 +22,11 @@ from app.schemas.resource_files import (
     ResourceFileInfo,
 )
 from app.schemas.upload import UploadScene
-from app.services.errors import DuplicateResourceError, ResourceNotFoundError
+from app.services.errors import (
+    DuplicateResourceError,
+    ResourceNotFoundError,
+    UploadObjectTooLargeError,
+)
 from app.services.upload_policy import UPLOAD_POLICIES, validate_confirmed_upload
 
 router = APIRouter(tags=["Resource Center"])
@@ -96,7 +100,17 @@ async def create_resource_file(
     """Register an uploaded file in the resource center."""
     policy = UPLOAD_POLICIES[UploadScene.RESOURCE_FILE]
     actual_size = await oss_service.stat_object(obj_in.object_key)
-    validate_confirmed_upload(policy, obj_in.object_key, actual_size)
+    try:
+        validate_confirmed_upload(policy, obj_in.object_key, actual_size)
+    except UploadObjectTooLargeError:
+        try:
+            await oss_service.delete_object(obj_in.object_key)
+        except Exception:
+            logger.exception(
+                "Failed to delete oversized uploaded object %s",
+                obj_in.object_key,
+            )
+        raise
     if await service.get_by_object_key(obj_in.object_key) is not None:
         raise DuplicateResourceError(
             "error.resource_file.already_registered",

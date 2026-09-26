@@ -1,3 +1,4 @@
+import logging
 from typing import Annotated, Final
 from uuid import uuid4
 
@@ -14,6 +15,7 @@ from app.schemas.upload import (
     UploadScene,
     oss_public_base_url,
 )
+from app.services.errors import UploadObjectTooLargeError
 from app.services.policies import AccessPolicy
 from app.services.upload_policy import (
     UPLOAD_POLICIES,
@@ -22,6 +24,7 @@ from app.services.upload_policy import (
 )
 
 router = APIRouter(tags=["Uploads"])
+logger = logging.getLogger(__name__)
 RESOURCE_UPLOAD_ROLES: Final[list[RoleEnum]] = [
     RoleEnum.federation_staff,
     RoleEnum.admin,
@@ -71,6 +74,16 @@ async def confirm_upload(
     ensure_scene_access(req.scene, user)
     policy = UPLOAD_POLICIES[req.scene]
     actual_size = await oss_service.stat_object(req.object_key)
-    validate_confirmed_upload(policy, req.object_key, actual_size)
+    try:
+        validate_confirmed_upload(policy, req.object_key, actual_size)
+    except UploadObjectTooLargeError:
+        try:
+            await oss_service.delete_object(req.object_key)
+        except Exception:
+            logger.exception(
+                "Failed to delete oversized uploaded object %s",
+                req.object_key,
+            )
+        raise
     url = f"{oss_public_base_url()}/{req.object_key}"
     return ConfirmUploadResponse(url=HttpUrl(url))
