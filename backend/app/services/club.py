@@ -138,6 +138,10 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             public_only=public_only,
         )
 
+    async def get_public_refs(self, search: str | None = None) -> Page[Club]:
+        """公开 Ref 档列表: 只列出 status=normal 的社团, 与公开的 get_multi 语义一致."""
+        return await self.repository.get_refs(search, status=ClubStatusEnum.normal)
+
     async def get_managed_by_user(self, user: User) -> Page[Club]:
         return await self.repository.get_managed_by_user(user.id)
 
