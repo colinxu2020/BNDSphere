@@ -23,6 +23,7 @@ from app.schemas.club import (
     ClubInfo,
     ClubMemberInfo,
     ClubMemberRoleUpdate,
+    ClubRef,
     ClubUpdate,
 )
 from app.schemas.moderations.club import (
@@ -55,6 +56,15 @@ async def list_managed_clubs(
 ) -> Page[ClubInfo]:
     """List active and unreviewed clubs managed by the current user."""
     return Page[ClubInfo].model_validate(await service.get_managed_by_user(user))
+
+
+@router.get("/refs/")
+async def list_club_refs(
+    service: ClubServiceDep,
+    search: str | None = None,
+) -> Page[ClubRef]:
+    """List id/name references of active clubs, for pickers and embeds."""
+    return Page[ClubRef].model_validate(await service.get_public_refs(search))
 
 
 @router.get(

@@ -4,9 +4,9 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import func, or_, select, update
+from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import load_only, raiseload, selectinload
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
@@ -32,6 +32,24 @@ _PUBLIC_RECORDS_OPTION = selectinload(
         ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
     ),
 )
+
+
+def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple[Club]]:
+    """Trigram 模糊搜索: 命中 name/summary/description 任一, 按加权相似度排序."""
+    if search is None or not search.strip():
+        return stmt.order_by(Club.id.desc())
+    score_func = (
+        func.similarity(Club.name, search) * 1.0
+        + func.similarity(Club.summary, search) * 0.5
+        + func.similarity(Club.description, search) * 0.3
+    )
+    return stmt.where(
+        or_(
+            Club.name.bool_op("%")(search),
+            Club.summary.bool_op("%")(search),
+            Club.description.bool_op("%")(search),
+        ),
+    ).order_by(score_func.desc())
 
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
@@ -62,32 +80,14 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         *,
         public_only: bool = False,
     ) -> Page[Club]:
-        stmt = select(Club)
-        if search is not None and search.strip():
-            score_func = (
-                func.similarity(Club.name, search) * 1.0
-                + func.similarity(Club.summary, search) * 0.5
-                + func.similarity(Club.description, search) * 0.3
-            )
-            stmt = (
-                select(Club)
-                .where(
-                    or_(
-                        Club.name.bool_op("%")(search),
-                        Club.summary.bool_op("%")(search),
-                        Club.description.bool_op("%")(search),
-                    ),
-                )
-                .order_by(score_func.desc())
-            )
-        elif public_only:
-            stmt = stmt.order_by(
+        if public_only and (search is None or not search.strip()):
+            stmt = select(Club).order_by(
                 (Club.description != "").desc(),
                 Club.star_level.desc(),
                 Club.id.asc(),
             )
         else:
-            stmt = stmt.order_by(self.model.id.desc())
+            stmt = _apply_search(select(Club), search)
 
         if public_only:
             stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
@@ -96,6 +96,20 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         if status is not None:
             stmt = stmt.where(Club.status == status)
 
+        return cast("Page[Club]", await apaginate(self.db, stmt))
+
+    async def get_refs(
+        self,
+        search: str | None = None,
+        status: ClubStatusEnum | None = None,
+    ) -> Page[Club]:
+        """Ref 档列表: 只取 id/name 两列, 不装载任何关系集合."""
+        stmt = _apply_search(select(Club), search).options(
+            load_only(Club.id, Club.name),
+            raiseload("*"),
+        )
+        if status is not None:
+            stmt = stmt.where(Club.status == status)
         return cast("Page[Club]", await apaginate(self.db, stmt))
 
     async def get_managed_by_user(self, user_id: int) -> Page[Club]:

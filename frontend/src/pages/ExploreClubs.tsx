@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
-import { StatusMessage } from "../components/ui/AppPrimitives";
+import { PageHeader, StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
@@ -65,12 +65,8 @@ export function ExploreClubs() {
       exit={{ opacity: 0, y: -10 }}
       className="flex flex-col h-full gap-8 pb-20"
     >
-      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4 mt-4">
-        <div>
-          <h1 className="text-4xl font-display font-bold text-slate-900 tracking-tight">
-            探索社团
-          </h1>
-        </div>
+      <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
+        <PageHeader eyebrow="Explore" title="探索社团" />
         <Link
           to="/clubs/new"
           className="inline-flex items-center justify-center gap-2 px-5 py-3 bg-primary-500 hover:bg-primary-600 text-white rounded-md font-semibold shadow-md shadow-primary-500/20 transition-all active:scale-[0.98]"

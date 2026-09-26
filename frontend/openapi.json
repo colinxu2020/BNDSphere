@@ -157,9 +157,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/AltchaChallenge" }
-              }
+              "application/json": { "schema": { "$ref": "#/components/schemas/AltchaChallenge" } }
             }
           },
           "422": {
@@ -177,13 +175,11 @@
       "post": {
         "tags": ["Auth"],
         "summary": "Register",
-        "description": "Register a new user after all legal consents are explicitly accepted.",
+        "description": "Register a new user after all legal consents are explicitly accepted.\n\nUsername must be unique.",
         "operationId": "register_api_v1_auth_register_post",
         "requestBody": {
           "content": {
-            "application/json": {
-              "schema": { "$ref": "#/components/schemas/UserRegistration" }
-            }
+            "application/json": { "schema": { "$ref": "#/components/schemas/UserRegistration" } }
           },
           "required": true
         },
@@ -326,6 +322,65 @@
                 },
                 "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
               }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/refs/": {
+      "get": {
+        "tags": ["Clubs"],
+        "summary": "List Club Refs",
+        "description": "List id/name references of active clubs, for pickers and embeds.",
+        "operationId": "list_club_refs_api_v1_clubs_refs__get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubRef_" } }
             }
           },
           "422": {
@@ -1866,9 +1921,7 @@
           "409": {
             "description": "Club with the same name already exists",
             "content": {
-              "application/json": {
-                "example": { "detail": "Club with name HCC already exists." }
-              }
+              "application/json": { "example": { "detail": "Club with name HCC already exists." } }
             }
           },
           "422": {
@@ -6134,6 +6187,273 @@
         }
       }
     },
+    "/api/v1/resources/": {
+      "get": {
+        "tags": ["Resource Center"],
+        "summary": "List Resource Files",
+        "description": "List files in the public resource center.",
+        "operationId": "list_resource_files_api_v1_resources__get",
+        "parameters": [
+          {
+            "name": "search",
+            "in": "query",
+            "required": false,
+            "schema": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Search" }
+          },
+          {
+            "name": "page",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "Page number",
+              "default": 1,
+              "title": "Page"
+            },
+            "description": "Page number"
+          },
+          {
+            "name": "size",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 100,
+              "minimum": 1,
+              "description": "Page size",
+              "default": 50,
+              "title": "Size"
+            },
+            "description": "Page size"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Page_ResourceFileInfo_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Resource Center"],
+        "summary": "Create Resource File",
+        "description": "Register an uploaded file in the resource center.",
+        "operationId": "create_resource_file_api_v1_resources__post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": { "schema": { "$ref": "#/components/schemas/ResourceFileCreate" } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ResourceFileInfo" } }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resources/retry-pending-deletions": {
+      "post": {
+        "tags": ["Resource Center"],
+        "summary": "Retry Pending Resource Deletions",
+        "description": "Retry object and database cleanup for all pending resource deletions.",
+        "operationId": "retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PendingDeletionRetryResult" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
+    "/api/v1/resources/{resource_id}/download": {
+      "get": {
+        "tags": ["Resource Center"],
+        "summary": "Download Resource File",
+        "description": "Redirect anyone to a short-lived download URL.",
+        "operationId": "download_resource_file_api_v1_resources__resource_id__download_get",
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Resource Id" }
+          }
+        ],
+        "responses": {
+          "307": { "description": "Successful Response" },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/resources/{resource_id}": {
+      "delete": {
+        "tags": ["Resource Center"],
+        "summary": "Delete Resource File",
+        "description": "Delete a resource-center file and its stored object.",
+        "operationId": "delete_resource_file_api_v1_resources__resource_id__delete",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "resource_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Resource Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": { "schema": { "$ref": "#/components/schemas/ResourceFileInfo" } }
+            }
+          },
+          "404": {
+            "description": "Resource Not Found",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.resource.not_found",
+                  "error_code": "RESOURCE_NOT_FOUND",
+                  "detail": { "resource": "requested_resource" }
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/health": {
       "get": {
         "summary": "Health Check",
@@ -6193,7 +6513,7 @@
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
-          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "description": { "type": "string", "maxLength": 4000, "title": "Description" },
           "logo_uri": {
             "anyOf": [
               { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
@@ -6214,7 +6534,7 @@
             "title": "Summary"
           },
           "description": {
-            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 4000 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
@@ -6259,6 +6579,68 @@
         },
         "type": "object",
         "title": "AdminUserUpdate"
+      },
+      "AltchaChallenge": {
+        "properties": {
+          "parameters": { "$ref": "#/components/schemas/AltchaChallengeParameters" },
+          "signature": { "type": "string", "title": "Signature" }
+        },
+        "type": "object",
+        "required": ["parameters", "signature"],
+        "title": "AltchaChallenge"
+      },
+      "AltchaChallengeParameters": {
+        "properties": {
+          "algorithm": { "type": "string", "title": "Algorithm" },
+          "nonce": { "type": "string", "title": "Nonce" },
+          "salt": { "type": "string", "title": "Salt" },
+          "cost": { "type": "integer", "title": "Cost" },
+          "keyLength": { "type": "integer", "title": "Keylength" },
+          "keyPrefix": { "type": "string", "title": "Keyprefix" },
+          "keySignature": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Keysignature"
+          },
+          "memoryCost": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Memorycost"
+          },
+          "parallelism": {
+            "anyOf": [{ "type": "integer" }, { "type": "null" }],
+            "title": "Parallelism"
+          },
+          "expiresAt": { "type": "integer", "title": "Expiresat" },
+          "data": {
+            "additionalProperties": { "$ref": "#/components/schemas/AltchaDataValue" },
+            "type": "object",
+            "title": "Data"
+          }
+        },
+        "type": "object",
+        "required": [
+          "algorithm",
+          "nonce",
+          "salt",
+          "cost",
+          "keyLength",
+          "keyPrefix",
+          "expiresAt",
+          "data"
+        ],
+        "title": "AltchaChallengeParameters"
+      },
+      "AltchaDataValue": {
+        "anyOf": [
+          { "type": "string" },
+          { "type": "integer" },
+          { "type": "boolean" },
+          { "type": "null" }
+        ]
+      },
+      "AltchaPurpose": {
+        "type": "string",
+        "enum": ["login", "register"],
+        "title": "AltchaPurpose"
       },
       "AnnouncementCreate": {
         "properties": {
@@ -6350,66 +6732,9 @@
         "enum": ["pending", "approved", "rejected"],
         "title": "AuditStatusEnum"
       },
-      "AltchaChallenge": {
-        "properties": {
-          "parameters": { "$ref": "#/components/schemas/AltchaChallengeParameters" },
-          "signature": { "type": "string", "title": "Signature" }
-        },
-        "type": "object",
-        "required": ["parameters", "signature"],
-        "title": "AltchaChallenge"
-      },
-      "AltchaChallengeParameters": {
-        "properties": {
-          "algorithm": { "type": "string", "title": "Algorithm" },
-          "nonce": { "type": "string", "title": "Nonce" },
-          "salt": { "type": "string", "title": "Salt" },
-          "cost": { "type": "integer", "title": "Cost" },
-          "keyLength": { "type": "integer", "title": "Keylength" },
-          "keyPrefix": { "type": "string", "title": "Keyprefix" },
-          "keySignature": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
-            "title": "Keysignature"
-          },
-          "memoryCost": {
-            "anyOf": [{ "type": "integer" }, { "type": "null" }],
-            "title": "Memorycost"
-          },
-          "parallelism": {
-            "anyOf": [{ "type": "integer" }, { "type": "null" }],
-            "title": "Parallelism"
-          },
-          "expiresAt": { "type": "integer", "title": "Expiresat" },
-          "data": {
-            "additionalProperties": {
-              "anyOf": [
-                { "type": "string" },
-                { "type": "integer" },
-                { "type": "boolean" },
-                { "type": "null" }
-              ]
-            },
-            "type": "object",
-            "title": "Data"
-          }
-        },
-        "type": "object",
-        "required": ["algorithm", "nonce", "salt", "cost", "keyLength", "keyPrefix", "expiresAt", "data"],
-        "title": "AltchaChallengeParameters"
-      },
-      "AltchaPurpose": {
-        "type": "string",
-        "enum": ["login", "register"],
-        "title": "AltchaPurpose"
-      },
       "Body_login_api_v1_auth_login_post": {
         "properties": {
-          "altcha": {
-            "type": "string",
-            "maxLength": 4096,
-            "minLength": 1,
-            "title": "Altcha"
-          },
+          "altcha": { "type": "string", "maxLength": 4096, "minLength": 1, "title": "Altcha" },
           "grant_type": {
             "anyOf": [{ "type": "string", "pattern": "^password$" }, { "type": "null" }],
             "title": "Grant Type"
@@ -6726,7 +7051,7 @@
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
-          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "description": { "type": "string", "maxLength": 4000, "title": "Description" },
           "logo_uri": {
             "anyOf": [
               { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
@@ -6812,7 +7137,7 @@
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
           "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
           "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
-          "description": { "type": "string", "maxLength": 400, "title": "Description" },
+          "description": { "type": "string", "maxLength": 4000, "title": "Description" },
           "logo_uri": {
             "anyOf": [
               { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
@@ -6928,6 +7253,16 @@
         "required": ["message", "id", "verification_status", "applicant_id", "apply_at", "club_id"],
         "title": "ClubMembershipRequestInfo"
       },
+      "ClubRef": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "title": "Name" }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "ClubRef",
+        "description": "Ref 档: 只含 id 与 name, 用于下拉选择与被其它实体内嵌引用."
+      },
       "ClubStarLevelEnum": {
         "type": "string",
         "enum": [
@@ -6953,7 +7288,7 @@
             "title": "Summary"
           },
           "description": {
-            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 4000 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
@@ -6969,14 +7304,17 @@
       },
       "ClubUpdateRequestCreatePublic": {
         "properties": {
-          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 4000 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
             "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Logo Uri"
@@ -6987,9 +7325,12 @@
       },
       "ClubUpdateRequestInfo": {
         "properties": {
-          "summary": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Summary" },
+          "summary": {
+            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "title": "Summary"
+          },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 4000 }, { "type": "null" }],
             "title": "Description"
           },
           "logo_uri": {
@@ -7247,15 +7588,6 @@
         "type": "object",
         "title": "JointActivityArchiveUpdate"
       },
-      "JointActivityClubInfo": {
-        "properties": {
-          "id": { "type": "integer", "title": "Id" },
-          "name": { "type": "string", "title": "Name" }
-        },
-        "type": "object",
-        "required": ["id", "name"],
-        "title": "JointActivityClubInfo"
-      },
       "JointActivityCreate": {
         "properties": {
           "name": { "type": "string", "maxLength": 128, "title": "Name" },
@@ -7330,7 +7662,7 @@
           "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
           "updated_at": { "type": "string", "format": "date-time", "title": "Updated At" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
-          "initiator_club": { "$ref": "#/components/schemas/JointActivityClubInfo" },
+          "initiator_club": { "$ref": "#/components/schemas/ClubRef" },
           "participations": {
             "items": { "$ref": "#/components/schemas/JointActivityParticipationInfo" },
             "type": "array",
@@ -7373,7 +7705,7 @@
           "registered_by_user_id": { "type": "integer", "title": "Registered By User Id" },
           "is_initiator": { "type": "boolean", "title": "Is Initiator" },
           "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
-          "club": { "$ref": "#/components/schemas/JointActivityClubInfo" }
+          "club": { "$ref": "#/components/schemas/ClubRef" }
         },
         "type": "object",
         "required": [
@@ -7418,7 +7750,7 @@
           },
           "final_score": { "type": "integer", "title": "Final Score" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
-          "initiator_club": { "$ref": "#/components/schemas/JointActivityClubInfo" },
+          "initiator_club": { "$ref": "#/components/schemas/ClubRef" },
           "participations": {
             "items": { "$ref": "#/components/schemas/JointActivityPublicParticipationInfo" },
             "type": "array",
@@ -7451,7 +7783,7 @@
           "club_id": { "type": "integer", "title": "Club Id" },
           "is_initiator": { "type": "boolean", "title": "Is Initiator" },
           "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
-          "club": { "$ref": "#/components/schemas/JointActivityClubInfo" }
+          "club": { "$ref": "#/components/schemas/ClubRef" }
         },
         "type": "object",
         "required": ["id", "activity_id", "club_id", "is_initiator", "created_at", "club"],
@@ -7584,22 +7916,6 @@
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubActivityUpdateRequestInfo]"
       },
-      "Page_ClubGeneralActivityInfo_": {
-        "properties": {
-          "items": {
-            "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
-        },
-        "type": "object",
-        "required": ["items", "total", "page", "size", "pages"],
-        "title": "Page[ClubGeneralActivityInfo]"
-      },
       "Page_ClubClaimRequestReviewInfo_": {
         "properties": {
           "items": {
@@ -7615,6 +7931,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubClaimRequestReviewInfo]"
+      },
+      "Page_ClubGeneralActivityInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubGeneralActivityInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubGeneralActivityInfo]"
       },
       "Page_ClubInfo_": {
         "properties": {
@@ -7647,6 +7979,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubMembershipRequestInfo]"
+      },
+      "Page_ClubRef_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubRef" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubRef]"
       },
       "Page_ClubUpdateRequestInfo_": {
         "properties": {
@@ -7711,6 +8059,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[JointActivityPublicInfo]"
+      },
+      "Page_ResourceFileInfo_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ResourceFileInfo" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ResourceFileInfo]"
       },
       "Page_StarLevelApplicationInfo_": {
         "properties": {
@@ -7781,6 +8145,16 @@
         "enum": ["participate_only", "organize"],
         "title": "ParticipationTypeEnum"
       },
+      "PendingDeletionRetryResult": {
+        "properties": {
+          "attempted": { "type": "integer", "title": "Attempted" },
+          "deleted": { "type": "integer", "title": "Deleted" },
+          "failed": { "type": "integer", "title": "Failed" }
+        },
+        "type": "object",
+        "required": ["attempted", "deleted", "failed"],
+        "title": "PendingDeletionRetryResult"
+      },
       "PublicUserInfo": {
         "properties": {
           "id": { "type": "integer", "title": "Id" },
@@ -7827,6 +8201,38 @@
         "type": "object",
         "required": ["verification_status"],
         "title": "RequestVerifyPublic"
+      },
+      "ResourceFileCreate": {
+        "properties": {
+          "filename": { "type": "string", "maxLength": 256, "minLength": 1, "title": "Filename" },
+          "object_key": {
+            "type": "string",
+            "maxLength": 512,
+            "minLength": 1,
+            "title": "Object Key"
+          },
+          "content_type": {
+            "type": "string",
+            "maxLength": 255,
+            "minLength": 1,
+            "title": "Content Type"
+          }
+        },
+        "type": "object",
+        "required": ["filename", "object_key", "content_type"],
+        "title": "ResourceFileCreate"
+      },
+      "ResourceFileInfo": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "filename": { "type": "string", "title": "Filename" },
+          "content_type": { "type": "string", "title": "Content Type" },
+          "file_size": { "type": "integer", "title": "File Size" },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" }
+        },
+        "type": "object",
+        "required": ["id", "filename", "content_type", "file_size", "created_at"],
+        "title": "ResourceFileInfo"
       },
       "RoleEnum": {
         "type": "string",
@@ -8223,54 +8629,10 @@
           "club_logo",
           "activity_poster",
           "application_file",
-          "joint_activity_archive"
+          "joint_activity_archive",
+          "resource_file"
         ],
         "title": "UploadScene"
-      },
-      "UserCreate": {
-        "properties": {
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
-          "password": { "type": "string", "minLength": 6, "title": "Password" },
-          "accepted_privacy_policy": {
-            "type": "boolean",
-            "const": true,
-            "title": "Accepted Privacy Policy"
-          },
-          "accepted_user_agreement": {
-            "type": "boolean",
-            "const": true,
-            "title": "Accepted User Agreement"
-          },
-          "accepted_cross_border_transfer": {
-            "type": "boolean",
-            "const": true,
-            "title": "Accepted Cross Border Transfer"
-          }
-        },
-        "type": "object",
-        "required": [
-          "username",
-          "password",
-          "accepted_privacy_policy",
-          "accepted_user_agreement",
-          "accepted_cross_border_transfer"
-        ],
-        "title": "UserCreate"
-      },
-      "UserRegistration": {
-        "properties": {
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
-          "password": { "type": "string", "minLength": 6, "title": "Password" },
-          "altcha": {
-            "type": "string",
-            "maxLength": 4096,
-            "minLength": 1,
-            "title": "Altcha"
-          }
-        },
-        "type": "object",
-        "required": ["username", "password", "altcha"],
-        "title": "UserRegistration"
       },
       "UserGradeEnum": {
         "type": "string",
@@ -8323,18 +8685,53 @@
         ],
         "title": "UserInfo"
       },
+      "UserRegistration": {
+        "properties": {
+          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "password": { "type": "string", "minLength": 6, "title": "Password" },
+          "accepted_privacy_policy": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted Privacy Policy"
+          },
+          "accepted_user_agreement": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted User Agreement"
+          },
+          "accepted_cross_border_transfer": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted Cross Border Transfer"
+          },
+          "altcha": { "type": "string", "maxLength": 4096, "minLength": 1, "title": "Altcha" }
+        },
+        "type": "object",
+        "required": [
+          "username",
+          "password",
+          "accepted_privacy_policy",
+          "accepted_user_agreement",
+          "accepted_cross_border_transfer",
+          "altcha"
+        ],
+        "title": "UserRegistration"
+      },
       "UserUpdateRequestCreate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": {
+            "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }],
+            "title": "Username"
+          },
           "avatar_uri": {
             "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
               { "type": "null" }
             ],
             "title": "Avatar Uri"
           },
           "description": {
-            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 400 }, { "type": "null" }],
             "title": "Description"
           },
           "grade": {
