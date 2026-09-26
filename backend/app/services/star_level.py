@@ -19,6 +19,7 @@ from app.services.base import ServiceBase
 from app.services.errors import (
     ClubNotFoundError,
     DuplicateResourceError,
+    StarLevelApplicationUpdateDeniedError,
     StarLevelNotFoundError,
 )
 from app.services.star_rating import StarRatingService
@@ -76,6 +77,13 @@ class StarLevelService(
             application = await self._get_with_lock(application_id)
             if application is None:
                 raise StarLevelNotFoundError(application_id) from None
+            # Only an approval is final: it has already written the club's
+            # star level. A rejection is not — the president may edit the
+            # application (``update_application`` refuses approved ones only),
+            # and the term's uniqueness constraint means that edit is the only
+            # way to resubmit, so it has to stay reviewable.
+            if application.audit_status == AuditStatusEnum.approved:
+                raise StarLevelApplicationUpdateDeniedError(application_id) from None
 
             application = await self.repository.update_review(
                 application,

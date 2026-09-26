@@ -32,6 +32,9 @@ _PUBLIC_RECORDS_OPTION = selectinload(
         ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
     ),
 )
+_PUBLIC_MEMBERS_OPTION = selectinload(
+    Club.members.and_(ClubMember.membership != ClubMembershipEnum.left),
+).selectinload(ClubMember.user)
 
 
 def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple[Club]]:
@@ -60,7 +63,7 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         stmt = (
             select(self.model)
             .where(self.model.id == id_)
-            .options(_PUBLIC_RECORDS_OPTION)
+            .options(_PUBLIC_RECORDS_OPTION, _PUBLIC_MEMBERS_OPTION)
         )
         return (await self.db.execute(stmt)).scalars().first()
 
@@ -83,7 +86,7 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         stmt = _apply_search(select(Club), search)
 
         if public_only:
-            stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
+            stmt = stmt.options(_PUBLIC_RECORDS_OPTION, _PUBLIC_MEMBERS_OPTION)
         if category is not None:
             stmt = stmt.where(Club.category == category)
         if status is not None:

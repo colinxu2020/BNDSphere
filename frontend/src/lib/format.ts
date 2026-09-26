@@ -132,7 +132,7 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.resource_file.already_registered": "该文件已经登记到资料中心",
   "error.resource_file.not_found": "没有找到这个资料文件",
   "error.role.not_allowed": "你没有执行此操作的权限",
-  "error.star_level.denied": "已通过的星级评价申请不能再修改",
+  "error.star_level.denied": "已通过的星级评价申请不能再修改或审核",
   "error.star_level.duplicate_application": "本学期已经提交过星级评价申请",
   "error.star_level.not_found": "没有找到这条星级评价申请",
   "error.update_request.is_null": "请至少填写一项需要修改的内容",
