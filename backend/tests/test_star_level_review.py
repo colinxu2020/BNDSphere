@@ -35,16 +35,16 @@ class ExistingApplicationRepository:
         application: StarLevelApplication,
         review: StarLevelApplicationReview,
     ) -> StarLevelApplication:
-        raise AssertionError("an already-reviewed application must not be updated")
+        raise ReachedUpdateError
 
 
-@pytest.mark.parametrize(
-    "existing_status",
-    [AuditStatusEnum.approved, AuditStatusEnum.rejected],
-)
-async def test_review_rejects_an_application_that_was_already_reviewed(
+class ReachedUpdateError(Exception):
+    """The review got past the status guard and tried to write."""
+
+
+def _service_for(
     existing_status: AuditStatusEnum,
-) -> None:
+) -> tuple[StarLevelService, StarLevelApplication]:
     application = StarLevelApplication(
         id=7,
         club_id=3,
@@ -57,12 +57,30 @@ async def test_review_rejects_an_application_that_was_already_reviewed(
         club_repository=cast("ClubRepository", object()),
         star_rating_service=cast("StarRatingService", object()),
     )
-    review = StarLevelApplicationReview(audit_status=AuditStatusEnum.approved)
-    auditor = User(
-        id=11,
-        username="reviewer",
-        hashed_password="unused",  # noqa: S106
-    )
+    return service, application
 
+
+REVIEW = StarLevelApplicationReview(audit_status=AuditStatusEnum.approved)
+AUDITOR = User(id=11, username="reviewer", hashed_password="unused")  # noqa: S106
+
+
+async def test_an_approved_application_cannot_be_reviewed_again() -> None:
+    # The approval already set the club's star level; a second review would
+    # silently rewrite it.
+    service, application = _service_for(AuditStatusEnum.approved)
     with pytest.raises(StarLevelApplicationUpdateDeniedError):
-        await service.review(application.id, review, auditor)
+        await service.review(application.id, REVIEW, AUDITOR)
+
+
+@pytest.mark.parametrize(
+    "existing_status",
+    [AuditStatusEnum.pending, AuditStatusEnum.rejected],
+)
+async def test_pending_and_rejected_applications_stay_reviewable(
+    existing_status: AuditStatusEnum,
+) -> None:
+    # Rejected is how a resubmission arrives: the president edits it in place,
+    # because the per-term uniqueness constraint forbids a second application.
+    service, application = _service_for(existing_status)
+    with pytest.raises(ReachedUpdateError):
+        await service.review(application.id, REVIEW, AUDITOR)
