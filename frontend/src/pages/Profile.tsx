@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
+import { nullableText } from "../lib/format";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
@@ -67,13 +68,20 @@ export function Profile() {
     setUpdateMessage(null);
 
     try {
-      const { data, error } = await client.POST("/api/v1/users/update-requests", {
-        body: {
-          username: updateUsername !== user?.username ? updateUsername : null,
-          description: updateDescription !== user?.description ? updateDescription : null,
-          avatar_uri: updateAvatar !== user?.avatar_uri ? updateAvatar : null,
-        },
-      });
+      // 只提交真正改动过的字段: 后端用 model_fields_set 推导 update_fields,
+      // 传 null/"" 占位会被当成"把该字段改成空", 或直接校验失败.
+      const body: components["schemas"]["UserUpdateRequestCreate"] = {};
+      if (updateUsername !== (user?.username ?? "")) {
+        body.username = updateUsername;
+      }
+      if (updateDescription !== (user?.description ?? "")) {
+        body.description = updateDescription;
+      }
+      if (updateAvatar !== (user?.avatar_uri ?? "")) {
+        body.avatar_uri = nullableText(updateAvatar);
+      }
+
+      const { data, error } = await client.POST("/api/v1/users/update-requests", { body });
 
       if (error) {
         setUpdateTone("error");
