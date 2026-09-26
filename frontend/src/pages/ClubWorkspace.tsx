@@ -1540,6 +1540,8 @@ export function ClubWorkspace() {
                         <FileUploadField
                           label="证明材料"
                           scene="application_file"
+                          accept=".doc,.docx,.pdf"
+                          hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB；图片请先转为 PDF。"
                           values={proofFileUrls}
                           onValuesChange={setProofFileUrls}
                           multiple
@@ -1640,9 +1642,10 @@ export function ClubWorkspace() {
                           <FileUploadField
                             label="竞赛附件"
                             scene="application_file"
+                            accept=".doc,.docx,.pdf"
                             value={starAttachment}
                             onChange={setStarAttachment}
-                            hint="上传后作为星级申请附件。"
+                            hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB。上传后作为星级申请附件。"
                           />
                           <Field label="申请竞赛分">
                             <input
@@ -1674,9 +1677,10 @@ export function ClubWorkspace() {
                           <FileUploadField
                             label="竞赛附件"
                             scene="application_file"
+                            accept=".doc,.docx,.pdf"
                             value={starUpdateAttachment}
                             onChange={setStarUpdateAttachment}
-                            hint="上传后替换星级申请附件。"
+                            hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB。上传后替换星级申请附件。"
                           />
                           <Field label="申请竞赛分">
                             <input
