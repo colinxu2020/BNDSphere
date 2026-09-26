@@ -405,7 +405,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | `AuditStatusEnum`            | `user.py`           | `pending`, `approved`, `rejected`                                                          | 审核状态         |
 | `ClubStatusEnum`             | `club.py`           | `unreviewed`, `normal`, `archived`                                                         | 社团状态         |
 | `ClubStarLevelEnum`          | `club.py`           | `none`, `one_star`, `two_star`, `three_star`, `four_star`, `five_star`, `honorary`         | 社团星级         |
-| `ClubCategoryEnum`           | `club.py`           | `sports`, `humanity`, `arts`, `science`, `charity`, `business`, `campus`, `other`          | 社团分类         |
+| `ClubCategoryEnum`           | `club.py`           | `stage_design`, `information_technology`, `charity`, `performing_arts`, `social_science`, `handicraft`, `literature_publishing`, `business`, `art_design`, `campus_management`, `natural_science`, `language_learning`, `sports`, `anime`, `film_news_media` | 社团分类         |
 | `ClubMembershipEnum`         | `clubmember.py`     | `pending`, `member`, `president`, `vice president`, `left`                                 | 社团成员角色     |
 | `TagStatusEnum`              | `tag.py`            | `normal`, `archived`                                                                       | 标签状态         |
 | `GeneralActivityLevelEnum`   | `general_activity.py`| `school`, `large`, `sua`                                                                  | 通用活动级别     |
