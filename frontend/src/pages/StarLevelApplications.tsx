@@ -1,4 +1,4 @@
-import { useEffect, useState, type Key } from "react";
+import { useCallback, type Key } from "react";
 import { motion } from "motion/react";
 import { Award, Building2, CalendarDays, ExternalLink, FileText } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
@@ -13,6 +13,8 @@ import {
   StatusMessage,
   Surface,
 } from "../components/ui/AppPrimitives";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
@@ -38,34 +40,21 @@ const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
 };
 
 export function StarLevelApplications() {
-  const [applications, setApplications] = useState<StarApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
-
-  const fetchApplications = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const { data, error } = await client.GET("/api/v1/star-level/", {
-        params: { query: { size: 50 } },
-      });
-      if (error) {
-        setLoadError(error);
-        setApplications([]);
-      } else {
-        setApplications(data?.items || []);
-      }
-    } catch (error) {
-      setLoadError(error);
-      setApplications([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApplications();
+  const loadApplicationsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/star-level/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(data, error, page);
   }, []);
+  const {
+    items: applications,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+  } = useInfiniteList<StarApplication>(loadApplicationsPage);
 
   return (
     <motion.div
@@ -78,16 +67,24 @@ export function StarLevelApplications() {
 
       {loadError && <StatusMessage value={loadError} />}
 
-      {isLoading ? (
+      {isInitialLoading ? (
         <Surface className="flex items-center justify-center py-16 text-slate-500">
           正在加载星级评价表...
         </Surface>
       ) : applications.length ? (
-        <div className="flex flex-col gap-4">
-          {applications.map((application) => (
-            <StarApplicationCard key={application.id} application={application} />
-          ))}
-        </div>
+        <>
+          <div className="flex flex-col gap-4">
+            {applications.map((application) => (
+              <StarApplicationCard key={application.id} application={application} />
+            ))}
+          </div>
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
+        </>
       ) : (
         <EmptyState title="暂无星级评价表" icon={<Award size={24} />} />
       )}
