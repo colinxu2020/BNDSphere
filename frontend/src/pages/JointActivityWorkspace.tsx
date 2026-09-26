@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type FormEvent } from "react";
 import { motion } from "motion/react";
 import {
   CalendarDays,
@@ -27,6 +27,8 @@ import {
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { MODERATION_STATUS_MAP, VERIFICATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime, fromDateTimeLocalValue, toDateTimeLocalValue } from "../lib/format";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 type JointActivityPublic = components["schemas"]["JointActivityPublicInfo"];
@@ -42,13 +44,35 @@ export function JointActivityWorkspace({
   refreshToken: number;
   onLoadingChange: (isLoading: boolean) => void;
 }) {
-  const [clubActivities, setClubActivities] = useState<JointActivity[]>([]);
-  const [publicActivities, setPublicActivities] = useState<JointActivityPublic[]>([]);
   const [form, setForm] = useState(emptyForm);
-  const [isLoading, setIsLoading] = useState(true);
   const [isCreating, setIsCreating] = useState(false);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const previousRefreshToken = useRef(refreshToken);
+
+  const loadClubActivitiesPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const response = await client.GET("/api/v1/clubs/{club_id}/joint-activities/", {
+        params: { path: { club_id: clubId }, query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      return getPageResult(response.data, response.error, page);
+    },
+    [clubId],
+  );
+  const loadPublicActivitiesPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/joint-activities/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const clubList = useInfiniteList<JointActivity>(loadClubActivitiesPage);
+  const publicList = useInfiniteList<JointActivityPublic>(loadPublicActivitiesPage);
+  const clubActivities = clubList.items;
+  const publicActivities = publicList.items;
+  const isLoading = clubList.isInitialLoading || publicList.isInitialLoading;
+  const loadError = clubList.error || publicList.error;
 
   const registeredIds = useMemo(
     () => new Set(clubActivities.map((activity) => activity.id)),
@@ -64,35 +88,22 @@ export function JointActivityWorkspace({
   );
 
   const refresh = async () => {
-    setIsLoading(true);
     onLoadingChange(true);
-    const [managedResponse, publicResponse] = await Promise.all([
-      client.GET("/api/v1/clubs/{club_id}/joint-activities/", {
-        params: { path: { club_id: clubId }, query: { size: 100 } },
-      }),
-      client.GET("/api/v1/joint-activities/", { params: { query: { size: 100 } } }),
-    ]);
-    const error = managedResponse.error || publicResponse.error;
-    if (error) {
-      setMessageTone("error");
-      setMessage(error);
-    }
-    setClubActivities(managedResponse.error ? [] : managedResponse.data?.items || []);
-    setPublicActivities(publicResponse.error ? [] : publicResponse.data?.items || []);
-    setIsLoading(false);
+    await Promise.all([clubList.reload(), publicList.reload()]);
     onLoadingChange(false);
   };
 
   useEffect(() => {
-    refresh().catch((error) => {
-      setMessage(error);
-      setMessageTone("error");
-      setIsLoading(false);
-      onLoadingChange(false);
-    });
-    // Refresh when the selected club changes.
+    onLoadingChange(isLoading);
+  }, [isLoading, onLoadingChange]);
+
+  useEffect(() => {
+    if (previousRefreshToken.current === refreshToken) return;
+    previousRefreshToken.current = refreshToken;
+    void refresh();
+    // Refresh when requested by the parent workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [clubId, refreshToken]);
+  }, [refreshToken]);
 
   const createActivity = async (event: FormEvent) => {
     event.preventDefault();
@@ -133,6 +144,7 @@ export function JointActivityWorkspace({
       className="flex flex-col gap-8"
     >
       {message && <StatusMessage value={message} tone={messageTone} />}
+      {loadError && <StatusMessage value={loadError} />}
 
       <Surface>
         <SectionTitle
@@ -200,21 +212,29 @@ export function JointActivityWorkspace({
         {isLoading ? (
           <div className="h-40 animate-pulse rounded-md bg-slate-50" />
         ) : clubActivities.length ? (
-          <div className="grid gap-5">
-            {clubActivities.map((activity) => (
-              <div key={activity.id}>
-                <ManagedActivityCard
-                  activity={activity}
-                  clubId={clubId}
-                  onChanged={refresh}
-                  onMessage={(value, tone) => {
-                    setMessage(value);
-                    setMessageTone(tone);
-                  }}
-                />
-              </div>
-            ))}
-          </div>
+          <>
+            <div className="grid gap-5">
+              {clubActivities.map((activity) => (
+                <div key={activity.id}>
+                  <ManagedActivityCard
+                    activity={activity}
+                    clubId={clubId}
+                    onChanged={refresh}
+                    onMessage={(value, tone) => {
+                      setMessage(value);
+                      setMessageTone(tone);
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+            <InfiniteScrollTrigger
+              hasMore={clubList.hasMore}
+              isLoading={clubList.isLoadingMore}
+              error={clubList.error}
+              onLoadMore={clubList.loadMore}
+            />
+          </>
         ) : (
           <EmptyState title="本社团暂无联合活动" />
         )}
@@ -246,6 +266,12 @@ export function JointActivityWorkspace({
           ))}
         </div>
         {!availableActivities.length && <EmptyState title="暂无可登记的公开活动" />}
+        <InfiniteScrollTrigger
+          hasMore={publicList.hasMore}
+          isLoading={publicList.isLoadingMore}
+          error={publicList.error}
+          onLoadMore={publicList.loadMore}
+        />
       </Surface>
     </motion.div>
   );

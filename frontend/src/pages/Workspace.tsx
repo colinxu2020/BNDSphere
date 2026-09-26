@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,6 +15,8 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type Club = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
@@ -24,9 +26,38 @@ const MANAGER_ROLES = new Set(["president", "vice_president"]);
 export function Workspace() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
-  const [clubs, setClubs] = useState<Club[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
+
+  const loadManagedClubsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      if (page === 1) {
+        const meResponse = await client.GET("/api/v1/users/me", { signal });
+        if (meResponse.response.status === 401) {
+          navigate("/login");
+          return { items: [], page: 1, pages: 0, total: 0 };
+        }
+        if (meResponse.error || !meResponse.data) {
+          throw meResponse.error || new Error("无法获取当前用户信息");
+        }
+        setUser(meResponse.data);
+      }
+
+      const response = await client.GET("/api/v1/clubs/managed/", {
+        params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      return getPageResult(response.data, response.error, page);
+    },
+    [navigate],
+  );
+  const {
+    items: clubs,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<Club>(loadManagedClubsPage);
 
   const managedClubs = useMemo(() => {
     if (!user) return [];
@@ -40,46 +71,6 @@ export function Workspace() {
       .filter((item) => item.membership)
       .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN"));
   }, [clubs, user]);
-
-  const fetchManagedClubs = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const meResponse = await client.GET("/api/v1/users/me");
-      if (meResponse.response.status === 401) {
-        navigate("/login");
-        return;
-      }
-      if (meResponse.error || !meResponse.data) {
-        setLoadError(meResponse.error || "无法获取当前用户信息");
-        setUser(null);
-        setClubs([]);
-        return;
-      }
-
-      setUser(meResponse.data);
-      const clubsResponse = await client.GET("/api/v1/clubs/managed/", {
-        params: { query: { size: 100 } },
-      });
-      if (clubsResponse.error) {
-        setLoadError(clubsResponse.error);
-        setClubs([]);
-      } else {
-        setClubs(clubsResponse.data?.items || []);
-      }
-    } catch (error) {
-      setLoadError(error);
-      setClubs([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchManagedClubs();
-    // Load once with the authenticated user captured on mount.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   return (
     <motion.div
@@ -99,7 +90,11 @@ export function Workspace() {
             >
               <Plus size={16} /> 创建社团
             </Link>
-            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
+            <SecondaryButton
+              type="button"
+              onClick={() => void reload()}
+              disabled={isInitialLoading}
+            >
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
           </div>
@@ -108,66 +103,76 @@ export function Workspace() {
 
       {loadError && <StatusMessage value={loadError} />}
 
-      {isLoading ? (
+      {isInitialLoading ? (
         <PageLoading compact />
       ) : managedClubs.length ? (
-        <div className="grid gap-4 md:grid-cols-2">
-          {managedClubs.map(({ club, membership }) => (
-            <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
-              <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
-                    {club.logo_uri ? (
-                      <img
-                        src={club.logo_uri}
-                        alt={club.name}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <Building2 size={26} />
-                    )}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="min-w-0">
-                        <h2 className="truncate text-lg font-bold text-slate-900 group-hover:text-primary-600">
-                          {club.name}
-                        </h2>
-                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
-                          {club.summary}
-                        </p>
-                      </div>
-                      <ChevronRight
-                        size={18}
-                        className="mt-1 shrink-0 text-slate-300 group-hover:text-primary-500"
-                      />
-                    </div>
-
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge tone="primary">
-                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
-                      </Badge>
-                      <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
-                      <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
-                      {club.star_level !== "none" && (
-                        <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
+        <>
+          <div className="grid gap-4 md:grid-cols-2">
+            {managedClubs.map(({ club, membership }) => (
+              <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
+                <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
+                  <div className="flex items-start gap-4">
+                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
+                      {club.logo_uri ? (
+                        <img
+                          src={club.logo_uri}
+                          alt={club.name}
+                          className="h-full w-full object-cover"
+                        />
+                      ) : (
+                        <Building2 size={26} />
                       )}
                     </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <h2 className="truncate text-lg font-bold text-slate-900 group-hover:text-primary-600">
+                            {club.name}
+                          </h2>
+                          <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
+                            {club.summary}
+                          </p>
+                        </div>
+                        <ChevronRight
+                          size={18}
+                          className="mt-1 shrink-0 text-slate-300 group-hover:text-primary-500"
+                        />
+                      </div>
 
-                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400">
-                      <span>创建于 {formatDate(club.created_at)}</span>
-                      <span className="inline-flex items-center gap-1">
-                        <Users size={14} />
-                        {club.members.filter((member) => member.membership !== "left").length}{" "}
-                        名成员
-                      </span>
+                      <div className="mt-4 flex flex-wrap gap-2">
+                        <Badge tone="primary">
+                          {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
+                        </Badge>
+                        <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
+                        <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
+                        {club.star_level !== "none" && (
+                          <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
+                        )}
+                      </div>
+
+                      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400">
+                        <span>创建于 {formatDate(club.created_at)}</span>
+                        <span className="inline-flex items-center gap-1">
+                          <Users size={14} />
+                          {
+                            club.members.filter((member) => member.membership !== "left").length
+                          }{" "}
+                          名成员
+                        </span>
+                      </div>
                     </div>
                   </div>
-                </div>
-              </Surface>
-            </Link>
-          ))}
-        </div>
+                </Surface>
+              </Link>
+            ))}
+          </div>
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
+        </>
       ) : (
         <EmptyState
           icon={<Building2 size={24} />}

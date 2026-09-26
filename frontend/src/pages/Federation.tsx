@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   Award,
@@ -42,6 +42,8 @@ import {
 import { cn } from "../lib/utils";
 import { FederationClubClaims } from "./FederationClubClaims";
 import { FederationJointActivities } from "./FederationJointActivities";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
@@ -67,10 +69,6 @@ export function Federation() {
   const [clubClaimsRefreshToken, setClubClaimsRefreshToken] = useState(0);
   const [isClubClaimsLoading, setIsClubClaimsLoading] = useState(false);
   const [clubClaimsVisited, setClubClaimsVisited] = useState(false);
-  const [activities, setActivities] = useState<GeneralActivity[]>([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
 
@@ -99,6 +97,37 @@ export function Federation() {
   const [starPreview, setStarPreview] = useState<StarReviewPreview | null>(null);
   const [isStarPreviewLoading, setIsStarPreviewLoading] = useState(false);
   const [isStarReviewing, setIsStarReviewing] = useState(false);
+
+  const loadActivitiesPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/club-federation/general-activity/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const loadStarApplicationsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/star-level/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const activityList = useInfiniteList<GeneralActivity>(loadActivitiesPage);
+  const starList = useInfiniteList<StarApplication>(loadStarApplicationsPage);
+  const activities = activityList.items;
+  const starApplications = useMemo(
+    () =>
+      starList.items
+        .filter(
+          (application) =>
+            application.academic_term.is_current && application.audit_status !== "approved",
+        )
+        .sort(sortStarApplications),
+    [starList.items],
+  );
+  const isLoading =
+    activeTab === "starLevel" ? starList.isInitialLoading : activityList.isInitialLoading;
+  const loadError = activeTab === "starLevel" ? starList.error : activityList.error;
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id === selectedActivityId),
@@ -134,45 +163,8 @@ export function Federation() {
   );
 
   const loadWorkspace = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [activityResponse, starResponse] = await Promise.all([
-        // 社联审核需要看到 pending 记录, 走社联专用端点 (公开端点只回显已审核记录).
-        client.GET("/api/v1/club-federation/general-activity/", {
-          params: { query: { size: 50 } },
-        }),
-        client.GET("/api/v1/star-level/", {
-          params: { query: { size: 50 } },
-        }),
-      ]);
-
-      setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
-      setStarApplications(
-        starResponse.error
-          ? []
-          : (starResponse.data?.items || [])
-              .filter(
-                (application) =>
-                  application.academic_term.is_current && application.audit_status !== "approved",
-              )
-              .sort(sortStarApplications),
-      );
-
-      const firstError = activityResponse.error || starResponse.error;
-      if (firstError) setLoadError(firstError);
-    } catch (error) {
-      setLoadError(error);
-      setActivities([]);
-      setStarApplications([]);
-    } finally {
-      setIsLoading(false);
-    }
+    await Promise.all([activityList.reload(), starList.reload()]);
   };
-
-  useEffect(() => {
-    loadWorkspace();
-  }, []);
 
   useEffect(() => {
     if (!selectedStarApplication) {
@@ -521,6 +513,12 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无社团综评记录" />
             )}
+            <InfiniteScrollTrigger
+              hasMore={activityList.hasMore}
+              isLoading={activityList.isLoadingMore}
+              error={activityList.error}
+              onLoadMore={activityList.loadMore}
+            />
           </div>
 
           {selectedRecord && (
@@ -639,6 +637,12 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无星级评价表" />
             )}
+            <InfiniteScrollTrigger
+              hasMore={starList.hasMore}
+              isLoading={starList.isLoadingMore}
+              error={starList.error}
+              onLoadMore={starList.loadMore}
+            />
           </div>
 
           {selectedStarApplication && (
@@ -784,6 +788,12 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无大型活动" />
             )}
+            <InfiniteScrollTrigger
+              hasMore={activityList.hasMore}
+              isLoading={activityList.isLoadingMore}
+              error={activityList.error}
+              onLoadMore={activityList.loadMore}
+            />
           </div>
 
           {activityEditorMode && (

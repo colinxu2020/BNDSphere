@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { motion } from "motion/react";
 import { Award, CalendarDays, Check, FileText, MapPin, X } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
@@ -18,6 +18,8 @@ import {
 import { MODERATION_STATUS_MAP, VERIFICATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type JointActivity = components["schemas"]["JointActivityInfo"];
 
@@ -28,13 +30,31 @@ export function FederationJointActivities({
   refreshToken: number;
   onLoadingChange: (isLoading: boolean) => void;
 }) {
-  const [items, setItems] = useState<JointActivity[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [scores, setScores] = useState<Record<number, string>>({});
   const [busyId, setBusyId] = useState<number | null>(null);
+  const previousRefreshToken = useRef(refreshToken);
+
+  const loadActivitiesPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/club-federation/joint-activities/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    if (page === 1) setIsForbidden(false);
+    if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const {
+    items,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<JointActivity>(loadActivitiesPage);
 
   const preliminaryItems = useMemo(
     () => items.filter((activity) => activity.preliminary_status === "pending"),
@@ -46,29 +66,20 @@ export function FederationJointActivities({
   );
 
   const refresh = async () => {
-    setIsLoading(true);
     onLoadingChange(true);
     setIsForbidden(false);
-    const response = await client.GET("/api/v1/club-federation/joint-activities/", {
-      params: { query: { size: 100 } },
-    });
-    setItems(response.error ? [] : response.data?.items || []);
-    if (response.error) {
-      setMessage(response.error);
-      setMessageTone("error");
-      if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
-    }
-    setIsLoading(false);
+    await reload();
     onLoadingChange(false);
   };
 
   useEffect(() => {
-    refresh().catch((error) => {
-      setMessage(error);
-      setMessageTone("error");
-      setIsLoading(false);
-      onLoadingChange(false);
-    });
+    onLoadingChange(isInitialLoading);
+  }, [isInitialLoading, onLoadingChange]);
+
+  useEffect(() => {
+    if (previousRefreshToken.current === refreshToken) return;
+    previousRefreshToken.current = refreshToken;
+    void refresh();
     // Refresh only when requested by the parent workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
@@ -123,10 +134,11 @@ export function FederationJointActivities({
       className="flex flex-col gap-8"
     >
       {message && <StatusMessage value={message} tone={messageTone} />}
+      {loadError && <StatusMessage value={loadError} />}
 
       <Surface>
         <SectionTitle icon={<CalendarDays size={20} />} title="待预审" />
-        {isLoading ? (
+        {isInitialLoading ? (
           <PageLoading compact />
         ) : preliminaryItems.length ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -165,7 +177,7 @@ export function FederationJointActivities({
           title="待终审"
           description="查看文字或图片档案，并填写本次活动的星级评价分值。"
         />
-        {isLoading ? (
+        {isInitialLoading ? (
           <PageLoading compact />
         ) : finalItems.length ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -251,6 +263,12 @@ export function FederationJointActivities({
             </div>
           ))}
         </div>
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={loadError}
+          onLoadMore={loadMore}
+        />
       </Surface>
     </motion.div>
   );

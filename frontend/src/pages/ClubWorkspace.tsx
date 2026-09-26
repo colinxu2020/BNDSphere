@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -57,6 +57,8 @@ import {
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type Club = components["schemas"]["ClubInfo"];
 type ClubMember = components["schemas"]["ClubMemberInfo"];
@@ -129,6 +131,22 @@ async function loadAllClubGeneralActivityRecords(clubId: number) {
   }
 }
 
+async function loadAllGeneralActivities() {
+  const items: GeneralActivity[] = [];
+  let page = 1;
+
+  while (true) {
+    const response = await client.GET("/api/v1/general-activities/", {
+      params: { query: { page, size: 100 } },
+    });
+    if (response.error) return { items: [], error: response.error };
+
+    items.push(...(response.data?.items || []));
+    if (!response.data || page >= response.data.pages) return { items, error: null };
+    page += 1;
+  }
+}
+
 export function ClubWorkspace() {
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
@@ -145,14 +163,12 @@ export function ClubWorkspace() {
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
-  const [membershipRequests, setMembershipRequests] = useState<ClubMembershipRequest[]>([]);
   const [membershipApplicants, setMembershipApplicants] = useState<Record<string, PublicUserInfo>>(
     {},
   );
   const [activities, setActivities] = useState<ClubActivity[]>([]);
   const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>([]);
   const [records, setRecords] = useState<ClubGeneralActivity[]>([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [starRating, setStarRating] = useState<StarRating | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
@@ -221,6 +237,55 @@ export function ClubWorkspace() {
   const [starUpdateTone, setStarUpdateTone] = useState<"error" | "success">("error");
   const [isStarUpdating, setIsStarUpdating] = useState(false);
 
+  const loadMembershipRequestsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const response = await client.GET("/api/v1/clubs/{club_id}/membership-requests", {
+        params: { path: { club_id: clubId }, query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      const result = getPageResult(response.data, response.error, page);
+      const applicantResults = await Promise.all(
+        result.items.map(async (request) => {
+          const applicantResponse = await client.GET("/api/v1/users/{user_id}", {
+            params: { path: { user_id: request.applicant_id } },
+            signal,
+          });
+          return applicantResponse.data
+            ? ([request.applicant_id, applicantResponse.data] as const)
+            : null;
+        }),
+      );
+      if (!signal.aborted) {
+        const nextApplicants = Object.fromEntries(applicantResults.filter((item) => item !== null));
+        setMembershipApplicants((current) =>
+          page === 1 ? nextApplicants : { ...current, ...nextApplicants },
+        );
+      }
+      return result;
+    },
+    [clubId],
+  );
+  const loadStarApplicationsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const response = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
+        params: { path: { club_id: clubId }, query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      return getPageResult(response.data, response.error, page);
+    },
+    [clubId],
+  );
+  const membershipRequestList = useInfiniteList<ClubMembershipRequest>(
+    loadMembershipRequestsPage,
+    club?.status === "normal",
+  );
+  const starApplicationList = useInfiniteList<StarApplication>(
+    loadStarApplicationsPage,
+    club?.status === "normal",
+  );
+  const membershipRequests = membershipRequestList.items;
+  const starApplications = starApplicationList.items;
+
   const refresh = async () => {
     setIsLoading(true);
     setIsForbidden(false);
@@ -257,38 +322,12 @@ export function ClubWorkspace() {
       }
 
       if (loadedClub?.status !== "normal") {
-        setMembershipRequests([]);
         setMembershipApplicants({});
         setActivities([]);
         setGeneralActivities([]);
         setRecords([]);
-        setStarApplications([]);
         setStarRating(null);
         return;
-      }
-
-      const membershipRequestsResponse = await client.GET(
-        "/api/v1/clubs/{club_id}/membership-requests",
-        { params: { path: { club_id: clubId }, query: { size: 100 } } },
-      );
-      if (membershipRequestsResponse.error) {
-        errors.membershipRequests = membershipRequestsResponse.error;
-        setMembershipRequests([]);
-        setMembershipApplicants({});
-      } else {
-        const nextRequests = membershipRequestsResponse.data?.items || [];
-        setMembershipRequests(nextRequests);
-        const applicantResults = await Promise.all(
-          nextRequests.map(async (request) => {
-            const response = await client.GET("/api/v1/users/{user_id}", {
-              params: { path: { user_id: request.applicant_id } },
-            });
-            return response.data ? ([request.applicant_id, response.data] as const) : null;
-          }),
-        );
-        setMembershipApplicants(
-          Object.fromEntries(applicantResults.filter((result) => result !== null)),
-        );
       }
 
       const activitiesResponse = await loadAllClubActivities(clubId);
@@ -302,14 +341,12 @@ export function ClubWorkspace() {
         setActivities(activitiesResponse.items);
       }
 
-      const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
-        params: { query: { size: 100 } },
-      });
+      const generalActivitiesResponse = await loadAllGeneralActivities();
       if (generalActivitiesResponse.error) {
         errors.generalActivities = generalActivitiesResponse.error;
         setGeneralActivities([]);
       } else {
-        setGeneralActivities(generalActivitiesResponse.data?.items || []);
+        setGeneralActivities(generalActivitiesResponse.items);
       }
 
       const recordsResponse = await loadAllClubGeneralActivityRecords(clubId);
@@ -320,16 +357,6 @@ export function ClubWorkspace() {
         setRecords(recordsResponse.items);
       }
 
-      const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      });
-      if (applicationsResponse.error) {
-        errors.starApplications = applicationsResponse.error;
-        setStarApplications([]);
-      } else {
-        setStarApplications(applicationsResponse.data?.items || []);
-      }
-
       const ratingResponse = await client.GET("/api/v1/clubs/{club_id}/star-rating/", {
         params: { path: { club_id: clubId } },
       });
@@ -338,6 +365,10 @@ export function ClubWorkspace() {
         setStarRating(null);
       } else {
         setStarRating(ratingResponse.data || null);
+      }
+
+      if (club?.id === clubId && club.status === "normal") {
+        await Promise.all([membershipRequestList.reload(), starApplicationList.reload()]);
       }
     } catch (error) {
       errors.workspace = error;
@@ -1008,15 +1039,20 @@ export function ClubWorkspace() {
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-slate-900">待审批申请</h3>
                         <Badge tone={membershipRequests.length ? "yellow" : "slate"}>
-                          {membershipRequests.length} 条
+                          {membershipRequestList.total} 条
                         </Badge>
                       </div>
                       <StatusMessage
                         value={membershipRequestMessage}
                         tone={membershipRequestTone}
                       />
+                      {membershipRequestList.error && (
+                        <StatusMessage value={membershipRequestList.error} />
+                      )}
                       <div className="mt-4 grid gap-3">
-                        {membershipRequests.length ? (
+                        {membershipRequestList.isInitialLoading ? (
+                          <PageLoading compact />
+                        ) : membershipRequests.length ? (
                           membershipRequests.map((request) => {
                             const applicant = membershipApplicants[request.applicant_id];
                             const isSubmitting = membershipRequestSubmittingId === request.id;
@@ -1060,6 +1096,12 @@ export function ClubWorkspace() {
                         ) : (
                           <EmptyState title="暂无待审批的入社申请" />
                         )}
+                        <InfiniteScrollTrigger
+                          hasMore={membershipRequestList.hasMore}
+                          isLoading={membershipRequestList.isLoadingMore}
+                          error={membershipRequestList.error}
+                          onLoadMore={membershipRequestList.loadMore}
+                        />
                       </div>
                     </section>
 
@@ -1584,7 +1626,12 @@ export function ClubWorkspace() {
                   }`}
                 >
                   <div className="grid gap-3">
-                    {starApplications.length ? (
+                    {starApplicationList.error && (
+                      <StatusMessage value={starApplicationList.error} />
+                    )}
+                    {starApplicationList.isInitialLoading ? (
+                      <PageLoading compact />
+                    ) : starApplications.length ? (
                       starApplications.map((application) => (
                         <button
                           type="button"
@@ -1628,6 +1675,12 @@ export function ClubWorkspace() {
                     ) : (
                       <EmptyState title="暂无星级申请" />
                     )}
+                    <InfiniteScrollTrigger
+                      hasMore={starApplicationList.hasMore}
+                      isLoading={starApplicationList.isLoadingMore}
+                      error={starApplicationList.error}
+                      onLoadMore={starApplicationList.loadMore}
+                    />
                   </div>
 
                   {starEditorMode && (
