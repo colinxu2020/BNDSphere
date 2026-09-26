@@ -80,6 +80,12 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
                 )
                 .order_by(score_func.desc())
             )
+        elif public_only:
+            stmt = stmt.order_by(
+                (Club.description != "").desc(),
+                Club.star_level.desc(),
+                Club.id.asc(),
+            )
         else:
             stmt = stmt.order_by(self.model.id.desc())
 
