@@ -6,7 +6,7 @@ from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
-from sqlalchemy.orm import load_only, raiseload, selectinload
+from sqlalchemy.orm import joinedload, load_only, raiseload, selectinload
 
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
@@ -105,24 +105,6 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
             stmt = stmt.where(Club.status == status)
         return cast("Page[Club]", await apaginate(self.db, stmt))
 
-    async def get_managed_by_user(self, user_id: int) -> Page[Club]:
-        stmt = (
-            select(Club)
-            .join(ClubMember, ClubMember.club_id == Club.id)
-            .where(
-                ClubMember.user_id == user_id,
-                ClubMember.membership.in_(
-                    [
-                        ClubMembershipEnum.president,
-                        ClubMembershipEnum.vice_president,
-                    ],
-                ),
-                Club.status != ClubStatusEnum.archived,
-            )
-            .order_by(Club.id.desc())
-        )
-        return cast("Page[Club]", await apaginate(self.db, stmt))
-
 
 class ClubMemberRepository(
     RepositoryBase[ClubMember, ClubMemberUpdate, ClubMemberUpdate],
@@ -161,6 +143,53 @@ class ClubMemberRepository(
             ),
         )
         return set(result.scalars().all())
+
+    async def get_memberships_by_user(self, user_id: int) -> Sequence[ClubMember]:
+        """用户的社团关系 (不含 left), 连同社团本身.
+
+        社团经 joinedload 一并取出, 其 members / club_activities /
+        general_activity_records 等集合一律 raiseload: Summary 档不装载集合.
+        调用方已持有该用户, 成员行上的 user 也不再装载.
+        """
+        stmt = (
+            select(self.model)
+            .where(
+                self.model.user_id == user_id,
+                self.model.membership != ClubMembershipEnum.left,
+            )
+            .options(
+                raiseload(self.model.user),
+                joinedload(self.model.club).raiseload("*"),
+            )
+            .order_by(self.model.club_id.desc())
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
+    async def get_leaders_by_club_ids(
+        self,
+        club_ids: Sequence[int],
+    ) -> dict[int, list[ClubMember]]:
+        """按 club_id 批量取社长/副社长的成员行 (含 user), 不经由完整成员集合."""
+        leaders: dict[int, list[ClubMember]] = {}
+        if not club_ids:
+            return leaders
+        stmt = (
+            select(self.model)
+            .where(
+                self.model.club_id.in_(club_ids),
+                self.model.membership.in_(
+                    [
+                        ClubMembershipEnum.president,
+                        ClubMembershipEnum.vice_president,
+                    ],
+                ),
+            )
+            .options(selectinload(self.model.user))
+            .order_by(self.model.club_id, self.model.id)
+        )
+        for member in (await self.db.execute(stmt)).scalars():
+            leaders.setdefault(member.club_id, []).append(member)
+        return leaders
 
     async def has_president(self, club_id: int) -> bool:
         result = await self.db.execute(

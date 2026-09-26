@@ -24,6 +24,28 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/users/me/clubs/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Current User Clubs
+     * @description List the current user's clubs with their role in each (Summary tier).
+     *
+     *     Includes pending / member / president / vice_president; excludes left.
+     */
+    get: operations["list_current_user_clubs_api_v1_users_me_clubs__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/users/{user_id}": {
     parameters: {
       query?: never;
@@ -122,26 +144,6 @@ export interface paths {
      *     Note that all optional fields in the form data are ignored.
      */
     post: operations["login_api_v1_auth_login_post"];
-    delete?: never;
-    options?: never;
-    head?: never;
-    patch?: never;
-    trace?: never;
-  };
-  "/api/v1/clubs/managed/": {
-    parameters: {
-      query?: never;
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    /**
-     * List Managed Clubs
-     * @description List active and unreviewed clubs managed by the current user.
-     */
-    get: operations["list_managed_clubs_api_v1_clubs_managed__get"];
-    put?: never;
-    post?: never;
     delete?: never;
     options?: never;
     head?: never;
@@ -2057,7 +2059,10 @@ export interface components {
       /** Requested Score */
       requested_score: number;
     };
-    /** ClubInfo */
+    /**
+     * ClubInfo
+     * @description Info 档: 完整形状, 含关联集合; 只由详情类接口返回.
+     */
     ClubInfo: {
       /** Id */
       id: number;
@@ -2163,12 +2168,45 @@ export interface components {
      * @enum {string}
      */
     ClubStarLevelEnum:
-      "none" | "one_star" | "two_star" | "three_star" | "four_star" | "five_star" | "honorary";
+      | "none"
+      | "one_star"
+      | "two_star"
+      | "three_star"
+      | "four_star"
+      | "five_star"
+      | "honorary";
     /**
      * ClubStatusEnum
      * @enum {string}
      */
     ClubStatusEnum: "unreviewed" | "normal" | "archived";
+    /**
+     * ClubSummary
+     * @description Summary 档: 列表一行所需的字段, 不携带任何集合; 额外携带社长与副社长.
+     */
+    ClubSummary: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+      category: components["schemas"]["ClubCategoryEnum"];
+      /** Summary */
+      summary: string;
+      /** Description */
+      description: string;
+      /** Logo Uri */
+      logo_uri?: string | null;
+      /**
+       * Created At
+       * Format: date-time
+       */
+      created_at: string;
+      status: components["schemas"]["ClubStatusEnum"];
+      star_level: components["schemas"]["ClubStarLevelEnum"];
+      president: components["schemas"]["ClubMemberUserInfo"] | null;
+      /** Vice Presidents */
+      vice_presidents: components["schemas"]["ClubMemberUserInfo"][];
+    };
     /** ClubUpdate */
     ClubUpdate: {
       /** Summary */
@@ -3072,6 +3110,14 @@ export interface components {
       | "joint_activity_archive"
       | "resource_file";
     /**
+     * UserClubMembership
+     * @description 当前用户在一个社团中的角色, 连同该社团的 Summary.
+     */
+    UserClubMembership: {
+      membership: components["schemas"]["ClubMembershipEnum"];
+      club: components["schemas"]["ClubSummary"];
+    };
+    /**
      * UserGradeEnum
      * @enum {string}
      */
@@ -3207,6 +3253,41 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["UserInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+    };
+  };
+  list_current_user_clubs_api_v1_users_me_clubs__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["UserClubMembership"][];
         };
       };
       /** @description Unauthorized or Token invalid */
@@ -3480,55 +3561,6 @@ export interface operations {
            *     }
            */
           "application/json": unknown;
-        };
-      };
-      /** @description Validation Error */
-      422: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["HTTPValidationError"];
-        };
-      };
-    };
-  };
-  list_managed_clubs_api_v1_clubs_managed__get: {
-    parameters: {
-      query?: {
-        /** @description Page number */
-        page?: number;
-        /** @description Page size */
-        size?: number;
-      };
-      header?: never;
-      path?: never;
-      cookie?: never;
-    };
-    requestBody?: never;
-    responses: {
-      /** @description Successful Response */
-      200: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          "application/json": components["schemas"]["Page_ClubInfo_"];
-        };
-      };
-      /** @description Unauthorized or Token invalid */
-      401: {
-        headers: {
-          [name: string]: unknown;
-        };
-        content: {
-          /**
-           * @example {
-           *       "message_key": "error.auth.token_invalid",
-           *       "error_code": "AUTH_TOKEN_INVALID"
-           *     }
-           */
-          "application/json": components["schemas"]["ErrorResponseModel"];
         };
       };
       /** @description Validation Error */
