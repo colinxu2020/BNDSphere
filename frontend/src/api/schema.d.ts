@@ -1804,6 +1804,10 @@ export interface components {
     };
     /** ClubActivityCreateRequestInfo */
     ClubActivityCreateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
+      /** Club Name */
+      club_name?: string | null;
       /** Name */
       name: string;
       /** Description */
@@ -1892,6 +1896,10 @@ export interface components {
     };
     /** ClubActivityUpdateRequestInfo */
     ClubActivityUpdateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
+      /** Club Activity Name */
+      club_activity_name?: string | null;
       /** Name */
       name?: string | null;
       /** Description */
@@ -2189,6 +2197,10 @@ export interface components {
     };
     /** ClubUpdateRequestInfo */
     ClubUpdateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
+      /** Club Name */
+      club_name?: string | null;
       /** Summary */
       summary?: string | null;
       /** Description */
@@ -3144,6 +3156,8 @@ export interface components {
     };
     /** UserUpdateRequestInfo */
     UserUpdateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
       /** Update Fields */
       update_fields?: string[];
       /** Id */

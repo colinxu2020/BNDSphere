@@ -35,8 +35,12 @@ const QUEUES: { key: QueueKey; label: string; description: string }[] = [
 ];
 
 function getTargetLabel(item: ModerationItem) {
-  if ("user_id" in item) return `用户 #${item.user_id}`;
-  return `社团 #${item.club_id}`;
+  if ("user_id" in item) return `用户 ${identityLabel(item.requestor_username, item.user_id)}`;
+  return `社团 ${identityLabel(item.club_name, item.club_id)}`;
+}
+
+function identityLabel(name: string | null | undefined, id: number) {
+  return name ? `${name} (#${id})` : `#${id}`;
 }
 
 function renderRequestDetails(item: ModerationItem) {
@@ -61,6 +65,14 @@ function renderRequestDetails(item: ModerationItem) {
   }
   return (
     <div className="grid gap-2">
+      {"requestor_id" in item && (
+        <div className="grid grid-cols-[80px_1fr] gap-3 text-sm">
+          <span className="font-semibold text-slate-500">申请人</span>
+          <span className="whitespace-pre-wrap break-words text-slate-700">
+            {identityLabel(item.requestor_username, item.requestor_id)}
+          </span>
+        </div>
+      )}
       {visibleRows.map(([label, value]) => (
         <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
           <span className="font-semibold text-slate-500">{label}</span>
@@ -428,10 +440,13 @@ function ActivityRequestList({
 }
 
 function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
+  const rows: [string, unknown][] = [
+    ["申请人", identityLabel(item.requestor_username, item.requestor_id)],
+  ];
 
-  if ("club_id" in item) rows.push(["社团", `#${item.club_id}`]);
-  if ("club_activity_id" in item) rows.push(["原活动", `#${item.club_activity_id}`]);
+  if ("club_id" in item) rows.push(["社团", identityLabel(item.club_name, item.club_id)]);
+  if ("club_activity_id" in item)
+    rows.push(["原活动", identityLabel(item.club_activity_name, item.club_activity_id)]);
   if ("name" in item) rows.push(["名称", item.name]);
   if ("description" in item) rows.push(["描述", item.description]);
   if ("start_time" in item) {
@@ -457,6 +472,6 @@ function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpda
 }
 
 function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  if ("club_id" in item) return `社团 #${item.club_id}`;
-  return `原活动 #${item.club_activity_id}`;
+  if ("club_id" in item) return `社团 ${identityLabel(item.club_name, item.club_id)}`;
+  return `原活动 ${identityLabel(item.club_activity_name, item.club_activity_id)}`;
 }
