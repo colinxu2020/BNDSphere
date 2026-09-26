@@ -532,9 +532,14 @@ export function ClubDetail() {
                         className="pointer-events-none absolute inset-0 bg-primary-500"
                       />
                     )}
-                    <div className="relative flex min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 flex-col gap-1">
                       <h3 className="font-semibold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">
-                        {act.name}
+                        <Link
+                          to={`/club/${club.id}/activity/${act.id}`}
+                          className="after:absolute after:inset-0"
+                        >
+                          {act.name}
+                        </Link>
                       </h3>
                       <p className="text-slate-500 text-sm line-clamp-1">{act.description}</p>
                       <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-medium text-slate-400">
@@ -546,7 +551,7 @@ export function ClubDetail() {
                         </span>
                       </div>
                     </div>
-                    <div className="relative flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                    <div className="relative z-10 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
                       {canManage && (
                         <Link
                           to={`/club/${club.id}/manage?activity=${act.id}`}
