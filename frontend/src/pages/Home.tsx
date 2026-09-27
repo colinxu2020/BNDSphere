@@ -17,17 +17,20 @@ import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummary = components["schemas"]["ClubSummary"];
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type Announcement = components["schemas"]["AnnouncementInfo"];
-type UserInfo = components["schemas"]["UserInfo"];
 type MyClubActivityStatus = "ended" | "ongoing" | "upcoming";
 type MyClubActivity = {
   activity: ClubActivity;
-  club: ClubInfo;
+  club: ClubSummary;
   status: MyClubActivityStatus;
   distanceMs: number;
 };
+type JoinedClub = { club: ClubSummary; activities: ClubActivity[] };
+
+const JOINED_ROLES = new Set(["member", "president", "vice_president"]);
 
 const calendarColors = [
   "bg-sky-500",
@@ -40,9 +43,10 @@ const calendarColors = [
 
 export function Home() {
   const [clubs, setClubs] = useState<ClubInfo[]>([]);
+  const [pendingClubs, setPendingClubs] = useState<ClubSummary[]>([]);
+  const [joinedClubs, setJoinedClubs] = useState<JoinedClub[]>([]);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
-  const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<unknown>(null);
 
@@ -54,7 +58,7 @@ export function Home() {
       setIsLoading(true);
       setError(null);
       try {
-        const [clubResult, activityResult, announcementResult, userResult] = await Promise.all([
+        const [clubResult, activityResult, announcementResult, joinedResult] = await Promise.all([
           client.GET("/api/v1/clubs/", { params: { query: { size: 24 } } }),
           client.GET("/api/v1/general-activities/", {
             params: { query: { size: 50 } },
@@ -63,24 +67,23 @@ export function Home() {
             params: { query: { size: 8, active_only: true } },
           }),
           isLoggedIn
-            ? client.GET("/api/v1/users/me")
-            : Promise.resolve({
-                data: null,
-                error: null,
-                response: new Response(null, { status: 204 }),
-              }),
+            ? loadJoinedClubs()
+            : Promise.resolve({ data: [], pendingClubs: [], error: null }),
         ]);
 
         if (cancelled) return;
         const firstError =
-          clubResult.error || activityResult.error || announcementResult.error || userResult.error;
+          clubResult.error ||
+          activityResult.error ||
+          announcementResult.error ||
+          joinedResult.error;
         if (firstError) setError(firstError);
 
-        const allClubs = clubResult.data?.items || [];
-        setUser(userResult.data || null);
         setActivities(activityResult.data?.items || []);
         setAnnouncements(announcementResult.data?.items || []);
-        setClubs(allClubs);
+        setClubs(clubResult.data?.items || []);
+        setJoinedClubs(joinedResult.data);
+        setPendingClubs(joinedResult.pendingClubs);
       } catch (requestError) {
         if (!cancelled) setError(requestError);
       } finally {
@@ -102,8 +105,8 @@ export function Home() {
   const calendar = useMemo(() => buildMonthCalendar(activities), [activities]);
   const showcaseClubs = clubs.slice(0, 6);
   const myClubActivities = useMemo(
-    () => getMyClubActivities(clubs, user?.id).slice(0, 4),
-    [clubs, user?.id],
+    () => getMyClubActivities(joinedClubs).slice(0, 4),
+    [joinedClubs],
   );
 
   return (
@@ -114,6 +117,24 @@ export function Home() {
       className="grid gap-6 pb-20"
     >
       {error && <StatusMessage value={error} />}
+
+      {isLoggedIn && pendingClubs.length > 0 && (
+        <section className="rounded-md border border-slate-200 bg-white p-5">
+          <h2 className="mb-4 font-display text-lg font-bold">申请中的社团</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pendingClubs.map((club) => (
+              <Link
+                key={club.id}
+                to={`/club/${club.id}`}
+                className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
+              >
+                <span className="font-semibold text-slate-900">{club.name}</span>
+                <Badge tone="yellow">申请中</Badge>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.55fr_0.85fr]">
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
@@ -462,32 +483,50 @@ function getMyClubActivityTone(status: MyClubActivityStatus) {
   return "blue";
 }
 
-function getJoinedClubIds(clubs: ClubInfo[], userId?: number | null) {
-  if (!userId) return new Set<number>();
-  return new Set(
-    clubs
-      .filter((club) =>
-        club.members.some(
-          (member) =>
-            member.user_id === userId &&
-            ["member", "president", "vice_president"].includes(member.membership),
-        ),
-      )
-      .map((club) => club.id),
+/**
+ * The clubs the current user has actually joined (not pending / left), each
+ * with its activity list — fetched per club, since the Summary tier carries
+ * no collections.
+ */
+async function loadJoinedClubs(): Promise<{
+  data: JoinedClub[];
+  pendingClubs: ClubSummary[];
+  error: unknown;
+}> {
+  const membershipResult = await client.GET("/api/v1/users/me/clubs/");
+  if (membershipResult.error) return { data: [], pendingClubs: [], error: membershipResult.error };
+
+  const joined = (membershipResult.data || [])
+    .filter(({ membership, club }) => JOINED_ROLES.has(membership) && club.status === "normal")
+    .map(({ club }) => club);
+  const activityResults = await Promise.all(
+    joined.map((club) =>
+      client.GET("/api/v1/clubs/{club_id}/activities/", {
+        params: { path: { club_id: club.id }, query: { size: 100 } },
+      }),
+    ),
   );
+
+  return {
+    data: joined.map((club, index) => ({
+      club,
+      activities: activityResults[index].data?.items || [],
+    })),
+    pendingClubs: (membershipResult.data || [])
+      .filter(({ membership, club }) => membership === "pending" && club.status === "normal")
+      .map(({ club }) => club),
+    error: activityResults.find((result) => result.error)?.error ?? null,
+  };
 }
 
-function getMyClubActivities(clubs: ClubInfo[], userId?: number | null) {
-  const joinedClubIds = getJoinedClubIds(clubs, userId);
-  if (!joinedClubIds.size) return [];
+function getMyClubActivities(joinedClubs: JoinedClub[]) {
   const now = new Date();
   const upcomingWindowMs = 14 * 24 * 60 * 60 * 1000;
   const endedWindowMs = 3 * 24 * 60 * 60 * 1000;
 
-  return clubs
-    .filter((club) => joinedClubIds.has(club.id))
-    .flatMap((club) =>
-      (club.club_activities || [])
+  return joinedClubs
+    .flatMap(({ club, activities }) =>
+      activities
         .map((activity) => {
           const start = new Date(activity.start_time);
           const end = new Date(activity.end_time);

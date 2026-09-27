@@ -35,6 +35,41 @@
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
+    "/api/v1/users/me/clubs/": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List Current User Clubs",
+        "description": "List the current user's clubs with their role in each (Summary tier).\n\nIncludes pending / member / president / vice_president; excludes left.",
+        "operationId": "list_current_user_clubs_api_v1_users_me_clubs__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "$ref": "#/components/schemas/UserClubMembership" },
+                  "type": "array",
+                  "title": "Response List Current User Clubs Api V1 Users Me Clubs  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
     "/api/v1/users/{user_id}": {
       "get": {
         "tags": ["Users"],
@@ -256,72 +291,6 @@
             "description": "Incorrect username or password",
             "content": {
               "application/json": { "example": { "detail": "Incorrect username or password" } }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/clubs/managed/": {
-      "get": {
-        "tags": ["Clubs"],
-        "summary": "List Managed Clubs",
-        "description": "List active and unreviewed clubs managed by the current user.",
-        "operationId": "list_managed_clubs_api_v1_clubs_managed__get",
-        "security": [{ "OAuth2PasswordBearer": [] }],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Page number",
-              "default": 1,
-              "title": "Page"
-            },
-            "description": "Page number"
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Page size",
-              "default": 50,
-              "title": "Size"
-            },
-            "description": "Page size"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
-            }
-          },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
             }
           },
           "422": {
@@ -7178,7 +7147,8 @@
           "club_activities",
           "general_activity_records"
         ],
-        "title": "ClubInfo"
+        "title": "ClubInfo",
+        "description": "Info 档: 完整形状, 含关联集合; 只由详情类接口返回."
       },
       "ClubMemberAssignableRoleEnum": {
         "type": "string",
@@ -7280,6 +7250,48 @@
         "type": "string",
         "enum": ["unreviewed", "normal", "archived"],
         "title": "ClubStatusEnum"
+      },
+      "ClubSummary": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 4000, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
+          "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" },
+          "president": {
+            "anyOf": [{ "$ref": "#/components/schemas/ClubMemberUserInfo" }, { "type": "null" }]
+          },
+          "vice_presidents": {
+            "items": { "$ref": "#/components/schemas/ClubMemberUserInfo" },
+            "type": "array",
+            "title": "Vice Presidents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "summary",
+          "description",
+          "created_at",
+          "status",
+          "star_level",
+          "president",
+          "vice_presidents"
+        ],
+        "title": "ClubSummary",
+        "description": "Summary 档: 列表一行所需的字段, 不携带任何集合; 额外携带社长与副社长."
       },
       "ClubUpdate": {
         "properties": {
@@ -8633,6 +8645,16 @@
           "resource_file"
         ],
         "title": "UploadScene"
+      },
+      "UserClubMembership": {
+        "properties": {
+          "membership": { "$ref": "#/components/schemas/ClubMembershipEnum" },
+          "club": { "$ref": "#/components/schemas/ClubSummary" }
+        },
+        "type": "object",
+        "required": ["membership", "club"],
+        "title": "UserClubMembership",
+        "description": "当前用户在一个社团中的角色, 连同该社团的 Summary."
       },
       "UserGradeEnum": {
         "type": "string",

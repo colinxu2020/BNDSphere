@@ -2,7 +2,7 @@ from datetime import datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, Index, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
@@ -39,4 +39,13 @@ class ClubMember(Base):
 
     __table_args__ = (
         UniqueConstraint("club_id", "user_id", name="uix_club_id_user_id"),
+        # A club has at most one president (see CONTEXT.md). Enforced here so a
+        # service-layer bug can never yield two; the name comes from the
+        # metadata naming convention (``ix_club_members_club_id``).
+        Index(
+            None,
+            "club_id",
+            unique=True,
+            postgresql_where=(membership == ClubMembershipEnum.president.value),
+        ),
     )
