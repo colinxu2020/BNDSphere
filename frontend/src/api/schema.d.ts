@@ -363,6 +363,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/{club_id}/activities/refs/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Club Activity Refs
+     * @description List activity identities with the same visibility as the full list.
+     */
+    get: operations["get_club_activity_refs_api_v1_clubs__club_id__activities_refs__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/clubs/{club_id}/activities/create-requests": {
     parameters: {
       query?: never;
@@ -1877,6 +1897,16 @@ export interface components {
       /** Token */
       token: string;
     };
+    /**
+     * ClubActivityRef
+     * @description Minimal activity identity for references and selectors.
+     */
+    ClubActivityRef: {
+      /** Id */
+      id: number;
+      /** Name */
+      name: string;
+    };
     /** ClubActivityUpdateRequestCreatePublic */
     ClubActivityUpdateRequestCreatePublic: {
       /** Name */
@@ -2168,13 +2198,7 @@ export interface components {
      * @enum {string}
      */
     ClubStarLevelEnum:
-      | "none"
-      | "one_star"
-      | "two_star"
-      | "three_star"
-      | "four_star"
-      | "five_star"
-      | "honorary";
+      "none" | "one_star" | "two_star" | "three_star" | "four_star" | "five_star" | "honorary";
     /**
      * ClubStatusEnum
      * @enum {string}
@@ -4438,6 +4462,37 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Page_ClubActivityInfo_"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_club_activity_refs_api_v1_clubs__club_id__activities_refs__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubActivityRef"][];
         };
       };
       /** @description Validation Error */

@@ -12,7 +12,7 @@ from app.api.dependencies import (
 )
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import User
-from app.schemas.club_activity import ClubActivityInfo
+from app.schemas.club_activity import ClubActivityInfo, ClubActivityRef
 from app.schemas.club_activity_check_in import (
     ClubActivityCheckInInfo,
     ClubActivityCheckInQrTokenInfo,
@@ -48,6 +48,15 @@ async def get_club_activities(
     return Page[ClubActivityInfo].model_validate(
         await service.get_club_activities_by_club_id(club_id),
     )
+
+
+@router.get("/refs/")
+async def get_club_activity_refs(
+    club_id: int,
+    service: ClubActivityServiceDep,
+) -> list[ClubActivityRef]:
+    """List activity identities with the same visibility as the full list."""
+    return await service.get_club_activity_refs(club_id)
 
 
 @router.post(
