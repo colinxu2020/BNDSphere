@@ -16,6 +16,18 @@
 
 ### /clubs
 
+#### GET /clubs/ 与 GET /admin/clubs/
+
+返回 `Page[ClubSummary]`，含社团自身字段（包括 `description`、`created_at`）、
+`president`（可空的用户资料）和 `vice_presidents`（用户资料列表）。
+不返回 `members`、`club_activities`、`general_activity_records`；列表查询不装载这些集合。
+领导层资料按本页社团 ID 批量查询，只选择 president / vice_president 关系。
+
+公开列表仅返回 normal 社团；search、category、分页参数和现有排序保持不变。
+管理员列表保留 club_status、category、search 筛选。
+详情接口和管理员 PATCH 仍返回含三组集合的 `ClubInfo`。
+`GET /star-level/` 的嵌入社团也统一为 `ClubSummary`。
+
 #### GET /clubs/refs/
 
 | 参数   | 类型 | 描述                                            |

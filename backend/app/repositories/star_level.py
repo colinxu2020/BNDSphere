@@ -1,6 +1,6 @@
 from typing import cast
 
-from fastapi_pagination import Page
+from fastapi_pagination import Page, set_page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload
@@ -37,18 +37,20 @@ class StarLevelRepository(
         return application
 
     async def list_public(self) -> Page[StarLevelApplication]:
-        return cast(
-            "Page[StarLevelApplication]",
-            await apaginate(
-                self.db,
-                select(self.model)
-                .options(
-                    selectinload(self.model.club),
-                    selectinload(self.model.academic_term),
-                )
-                .order_by(self.model.created_at.desc(), self.model.id.desc()),
-            ),
-        )
+        # The API assembles the nested ClubSummary after loading leadership.
+        with set_page(Page):
+            return cast(
+                "Page[StarLevelApplication]",
+                await apaginate(
+                    self.db,
+                    select(self.model)
+                    .options(
+                        selectinload(self.model.club).raiseload("*"),
+                        selectinload(self.model.academic_term),
+                    )
+                    .order_by(self.model.created_at.desc(), self.model.id.desc()),
+                ),
+            )
 
     async def list_by_club(self, club: Club) -> Page[StarLevelApplication]:
         return cast(

@@ -24,6 +24,7 @@ from app.schemas.club import (
     ClubMemberInfo,
     ClubMemberRoleUpdate,
     ClubRef,
+    ClubSummary,
     ClubUpdate,
 )
 from app.schemas.moderations.club import (
@@ -165,9 +166,9 @@ async def list_clubs(
     service: ClubServiceDep,
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
-) -> Page[ClubInfo]:
+) -> Page[ClubSummary]:
     """Search Clubs."""
-    return Page[ClubInfo].model_validate(
+    return Page[ClubSummary].model_validate(
         await service.get_multi(
             search,
             category,

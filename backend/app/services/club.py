@@ -132,12 +132,18 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         status: ClubStatusEnum | None = None,
         *,
         public_only: bool = False,
-    ) -> Page[Club]:
-        return await self.repository.get_multi(
+    ) -> Page[ClubSummary]:
+        page = await self.repository.get_multi(
             search,
             category,
             status,
             public_only=public_only,
+        )
+        return Page[ClubSummary].model_validate(
+            {
+                **page.model_dump(exclude={"items"}),
+                "items": await self.summarize(page.items),
+            },
         )
 
     async def get_public_refs(self, search: str | None = None) -> Page[Club]:

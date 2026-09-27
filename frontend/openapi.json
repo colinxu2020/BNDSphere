@@ -626,7 +626,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubSummary_" } }
             }
           },
           "422": {
@@ -1966,7 +1966,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubSummary_" } }
             }
           },
           "403": {
@@ -7960,22 +7960,6 @@
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubGeneralActivityInfo]"
       },
-      "Page_ClubInfo_": {
-        "properties": {
-          "items": {
-            "items": { "$ref": "#/components/schemas/ClubInfo" },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
-        },
-        "type": "object",
-        "required": ["items", "total", "page", "size", "pages"],
-        "title": "Page[ClubInfo]"
-      },
       "Page_ClubMembershipRequestInfo_": {
         "properties": {
           "items": {
@@ -8007,6 +7991,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubRef]"
+      },
+      "Page_ClubSummary_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubSummary" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubSummary]"
       },
       "Page_ClubUpdateRequestInfo_": {
         "properties": {
@@ -8390,7 +8390,7 @@
             "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "club_id": { "type": "integer", "title": "Club Id" },
-          "club": { "$ref": "#/components/schemas/StarLevelClubInfo" },
+          "club": { "$ref": "#/components/schemas/ClubSummary" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
           "audit_status": {
             "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
@@ -8499,25 +8499,6 @@
         },
         "type": "object",
         "title": "StarLevelApplicationUpdate"
-      },
-      "StarLevelClubInfo": {
-        "properties": {
-          "id": { "type": "integer", "title": "Id" },
-          "name": { "type": "string", "title": "Name" },
-          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
-          "logo_uri": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
-              { "type": "null" }
-            ],
-            "title": "Logo Uri"
-          },
-          "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
-          "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" }
-        },
-        "type": "object",
-        "required": ["id", "name", "category", "logo_uri", "status", "star_level"],
-        "title": "StarLevelClubInfo"
       },
       "StarRatingBreakdown": {
         "properties": {

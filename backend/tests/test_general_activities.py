@@ -398,13 +398,7 @@ class TestPublicClubRecordsEcho:
         # Non-normal clubs are not listed at all.
         assert self.unreviewed_club_id not in {c["id"] for c in items}
 
-        # Club with only a pending (legacy dirty) record: nothing is echoed.
-        pending_only = next(i for i in items if i["id"] == self.normal_club_2_id)
-        assert pending_only["general_activity_records"] == []
-
-        # Club with an approved record: only that record is echoed.
-        approved_only = next(i for i in items if i["id"] == self.normal_club_id)
-        assert [r["id"] for r in approved_only["general_activity_records"]] == [
-            self.approved_record_id
-        ]
+        # Summary lists carry no activity records, even approved ones.
+        assert {self.normal_club_id, self.normal_club_2_id} <= {c["id"] for c in items}
+        assert all("general_activity_records" not in item for item in items)
         assert "javascript:" not in resp.text

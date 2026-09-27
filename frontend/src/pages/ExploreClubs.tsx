@@ -7,9 +7,10 @@ import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
 import { PageHeader, StatusMessage } from "../components/ui/AppPrimitives";
+import { ClubPresident } from "../components/ui/ClubPresident";
 import { PageLoading } from "../components/ui/PageStates";
 
-type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummary = components["schemas"]["ClubSummary"];
 type Category = components["schemas"]["ClubCategoryEnum"];
 
 const CATEGORIES: { label: string; value: Category | "all" }[] = [
@@ -18,7 +19,7 @@ const CATEGORIES: { label: string; value: Category | "all" }[] = [
 ];
 
 export function ExploreClubs() {
-  const [clubs, setClubs] = useState<ClubInfo[]>([]);
+  const [clubs, setClubs] = useState<ClubSummary[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<Category | "all">("all");
@@ -140,7 +141,7 @@ export function ExploreClubs() {
                     <Hash className="text-slate-400 stroke-[1.5]" size={28} />
                   )}
                 </div>
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <div className="flex gap-2 items-center mb-1">
                     <span className="text-[10px] font-bold tracking-wider uppercase text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-md">
                       {CATEGORY_MAP[club.category] || club.category}
@@ -155,6 +156,9 @@ export function ExploreClubs() {
                     {club.name}
                   </h3>
                   <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">{club.summary}</p>
+                  <div className="mt-3">
+                    <ClubPresident president={club.president} />
+                  </div>
                 </div>
               </Link>
             </motion.div>
