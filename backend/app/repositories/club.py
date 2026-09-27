@@ -80,7 +80,14 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         *,
         public_only: bool = False,
     ) -> Page[Club]:
-        stmt = _apply_search(select(Club), search)
+        if public_only and (search is None or not search.strip()):
+            stmt = select(Club).order_by(
+                (Club.description != "").desc(),
+                Club.star_level.desc(),
+                Club.id.asc(),
+            )
+        else:
+            stmt = _apply_search(select(Club), search)
 
         if public_only:
             stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
