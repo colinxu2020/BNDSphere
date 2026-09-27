@@ -2198,13 +2198,7 @@ export interface components {
      * @enum {string}
      */
     ClubStarLevelEnum:
-      | "none"
-      | "one_star"
-      | "two_star"
-      | "three_star"
-      | "four_star"
-      | "five_star"
-      | "honorary";
+      "none" | "one_star" | "two_star" | "three_star" | "four_star" | "five_star" | "honorary";
     /**
      * ClubStatusEnum
      * @enum {string}
