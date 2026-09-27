@@ -16,7 +16,6 @@ import { formatDate } from "../lib/format";
 import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 
-type ClubInfo = components["schemas"]["ClubInfo"];
 type ClubSummary = components["schemas"]["ClubSummary"];
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
@@ -42,7 +41,7 @@ const calendarColors = [
 ];
 
 export function Home() {
-  const [clubs, setClubs] = useState<ClubInfo[]>([]);
+  const [clubs, setClubs] = useState<ClubSummary[]>([]);
   const [pendingClubs, setPendingClubs] = useState<ClubSummary[]>([]);
   const [joinedClubs, setJoinedClubs] = useState<JoinedClub[]>([]);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
