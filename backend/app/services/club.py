@@ -154,10 +154,21 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
     async def get_user_clubs(self, user: User) -> list[UserClubMembership]:
         """当前用户的社团 (pending/member/president/vice_president, 不含 left)."""
         memberships = await self.member_repository.get_memberships_by_user(user.id)
-        summaries = await self.summarize([m.club for m in memberships])
+        pending_clubs = (
+            await self.membership_request_repository.get_pending_clubs_by_user(user.id)
+        )
+        # 当前成员角色优先; left 不在 memberships 中, 重新申请时显示 pending.
+        relationships = {
+            club.id: (club, ClubMembershipEnum.pending) for club in pending_clubs
+        }
+        relationships.update({m.club_id: (m.club, m.membership) for m in memberships})
+        ordered = [
+            relationships[club_id] for club_id in sorted(relationships, reverse=True)
+        ]
+        summaries = await self.summarize([club for club, _ in ordered])
         return [
-            UserClubMembership(membership=m.membership, club=summary)
-            for m, summary in zip(memberships, summaries, strict=True)
+            UserClubMembership(membership=membership, club=summary)
+            for (_, membership), summary in zip(ordered, summaries, strict=True)
         ]
 
     async def get_manageable_club(self, club_id: int) -> Club:

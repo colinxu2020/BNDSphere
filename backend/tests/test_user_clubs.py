@@ -21,6 +21,7 @@ from app.main import app
 from app.models import Club, ClubMember, User
 from app.models.club import ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
+from app.models.verifications.club_membership import ClubMembershipRequest
 
 
 class ConfiguredUser(TypedDict):
@@ -57,6 +58,7 @@ async def setup_user_clubs(
         "vice": _club("My Vice Club", ClubStatusEnum.unreviewed),
         "joined": _club("My Joined Club"),
         "pending": _club("My Pending Club"),
+        "legacy_pending": _club("Legacy Pending Club"),
         "left": _club("My Left Club"),
         "unrelated": _club("Unrelated Club"),
     }
@@ -77,7 +79,7 @@ async def setup_user_clubs(
         ("joined", "president", ClubMembershipEnum.president),
         ("joined", "vp_a", ClubMembershipEnum.vice_president),
         ("joined", "member", ClubMembershipEnum.left),
-        ("pending", "me", ClubMembershipEnum.pending),
+        ("legacy_pending", "me", ClubMembershipEnum.pending),
         ("left", "me", ClubMembershipEnum.left),
         ("left", "president", ClubMembershipEnum.president),
         ("unrelated", "president", ClubMembershipEnum.president),
@@ -89,6 +91,22 @@ async def setup_user_clubs(
             membership=membership,
         )
         for club_key, username, membership in roster
+    )
+    db_session.add(
+        ClubMembershipRequest(
+            applicant_id=user_ids["me"],
+            club_id=club_ids["pending"],
+            message="Please let me join",
+        ),
+    )
+    # A stale pending request must neither duplicate a current membership nor
+    # replace its actual role (for example after a separate claim/role change).
+    db_session.add(
+        ClubMembershipRequest(
+            applicant_id=user_ids["me"],
+            club_id=club_ids["joined"],
+            message="Earlier application",
+        ),
     )
     await db_session.flush()
 
@@ -135,6 +153,7 @@ class TestUserClubs:
             club_ids["vice"]: "vice_president",
             club_ids["joined"]: "member",
             club_ids["pending"]: "pending",
+            club_ids["legacy_pending"]: "pending",
         }
         assert club_ids["left"] not in items
         assert club_ids["unrelated"] not in items
@@ -232,3 +251,66 @@ class TestUserClubs:
         # With the route gone, the trailing-slash redirect lands on
         # ``/clubs/{club_id}``, which rejects the non-integer id.
         assert response.status_code == 422
+
+    @pytest.mark.parametrize("was_member", [False, True])
+    @pytest.mark.parametrize("decision", ["approved", "rejected"])
+    async def test_real_application_lifecycle(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        setup_user_clubs: UserClubsFixture,
+        was_member: bool,
+        decision: str,
+    ) -> None:
+        club = _club(f"Application {was_member} {decision}")
+        db_session.add(club)
+        await db_session.flush()
+        club_id = club.id
+        user_ids = setup_user_clubs["user_ids"]
+        db_session.add(
+            ClubMember(
+                club_id=club_id,
+                user_id=user_ids["president"],
+                membership=ClubMembershipEnum.president,
+            ),
+        )
+        if was_member:
+            db_session.add(
+                ClubMember(
+                    club_id=club_id,
+                    user_id=user_ids["me"],
+                    membership=ClubMembershipEnum.left,
+                ),
+            )
+        await db_session.commit()
+
+        response = await client.post(
+            f"/clubs/{club_id}/membership-requests",
+            headers=self._headers("me"),
+            json={"message": "Please let me join"},
+        )
+        assert response.status_code == 201
+        request_id = response.json()["id"]
+        items = await self._my_clubs(client)
+        assert items[club_id]["membership"] == "pending"
+        assert club_id not in {
+            item["club"]["id"]
+            for item in (
+                await client.get("/users/me/clubs/", headers=self._headers("member"))
+            ).json()
+        }
+
+        response = await client.patch(
+            f"/clubs/{club_id}/membership-requests/{request_id}",
+            headers=self._headers("president"),
+            json={"verification_status": decision},
+        )
+        assert response.status_code == 200
+        # The fixture shares one identity map across requests; production uses
+        # a fresh session. Discard the seeded left row cached before the upsert.
+        db_session.expire_all()
+        items = await self._my_clubs(client)
+        if decision == "approved":
+            assert items[club_id]["membership"] == "member"
+        else:
+            assert club_id not in items

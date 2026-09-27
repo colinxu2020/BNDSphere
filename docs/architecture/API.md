@@ -39,3 +39,5 @@
 #### GET /clubs/{club_id}/members :construction:
 
 获取社团成员列表
+
+`GET /users/me/clubs/` 的 `pending` 同时包含成员表中的 pending 关系和当前用户在入社申请表中的待审核申请。退出后重新申请也返回 pending；当前有效成员角色优先，同一社团只返回一次。批准后显示 member，拒绝且无当前成员关系时不再返回。首页显示申请中的社团，但这些社团不参与“我的社团活动”聚合。

@@ -283,6 +283,19 @@ class ClubMembershipRequestRepository(
         )
         return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
 
+    async def get_pending_clubs_by_user(self, user_id: int) -> Sequence[Club]:
+        """申请中的社团来自申请表, 不要求已存在成员行; 仅装载 Summary 字段."""
+        stmt = (
+            select(Club)
+            .join(self.model, self.model.club_id == Club.id)
+            .where(
+                self.model.applicant_id == user_id,
+                self.model.verification_status == VerificationStatusEnum.pending,
+            )
+            .options(raiseload("*"))
+        )
+        return (await self.db.execute(stmt)).scalars().all()
+
     async def reject_pending_requests(
         self,
         club_id: int,

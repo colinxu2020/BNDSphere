@@ -43,6 +43,7 @@ const calendarColors = [
 
 export function Home() {
   const [clubs, setClubs] = useState<ClubInfo[]>([]);
+  const [pendingClubs, setPendingClubs] = useState<ClubSummary[]>([]);
   const [joinedClubs, setJoinedClubs] = useState<JoinedClub[]>([]);
   const [activities, setActivities] = useState<GeneralActivity[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -65,7 +66,9 @@ export function Home() {
           client.GET("/api/v1/announcements/", {
             params: { query: { size: 8, active_only: true } },
           }),
-          isLoggedIn ? loadJoinedClubs() : Promise.resolve({ data: [], error: null }),
+          isLoggedIn
+            ? loadJoinedClubs()
+            : Promise.resolve({ data: [], pendingClubs: [], error: null }),
         ]);
 
         if (cancelled) return;
@@ -80,6 +83,7 @@ export function Home() {
         setAnnouncements(announcementResult.data?.items || []);
         setClubs(clubResult.data?.items || []);
         setJoinedClubs(joinedResult.data);
+        setPendingClubs(joinedResult.pendingClubs);
       } catch (requestError) {
         if (!cancelled) setError(requestError);
       } finally {
@@ -113,6 +117,24 @@ export function Home() {
       className="grid gap-6 pb-20"
     >
       {error && <StatusMessage value={error} />}
+
+      {isLoggedIn && pendingClubs.length > 0 && (
+        <section className="rounded-md border border-slate-200 bg-white p-5">
+          <h2 className="mb-4 font-display text-lg font-bold">申请中的社团</h2>
+          <div className="grid gap-3 sm:grid-cols-2">
+            {pendingClubs.map((club) => (
+              <Link
+                key={club.id}
+                to={`/club/${club.id}`}
+                className="flex items-center justify-between gap-3 rounded-md border border-slate-100 bg-slate-50 p-3 hover:bg-white"
+              >
+                <span className="font-semibold text-slate-900">{club.name}</span>
+                <Badge tone="yellow">申请中</Badge>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-[1.55fr_0.85fr]">
         <div className="contents lg:flex lg:h-full lg:flex-col lg:gap-6">
@@ -466,9 +488,13 @@ function getMyClubActivityTone(status: MyClubActivityStatus) {
  * with its activity list — fetched per club, since the Summary tier carries
  * no collections.
  */
-async function loadJoinedClubs(): Promise<{ data: JoinedClub[]; error: unknown }> {
+async function loadJoinedClubs(): Promise<{
+  data: JoinedClub[];
+  pendingClubs: ClubSummary[];
+  error: unknown;
+}> {
   const membershipResult = await client.GET("/api/v1/users/me/clubs/");
-  if (membershipResult.error) return { data: [], error: membershipResult.error };
+  if (membershipResult.error) return { data: [], pendingClubs: [], error: membershipResult.error };
 
   const joined = (membershipResult.data || [])
     .filter(({ membership, club }) => JOINED_ROLES.has(membership) && club.status === "normal")
@@ -486,6 +512,9 @@ async function loadJoinedClubs(): Promise<{ data: JoinedClub[]; error: unknown }
       club,
       activities: activityResults[index].data?.items || [],
     })),
+    pendingClubs: (membershipResult.data || [])
+      .filter(({ membership, club }) => membership === "pending" && club.status === "normal")
+      .map(({ club }) => club),
     error: activityResults.find((result) => result.error)?.error ?? null,
   };
 }
