@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
@@ -15,84 +15,55 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
-import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
-import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
-type Club = components["schemas"]["ClubInfo"];
-type UserInfo = components["schemas"]["UserInfo"];
+type UserClubMembership = components["schemas"]["UserClubMembership"];
 
 const MANAGER_ROLES = new Set(["president", "vice_president"]);
 
 export function Workspace() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [userError, setUserError] = useState<unknown>(null);
-  const [isUserLoading, setIsUserLoading] = useState(true);
+  const [memberships, setMemberships] = useState<UserClubMembership[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<unknown>(null);
 
-  const loadCurrentUser = useCallback(
-    async (signal?: AbortSignal) => {
-      setIsUserLoading(true);
-      setUser(null);
-      setUserError(null);
-      try {
-        const response = await client.GET("/api/v1/users/me", { signal });
-        if (signal?.aborted) return;
-        if (response.response.status === 401) {
-          navigate("/login");
-          return;
-        }
-        if (response.error || !response.data) {
-          setUserError(response.error || new Error("无法获取当前用户信息"));
-          return;
-        }
-        setUser(response.data);
-      } catch (error) {
-        if (!signal?.aborted) setUserError(error);
-      } finally {
-        if (!signal?.aborted) setIsUserLoading(false);
-      }
-    },
-    [navigate],
+  const managedClubs = useMemo(
+    () =>
+      memberships
+        .filter(
+          ({ membership, club }) => MANAGER_ROLES.has(membership) && club.status !== "archived",
+        )
+        .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN")),
+    [memberships],
   );
 
+  const fetchManagedClubs = async () => {
+    setIsLoading(true);
+    setLoadError(null);
+    try {
+      const response = await client.GET("/api/v1/users/me/clubs/");
+      if (response.response.status === 401) {
+        navigate("/login");
+        return;
+      }
+      if (response.error) {
+        setLoadError(response.error);
+        setMemberships([]);
+      } else {
+        setMemberships(response.data || []);
+      }
+    } catch (error) {
+      setLoadError(error);
+      setMemberships([]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const controller = new AbortController();
-    void loadCurrentUser(controller.signal);
-    return () => controller.abort();
-  }, [loadCurrentUser]);
-
-  const loadManagedClubsPage = useCallback(async (page: number, signal: AbortSignal) => {
-    const response = await client.GET("/api/v1/clubs/managed/", {
-      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
-      signal,
-    });
-    return getPageResult(response.data, response.error, page);
+    fetchManagedClubs();
+    // Load once with the authenticated user captured on mount.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-  const {
-    items: clubs,
-    hasMore,
-    isInitialLoading,
-    isLoadingMore,
-    error: loadError,
-    loadMore,
-    reload,
-  } = useInfiniteList<Club>(loadManagedClubsPage);
-
-  const refresh = () => Promise.all([reload(), loadCurrentUser()]);
-  const isLoading = isInitialLoading || isUserLoading;
-
-  const managedClubs = useMemo(() => {
-    if (!user) return [];
-    return clubs
-      .map((club) => ({
-        club,
-        membership: club.members.find(
-          (member) => member.user_id === user.id && MANAGER_ROLES.has(member.membership),
-        ),
-      }))
-      .filter((item) => item.membership)
-      .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN"));
-  }, [clubs, user]);
 
   return (
     <motion.div
@@ -112,14 +83,14 @@ export function Workspace() {
             >
               <Plus size={16} /> 创建社团
             </Link>
-            <SecondaryButton type="button" onClick={() => void refresh()} disabled={isLoading}>
+            <SecondaryButton type="button" onClick={fetchManagedClubs} disabled={isLoading}>
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
           </div>
         }
       />
 
-      {userError && <StatusMessage value={userError} />}
+      {loadError && <StatusMessage value={loadError} />}
 
       {isLoading ? (
         <PageLoading compact />
@@ -157,9 +128,7 @@ export function Workspace() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge tone="primary">
-                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
-                      </Badge>
+                      <Badge tone="primary">{MEMBERSHIP_MAP[membership]}</Badge>
                       <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
                       <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
                       {club.star_level !== "none" && (
@@ -171,8 +140,7 @@ export function Workspace() {
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />
-                        {club.members.filter((member) => member.membership !== "left").length}{" "}
-                        名成员
+                        {club.president ? `社长 ${club.president.username}` : "暂无社长"}
                       </span>
                     </div>
                   </div>
@@ -186,14 +154,6 @@ export function Workspace() {
           icon={<Building2 size={24} />}
           title="暂无可管理社团"
           description="当你成为社长或副社长后，社团会出现在这里。"
-        />
-      )}
-      {!isLoading && (
-        <InfiniteScrollTrigger
-          hasMore={Boolean(user) && hasMore}
-          isLoading={isLoadingMore}
-          error={loadError}
-          onLoadMore={loadMore}
         />
       )}
     </motion.div>

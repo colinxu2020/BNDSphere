@@ -25,7 +25,9 @@ from app.schemas.club import (
     ClubCreate,
     ClubMemberRoleUpdate,
     ClubMemberUpdate,
+    ClubSummary,
     ClubUpdate,
+    UserClubMembership,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
@@ -142,8 +144,32 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         """公开 Ref 档列表: 只列出 status=normal 的社团, 与公开的 get_multi 语义一致."""
         return await self.repository.get_refs(search, status=ClubStatusEnum.normal)
 
-    async def get_managed_by_user(self, user: User) -> Page[Club]:
-        return await self.repository.get_managed_by_user(user.id)
+    async def summarize(self, clubs: Sequence[Club]) -> list[ClubSummary]:
+        """Summary 档: 社长/副社长用一条定向查询按 club_id 批量取得, 不装载成员集合."""
+        leaders = await self.member_repository.get_leaders_by_club_ids(
+            [club.id for club in clubs],
+        )
+        return [ClubSummary.from_club(club, leaders.get(club.id, [])) for club in clubs]
+
+    async def get_user_clubs(self, user: User) -> list[UserClubMembership]:
+        """当前用户的社团 (pending/member/president/vice_president, 不含 left)."""
+        memberships = await self.member_repository.get_memberships_by_user(user.id)
+        pending_clubs = (
+            await self.membership_request_repository.get_pending_clubs_by_user(user.id)
+        )
+        # 当前成员角色优先; left 不在 memberships 中, 重新申请时显示 pending.
+        relationships = {
+            club.id: (club, ClubMembershipEnum.pending) for club in pending_clubs
+        }
+        relationships.update({m.club_id: (m.club, m.membership) for m in memberships})
+        ordered = [
+            relationships[club_id] for club_id in sorted(relationships, reverse=True)
+        ]
+        summaries = await self.summarize([club for club, _ in ordered])
+        return [
+            UserClubMembership(membership=membership, club=summary)
+            for (_, membership), summary in zip(ordered, summaries, strict=True)
+        ]
 
     async def get_manageable_club(self, club_id: int) -> Club:
         club = await self.get(club_id)

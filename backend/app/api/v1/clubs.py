@@ -46,18 +46,6 @@ from app.services.errors import (
 router = APIRouter(tags=["Clubs"])
 
 
-@router.get(
-    "/managed/",
-    responses=TOKEN_INVALID_RESPONSE,
-)
-async def list_managed_clubs(
-    service: ClubServiceDep,
-    user: Annotated[User, Depends(get_current_user)],
-) -> Page[ClubInfo]:
-    """List active and unreviewed clubs managed by the current user."""
-    return Page[ClubInfo].model_validate(await service.get_managed_by_user(user))
-
-
 @router.get("/refs/")
 async def list_club_refs(
     service: ClubServiceDep,
