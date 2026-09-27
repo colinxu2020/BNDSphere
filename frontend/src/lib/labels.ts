@@ -167,3 +167,16 @@ export const VERIFICATION_STATUS_MAP: Record<
   approved: "已通过",
   rejected: "已驳回",
 };
+
+export const GRADE_MAP: Record<components["schemas"]["UserGradeEnum"], string> = {
+  grade_7: "初一",
+  grade_8: "初二",
+  grade_9: "初三",
+  grade_10: "高一",
+  grade_11: "高二",
+  grade_12: "高三",
+  inter_grade_9: "国际初三",
+  inter_grade_10: "国际高一",
+  inter_grade_11: "国际高二",
+  inter_grade_12: "国际高三",
+};
