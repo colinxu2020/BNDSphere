@@ -266,7 +266,7 @@ function HomeClubPanel({
   isLoading,
   isLoggedIn,
 }: {
-  clubs: ClubInfo[];
+  clubs: ClubSummary[];
   items: MyClubActivity[];
   isLoading: boolean;
   isLoggedIn: boolean;
