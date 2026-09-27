@@ -6,13 +6,7 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { ACTIVITY_LEVEL_MAP, ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
 import { formatDate } from "../lib/format";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  inputClassName,
-} from "../components/ui/AppPrimitives";
+import { Badge, EmptyState, PageHeader, inputClassName } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 import { PageLoading } from "../components/ui/PageStates";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
@@ -91,62 +85,60 @@ export function GeneralActivities() {
         </div>
       </div>
 
-      {error && <StatusMessage value={error} />}
-
       {isInitialLoading ? (
         <PageLoading compact />
       ) : items.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-            {items.map((activityItem, index) => (
-              <motion.div
-                key={activityItem.id}
-                initial={{ opacity: 0, scale: 0.96 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: Math.min(index, DEFAULT_PAGE_SIZE) * 0.04, duration: 0.25 }}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+          {items.map((activityItem, index) => (
+            <motion.div
+              key={activityItem.id}
+              initial={{ opacity: 0, scale: 0.96 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: Math.min(index, DEFAULT_PAGE_SIZE) * 0.04, duration: 0.25 }}
+            >
+              <Link
+                to={`/activities/${activityItem.id}`}
+                className="group block h-full bg-white p-6 rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-slate-300 transition-all duration-300"
               >
-                <Link
-                  to={`/activities/${activityItem.id}`}
-                  className="group block h-full bg-white p-6 rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-slate-300 transition-all duration-300"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="w-12 h-12 rounded-md border border-slate-100 bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
-                      <CalendarDays size={22} />
-                    </div>
-                    <ArrowUpRight
-                      size={18}
-                      className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
-                    />
+                <div className="flex items-start justify-between gap-4">
+                  <div className="w-12 h-12 rounded-md border border-slate-100 bg-slate-50 text-slate-600 flex items-center justify-center shrink-0">
+                    <CalendarDays size={22} />
                   </div>
-                  <div className="mt-5">
-                    <Badge tone="slate">{ACTIVITY_LEVEL_MAP[activityItem.level]}</Badge>
-                    <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-slate-950 transition-colors">
-                      {activityItem.name}
-                    </h3>
-                    <p className="text-sm text-slate-500 line-clamp-2 mt-2">
-                      {activityItem.description}
-                    </p>
-                    <div className="flex items-center gap-3 mt-5 text-xs font-medium text-slate-400">
-                      <span>{formatDate(activityItem.created_at)}</span>
-                      <span>{activityItem.club_records?.length || 0} 条社团记录</span>
-                    </div>
+                  <ArrowUpRight
+                    size={18}
+                    className="text-slate-300 group-hover:text-slate-900 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-all"
+                  />
+                </div>
+                <div className="mt-5">
+                  <Badge tone="slate">{ACTIVITY_LEVEL_MAP[activityItem.level]}</Badge>
+                  <h3 className="mt-3 text-lg font-semibold text-slate-900 group-hover:text-slate-950 transition-colors">
+                    {activityItem.name}
+                  </h3>
+                  <p className="text-sm text-slate-500 line-clamp-2 mt-2">
+                    {activityItem.description}
+                  </p>
+                  <div className="flex items-center gap-3 mt-5 text-xs font-medium text-slate-400">
+                    <span>{formatDate(activityItem.created_at)}</span>
+                    <span>{activityItem.club_records?.length || 0} 条社团记录</span>
                   </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-          <InfiniteScrollTrigger
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-            error={error}
-            onLoadMore={loadMore}
-          />
-        </>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       ) : (
         <EmptyState
           icon={<Filter size={24} />}
           title="暂无活动"
           description={total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"}
+        />
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={error}
+          onLoadMore={loadMore}
         />
       )}
     </motion.div>

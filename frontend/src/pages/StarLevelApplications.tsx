@@ -6,13 +6,7 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  Surface,
-} from "../components/ui/AppPrimitives";
+import { Badge, EmptyState, PageHeader, Surface } from "../components/ui/AppPrimitives";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
 import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
@@ -65,28 +59,26 @@ export function StarLevelApplications() {
     >
       <PageHeader eyebrow="Star Level" title="星级评价" />
 
-      {loadError && <StatusMessage value={loadError} />}
-
       {isInitialLoading ? (
         <Surface className="flex items-center justify-center py-16 text-slate-500">
           正在加载星级评价表...
         </Surface>
       ) : applications.length ? (
-        <>
-          <div className="flex flex-col gap-4">
-            {applications.map((application) => (
-              <StarApplicationCard key={application.id} application={application} />
-            ))}
-          </div>
-          <InfiniteScrollTrigger
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-            error={loadError}
-            onLoadMore={loadMore}
-          />
-        </>
+        <div className="flex flex-col gap-4">
+          {applications.map((application) => (
+            <StarApplicationCard key={application.id} application={application} />
+          ))}
+        </div>
       ) : (
         <EmptyState title="暂无星级评价表" icon={<Award size={24} />} />
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={loadError}
+          onLoadMore={loadMore}
+        />
       )}
     </motion.div>
   );

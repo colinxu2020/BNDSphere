@@ -130,11 +130,6 @@ export function Moderation() {
     activeQueue === "activities"
       ? activityCreateRequests.isInitialLoading || activityUpdateRequests.isInitialLoading
       : activeList.isInitialLoading;
-  const loadError =
-    activeQueue === "activities"
-      ? activityCreateRequests.error || activityUpdateRequests.error
-      : activeList.error;
-
   const loadRequests = async () => {
     setIsForbidden(false);
     if (activeQueue === "activities") {
@@ -175,7 +170,13 @@ export function Moderation() {
             });
 
       setResult(result.error, moderationStatus === "approved" ? "审核已通过" : "审核已驳回");
-      if (!result.error) loadRequests();
+      if (!result.error) {
+        if (activeQueue === "users") {
+          userRequests.removeItem((item) => item.id === requestId);
+        } else {
+          clubRequests.removeItem((item) => item.id === requestId);
+        }
+      }
     } catch (error) {
       setResult(error, "");
     } finally {
@@ -208,7 +209,10 @@ export function Moderation() {
         result.error,
         moderationStatus === "approved" ? "社团活动申请已通过" : "社团活动申请已驳回",
       );
-      if (!result.error) loadRequests();
+      if (!result.error) {
+        const requestList = kind === "create" ? activityCreateRequests : activityUpdateRequests;
+        requestList.removeItem((item) => item.id === requestId);
+      }
     } catch (error) {
       setResult(error, "");
     } finally {
@@ -238,7 +242,6 @@ export function Moderation() {
       />
 
       {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
 
       <PageTabs<QueueKey>
         tabs={QUEUES}
@@ -350,15 +353,17 @@ function ModerationRequestList({
               </div>
             </div>
           ))}
-          <InfiniteScrollTrigger
-            hasMore={pagination.hasMore}
-            isLoading={pagination.isLoadingMore}
-            error={pagination.error}
-            onLoadMore={pagination.loadMore}
-          />
         </div>
       ) : (
         <EmptyState title="没有待处理请求" />
+      )}
+      {!isLoading && (
+        <InfiniteScrollTrigger
+          hasMore={pagination.hasMore}
+          isLoading={pagination.isLoadingMore}
+          error={pagination.error}
+          onLoadMore={pagination.loadMore}
+        />
       )}
     </Surface>
   );
@@ -439,16 +444,16 @@ function ActivityRequestList({
               </div>
             );
           })}
-          <InfiniteScrollTrigger
-            hasMore={pagination.hasMore}
-            isLoading={pagination.isLoadingMore}
-            error={pagination.error}
-            onLoadMore={pagination.loadMore}
-          />
         </>
       ) : (
         <EmptyState title="没有待处理申请" />
       )}
+      <InfiniteScrollTrigger
+        hasMore={pagination.hasMore}
+        isLoading={pagination.isLoadingMore}
+        error={pagination.error}
+        onLoadMore={pagination.loadMore}
+      />
     </div>
   );
 }

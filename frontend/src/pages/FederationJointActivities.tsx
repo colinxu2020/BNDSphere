@@ -134,7 +134,6 @@ export function FederationJointActivities({
       className="flex flex-col gap-8"
     >
       {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
 
       <Surface>
         <SectionTitle icon={<CalendarDays size={20} />} title="待预审" />

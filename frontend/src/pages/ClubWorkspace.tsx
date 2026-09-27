@@ -58,7 +58,12 @@ import { FileUploadField } from "../components/ui/FileUploadField";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
-import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
+import {
+  DEFAULT_PAGE_SIZE,
+  getPageResult,
+  loadAllPages,
+  useInfiniteList,
+} from "../hooks/useInfiniteList";
 
 type Club = components["schemas"]["ClubInfo"];
 type ClubMember = components["schemas"]["ClubMemberInfo"];
@@ -92,59 +97,27 @@ const CLUB_WORKSPACE_TABS: readonly { key: ClubWorkspaceTab; label: string }[] =
 ];
 
 async function loadAllClubActivities(clubId: number) {
-  const items: ClubActivity[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await client.GET("/api/v1/clubs/{club_id}/activities/", {
+  return loadAllPages<ClubActivity>((page) =>
+    client.GET("/api/v1/clubs/{club_id}/activities/", {
       params: { path: { club_id: clubId }, query: { page, size: 100 } },
-    });
-    if (response.error) {
-      return { items: [], error: response.error, response: response.response };
-    }
-
-    items.push(...(response.data?.items || []));
-    if (!response.data || page >= response.data.pages) {
-      return { items, error: null, response: response.response };
-    }
-    page += 1;
-  }
+    }),
+  );
 }
 
 async function loadAllClubGeneralActivityRecords(clubId: number) {
-  const items: ClubGeneralActivity[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
+  return loadAllPages<ClubGeneralActivity>((page) =>
+    client.GET("/api/v1/clubs/{club_id}/general-activities/", {
       params: { path: { club_id: clubId }, query: { page, size: 100 } },
-    });
-    if (response.error) {
-      return { items: [], error: response.error, response: response.response };
-    }
-
-    items.push(...(response.data?.items || []));
-    if (!response.data || page >= response.data.pages) {
-      return { items, error: null, response: response.response };
-    }
-    page += 1;
-  }
+    }),
+  );
 }
 
 async function loadAllGeneralActivities() {
-  const items: GeneralActivity[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await client.GET("/api/v1/general-activities/", {
+  return loadAllPages<GeneralActivity>((page) =>
+    client.GET("/api/v1/general-activities/", {
       params: { query: { page, size: 100 } },
-    });
-    if (response.error) return { items: [], error: response.error };
-
-    items.push(...(response.data?.items || []));
-    if (!response.data || page >= response.data.pages) return { items, error: null };
-    page += 1;
-  }
+    }),
+  );
 }
 
 export function ClubWorkspace() {
@@ -367,7 +340,7 @@ export function ClubWorkspace() {
         setStarRating(ratingResponse.data || null);
       }
 
-      if (club?.id === clubId && club.status === "normal") {
+      if (loadedClub?.id === clubId && loadedClub.status === "normal") {
         await Promise.all([membershipRequestList.reload(), starApplicationList.reload()]);
       }
     } catch (error) {
@@ -1046,9 +1019,6 @@ export function ClubWorkspace() {
                         value={membershipRequestMessage}
                         tone={membershipRequestTone}
                       />
-                      {membershipRequestList.error && (
-                        <StatusMessage value={membershipRequestList.error} />
-                      )}
                       <div className="mt-4 grid gap-3">
                         {membershipRequestList.isInitialLoading ? (
                           <PageLoading compact />
@@ -1626,9 +1596,6 @@ export function ClubWorkspace() {
                   }`}
                 >
                   <div className="grid gap-3">
-                    {starApplicationList.error && (
-                      <StatusMessage value={starApplicationList.error} />
-                    )}
                     {starApplicationList.isInitialLoading ? (
                       <PageLoading compact />
                     ) : starApplications.length ? (

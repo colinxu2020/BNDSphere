@@ -72,7 +72,6 @@ export function JointActivityWorkspace({
   const clubActivities = clubList.items;
   const publicActivities = publicList.items;
   const isLoading = clubList.isInitialLoading || publicList.isInitialLoading;
-  const loadError = clubList.error || publicList.error;
 
   const registeredIds = useMemo(
     () => new Set(clubActivities.map((activity) => activity.id)),
@@ -144,7 +143,6 @@ export function JointActivityWorkspace({
       className="flex flex-col gap-8"
     >
       {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
 
       <Surface>
         <SectionTitle
@@ -212,31 +210,31 @@ export function JointActivityWorkspace({
         {isLoading ? (
           <div className="h-40 animate-pulse rounded-md bg-slate-50" />
         ) : clubActivities.length ? (
-          <>
-            <div className="grid gap-5">
-              {clubActivities.map((activity) => (
-                <div key={activity.id}>
-                  <ManagedActivityCard
-                    activity={activity}
-                    clubId={clubId}
-                    onChanged={refresh}
-                    onMessage={(value, tone) => {
-                      setMessage(value);
-                      setMessageTone(tone);
-                    }}
-                  />
-                </div>
-              ))}
-            </div>
-            <InfiniteScrollTrigger
-              hasMore={clubList.hasMore}
-              isLoading={clubList.isLoadingMore}
-              error={clubList.error}
-              onLoadMore={clubList.loadMore}
-            />
-          </>
+          <div className="grid gap-5">
+            {clubActivities.map((activity) => (
+              <div key={activity.id}>
+                <ManagedActivityCard
+                  activity={activity}
+                  clubId={clubId}
+                  onChanged={refresh}
+                  onMessage={(value, tone) => {
+                    setMessage(value);
+                    setMessageTone(tone);
+                  }}
+                />
+              </div>
+            ))}
+          </div>
         ) : (
           <EmptyState title="本社团暂无联合活动" />
+        )}
+        {!isLoading && (
+          <InfiniteScrollTrigger
+            hasMore={clubList.hasMore}
+            isLoading={clubList.isLoadingMore}
+            error={clubList.error}
+            onLoadMore={clubList.loadMore}
+          />
         )}
       </Surface>
 

@@ -87,7 +87,6 @@ export function FederationClubClaims({
   return (
     <div className="flex flex-col gap-6">
       {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
       <Surface>
         <SectionTitle
           icon={<ShieldCheck size={20} />}
@@ -97,57 +96,57 @@ export function FederationClubClaims({
         {isInitialLoading ? (
           <PageLoading compact />
         ) : claims.length ? (
-          <>
-            <div className="grid gap-4 md:grid-cols-2">
-              {claims.map((claim) => (
-                <article
-                  key={claim.id}
-                  className="rounded-md border border-slate-100 bg-slate-50 p-5"
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="yellow">待审核</Badge>
-                    <span className="text-xs font-medium text-slate-400">申请 #{claim.id}</span>
-                  </div>
-                  <h3 className="mt-3 text-lg font-bold text-slate-900">{claim.club.name}</h3>
-                  <p className="mt-1 text-sm font-medium text-slate-500">
-                    申请人：{claim.applicant.username}
-                  </p>
-                  <p className="mt-3 min-h-12 whitespace-pre-wrap text-sm leading-6 text-slate-600">
-                    {claim.message || "未填写附言。"}
-                  </p>
-                  <p className="mt-3 text-xs font-medium text-slate-400">
-                    <Clock size={14} className="mr-1 inline" />
-                    {formatDateTime(claim.apply_at)}
-                  </p>
-                  <div className="mt-5 flex flex-wrap gap-2">
-                    <PrimaryButton
-                      type="button"
-                      onClick={() => review(claim.id, "approved")}
-                      loading={busyId === claim.id}
-                    >
-                      <Check size={16} /> 通过认领
-                    </PrimaryButton>
-                    <SecondaryButton
-                      type="button"
-                      onClick={() => review(claim.id, "rejected")}
-                      disabled={busyId === claim.id}
-                      className="text-red-600"
-                    >
-                      <X size={16} /> 驳回
-                    </SecondaryButton>
-                  </div>
-                </article>
-              ))}
-            </div>
-            <InfiniteScrollTrigger
-              hasMore={hasMore}
-              isLoading={isLoadingMore}
-              error={loadError}
-              onLoadMore={loadMore}
-            />
-          </>
+          <div className="grid gap-4 md:grid-cols-2">
+            {claims.map((claim) => (
+              <article
+                key={claim.id}
+                className="rounded-md border border-slate-100 bg-slate-50 p-5"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge tone="yellow">待审核</Badge>
+                  <span className="text-xs font-medium text-slate-400">申请 #{claim.id}</span>
+                </div>
+                <h3 className="mt-3 text-lg font-bold text-slate-900">{claim.club.name}</h3>
+                <p className="mt-1 text-sm font-medium text-slate-500">
+                  申请人：{claim.applicant.username}
+                </p>
+                <p className="mt-3 min-h-12 whitespace-pre-wrap text-sm leading-6 text-slate-600">
+                  {claim.message || "未填写附言。"}
+                </p>
+                <p className="mt-3 text-xs font-medium text-slate-400">
+                  <Clock size={14} className="mr-1 inline" />
+                  {formatDateTime(claim.apply_at)}
+                </p>
+                <div className="mt-5 flex flex-wrap gap-2">
+                  <PrimaryButton
+                    type="button"
+                    onClick={() => review(claim.id, "approved")}
+                    loading={busyId === claim.id}
+                  >
+                    <Check size={16} /> 通过认领
+                  </PrimaryButton>
+                  <SecondaryButton
+                    type="button"
+                    onClick={() => review(claim.id, "rejected")}
+                    disabled={busyId === claim.id}
+                    className="text-red-600"
+                  >
+                    <X size={16} /> 驳回
+                  </SecondaryButton>
+                </div>
+              </article>
+            ))}
+          </div>
         ) : (
           <EmptyState title="暂无待审核认领申请" />
+        )}
+        {!isInitialLoading && (
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
         )}
       </Surface>
     </div>

@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { StatusMessage } from "./AppPrimitives";
 
 export function InfiniteScrollTrigger({
   hasMore,
@@ -27,15 +28,16 @@ export function InfiniteScrollTrigger({
     return () => observer.disconnect();
   }, [error, hasMore, isLoading, onLoadMore]);
 
-  if (!hasMore) return null;
+  if (!hasMore && !error) return null;
 
   return (
     <div
       ref={triggerRef}
-      className="flex min-h-14 items-center justify-center py-3 text-sm text-slate-500"
+      className="flex min-h-14 flex-col items-center justify-center gap-3 py-3 text-sm text-slate-500"
       role="status"
       aria-live="polite"
     >
+      {error && <StatusMessage value={error} />}
       {isLoading ? (
         <span className="inline-flex items-center gap-2 font-medium">
           <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-200 border-t-primary-500" />

@@ -6,7 +6,7 @@ import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
-import { PageHeader, StatusMessage } from "../components/ui/AppPrimitives";
+import { PageHeader } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
 import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
@@ -102,62 +102,52 @@ export function ExploreClubs() {
         </div>
       </div>
 
-      {error && <StatusMessage value={error} />}
-
       {isInitialLoading ? (
         <PageLoading compact />
       ) : clubs.length > 0 ? (
-        <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {clubs.map((club, idx) => (
-              <motion.div
-                key={club.id}
-                initial={{ opacity: 0, scale: 0.95 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: Math.min(idx, DEFAULT_PAGE_SIZE) * 0.05, duration: 0.3 }}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+          {clubs.map((club, idx) => (
+            <motion.div
+              key={club.id}
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: Math.min(idx, DEFAULT_PAGE_SIZE) * 0.05, duration: 0.3 }}
+            >
+              <Link
+                to={`/club/${club.id}`}
+                className="group flex items-start gap-4 p-5 bg-white rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-primary-100 transition-all duration-300 h-full"
               >
-                <Link
-                  to={`/club/${club.id}`}
-                  className="group flex items-start gap-4 p-5 bg-white rounded-md border border-slate-200/60 shadow-sm hover:shadow-sm hover:border-primary-100 transition-all duration-300 h-full"
-                >
-                  <div className="w-16 h-16 rounded-md bg-slate-100 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
-                    {club.logo_uri ? (
-                      <img
-                        src={club.logo_uri}
-                        alt={club.name}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <Hash className="text-slate-400 stroke-[1.5]" size={28} />
+                <div className="w-16 h-16 rounded-md bg-slate-100 flex items-center justify-center shrink-0 shadow-inner group-hover:scale-105 transition-transform overflow-hidden">
+                  {club.logo_uri ? (
+                    <img
+                      src={club.logo_uri}
+                      alt={club.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <Hash className="text-slate-400 stroke-[1.5]" size={28} />
+                  )}
+                </div>
+                <div className="flex flex-col">
+                  <div className="flex gap-2 items-center mb-1">
+                    <span className="text-[10px] font-bold tracking-wider uppercase text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-md">
+                      {CATEGORY_MAP[club.category] || club.category}
+                    </span>
+                    {club.star_level !== "none" && (
+                      <span className="flex text-yellow-400 bg-yellow-50 p-0.5 rounded-md">
+                        <Sparkles size={12} className="fill-yellow-400" />
+                      </span>
                     )}
                   </div>
-                  <div className="flex flex-col">
-                    <div className="flex gap-2 items-center mb-1">
-                      <span className="text-[10px] font-bold tracking-wider uppercase text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-md">
-                        {CATEGORY_MAP[club.category] || club.category}
-                      </span>
-                      {club.star_level !== "none" && (
-                        <span className="flex text-yellow-400 bg-yellow-50 p-0.5 rounded-md">
-                          <Sparkles size={12} className="fill-yellow-400" />
-                        </span>
-                      )}
-                    </div>
-                    <h3 className="font-semibold text-[17px] text-slate-900 leading-tight group-hover:text-primary-600 transition-colors">
-                      {club.name}
-                    </h3>
-                    <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">{club.summary}</p>
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
-          </div>
-          <InfiniteScrollTrigger
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-            error={error}
-            onLoadMore={loadMore}
-          />
-        </>
+                  <h3 className="font-semibold text-[17px] text-slate-900 leading-tight group-hover:text-primary-600 transition-colors">
+                    {club.name}
+                  </h3>
+                  <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">{club.summary}</p>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </div>
       ) : (
         <div className="flex flex-col items-center justify-center py-20 text-center bg-white border border-slate-100 border-dashed rounded-md">
           <div className="bg-slate-50 w-16 h-16 rounded-md flex items-center justify-center mb-4">
@@ -177,6 +167,14 @@ export function ExploreClubs() {
             清除筛选条件
           </button>
         </div>
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={error}
+          onLoadMore={loadMore}
+        />
       )}
     </motion.div>
   );

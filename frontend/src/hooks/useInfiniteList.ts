@@ -9,6 +9,30 @@ export type PaginatedResult<T> = {
   total: number;
 };
 
+type PageResponse<T> = {
+  data?: PaginatedResult<T>;
+  error?: unknown;
+  response?: Response;
+};
+
+export async function loadAllPages<T>(fetchPage: (page: number) => Promise<PageResponse<T>>) {
+  const items: T[] = [];
+  let page = 1;
+
+  while (true) {
+    const result = await fetchPage(page);
+    if (result.error) {
+      return { items: [], error: result.error, response: result.response };
+    }
+
+    items.push(...(result.data?.items || []));
+    if (!result.data || page >= result.data.pages) {
+      return { items, error: null, response: result.response };
+    }
+    page += 1;
+  }
+}
+
 export function getPageResult<T>(
   data: PaginatedResult<T> | undefined,
   error: unknown,
@@ -34,7 +58,7 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
   const abortControllerRef = useRef<AbortController | null>(null);
 
   const load = useCallback(
-    async (reset: boolean) => {
+    async (reset: boolean): Promise<PaginatedResult<T> | undefined> => {
       if (isLoadingRef.current && !reset) return;
 
       if (reset) {
@@ -66,6 +90,7 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
         setItems((current) => (reset ? result.items : [...current, ...result.items]));
         setTotal(result.total);
         setHasMore(result.page < result.pages);
+        return result;
       } catch (requestError) {
         if (controller.signal.aborted || requestId !== requestIdRef.current) return;
         setError(requestError);
@@ -102,8 +127,13 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
   }, [load]);
 
   const reload = useCallback(async () => {
-    await load(true);
+    return load(true);
   }, [load]);
+
+  const removeItem = useCallback((predicate: (item: T) => boolean) => {
+    setItems((current) => current.filter((item) => !predicate(item)));
+    setTotal((current) => Math.max(0, current - 1));
+  }, []);
 
   return {
     items,
@@ -114,5 +144,6 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
     error,
     loadMore,
     reload,
+    removeItem,
   };
 }

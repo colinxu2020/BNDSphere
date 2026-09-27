@@ -41,6 +41,7 @@ import { FileUploadField } from "../components/ui/FileUploadField";
 import { cn } from "../lib/utils";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
 import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
+import { useAppliedSearch } from "../hooks/useAppliedSearch";
 
 type UserInfo = components["schemas"]["UserInfo"];
 type Role = components["schemas"]["RoleEnum"];
@@ -141,8 +142,7 @@ const RefreshContext = React.createContext<{
 
 function UsersAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<UserInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -178,9 +178,11 @@ function UsersAdmin() {
   const loadUsers = async () => {
     refreshStart();
     try {
-      await reload();
-    } catch (error) {
-      setResult(error, null);
+      const result = await reload();
+      if (selected && result) {
+        const nextSelected = result.items.find((item) => item.id === selected.id);
+        if (nextSelected) selectUser(nextSelected);
+      }
     } finally {
       refreshEnd();
     }
@@ -234,11 +236,7 @@ function UsersAdmin() {
             className={inputClassName}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              if (search === appliedSearch) void loadUsers();
-              else setAppliedSearch(search);
-            }}
+            onKeyDown={(event) => handleSearchKeyDown(event, loadUsers)}
             placeholder="搜索用户名、邮箱或姓名"
           />
           <ItemList>
@@ -258,7 +256,6 @@ function UsersAdmin() {
               onLoadMore={loadMore}
             />
           </ItemList>
-          {loadError && <StatusMessage value={loadError} />}
         </>
       }
     >
@@ -321,8 +318,7 @@ function UsersAdmin() {
 
 function ClubsAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
+  const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<ClubInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -359,8 +355,6 @@ function ClubsAdmin() {
     refreshStart();
     try {
       await reload();
-    } catch (error) {
-      setResult(error, null);
     } finally {
       refreshEnd();
     }
@@ -414,11 +408,7 @@ function ClubsAdmin() {
             className={inputClassName}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => {
-              if (event.key !== "Enter") return;
-              if (search === appliedSearch) void loadClubs();
-              else setAppliedSearch(search);
-            }}
+            onKeyDown={(event) => handleSearchKeyDown(event, loadClubs)}
             placeholder="搜索社团"
           />
           <ItemList>
@@ -438,7 +428,6 @@ function ClubsAdmin() {
               onLoadMore={loadMore}
             />
           </ItemList>
-          {loadError && <StatusMessage value={loadError} />}
         </>
       }
     >
@@ -542,8 +531,6 @@ function TermsAdmin() {
     refreshStart();
     try {
       await reload();
-    } catch (error) {
-      setResult(error, null);
     } finally {
       refreshEnd();
     }
@@ -648,7 +635,6 @@ function TermsAdmin() {
               onLoadMore={loadMore}
             />
           </ItemList>
-          {loadError && <StatusMessage value={loadError} />}
         </>
       }
     >
@@ -753,8 +739,6 @@ function ActivitiesAdmin() {
     refreshStart();
     try {
       await reload();
-    } catch (error) {
-      setResult(error, null);
     } finally {
       refreshEnd();
     }
@@ -859,7 +843,6 @@ function ActivitiesAdmin() {
               onLoadMore={loadMore}
             />
           </ItemList>
-          {loadError && <StatusMessage value={loadError} />}
         </>
       }
     >
@@ -992,8 +975,6 @@ function AnnouncementsAdmin() {
     refreshStart();
     try {
       await reload();
-    } catch (error) {
-      setResult(error, null);
     } finally {
       refreshEnd();
     }
@@ -1099,7 +1080,6 @@ function AnnouncementsAdmin() {
               onLoadMore={loadMore}
             />
           </ItemList>
-          {loadError && <StatusMessage value={loadError} />}
         </>
       }
     >

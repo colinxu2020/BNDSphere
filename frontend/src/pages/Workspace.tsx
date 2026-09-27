@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import { Building2, ChevronRight, Plus, RefreshCw, Users } from "@/src/components/ui/Icons";
 import { Link, useNavigate } from "react-router-dom";
@@ -26,29 +26,48 @@ const MANAGER_ROLES = new Set(["president", "vice_president"]);
 export function Workspace() {
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
+  const [userError, setUserError] = useState<unknown>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
 
-  const loadManagedClubsPage = useCallback(
-    async (page: number, signal: AbortSignal) => {
-      if (page === 1) {
-        const meResponse = await client.GET("/api/v1/users/me", { signal });
-        if (meResponse.response.status === 401) {
+  const loadCurrentUser = useCallback(
+    async (signal?: AbortSignal) => {
+      setIsUserLoading(true);
+      setUser(null);
+      setUserError(null);
+      try {
+        const response = await client.GET("/api/v1/users/me", { signal });
+        if (signal?.aborted) return;
+        if (response.response.status === 401) {
           navigate("/login");
-          return { items: [], page: 1, pages: 0, total: 0 };
+          return;
         }
-        if (meResponse.error || !meResponse.data) {
-          throw meResponse.error || new Error("无法获取当前用户信息");
+        if (response.error || !response.data) {
+          setUserError(response.error || new Error("无法获取当前用户信息"));
+          return;
         }
-        setUser(meResponse.data);
+        setUser(response.data);
+      } catch (error) {
+        if (!signal?.aborted) setUserError(error);
+      } finally {
+        if (!signal?.aborted) setIsUserLoading(false);
       }
-
-      const response = await client.GET("/api/v1/clubs/managed/", {
-        params: { query: { page, size: DEFAULT_PAGE_SIZE } },
-        signal,
-      });
-      return getPageResult(response.data, response.error, page);
     },
     [navigate],
   );
+
+  useEffect(() => {
+    const controller = new AbortController();
+    void loadCurrentUser(controller.signal);
+    return () => controller.abort();
+  }, [loadCurrentUser]);
+
+  const loadManagedClubsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/clubs/managed/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
   const {
     items: clubs,
     hasMore,
@@ -58,6 +77,9 @@ export function Workspace() {
     loadMore,
     reload,
   } = useInfiniteList<Club>(loadManagedClubsPage);
+
+  const refresh = () => Promise.all([reload(), loadCurrentUser()]);
+  const isLoading = isInitialLoading || isUserLoading;
 
   const managedClubs = useMemo(() => {
     if (!user) return [];
@@ -90,94 +112,88 @@ export function Workspace() {
             >
               <Plus size={16} /> 创建社团
             </Link>
-            <SecondaryButton
-              type="button"
-              onClick={() => void reload()}
-              disabled={isInitialLoading}
-            >
+            <SecondaryButton type="button" onClick={() => void refresh()} disabled={isLoading}>
               <RefreshCw size={16} /> 刷新
             </SecondaryButton>
           </div>
         }
       />
 
-      {loadError && <StatusMessage value={loadError} />}
+      {userError && <StatusMessage value={userError} />}
 
-      {isInitialLoading ? (
+      {isLoading ? (
         <PageLoading compact />
       ) : managedClubs.length ? (
-        <>
-          <div className="grid gap-4 md:grid-cols-2">
-            {managedClubs.map(({ club, membership }) => (
-              <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
-                <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
-                  <div className="flex items-start gap-4">
-                    <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
-                      {club.logo_uri ? (
-                        <img
-                          src={club.logo_uri}
-                          alt={club.name}
-                          className="h-full w-full object-cover"
-                        />
-                      ) : (
-                        <Building2 size={26} />
+        <div className="grid gap-4 md:grid-cols-2">
+          {managedClubs.map(({ club, membership }) => (
+            <Link key={club.id} to={`/club/${club.id}/manage`} className="group block">
+              <Surface className="h-full p-5 transition group-hover:border-primary-100 group-hover:shadow-[0_10px_30px_-12px_rgba(15,23,42,0.22)]">
+                <div className="flex items-start gap-4">
+                  <div className="flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-md border border-slate-100 bg-slate-50 text-slate-400">
+                    {club.logo_uri ? (
+                      <img
+                        src={club.logo_uri}
+                        alt={club.name}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <Building2 size={26} />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <h2 className="truncate text-lg font-bold text-slate-900 group-hover:text-primary-600">
+                          {club.name}
+                        </h2>
+                        <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
+                          {club.summary}
+                        </p>
+                      </div>
+                      <ChevronRight
+                        size={18}
+                        className="mt-1 shrink-0 text-slate-300 group-hover:text-primary-500"
+                      />
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <Badge tone="primary">
+                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
+                      </Badge>
+                      <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
+                      <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
+                      {club.star_level !== "none" && (
+                        <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
                       )}
                     </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="flex items-start justify-between gap-3">
-                        <div className="min-w-0">
-                          <h2 className="truncate text-lg font-bold text-slate-900 group-hover:text-primary-600">
-                            {club.name}
-                          </h2>
-                          <p className="mt-1 line-clamp-2 text-sm leading-6 text-slate-500">
-                            {club.summary}
-                          </p>
-                        </div>
-                        <ChevronRight
-                          size={18}
-                          className="mt-1 shrink-0 text-slate-300 group-hover:text-primary-500"
-                        />
-                      </div>
 
-                      <div className="mt-4 flex flex-wrap gap-2">
-                        <Badge tone="primary">
-                          {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
-                        </Badge>
-                        <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
-                        <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
-                        {club.star_level !== "none" && (
-                          <Badge tone="yellow">{STAR_LEVEL_MAP[club.star_level]}</Badge>
-                        )}
-                      </div>
-
-                      <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400">
-                        <span>创建于 {formatDate(club.created_at)}</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Users size={14} />
-                          {
-                            club.members.filter((member) => member.membership !== "left").length
-                          }{" "}
-                          名成员
-                        </span>
-                      </div>
+                    <div className="mt-4 flex flex-wrap items-center gap-4 text-xs font-medium text-slate-400">
+                      <span>创建于 {formatDate(club.created_at)}</span>
+                      <span className="inline-flex items-center gap-1">
+                        <Users size={14} />
+                        {club.members.filter((member) => member.membership !== "left").length}{" "}
+                        名成员
+                      </span>
                     </div>
                   </div>
-                </Surface>
-              </Link>
-            ))}
-          </div>
-          <InfiniteScrollTrigger
-            hasMore={hasMore}
-            isLoading={isLoadingMore}
-            error={loadError}
-            onLoadMore={loadMore}
-          />
-        </>
+                </div>
+              </Surface>
+            </Link>
+          ))}
+        </div>
       ) : (
         <EmptyState
           icon={<Building2 size={24} />}
           title="暂无可管理社团"
           description="当你成为社长或副社长后，社团会出现在这里。"
+        />
+      )}
+      {!isLoading && (
+        <InfiniteScrollTrigger
+          hasMore={Boolean(user) && hasMore}
+          isLoading={isLoadingMore}
+          error={loadError}
+          onLoadMore={loadMore}
         />
       )}
     </motion.div>

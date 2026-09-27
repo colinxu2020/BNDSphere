@@ -127,7 +127,6 @@ export function Federation() {
   );
   const isLoading =
     activeTab === "starLevel" ? starList.isInitialLoading : activityList.isInitialLoading;
-  const loadError = activeTab === "starLevel" ? starList.error : activityList.error;
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id === selectedActivityId),
@@ -472,10 +471,6 @@ export function Federation() {
       {activeTab !== "jointActivities" && activeTab !== "clubClaims" && message && (
         <StatusMessage value={message} tone={messageTone} />
       )}
-      {activeTab !== "jointActivities" && activeTab !== "clubClaims" && loadError && (
-        <StatusMessage value={loadError} />
-      )}
-
       <Surface className={activeTab === "activities" ? undefined : "hidden"}>
         <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团大型活动记录" />
         <div className={cn("grid gap-6", selectedRecord && "lg:grid-cols-[1fr_360px]")}>
@@ -513,12 +508,6 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无社团综评记录" />
             )}
-            <InfiniteScrollTrigger
-              hasMore={activityList.hasMore}
-              isLoading={activityList.isLoadingMore}
-              error={activityList.error}
-              onLoadMore={activityList.loadMore}
-            />
           </div>
 
           {selectedRecord && (
