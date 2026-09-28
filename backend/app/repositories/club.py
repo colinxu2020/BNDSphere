@@ -49,7 +49,7 @@ def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple
             Club.summary.bool_op("%")(search),
             Club.description.bool_op("%")(search),
         ),
-    ).order_by(score_func.desc())
+    ).order_by(score_func.desc(), Club.id.desc())
 
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
@@ -252,6 +252,7 @@ class ClubUpdateRequestRepository(
         stmt = select(self.model).where(
             self.model.moderation_status == ModerationStatusEnum.pending,
         )
+        stmt = stmt.order_by(self.model.request_at.desc(), self.model.id.desc())
         return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
 
     async def supersede_pending_requests_by_club(self, club_id: int) -> None:
@@ -281,6 +282,7 @@ class ClubMembershipRequestRepository(
             self.model.verification_status == VerificationStatusEnum.pending,
             self.model.club_id == club_id,
         )
+        stmt = stmt.order_by(self.model.apply_at.desc(), self.model.id.desc())
         return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
 
     async def get_pending_clubs_by_user(self, user_id: int) -> Sequence[Club]:

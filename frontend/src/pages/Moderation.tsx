@@ -172,9 +172,9 @@ export function Moderation() {
       setResult(result.error, moderationStatus === "approved" ? "审核已通过" : "审核已驳回");
       if (!result.error) {
         if (activeQueue === "users") {
-          userRequests.removeItem((item) => item.id === requestId);
+          await userRequests.reload();
         } else {
-          clubRequests.removeItem((item) => item.id === requestId);
+          await clubRequests.reload();
         }
       }
     } catch (error) {
@@ -211,7 +211,7 @@ export function Moderation() {
       );
       if (!result.error) {
         const requestList = kind === "create" ? activityCreateRequests : activityUpdateRequests;
-        requestList.removeItem((item) => item.id === requestId);
+        await requestList.reload();
       }
     } catch (error) {
       setResult(error, "");

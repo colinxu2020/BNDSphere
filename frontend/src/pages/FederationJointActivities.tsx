@@ -165,8 +165,16 @@ export function FederationJointActivities({
               </div>
             ))}
           </div>
-        ) : (
+        ) : !hasMore ? (
           <EmptyState title="暂无待预审联合活动" />
+        ) : null}
+        {!isInitialLoading && (
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
         )}
       </Surface>
 
@@ -216,8 +224,16 @@ export function FederationJointActivities({
               </div>
             ))}
           </div>
-        ) : (
+        ) : !hasMore ? (
           <EmptyState title="暂无待终审联合活动" />
+        ) : null}
+        {!isInitialLoading && (
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
         )}
       </Surface>
 

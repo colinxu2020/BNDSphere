@@ -505,8 +505,16 @@ export function Federation() {
                   </p>
                 </button>
               ))
-            ) : (
+            ) : !activityList.hasMore ? (
               <EmptyState title="暂无社团综评记录" />
+            ) : null}
+            {!isLoading && (
+              <InfiniteScrollTrigger
+                hasMore={activityList.hasMore}
+                isLoading={activityList.isLoadingMore}
+                error={activityList.error}
+                onLoadMore={activityList.loadMore}
+              />
             )}
           </div>
 

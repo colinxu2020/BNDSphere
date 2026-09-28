@@ -130,11 +130,6 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
     return load(true);
   }, [load]);
 
-  const removeItem = useCallback((predicate: (item: T) => boolean) => {
-    setItems((current) => current.filter((item) => !predicate(item)));
-    setTotal((current) => Math.max(0, current - 1));
-  }, []);
-
   return {
     items,
     total,
@@ -144,6 +139,5 @@ export function useInfiniteList<T>(loadPage: PageLoader<T>, enabled = true) {
     error,
     loadMore,
     reload,
-    removeItem,
   };
 }

@@ -181,7 +181,18 @@ function UsersAdmin() {
       const result = await reload();
       if (selected && result) {
         const nextSelected = result.items.find((item) => item.id === selected.id);
-        if (nextSelected) selectUser(nextSelected);
+        if (nextSelected) {
+          selectUser(nextSelected);
+        } else {
+          setSelected(null);
+          setForm({
+            username: "",
+            email: "",
+            avatar_uri: "",
+            description: "",
+            role: "",
+          });
+        }
       }
     } finally {
       refreshEnd();
