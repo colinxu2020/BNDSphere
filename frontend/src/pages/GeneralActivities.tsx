@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowUpRight, CalendarDays, Filter, Search } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
@@ -6,15 +6,11 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { ACTIVITY_LEVEL_MAP, ACTIVITY_LEVEL_OPTIONS } from "../lib/labels";
 import { formatDate } from "../lib/format";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  inputClassName,
-} from "../components/ui/AppPrimitives";
+import { Badge, EmptyState, PageHeader, inputClassName } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 import { PageLoading } from "../components/ui/PageStates";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
@@ -25,46 +21,27 @@ const LEVEL_FILTERS: { label: string; value: ActivityLevel | "all" }[] = [
 ];
 
 export function GeneralActivities() {
-  const [items, setItems] = useState<GeneralActivity[]>([]);
-  const [total, setTotal] = useState(0);
   const [search, setSearch] = useState("");
   const [level, setLevel] = useState<ActivityLevel | "all">("all");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    const fetchActivities = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { data, error } = await client.GET("/api/v1/general-activities/", {
-          params: {
-            query: {
-              size: 50,
-              search: search || undefined,
-              level: level !== "all" ? level : undefined,
-            },
+  const loadActivitiesPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const { data, error } = await client.GET("/api/v1/general-activities/", {
+        params: {
+          query: {
+            page,
+            size: DEFAULT_PAGE_SIZE,
+            search: search || undefined,
+            level: level !== "all" ? level : undefined,
           },
-        });
-        if (error) {
-          setError(error);
-          setItems([]);
-          setTotal(0);
-        } else {
-          setItems(data?.items || []);
-          setTotal(data?.total || 0);
-        }
-      } catch (requestError) {
-        setError(requestError);
-        setItems([]);
-        setTotal(0);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchActivities();
-  }, [search, level]);
+        },
+        signal,
+      });
+      return getPageResult(data, error, page);
+    },
+    [search, level],
+  );
+  const { items, total, hasMore, isInitialLoading, isLoadingMore, error, loadMore } =
+    useInfiniteList<GeneralActivity>(loadActivitiesPage);
 
   return (
     <motion.div
@@ -108,9 +85,7 @@ export function GeneralActivities() {
         </div>
       </div>
 
-      {error && <StatusMessage value={error} />}
-
-      {isLoading ? (
+      {isInitialLoading ? (
         <PageLoading compact />
       ) : items.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
@@ -119,7 +94,7 @@ export function GeneralActivities() {
               key={activityItem.id}
               initial={{ opacity: 0, scale: 0.96 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.04, duration: 0.25 }}
+              transition={{ delay: Math.min(index, DEFAULT_PAGE_SIZE) * 0.04, duration: 0.25 }}
             >
               <Link
                 to={`/activities/${activityItem.id}`}
@@ -156,6 +131,14 @@ export function GeneralActivities() {
           icon={<Filter size={24} />}
           title="暂无活动"
           description={total ? "当前筛选条件下没有活动。" : "后端尚未返回活动数据。"}
+        />
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={error}
+          onLoadMore={loadMore}
         />
       )}
     </motion.div>
