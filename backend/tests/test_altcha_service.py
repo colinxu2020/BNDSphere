@@ -52,3 +52,14 @@ class TestStatelessIssuance:
 
         with pytest.raises(BadRequestError):
             verifier.verify(payload, AltchaPurpose.login)
+
+
+class TestConsumedSignaturePruning:
+    def test_prunes_expired_signatures_consumed_out_of_expiry_order(self) -> None:
+        service = AltchaService(hmac_secret=_TEST_SECRET)
+        service._consumed["later-expiry"] = 200  # noqa: SLF001
+        service._consumed["already-expired"] = 90  # noqa: SLF001
+
+        service._prune_expired(now=100)  # noqa: SLF001
+
+        assert service._consumed == {"later-expiry": 200}  # noqa: SLF001

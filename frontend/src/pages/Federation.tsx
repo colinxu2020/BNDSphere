@@ -545,48 +545,59 @@ export function Federation() {
                     <X size={16} /> 收起
                   </SecondaryButton>
                 </div>
-                <Field label="审核状态">
-                  <select
-                    className={selectClassName}
-                    value={recordStatus}
-                    onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
-                  >
-                    {AUDIT_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="最终分值">
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    value={recordScore}
-                    onChange={(event) => setRecordScore(event.target.value)}
-                  />
-                </Field>
-                {selectedRecord.proof_files.length > 0 && (
-                  <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
-                    <div className="grid gap-1">
-                      {selectedRecord.proof_files.map((file, index) => (
-                        <a
-                          key={file}
-                          href={file}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="truncate text-sm font-medium text-primary-600 hover:text-primary-700"
-                        >
-                          材料 {index + 1}
-                        </a>
+                {/* A reviewed record is final — the server refuses a second
+                    review — so it is shown for reference, not as a form. */}
+                <fieldset
+                  disabled={selectedRecord.audit_status !== "pending"}
+                  className="grid gap-4 disabled:opacity-60"
+                >
+                  <Field label="审核状态">
+                    <select
+                      className={selectClassName}
+                      value={recordStatus}
+                      onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
+                    >
+                      {AUDIT_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
+                    </select>
+                  </Field>
+                  <Field label="最终分值">
+                    <input
+                      className={inputClassName}
+                      type="number"
+                      value={recordScore}
+                      onChange={(event) => setRecordScore(event.target.value)}
+                    />
+                  </Field>
+                  {selectedRecord.proof_files.length > 0 && (
+                    <div className="rounded-md bg-slate-50 p-3">
+                      <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
+                      <div className="grid gap-1">
+                        {selectedRecord.proof_files.map((file, index) => (
+                          <a
+                            key={file}
+                            href={file}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate text-sm font-medium text-primary-600 hover:text-primary-700"
+                          >
+                            材料 {index + 1}
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </fieldset>
+                {selectedRecord.audit_status === "pending" ? (
+                  <PrimaryButton type="submit" loading={isRecordUpdating}>
+                    <Save size={18} /> 更新记录
+                  </PrimaryButton>
+                ) : (
+                  <p className="text-sm text-slate-500">该记录已审核，不能再次修改。</p>
                 )}
-                <PrimaryButton type="submit" loading={isRecordUpdating}>
-                  <Save size={18} /> 更新记录
-                </PrimaryButton>
               </div>
             </form>
           )}

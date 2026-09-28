@@ -86,6 +86,15 @@ class ClubGeneralActivityRepository(
 ):
     model = ClubGeneralActivityRecord
 
+    async def get_with_lock(self, id_: int) -> ClubGeneralActivityRecord | None:
+        result = await self.db.execute(
+            select(self.model)
+            .where(self.model.id == id_)
+            .with_for_update()
+            .execution_options(populate_existing=True),
+        )
+        return result.scalars().first()
+
     async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
         stmt = select(self.model).where(self.model.club == club)
         return cast("Page[ClubGeneralActivityRecord]", await apaginate(self.db, stmt))

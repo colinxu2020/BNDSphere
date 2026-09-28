@@ -8,6 +8,7 @@ from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
 )
+from app.models.user import AuditStatusEnum
 from app.repositories.general_activities import (
     ClubGeneralActivityRepository,
     GeneralActivityRepository,
@@ -24,6 +25,7 @@ from app.services.errors import (
     BusinessError,
     DuplicateResourceError,
     GeneralActivityNotFoundError,
+    ResourceForbiddenError,
     ResourceNotFoundError,
 )
 
@@ -123,13 +125,19 @@ class ClubGeneralActivityService(
         obj_in: FederationRecordUpdate,
         auditor: User,
     ) -> ClubGeneralActivityRecord:
-        db_obj = await self.get(record_id)
-        if db_obj is None:
-            raise ResourceNotFoundError(
-                "error.general_activity.record_not_found",
-                "RECORD_NOT_FOUND",
-                {"record_id": record_id},
-            )
-
         async with self.transaction():
+            db_obj = await self._get_with_lock(record_id)
+            if db_obj is None:
+                raise ResourceNotFoundError(
+                    "error.club_general_activity_record.not_found",
+                    "CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND",
+                    {"record_id": record_id},
+                )
+            if db_obj.audit_status != AuditStatusEnum.pending:
+                raise ResourceForbiddenError(
+                    "error.general_activity.record_reviewed",
+                    "RECORD_REVIEWED",
+                    {"record_id": record_id},
+                )
+
             return await self.repository.review_record(db_obj, obj_in, auditor)
