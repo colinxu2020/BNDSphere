@@ -1,8 +1,11 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from typing import ClassVar, TypedDict
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 from app.models.resource_file import ResourceFile
@@ -210,6 +213,65 @@ class TestResourceCenter:
         assert create_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
         assert object_key in self.storage.deleted_keys
         assert object_key not in self.storage.object_sizes
+
+    async def test_duplicate_registration_never_deletes_referenced_oversized_object(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        resource_id, object_key = await self._publish_resource(
+            client,
+            "registered-then-oversized.bin",
+        )
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+        response = await client.post(
+            "/resources/",
+            headers=self.configured_users["resource_federation_staff"]["headers"],
+            json={
+                "filename": "duplicate.bin",
+                "object_key": object_key,
+                "content_type": "application/octet-stream",
+            },
+        )
+        assert response.status_code == 409
+        assert response.json()["error_code"] == "RESOURCE_FILE_ALREADY_REGISTERED"
+        assert object_key not in self.storage.deleted_keys
+        assert object_key in self.storage.object_sizes
+        download = await client.get(f"/resources/{resource_id}/download")
+        assert download.status_code == 307
+
+    async def test_duplicate_registration_preserves_pending_deletion_object(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        resource_id, object_key = await self._publish_resource(
+            client,
+            "pending-deletion-oversized.bin",
+        )
+        resource = await db_session.scalar(
+            select(ResourceFile).where(ResourceFile.id == resource_id),
+        )
+        assert resource is not None
+        resource.deletion_requested_at = datetime.now(UTC)
+        await db_session.commit()
+        try:
+            self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+            response = await client.post(
+                "/resources/",
+                headers=self.configured_users["resource_federation_staff"]["headers"],
+                json={
+                    "filename": "duplicate-pending.bin",
+                    "object_key": object_key,
+                    "content_type": "application/octet-stream",
+                },
+            )
+            assert response.status_code == 409
+            assert response.json()["error_code"] == "RESOURCE_FILE_ALREADY_REGISTERED"
+            assert object_key not in self.storage.deleted_keys
+            assert object_key in self.storage.object_sizes
+        finally:
+            resource.deletion_requested_at = None
+            await db_session.commit()
 
     async def test_staff_can_publish_any_file_type_and_anyone_can_download_it(
         self,

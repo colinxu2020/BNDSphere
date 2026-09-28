@@ -31,3 +31,8 @@ def test_user_update_request_rejects_overlong_fields() -> None:
         )
     with pytest.raises(ValidationError):
         UserUpdateRequestCreate(username="x" * (constants.USER_MAX_USERNAME_LENGTH + 1))
+
+
+def test_user_update_request_rejects_empty_username() -> None:
+    with pytest.raises(ValidationError):
+        UserUpdateRequestCreate(username="")

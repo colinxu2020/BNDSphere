@@ -22,6 +22,11 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
+    username: str = Field(
+        ...,
+        min_length=1,
+        max_length=constants.USER_MAX_USERNAME_LENGTH,
+    )
     password: str = Field(..., min_length=6)
     accepted_privacy_policy: Literal[True]
     accepted_user_agreement: Literal[True]

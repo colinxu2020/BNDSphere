@@ -8229,7 +8229,7 @@
       },
       "UserCreate": {
         "properties": {
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "username": { "type": "string", "maxLength": 32, "minLength": 1, "title": "Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" },
           "accepted_privacy_policy": {
             "type": "boolean",
@@ -8259,7 +8259,7 @@
       },
       "UserRegistration": {
         "properties": {
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "username": { "type": "string", "maxLength": 32, "minLength": 1, "title": "Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" },
           "altcha": {
             "type": "string",
@@ -8325,7 +8325,7 @@
       },
       "UserUpdateRequestCreate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": { "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }], "title": "Username" },
           "avatar_uri": {
             "anyOf": [
               { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },

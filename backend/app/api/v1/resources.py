@@ -99,6 +99,12 @@ async def create_resource_file(
 ) -> ResourceFileInfo:
     """Register an uploaded file in the resource center."""
     policy = UPLOAD_POLICIES[UploadScene.RESOURCE_FILE]
+    if await service.get_by_object_key(obj_in.object_key) is not None:
+        raise DuplicateResourceError(
+            "error.resource_file.already_registered",
+            "RESOURCE_FILE_ALREADY_REGISTERED",
+            {"object_key": obj_in.object_key},
+        )
     actual_size = await oss_service.stat_object(obj_in.object_key)
     try:
         validate_confirmed_upload(policy, obj_in.object_key, actual_size)
@@ -111,13 +117,6 @@ async def create_resource_file(
                 obj_in.object_key,
             )
         raise
-    if await service.get_by_object_key(obj_in.object_key) is not None:
-        raise DuplicateResourceError(
-            "error.resource_file.already_registered",
-            "RESOURCE_FILE_ALREADY_REGISTERED",
-            {"object_key": obj_in.object_key},
-        )
-
     try:
         resource_file = await service.create(
             obj_in,

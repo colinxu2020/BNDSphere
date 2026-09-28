@@ -1,4 +1,5 @@
 import asyncio
+from datetime import UTC, datetime
 from typing import ClassVar, TypedDict
 
 from altcha import Challenge, Payload, solve_challenge
@@ -8,12 +9,27 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import LegalConsent, User
 from app.models.legal_consent import CURRENT_LEGAL_DOCUMENT_VERSIONS
+from app.schemas.user import PublicUserInfo
 
 VALID_CONSENTS = {
     "accepted_privacy_policy": True,
     "accepted_user_agreement": True,
     "accepted_cross_border_transfer": True,
 }
+
+
+def test_existing_empty_username_can_still_be_read() -> None:
+    profile = PublicUserInfo.model_validate(
+        {
+            "id": 1,
+            "username": "",
+            "avatar_uri": None,
+            "description": "legacy account",
+            "grade": None,
+            "created_at": datetime.now(UTC),
+        },
+    )
+    assert profile.username == ""
 
 
 class ConfiguredUser(TypedDict):
@@ -112,6 +128,25 @@ class TestRegister:
         detail = resp.json()["detail"]
         assert detail[0]["loc"] == ["body", "password"]
         assert detail[0]["type"] == "string_too_short"
+
+    async def test_register_rejects_empty_username(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        response = await client.post(
+            "/auth/register",
+            json={
+                "username": "",
+                "password": "valid-password",
+                "altcha": await create_altcha_payload(client, "register"),
+                **VALID_CONSENTS,
+            },
+        )
+        assert response.status_code == 422
+        assert any(
+            issue["loc"] == ["body", "username"] for issue in response.json()["detail"]
+        )
 
     async def test_register_rejects_missing_fields(
         self,

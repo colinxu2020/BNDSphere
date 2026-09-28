@@ -14,7 +14,11 @@ from app.schemas.upload import AvatarUri
 class UserUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None, max_length=constants.USER_MAX_USERNAME_LENGTH)
+    username: str | None = Field(
+        None,
+        min_length=1,
+        max_length=constants.USER_MAX_USERNAME_LENGTH,
+    )
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,
