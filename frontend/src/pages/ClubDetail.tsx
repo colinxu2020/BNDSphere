@@ -539,6 +539,9 @@ export function ClubDetail() {
                           className="after:absolute after:inset-0"
                         >
                           {act.name}
+                          {act.cancelled_at && (
+                            <span className="ml-2 text-sm font-medium text-slate-500">已取消</span>
+                          )}
                         </Link>
                       </h3>
                       <p className="text-slate-500 text-sm line-clamp-1">{act.description}</p>
@@ -552,7 +555,7 @@ export function ClubDetail() {
                       </div>
                     </div>
                     <div className="relative z-10 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
-                      {canManage && (
+                      {canManage && !act.cancelled_at && (
                         <Link
                           to={`/club/${club.id}/manage?activity=${act.id}`}
                           aria-label={`管理活动：${act.name}`}

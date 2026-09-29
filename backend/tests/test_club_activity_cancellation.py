@@ -43,8 +43,30 @@ class TestClubActivityCancellation:
             category=ClubCategoryEnum.natural_science,
             status=ClubStatusEnum.normal,
         )
-        db_session.add_all([term, club])
+        other_club = Club(
+            name="Other cancellation club",
+            summary="summary",
+            description="description",
+            category=ClubCategoryEnum.natural_science,
+            status=ClubStatusEnum.normal,
+        )
+        archived_club = Club(
+            name="Archived cancellation club",
+            summary="summary",
+            description="description",
+            category=ClubCategoryEnum.natural_science,
+            status=ClubStatusEnum.archived,
+        )
+        db_session.add_all([term, club, other_club, archived_club])
         await db_session.flush()
+        for extra_club in (other_club, archived_club):
+            db_session.add(
+                ClubMember(
+                    club_id=extra_club.id,
+                    user_id=users["cancel-president"]["user"].id,
+                    membership=ClubMembershipEnum.president,
+                ),
+            )
         for name, membership in (
             ("cancel-president", ClubMembershipEnum.president),
             ("cancel-vice", ClubMembershipEnum.vice_president),
@@ -108,6 +130,8 @@ class TestClubActivityCancellation:
         await db_session.flush()
         ids = {
             "club": club.id,
+            "other_club": other_club.id,
+            "archived_club": archived_club.id,
             "future": future.id,
             "started": started.id,
             "future_update": future_update.id,
@@ -142,6 +166,14 @@ class TestClubActivityCancellation:
             if item["id"] == activities["future"]
         )
         assert item["cancelled_at"] == cancelled_at
+        detail = await client.get(f"/clubs/{activities['club']}")
+        assert detail.status_code == 200
+        detail_activity = next(
+            item
+            for item in detail.json()["club_activities"]
+            if item["id"] == activities["future"]
+        )
+        assert detail_activity["cancelled_at"] == cancelled_at
 
     async def test_started_activity_cannot_be_cancelled(
         self,
@@ -154,6 +186,26 @@ class TestClubActivityCancellation:
         )
         assert response.status_code == 409
         assert response.json()["error_code"] == "CLUB_ACTIVITY_ALREADY_STARTED"
+
+    async def test_wrong_club_and_archived_club_are_rejected(
+        self,
+        client: AsyncClient,
+        activities: dict[str, int],
+    ) -> None:
+        headers = self.configured_users["cancel-president"]["headers"]
+        wrong_club = await client.post(
+            f"/clubs/{activities['other_club']}/activities/{activities['future_auth']}/cancel",
+            headers=headers,
+        )
+        assert wrong_club.status_code == 404
+        assert wrong_club.json()["error_code"] == "CLUB_ACTIVITY_NOT_FOUND"
+
+        archived = await client.post(
+            f"/clubs/{activities['archived_club']}/activities/{activities['future_auth']}/cancel",
+            headers=headers,
+        )
+        assert archived.status_code == 403
+        assert archived.json()["error_code"] == "CLUB_NOT_ACTIVE"
 
     async def test_only_leaders_can_cancel(
         self,

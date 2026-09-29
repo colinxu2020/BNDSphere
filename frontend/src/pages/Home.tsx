@@ -21,7 +21,7 @@ type ClubSummary = components["schemas"]["ClubSummary"];
 type ClubActivity = components["schemas"]["ClubActivityInfo"];
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type Announcement = components["schemas"]["AnnouncementInfo"];
-type MyClubActivityStatus = "ended" | "ongoing" | "upcoming";
+type MyClubActivityStatus = "ended" | "ongoing" | "upcoming" | "cancelled";
 type MyClubActivity = {
   activity: ClubActivity;
   club: ClubSummary;
@@ -475,11 +475,12 @@ const MY_CLUB_ACTIVITY_STATUS_TEXT: Record<MyClubActivityStatus, string> = {
   ended: "已结束",
   ongoing: "进行中",
   upcoming: "即将开始",
+  cancelled: "已取消",
 };
 
 function getMyClubActivityTone(status: MyClubActivityStatus) {
   if (status === "ongoing") return "green";
-  if (status === "ended") return "slate";
+  if (status === "ended" || status === "cancelled") return "slate";
   return "blue";
 }
 
@@ -536,8 +537,13 @@ function getMyClubActivities(joinedClubs: JoinedClub[]) {
           if (startsInMs > upcomingWindowMs) return null;
           if (endedAgoMs > endedWindowMs) return null;
 
-          const status: MyClubActivityStatus =
-            start <= now && end >= now ? "ongoing" : end < now ? "ended" : "upcoming";
+          const status: MyClubActivityStatus = activity.cancelled_at
+            ? "cancelled"
+            : start <= now && end >= now
+              ? "ongoing"
+              : end < now
+                ? "ended"
+                : "upcoming";
           const distanceMs =
             status === "ended" ? endedAgoMs : Math.abs(start.getTime() - now.getTime());
           return { activity, club, status, distanceMs };
