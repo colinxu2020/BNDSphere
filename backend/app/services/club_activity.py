@@ -36,6 +36,7 @@ from app.schemas.moderations.moderation_common import (
 from app.services.base import ServiceBase
 from app.services.errors import (
     BadRequestError,
+    ClubActivityAlreadyStartedError,
     ClubActivityNotFoundError,
     ClubNotFoundError,
     DuplicatePendingRequestError,
@@ -107,6 +108,25 @@ class ClubActivityService(
         if not await self.club_repository.exists(club_id):
             raise ClubNotFoundError(club_id) from None
         return await self.repository.get_refs(club_id)
+
+    async def cancel_club_activity(
+        self,
+        club_id: int,
+        activity_id: int,
+    ) -> ClubActivity:
+        async with self.transaction():
+            await self._ensure_club_normal(club_id)
+            activity = await self.repository.get_with_lock(activity_id)
+            if activity is None or activity.club_id != club_id:
+                raise ClubActivityNotFoundError(activity_id) from None
+            if activity.cancelled_at is not None:
+                return activity
+            now = datetime.now(UTC)
+            if now >= activity.start_time:
+                raise ClubActivityAlreadyStartedError(activity_id) from None
+            activity.cancelled_at = now
+            await self.repository.db.flush()
+            return activity
 
     async def create_club_activity(
         self,
