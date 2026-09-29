@@ -20,6 +20,10 @@ from app.repositories.club import (
     ClubRepository,
     ClubUpdateRequestRepository,
 )
+from app.repositories.club_activity import (
+    ClubActivityCreateRequestRepository,
+    ClubActivityUpdateRequestRepository,
+)
 from app.repositories.user import UserRepository
 from app.schemas.club import (
     AdminClubUpdate,
@@ -51,6 +55,7 @@ from app.schemas.verifications.verification_common import (
     RequestVerifyPublic,
 )
 from app.services.base import ServiceBase
+from app.services.club_access import get_locked_normal_club
 from app.services.errors import (
     BusinessError,
     ClubNotFoundError,
@@ -78,6 +83,12 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         member_repository: ClubMemberRepository | None = None,
         update_request_repository: ClubUpdateRequestRepository | None = None,
         membership_request_repository: ClubMembershipRequestRepository | None = None,
+        activity_create_request_repository: (
+            ClubActivityCreateRequestRepository | None
+        ) = None,
+        activity_update_request_repository: (
+            ClubActivityUpdateRequestRepository | None
+        ) = None,
     ) -> None:
         super().__init__(repository)
         self.member_repository = member_repository or ClubMemberRepository(
@@ -89,6 +100,14 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         self.membership_request_repository = (
             membership_request_repository
             or ClubMembershipRequestRepository(repository.db)
+        )
+        self.activity_create_request_repository = (
+            activity_create_request_repository
+            or ClubActivityCreateRequestRepository(repository.db)
+        )
+        self.activity_update_request_repository = (
+            activity_update_request_repository
+            or ClubActivityUpdateRequestRepository(repository.db)
         )
 
     async def create(self, obj_in: ClubCreate, **kwargs: object) -> Club:
@@ -125,6 +144,13 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             self._ensure_normal(club, club_id)
             club.status = ClubStatusEnum.archived
             await self.repository.db.flush()
+            await self.update_request_repository.supersede_pending_requests_by_club(
+                club_id,
+            )
+            create_requests = self.activity_create_request_repository
+            update_requests = self.activity_update_request_repository
+            await create_requests.supersede_pending_requests_by_club(club_id)
+            await update_requests.supersede_pending_requests_by_club(club_id)
 
     async def admin_update_club(
         self,
@@ -494,21 +520,31 @@ class ClubUpdateRequestService(
         moderator: User,
     ) -> ClubUpdateRequest:
         async with self.transaction():
+            location = await self.repository.get(request_id)
+            if location is None:
+                raise ResourceNotFoundError(
+                    "error.club_update_request.not_found",
+                    "CLUB_UPDATE_REQUEST_NOT_FOUND",
+                ) from None
+            club = await get_locked_normal_club(
+                self.club_repository,
+                location.club_id,
+            )
             request = await self._get_with_lock(request_id)
             if request is None:
                 raise ResourceNotFoundError(
                     "error.club_update_request.not_found",
                     "CLUB_UPDATE_REQUEST_NOT_FOUND",
                 ) from None
+            await self.repository.db.refresh(
+                request,
+                attribute_names=["moderation_status"],
+            )
             if request.moderation_status != ModerationStatusEnum.pending:
                 raise ResourceForbiddenError(
                     "error.club_update_request.moderated",
                     "CLUB_UPDATE_REQUEST_MODERATED",
                 ) from None
-
-            club = await self.club_repository.get(request.club_id)
-            if club is None or club.status != ClubStatusEnum.normal:
-                raise ClubNotFoundError(request.club_id) from None
 
             if moderation.moderation_status == ModerationStatusEnum.approved:
                 await self.club_repository.update(

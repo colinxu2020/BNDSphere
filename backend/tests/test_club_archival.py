@@ -12,6 +12,12 @@ from app.models import AcademicTerm, Club, ClubActivity, ClubActivityCheckIn, Cl
 from app.models.club import ClubCategoryEnum, ClubStatusEnum
 from app.models.club_activity_check_in import CheckInMethodEnum
 from app.models.clubmember import ClubMembershipEnum
+from app.models.moderations.club import ClubUpdateRequest
+from app.models.moderations.club_activity import (
+    ClubActivityCreateRequest,
+    ClubActivityUpdateRequest,
+)
+from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import RoleEnum
 from app.models.verifications.club_membership import ClubMembershipRequest
 
@@ -43,6 +49,7 @@ class TestClubArchival:
             )
             for name, status in (
                 ("normal", ClubStatusEnum.normal),
+                ("pending", ClubStatusEnum.normal),
                 ("permissions", ClubStatusEnum.normal),
                 ("admin_patch", ClubStatusEnum.normal),
                 ("unreviewed", ClubStatusEnum.unreviewed),
@@ -54,6 +61,7 @@ class TestClubArchival:
         await db_session.flush()
         for club_name in (
             "normal",
+            "pending",
             "permissions",
             "admin_patch",
             "unreviewed",
@@ -112,8 +120,57 @@ class TestClubArchival:
                 ),
             ],
         )
+        pending_activity = ClubActivity(
+            club_id=clubs["pending"].id,
+            academic_term_id=term.id,
+            name="Activity awaiting update",
+            description="original",
+            location="room",
+            start_time=now + timedelta(days=1),
+            end_time=now + timedelta(days=1, hours=1),
+        )
+        db_session.add(pending_activity)
+        await db_session.flush()
+        requester_id = users["archive-president"]["user"].id
+        update_request = ClubUpdateRequest(
+            club_id=clubs["pending"].id,
+            requestor_id=requester_id,
+            summary="new summary",
+            update_fields=["summary"],
+        )
+        create_request = ClubActivityCreateRequest(
+            club_id=clubs["pending"].id,
+            requestor_id=requester_id,
+            name="Proposed activity",
+            description="description",
+            location="room",
+            start_time=now + timedelta(days=2),
+            end_time=now + timedelta(days=2, hours=1),
+        )
+        activity_update_request = ClubActivityUpdateRequest(
+            club_activity_id=pending_activity.id,
+            requestor_id=requester_id,
+            name="New activity name",
+            update_fields=["name"],
+        )
+        approved_request = ClubUpdateRequest(
+            club_id=clubs["pending"].id,
+            requestor_id=requester_id,
+            summary="previously approved",
+            update_fields=["summary"],
+            moderation_status=ModerationStatusEnum.approved,
+        )
+        db_session.add_all(
+            [update_request, create_request, activity_update_request, approved_request],
+        )
+        await db_session.flush()
         ids = {name: club.id for name, club in clubs.items()}
         ids["archived_activity"] = activity.id
+        ids["pending_activity"] = pending_activity.id
+        ids["club_update_request"] = update_request.id
+        ids["activity_create_request"] = create_request.id
+        ids["activity_update_request"] = activity_update_request.id
+        ids["approved_request"] = approved_request.id
         await db_session.commit()
         return ids
 
@@ -244,3 +301,42 @@ class TestClubArchival:
         )
         assert roster.status_code == 200, roster.text
         assert len(roster.json()["items"]) == 1
+
+    async def test_archiving_supersedes_only_pending_moderation_requests(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        clubs: dict[str, int],
+    ) -> None:
+        archived = await client.post(
+            f"/clubs/{clubs['pending']}/archive",
+            headers=self._headers("archive-president"),
+        )
+        assert archived.status_code == 204, archived.text
+        for model, key in (
+            (ClubUpdateRequest, "club_update_request"),
+            (ClubActivityCreateRequest, "activity_create_request"),
+            (ClubActivityUpdateRequest, "activity_update_request"),
+        ):
+            request = await db_session.get(model, clubs[key])
+            assert request is not None
+            await db_session.refresh(request)
+            assert request.moderation_status == ModerationStatusEnum.superseded
+
+        approved = await db_session.get(ClubUpdateRequest, clubs["approved_request"])
+        assert approved is not None
+        await db_session.refresh(approved)
+        assert approved.moderation_status == ModerationStatusEnum.approved
+
+        moderator_headers = self._headers("archive-admin")
+        for url, request_key in (
+            ("/moderations/clubs/update-requests", "club_update_request"),
+            ("/moderations/club-activities/create-requests", "activity_create_request"),
+            ("/moderations/club-activities/update-requests", "activity_update_request"),
+        ):
+            response = await client.patch(
+                f"{url}/{clubs[request_key]}",
+                json={"moderation_status": "approved"},
+                headers=moderator_headers,
+            )
+            assert response.status_code == 403, response.text
