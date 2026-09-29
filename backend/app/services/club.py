@@ -52,6 +52,7 @@ from app.schemas.verifications.verification_common import (
 )
 from app.services.base import ServiceBase
 from app.services.errors import (
+    BusinessError,
     ClubNotFoundError,
     DuplicateClubNameError,
     DuplicatePendingRequestError,
@@ -65,6 +66,7 @@ from app.services.moderation_payload import (
     build_update_payload,
     requested_update_fields,
 )
+from app.services.policies import AccessPolicy
 
 
 class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
@@ -104,6 +106,50 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                 ClubMembershipEnum.president,
             )
             return club
+
+    async def archive_club(self, club_id: int, actor: User) -> None:
+        async with self.transaction():
+            club = await self.repository.get_with_lock(club_id)
+            if club is None:
+                raise ClubNotFoundError(club_id) from None
+            await self.repository.db.refresh(club, attribute_names=["status"])
+            membership = await self.member_repository.get_by_club_user(club, actor)
+            AccessPolicy.ensure_club_role_allowed(
+                actor,
+                club,
+                membership,
+                [ClubMembershipEnum.president],
+            )
+            if club.status == ClubStatusEnum.archived:
+                return
+            self._ensure_normal(club, club_id)
+            club.status = ClubStatusEnum.archived
+            await self.repository.db.flush()
+
+    async def admin_update_club(
+        self,
+        club_id: int,
+        obj_in: AdminClubUpdate,
+    ) -> Club:
+        async with self.transaction():
+            club = await self.repository.get_with_lock(club_id)
+            if club is None:
+                raise ClubNotFoundError(club_id) from None
+            await self.repository.db.refresh(club, attribute_names=["status"])
+            if club.status == ClubStatusEnum.archived:
+                raise ResourceForbiddenError(
+                    "error.club.not_active",
+                    "CLUB_NOT_ACTIVE",
+                    {"club_id": club_id},
+                ) from None
+            if obj_in.status == ClubStatusEnum.archived:
+                raise BusinessError(
+                    "error.club.archive_endpoint_required",
+                    409,
+                    "CLUB_ARCHIVE_ENDPOINT_REQUIRED",
+                    {"club_id": club_id},
+                ) from None
+            return await self.repository.update(club, obj_in)
 
     @staticmethod
     def _ensure_normal(club: Club | None, club_id: int) -> Club:

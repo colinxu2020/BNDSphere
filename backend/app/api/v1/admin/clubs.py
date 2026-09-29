@@ -88,7 +88,4 @@ async def admin_update_club_info(
     club_service: ClubServiceDep,
 ) -> Club:
     """Update the information of a club."""
-    club = await club_service.get(club_id)
-    if club is None:
-        raise ClubNotFoundError(club_id) from None
-    return await club_service.update(club, obj_in)
+    return await club_service.admin_update_club(club_id, obj_in)
