@@ -9,7 +9,15 @@ from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import AcademicTerm, Club, ClubActivity, ClubActivityCheckIn, ClubMember
+from app.models import (
+    AcademicTerm,
+    Club,
+    ClubActivity,
+    ClubActivityCheckIn,
+    ClubMember,
+    JointActivity,
+    JointActivityParticipation,
+)
 from app.models.club import ClubCategoryEnum, ClubStatusEnum
 from app.models.club_activity_check_in import CheckInMethodEnum
 from app.models.clubmember import ClubMembershipEnum
@@ -19,6 +27,7 @@ from app.models.moderations.club_activity import (
     ClubActivityUpdateRequest,
 )
 from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.star_level import StarLevelApplication
 from app.models.user import RoleEnum
 from app.models.verifications.club_membership import ClubMembershipRequest
 
@@ -30,6 +39,7 @@ class TestClubArchival:
         {"username": "archive-member"},
         {"username": "archive-other-president"},
         {"username": "archive-admin", "role": RoleEnum.admin},
+        {"username": "archive-federation", "role": RoleEnum.federation_staff},
     ]
 
     @pytest_asyncio.fixture(scope="class")
@@ -105,7 +115,56 @@ class TestClubArchival:
             end_time=now - timedelta(hours=1),
         )
         db_session.add(activity)
+        joint = JointActivity(
+            initiator_club_id=clubs["archived"].id,
+            created_by_user_id=users["archive-president"]["user"].id,
+            academic_term_id=term.id,
+            name="Archived joint activity",
+            description="history",
+            location="room",
+            starts_at=now - timedelta(days=2),
+            ends_at=now - timedelta(days=1),
+            preliminary_status=ModerationStatusEnum.approved,
+        )
+        shared_joint = JointActivity(
+            initiator_club_id=clubs["other"].id,
+            created_by_user_id=users["archive-other-president"]["user"].id,
+            academic_term_id=term.id,
+            name="Shared with archived club",
+            description="history",
+            location="room",
+            starts_at=now - timedelta(days=2),
+            ends_at=now - timedelta(days=1),
+            preliminary_status=ModerationStatusEnum.approved,
+        )
+        star = StarLevelApplication(
+            club_id=clubs["archived"].id,
+            academic_term_id=term.id,
+        )
+        db_session.add_all([joint, shared_joint, star])
         await db_session.flush()
+        db_session.add_all(
+            [
+                JointActivityParticipation(
+                    activity_id=joint.id,
+                    club_id=clubs["archived"].id,
+                    registered_by_user_id=users["archive-president"]["user"].id,
+                    is_initiator=True,
+                ),
+                JointActivityParticipation(
+                    activity_id=shared_joint.id,
+                    club_id=clubs["other"].id,
+                    registered_by_user_id=users["archive-other-president"]["user"].id,
+                    is_initiator=True,
+                ),
+                JointActivityParticipation(
+                    activity_id=shared_joint.id,
+                    club_id=clubs["archived"].id,
+                    registered_by_user_id=users["archive-president"]["user"].id,
+                    is_initiator=False,
+                ),
+            ],
+        )
         db_session.add_all(
             [
                 ClubActivityCheckIn(
@@ -167,6 +226,9 @@ class TestClubArchival:
         await db_session.flush()
         ids = {name: club.id for name, club in clubs.items()}
         ids["archived_activity"] = activity.id
+        ids["archived_joint"] = joint.id
+        ids["shared_joint"] = shared_joint.id
+        ids["archived_star"] = star.id
         ids["pending_activity"] = pending_activity.id
         ids["club_update_request"] = update_request.id
         ids["activity_create_request"] = create_request.id
@@ -302,6 +364,53 @@ class TestClubArchival:
         )
         assert roster.status_code == 200, roster.text
         assert len(roster.json()["items"]) == 1
+
+    async def test_archived_joint_and_star_history_is_not_public(
+        self,
+        client: AsyncClient,
+        clubs: dict[str, int],
+    ) -> None:
+        joint = await client.get(f"/joint-activities/{clubs['archived_joint']}")
+        assert joint.status_code in {403, 404}, joint.text
+        listing = await client.get("/joint-activities/")
+        assert listing.status_code == 200, listing.text
+        assert clubs["archived_joint"] not in {
+            item["id"] for item in listing.json()["items"]
+        }
+        shared = await client.get(f"/joint-activities/{clubs['shared_joint']}")
+        assert shared.status_code == 200, shared.text
+        assert [item["club_id"] for item in shared.json()["participations"]] == [
+            clubs["other"],
+        ]
+
+        star = await client.get(f"/star-level/{clubs['archived_star']}")
+        assert star.status_code in {403, 404}, star.text
+        listing = await client.get("/star-level/")
+        assert listing.status_code == 200, listing.text
+        assert clubs["archived_star"] not in {
+            item["id"] for item in listing.json()["items"]
+        }
+
+        federation = await client.get(
+            "/club-federation/joint-activities/",
+            headers=self._headers("archive-federation"),
+        )
+        assert federation.status_code == 200, federation.text
+        assert clubs["archived_joint"] not in {
+            item["id"] for item in federation.json()["items"]
+        }
+        admin = await client.get(
+            "/club-federation/joint-activities/",
+            headers=self._headers("archive-admin"),
+        )
+        assert admin.status_code == 200, admin.text
+        assert clubs["archived_joint"] in {item["id"] for item in admin.json()["items"]}
+        preview = await client.post(
+            f"/club-federation/star-level/{clubs['archived_star']}/preview",
+            json={"audit_status": "rejected"},
+            headers=self._headers("archive-federation"),
+        )
+        assert preview.status_code == 404, preview.text
 
     async def test_archiving_supersedes_only_pending_moderation_requests(
         self,

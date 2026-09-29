@@ -2,6 +2,7 @@ from typing import cast
 
 import pytest
 
+from app.models.club import Club, ClubStatusEnum
 from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum, User
 from app.repositories.club import ClubRepository
@@ -19,11 +20,25 @@ class TransactionlessSession:
     def in_transaction(self) -> bool:
         return False
 
+    async def refresh(self, _obj: object, *, attribute_names: list[str]) -> None:
+        assert attribute_names == ["status"]
+
+
+class ExistingClubRepository:
+    def __init__(self, db: TransactionlessSession) -> None:
+        self.db = db
+
+    async def get_with_lock(self, club_id: int) -> Club:
+        return Club(id=club_id, status=ClubStatusEnum.normal)
+
 
 class ExistingApplicationRepository:
     def __init__(self, application: StarLevelApplication) -> None:
         self.db = TransactionlessSession()
         self.application = application
+
+    async def get(self, application_id: int) -> StarLevelApplication | None:
+        return self.application if application_id == self.application.id else None
 
     async def get_with_lock(self, application_id: int) -> StarLevelApplication | None:
         if application_id == self.application.id:
@@ -54,7 +69,7 @@ def _service_for(
     repository = ExistingApplicationRepository(application)
     service = StarLevelService(
         cast("StarLevelRepository", repository),
-        club_repository=cast("ClubRepository", object()),
+        club_repository=cast("ClubRepository", ExistingClubRepository(repository.db)),
         star_rating_service=cast("StarRatingService", object()),
     )
     return service, application

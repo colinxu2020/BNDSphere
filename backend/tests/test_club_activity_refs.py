@@ -54,12 +54,16 @@ class TestClubActivityRefs:
         path = f"/clubs/{clubs[status.value]}/activities/"
         existing = await client.get(path, params={"size": 100})
         refs = await client.get(f"{path}refs/")
+        if status != ClubStatusEnum.normal:
+            assert existing.status_code == refs.status_code == 403
+            assert existing.json() == refs.json()
+            return
         assert existing.status_code == refs.status_code == 200
         assert refs.json() == [
             {"id": item["id"], "name": item["name"]}
             for item in existing.json()["items"]
         ]
-        assert len(refs.json()) == (55 if status == ClubStatusEnum.normal else 2)
+        assert len(refs.json()) == 55
 
     async def test_missing_club_matches_existing_list(
         self, client: AsyncClient

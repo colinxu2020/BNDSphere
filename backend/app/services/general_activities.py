@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import override
 
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError, OperationalError
@@ -9,6 +10,7 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
 )
 from app.models.user import AuditStatusEnum
+from app.repositories.club import ClubRepository
 from app.repositories.general_activities import (
     ClubGeneralActivityRepository,
     GeneralActivityRepository,
@@ -21,6 +23,7 @@ from app.schemas.general_activities import (
     GeneralActivityUpdate,
 )
 from app.services.base import ServiceBase
+from app.services.club_access import get_locked_normal_club
 from app.services.errors import (
     BusinessError,
     DuplicateResourceError,
@@ -72,6 +75,14 @@ class ClubGeneralActivityService(
 ):
     repository: ClubGeneralActivityRepository
 
+    def __init__(
+        self,
+        repository: ClubGeneralActivityRepository,
+        club_repository: ClubRepository | None = None,
+    ) -> None:
+        super().__init__(repository)
+        self.club_repository = club_repository or ClubRepository(repository.db)
+
     async def create_club_general_activity(
         self,
         obj_in: ClubGeneralActivityCreate,
@@ -79,6 +90,7 @@ class ClubGeneralActivityService(
     ) -> ClubGeneralActivityRecord:
         try:
             async with self.transaction():
+                await get_locked_normal_club(self.club_repository, club_id)
                 existing = await self.repository.find_by_club_id_and_activity_id(
                     club_id,
                     obj_in.activity_id,
@@ -106,6 +118,29 @@ class ClubGeneralActivityService(
                 error_code="DATABASE_UNAVAILABLE",
             ) from None
 
+    @override
+    async def update(
+        self,
+        db_obj: ClubGeneralActivityRecord,
+        obj_in: ClubGeneralActivityUpdate,
+    ) -> ClubGeneralActivityRecord:
+        async with self.transaction():
+            await get_locked_normal_club(self.club_repository, db_obj.club_id)
+            record = await self.repository.get_with_lock(db_obj.id)
+            if record is None or record.club_id != db_obj.club_id:
+                raise ResourceNotFoundError(
+                    "error.club_general_activity_record.not_found",
+                    "CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND",
+                    {"record_id": db_obj.id},
+                )
+            if record.audit_status != AuditStatusEnum.pending:
+                raise ResourceForbiddenError(
+                    "error.general_activity.record_reviewed",
+                    "RECORD_REVIEWED",
+                    {"record_id": record.id},
+                )
+            return await self.repository.update(record, obj_in)
+
     async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
         return await self.repository.get_by_club(club)
 
@@ -126,6 +161,14 @@ class ClubGeneralActivityService(
         auditor: User,
     ) -> ClubGeneralActivityRecord:
         async with self.transaction():
+            record = await self.repository.get(record_id)
+            if record is None:
+                raise ResourceNotFoundError(
+                    "error.club_general_activity_record.not_found",
+                    "CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND",
+                    {"record_id": record_id},
+                )
+            await get_locked_normal_club(self.club_repository, record.club_id)
             db_obj = await self._get_with_lock(record_id)
             if db_obj is None:
                 raise ResourceNotFoundError(

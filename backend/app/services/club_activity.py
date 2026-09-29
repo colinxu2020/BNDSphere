@@ -111,6 +111,7 @@ class ClubActivityService(
         obj_in: ClubActivityCreate,
     ) -> ClubActivity:
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
             return await self.repository.create_club_activity(club_id, obj_in)
 
     async def request_club_activity_create(
@@ -120,7 +121,7 @@ class ClubActivityService(
         requestor: User,
     ) -> ClubActivityCreateRequest:
         async with self.transaction():
-            await self._ensure_club_normal(club_id)
+            await get_locked_normal_club(self.club_repository, club_id)
             return await self.create_request_repository.create(
                 ClubActivityCreateRequestCreate(
                     **obj_in.model_dump(),
@@ -138,7 +139,7 @@ class ClubActivityService(
     ) -> ClubActivityUpdateRequest:
         try:
             async with self.transaction():
-                await self._ensure_club_normal(club_id)
+                await get_locked_normal_club(self.club_repository, club_id)
                 activity = await self.get(activity_id)
                 if activity is None:
                     raise ClubActivityNotFoundError(activity_id) from None
