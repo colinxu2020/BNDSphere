@@ -274,6 +274,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             club = await self.repository.get_with_lock(club_id)
             if club is None:
                 raise ClubNotFoundError(club_id) from None
+            await self.repository.db.refresh(club, attribute_names=["status"])
             if club.status != ClubStatusEnum.unreviewed:
                 raise ResourceForbiddenError(
                     "error.club.update_requires_review",
@@ -290,7 +291,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
     ) -> ClubUpdateRequest:
         try:
             async with self.transaction():
-                await self.ensure_club_normal(club_id)
+                await self._get_locked_active_club(club_id)
                 await self.update_request_repository.supersede_pending_requests_by_club(
                     club_id,
                 )
@@ -313,7 +314,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
     ) -> ClubMembershipRequest:
         try:
             async with self.transaction():
-                club = await self.ensure_club_normal(club_id)
+                club = await self._get_locked_active_club(club_id)
                 relationship = await self.member_repository.get_by_club_user(club, user)
                 if relationship and relationship.membership != ClubMembershipEnum.left:
                     raise DuplicateResourceError(
@@ -421,16 +422,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             )
 
     async def _get_locked_active_club(self, club_id: int) -> Club:
-        club = await self.repository.get_with_lock(club_id)
-        if club is None:
-            raise ClubNotFoundError(club_id) from None
-        if club.status != ClubStatusEnum.normal:
-            raise ResourceForbiddenError(
-                "error.club.not_active",
-                "CLUB_NOT_ACTIVE",
-                {"club_id": club_id},
-            ) from None
-        return club
+        return await get_locked_normal_club(self.repository, club_id)
 
     async def _ensure_president(self, club: Club, user: User) -> ClubMember:
         membership = await self.member_repository.get_by_club_user(club, user)
@@ -614,6 +606,7 @@ class ClubMembershipRequestService(
         verifier: User,
     ) -> ClubMembershipRequest:
         async with self.transaction():
+            club = await get_locked_normal_club(self.club_repository, club_id)
             request = await self._get_with_lock(request_id)
             if request is None or request.club_id != club_id:
                 raise ResourceNotFoundError(
@@ -626,14 +619,14 @@ class ClubMembershipRequestService(
                     "CLUB_MEMBERSHIP_REQUEST_VERIFIED",
                 ) from None
 
-            club = await self.club_repository.get(request.club_id)
-            if club is None:
-                raise ClubNotFoundError(request.club_id) from None
-            if club.status != ClubStatusEnum.normal:
+            await self.repository.db.refresh(
+                request,
+                attribute_names=["verification_status"],
+            )
+            if request.verification_status != VerificationStatusEnum.pending:
                 raise ResourceForbiddenError(
-                    "error.club.not_active",
-                    "CLUB_NOT_ACTIVE",
-                    {"club_id": request.club_id},
+                    "error.club_membership_request.verified",
+                    "CLUB_MEMBERSHIP_REQUEST_VERIFIED",
                 ) from None
 
             if verification.verification_status == VerificationStatusEnum.approved:
@@ -688,15 +681,7 @@ class ClubClaimRequestService(
     ) -> ClubClaimRequest:
         try:
             async with self.transaction():
-                club = await self.club_repository.get_with_lock(club_id)
-                if club is None:
-                    raise ClubNotFoundError(club_id) from None
-                if club.status != ClubStatusEnum.normal:
-                    raise ResourceForbiddenError(
-                        "error.club.not_active",
-                        "CLUB_NOT_ACTIVE",
-                        {"club_id": club_id},
-                    ) from None
+                await get_locked_normal_club(self.club_repository, club_id)
                 if await self.member_repository.has_president(club_id):
                     raise ResourceForbiddenError(
                         "error.club_claim_request.club_already_claimed",
@@ -721,6 +706,17 @@ class ClubClaimRequestService(
         verifier: User,
     ) -> ClubClaimRequest:
         async with self.transaction():
+            location = await self.repository.get(request_id)
+            if location is None:
+                raise ResourceNotFoundError(
+                    "error.club_claim_request.not_found",
+                    "CLUB_CLAIM_REQUEST_NOT_FOUND",
+                    {"request_id": request_id},
+                ) from None
+            club = await get_locked_normal_club(
+                self.club_repository,
+                location.club_id,
+            )
             request = await self._get_with_lock(request_id)
             if request is None:
                 raise ResourceNotFoundError(
@@ -728,6 +724,10 @@ class ClubClaimRequestService(
                     "CLUB_CLAIM_REQUEST_NOT_FOUND",
                     {"request_id": request_id},
                 ) from None
+            await self.repository.db.refresh(
+                request,
+                attribute_names=["verification_status"],
+            )
             if request.verification_status != VerificationStatusEnum.pending:
                 raise ResourceForbiddenError(
                     "error.club_claim_request.verified",
@@ -735,18 +735,8 @@ class ClubClaimRequestService(
                     {"request_id": request_id},
                 ) from None
 
-            club = await self.club_repository.get_with_lock(request.club_id)
-            if club is None:
-                raise ClubNotFoundError(request.club_id) from None
-
             verified_at = datetime.now(tz=UTC)
             if verification.verification_status == VerificationStatusEnum.approved:
-                if club.status != ClubStatusEnum.normal:
-                    raise ResourceForbiddenError(
-                        "error.club.not_active",
-                        "CLUB_NOT_ACTIVE",
-                        {"club_id": request.club_id},
-                    ) from None
                 if await self.member_repository.has_president(club.id):
                     raise ResourceForbiddenError(
                         "error.club_claim_request.club_already_claimed",

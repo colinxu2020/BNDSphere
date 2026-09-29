@@ -14,12 +14,14 @@ from app.models.club import ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.moderations.club_activity import ClubActivityCreateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
+from app.models.verifications.club_membership import ClubMembershipRequest
 from app.repositories.club import ClubRepository
 from app.repositories.club_activity import (
     ClubActivityCreateRequestRepository,
     ClubActivityRepository,
 )
 from app.schemas.moderations.moderation_common import RequestModeratePublic
+from app.schemas.verifications.club_membership import ClubMembershipRequestCreatePublic
 from app.services.club import ClubService
 from app.services.club_activity import ClubActivityCreateRequestService
 from app.services.errors import ResourceForbiddenError
@@ -200,4 +202,60 @@ async def test_archive_wins_over_queued_activity_creation_approval(
         assert club.status == ClubStatusEnum.archived
         assert request is not None
         assert request.moderation_status == ModerationStatusEnum.superseded
+        assert count == 0
+
+
+async def test_archive_wins_over_queued_membership_request(
+    committed_club_request: tuple[async_sessionmaker[AsyncSession], dict[str, int]],
+) -> None:
+    maker, ids = committed_club_request
+    acquired, release, attempting = asyncio.Event(), asyncio.Event(), asyncio.Event()
+    async with maker() as archive_session, maker() as join_session:
+        president = await archive_session.get(User, ids["president"])
+        applicant = await join_session.get(User, ids["moderator"])
+        assert president is not None
+        assert applicant is not None
+        archival = ClubService(
+            PausingClubRepository(archive_session, acquired, release),
+        )
+        # The app's normal state check initially calls get(), not get_with_lock().
+        join = ClubService(SignallingClubRepository(join_session, attempting))
+        archive_task = asyncio.create_task(
+            archival.archive_club(ids["club"], president),
+        )
+        join_task = None
+        try:
+            await asyncio.wait_for(acquired.wait(), timeout=5)
+            join_task = asyncio.create_task(
+                join.request_join_club(
+                    ids["club"],
+                    applicant,
+                    ClubMembershipRequestCreatePublic(message="join after archive"),
+                ),
+            )
+            await asyncio.wait_for(attempting.wait(), timeout=5)
+            release.set()
+            await asyncio.wait_for(archive_task, timeout=5)
+            try:
+                await asyncio.wait_for(join_task, timeout=5)
+            except ResourceForbiddenError:
+                pass
+            else:
+                raise AssertionError("membership request created after archival")
+        finally:
+            release.set()
+            for task in (archive_task, join_task):
+                if task is not None and not task.done():
+                    task.cancel()
+            await asyncio.gather(
+                *(task for task in (archive_task, join_task) if task is not None),
+                return_exceptions=True,
+            )
+
+    async with maker() as session:
+        count = await session.scalar(
+            select(func.count())
+            .select_from(ClubMembershipRequest)
+            .where(ClubMembershipRequest.club_id == ids["club"]),
+        )
         assert count == 0

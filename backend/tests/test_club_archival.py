@@ -6,6 +6,7 @@ from typing import ClassVar
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import AcademicTerm, Club, ClubActivity, ClubActivityCheckIn, ClubMember
@@ -340,3 +341,43 @@ class TestClubArchival:
                 headers=moderator_headers,
             )
             assert response.status_code == 403, response.text
+
+    async def test_admin_bypass_cannot_write_archived_club_or_approve_membership(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        clubs: dict[str, int],
+    ) -> None:
+        headers = self._headers("archive-admin")
+        club_id = clubs["archived"]
+        for url, body in (
+            (f"/clubs/{club_id}/update-requests", {"summary": "changed"}),
+            (f"/clubs/{club_id}/membership-requests", {"message": "let me in"}),
+            (
+                f"/clubs/{club_id}/activities/create-requests",
+                {
+                    "name": "wrongly created",
+                    "description": "description",
+                    "location": "room",
+                    "start_time": "2030-01-01T12:00:00Z",
+                    "end_time": "2030-01-01T13:00:00Z",
+                },
+            ),
+        ):
+            response = await client.post(url, json=body, headers=headers)
+            assert response.status_code == 403, (url, response.text)
+            assert response.json()["error_code"] == "CLUB_NOT_ACTIVE"
+
+        pending = await db_session.scalar(
+            select(ClubMembershipRequest.id).where(
+                ClubMembershipRequest.club_id == club_id,
+            ),
+        )
+        assert pending is not None
+        approval = await client.patch(
+            f"/clubs/{club_id}/membership-requests/{pending}",
+            json={"verification_status": "approved"},
+            headers=headers,
+        )
+        assert approval.status_code == 403, approval.text
+        assert approval.json()["error_code"] == "CLUB_NOT_ACTIVE"
