@@ -8,6 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import SessionLocal
 from app.core.security import verify_access_token
+from app.models.club import ClubStatusEnum
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.repositories.academic_term import AcademicTermRepository
@@ -55,6 +56,7 @@ from app.services.club_activity_check_in import ClubActivityCheckInService
 from app.services.errors import (
     AuthenticationError,
     ClubNotFoundError,
+    ResourceForbiddenError,
 )
 from app.services.general_activities import (
     ClubGeneralActivityService,
@@ -261,8 +263,14 @@ class RoleChecker:
 
 
 class ClubRoleChecker:
-    def __init__(self, allowed_roles: list[ClubMembershipEnum]) -> None:
+    def __init__(
+        self,
+        allowed_roles: list[ClubMembershipEnum],
+        *,
+        allow_archived: bool = False,
+    ) -> None:
         self.allowed_roles = allowed_roles
+        self.allow_archived = allow_archived
 
     async def __call__(
         self,
@@ -281,4 +289,13 @@ class ClubRoleChecker:
             membership,
             self.allowed_roles,
         )
+        if club.status == ClubStatusEnum.archived and not self.allow_archived:
+            try:
+                AccessPolicy.ensure_role_allowed(user, [RoleEnum.admin])
+            except ResourceForbiddenError:
+                raise ResourceForbiddenError(
+                    "error.club.not_active",
+                    "CLUB_NOT_ACTIVE",
+                    {"club_id": club_id},
+                ) from None
         return user

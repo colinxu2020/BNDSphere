@@ -97,15 +97,11 @@ class ClubActivityService(
         self,
         club_id: int,
     ) -> Page[ClubActivity]:
-        club = await self.club_repository.get(club_id)
-        if club is None:
-            raise ClubNotFoundError(club_id) from None
+        club = await self._ensure_club_normal(club_id)
         return await self.get_club_activities(club)
 
     async def get_club_activity_refs(self, club_id: int) -> list[ClubActivityRef]:
-        # Match the existing activity list: only club existence is required.
-        if not await self.club_repository.exists(club_id):
-            raise ClubNotFoundError(club_id) from None
+        await self._ensure_club_normal(club_id)
         return await self.repository.get_refs(club_id)
 
     async def create_club_activity(

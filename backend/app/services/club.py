@@ -207,9 +207,17 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         )
         # 当前成员角色优先; left 不在 memberships 中, 重新申请时显示 pending.
         relationships = {
-            club.id: (club, ClubMembershipEnum.pending) for club in pending_clubs
+            club.id: (club, ClubMembershipEnum.pending)
+            for club in pending_clubs
+            if club.status != ClubStatusEnum.archived
         }
-        relationships.update({m.club_id: (m.club, m.membership) for m in memberships})
+        relationships.update(
+            {
+                m.club_id: (m.club, m.membership)
+                for m in memberships
+                if m.club.status != ClubStatusEnum.archived
+            },
+        )
         ordered = [
             relationships[club_id] for club_id in sorted(relationships, reverse=True)
         ]

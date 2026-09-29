@@ -115,7 +115,7 @@ async def archive_club(
     service: ClubServiceDep,
     president: Annotated[
         User,
-        Depends(ClubRoleChecker([ClubMembershipEnum.president])),
+        Depends(ClubRoleChecker([ClubMembershipEnum.president], allow_archived=True)),
     ],
 ) -> None:
     """Archive a normal club, preserving its history for administrators."""
