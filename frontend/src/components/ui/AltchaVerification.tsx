@@ -1,7 +1,7 @@
 import { createElement, forwardRef } from "react";
 import type { AltchaWidgetElement } from "altcha/types/generic";
 
-export type AltchaPurpose = "login" | "register";
+export type AltchaPurpose = "login" | "register" | "password_reset";
 export type AltchaVerificationRef = AltchaWidgetElement;
 
 interface AltchaVerificationProps {

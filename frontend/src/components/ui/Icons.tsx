@@ -25,6 +25,7 @@ export {
   IconInbox as Inbox,
   IconLayoutDashboard as LayoutDashboard,
   IconLoader2 as Loader2,
+  IconLock as Lock,
   IconLogin as LogIn,
   IconLogout as LogOut,
   IconMail as Mail,

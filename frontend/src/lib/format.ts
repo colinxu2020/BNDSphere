@@ -26,6 +26,11 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   LOGIN_THROTTLED: "登录尝试次数过多，请稍后再试",
   RATE_LIMITED: "操作过于频繁，请稍后再试",
   AUTH_TOKEN_INVALID: "登录状态已失效，请重新登录",
+  TWO_FACTOR_ALREADY_ENABLED: "该验证方式已经开启，请先关闭再重新绑定",
+  TWO_FACTOR_CHALLENGE_INVALID: "两步验证已超时，请重新登录",
+  TWO_FACTOR_CODE_INVALID: "验证码或恢复码不正确，请重试",
+  TWO_FACTOR_METHOD_UNAVAILABLE: "这个账号还没有开启该验证方式",
+  TWO_FACTOR_REQUIRED: "请完成两步验证",
   CLUB_ACTIVITY_CREATE_REQUEST_MODERATED: "这条活动创建申请已经审核过",
   CLUB_ACTIVITY_CREATE_REQUEST_NOT_FOUND: "没有找到这条活动创建申请",
   CLUB_ACTIVITY_INVALID_TIME_RANGE: "活动结束时间必须晚于开始时间",
@@ -96,6 +101,11 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.auth.incorrect_user_passwd": "用户名或密码不正确",
   "error.auth.login_throttled": "登录尝试次数过多，请稍后再试",
   "error.auth.token_invalid": "登录状态已失效，请重新登录",
+  "error.auth.two_factor_already_enabled": "该验证方式已经开启，请先关闭再重新绑定",
+  "error.auth.two_factor_challenge_invalid": "两步验证已超时，请重新登录",
+  "error.auth.two_factor_code_invalid": "验证码或恢复码不正确，请重试",
+  "error.auth.two_factor_method_unavailable": "这个账号还没有开启该验证方式",
+  "error.auth.two_factor_required": "请完成两步验证",
   "error.rate_limit.too_many_requests": "操作过于频繁，请稍后再试",
   "error.club.duplicate_join_request": "你已经提交过加入申请或已经是该社团成员",
   "error.club.duplicate_club_name": "社团名称已被使用",
@@ -246,6 +256,7 @@ function formatDetails(details: unknown): string {
     club_id: "社团 ID",
     email: "邮箱",
     field: "字段",
+    method: "验证方式",
     general_activity_id: "大型活动 ID",
     record_id: "记录 ID",
     resource_id: "资料 ID",
@@ -257,6 +268,9 @@ function formatDetails(details: unknown): string {
     username: "用户名",
   };
   const parts = Object.entries(details as Record<string, unknown>)
+    // The two-step challenge ticket travels in ``details``; it is a credential,
+    // not something to print in a banner.
+    .filter(([key]) => key !== "two_factor_token")
     .filter(([, detailValue]) => detailValue != null && detailValue !== "")
     .map(([key, detailValue]) => `${labelMap[key] || key}: ${String(detailValue)}`);
   return parts.length ? `（${parts.join("，")}）` : "";

@@ -6,6 +6,7 @@ from pydantic import BaseModel, Field
 class AltchaPurpose(StrEnum):
     login = "login"
     register = "register"
+    password_reset = "password_reset"  # noqa: S105 - a purpose, not a secret
 
 
 type AltchaDataValue = str | int | bool | None

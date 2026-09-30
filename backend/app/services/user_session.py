@@ -49,3 +49,13 @@ class UserSessionService(
         if session is not None:
             async with self.transaction():
                 await self.repository.delete(session)
+
+    async def revoke_all(self, user: User) -> None:
+        """End every session for ``user``.
+
+        What a password change is for: whoever has been riding a stolen
+        session loses it, which is the whole point of changing the password
+        and is not something revoking only the current one would achieve.
+        """
+        async with self.transaction():
+            await self.repository.delete_for_user(user.id)

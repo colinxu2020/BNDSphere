@@ -9,6 +9,8 @@ import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
 import { ContactVerification } from "../components/ContactVerification";
+import { ChangePassword } from "../components/ChangePassword";
+import { TwoFactorSettings } from "../components/TwoFactorSettings";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -170,6 +172,10 @@ export function Profile() {
       </div>
 
       <ContactVerification user={user} onVerified={setUser} />
+
+      <ChangePassword />
+
+      <TwoFactorSettings />
 
       <AnimatePresence>
         {isUpdateModalOpen && (

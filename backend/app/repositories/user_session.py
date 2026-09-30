@@ -31,6 +31,15 @@ class UserSessionRepository(
         )
         return result.scalars().first()
 
+    async def delete_for_user(self, user_id: int) -> None:
+        """End every session this account has, live or expired.
+
+        Expired rows go too: they authenticate nothing, and leaving them
+        would only mean the sweep has more to do later.
+        """
+        await self.db.execute(delete(UserSession).where(UserSession.user_id == user_id))
+        await self.db.flush()
+
     async def prune_expired(self, now: datetime) -> None:
         await self.db.execute(delete(UserSession).where(UserSession.expires_at <= now))
         await self.db.flush()

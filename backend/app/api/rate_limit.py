@@ -9,6 +9,8 @@ from app.core.constants import (
     CHALLENGE_IP_MAX_PER_MINUTE,
     LOGIN_IP_MAX_PER_HOUR,
     LOGIN_IP_MAX_PER_MINUTE,
+    PASSWORD_RESET_IP_MAX_PER_DAY,
+    PASSWORD_RESET_IP_MAX_PER_HOUR,
     REGISTER_IP_MAX_PER_DAY,
     REGISTER_IP_MAX_PER_HOUR,
 )
@@ -28,6 +30,10 @@ _LOGIN_RULES: Sequence[RateLimitRule] = (
 _REGISTER_RULES: Sequence[RateLimitRule] = (
     RateLimitRule(REGISTER_IP_MAX_PER_HOUR, 3600),
     RateLimitRule(REGISTER_IP_MAX_PER_DAY, 86400),
+)
+_PASSWORD_RESET_RULES: Sequence[RateLimitRule] = (
+    RateLimitRule(PASSWORD_RESET_IP_MAX_PER_HOUR, 3600),
+    RateLimitRule(PASSWORD_RESET_IP_MAX_PER_DAY, 86400),
 )
 _CHALLENGE_RULES: Sequence[RateLimitRule] = (
     RateLimitRule(CHALLENGE_IP_MAX_PER_MINUTE, 60),
@@ -82,3 +88,7 @@ def rate_limit(
 login_rate_limit = rate_limit("auth:login", _LOGIN_RULES)
 register_rate_limit = rate_limit("auth:register", _REGISTER_RULES)
 challenge_rate_limit = rate_limit("auth:challenge", _CHALLENGE_RULES)
+password_reset_rate_limit = rate_limit(
+    "auth:password_reset",
+    _PASSWORD_RESET_RULES,
+)

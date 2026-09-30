@@ -2,6 +2,7 @@ from typing import Final
 
 USER_MAX_USERNAME_LENGTH: Final[int] = 32
 USER_MAX_EMAIL_LENGTH: Final[int] = 64
+USER_MIN_PASSWORD_LENGTH: Final[int] = 6
 # Argon2 hashes whatever it is handed, so an unbounded password field is a
 # free way to make the server spend CPU on request. 128 is far past
 # anything a person types and well inside what a password manager makes.
@@ -43,6 +44,12 @@ LOGIN_IP_MAX_PER_MINUTE: Final[int] = 60
 LOGIN_IP_MAX_PER_HOUR: Final[int] = 1200
 REGISTER_IP_MAX_PER_HOUR: Final[int] = 15
 REGISTER_IP_MAX_PER_DAY: Final[int] = 150
+# Password reset is unauthenticated and names an account, so it is the one
+# auth route that doubles as a username oracle if it is cheap enough to grind.
+# Tighter than login because nobody legitimately asks for many resets, and the
+# per-account send budgets already cap what a single account can cost.
+PASSWORD_RESET_IP_MAX_PER_HOUR: Final[int] = 20
+PASSWORD_RESET_IP_MAX_PER_DAY: Final[int] = 60
 
 # ALTCHA challenge issuance. The endpoint is unauthenticated by design, so a
 # per-IP budget is what keeps a single source from minting challenges in
@@ -117,6 +124,38 @@ SMS_SEND_MAX_PER_TARGET_PER_DAY: Final[int] = 5
 # rolls — deliberately, because an unbounded spend is the worse failure.
 SMS_GLOBAL_MAX_PER_DAY: Final[int] = 500
 
+# Login second-factor codes are budgeted separately from the ones above, and
+# counted only against each other. Binding a number happens once in an
+# account's life; logging in happens forever, so sharing a pool would mean
+# the fifth login of the day is refused — and would let ordinary login
+# traffic exhaust the deployment-wide ceiling and take phone verification
+# down with it.
+SMS_TWO_FACTOR_MAX_PER_ACCOUNT_PER_HOUR: Final[int] = 6
+SMS_TWO_FACTOR_MAX_PER_TARGET_PER_DAY: Final[int] = 20
+SMS_TWO_FACTOR_GLOBAL_MAX_PER_DAY: Final[int] = 1000
+
 # Codes are kept after use so the send budgets above can still see them; this
 # is how long before the retention sweep removes them.
 VERIFICATION_CODE_RETENTION_DAYS: Final[int] = 7
+
+# ── Two-factor authentication ────────────────────────────────────────────
+#
+# Opt-in per account. Once on, a correct password buys only a short-lived
+# challenge ticket; the session is issued when the second factor is answered.
+# Second-factor failures are recorded as failed logins, so the existing
+# per-account lockout is what keeps a six-digit TOTP out of reach.
+TWO_FACTOR_ISSUER: Final[str] = "BNDSphere"
+# Long enough to fetch a phone and read an SMS that is still in flight, short
+# enough that a ticket left on a shared machine is worthless by the time
+# anyone finds it.
+TWO_FACTOR_CHALLENGE_TTL_MINUTES: Final[int] = 10
+# How long a started-but-unconfirmed TOTP secret stays usable. An enrollment
+# nobody finished is a credential nobody holds: left forever, it is something
+# a stolen session can finish on its own and arm the account against its
+# owner.
+TWO_FACTOR_ENROLLMENT_TTL_MINUTES: Final[int] = 30
+# Shown once, when a second factor is first turned on. Ten is enough to cover
+# a lost phone several times over without being a list nobody will keep.
+RECOVERY_CODE_COUNT: Final[int] = 10
+# "1234-5678-9abc-def0" plus room for however someone retypes it.
+RECOVERY_CODE_MAX_INPUT_LENGTH: Final[int] = 32
