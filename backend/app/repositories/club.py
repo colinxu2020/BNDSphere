@@ -32,6 +32,9 @@ _PUBLIC_RECORDS_OPTION = selectinload(
         ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
     ),
 )
+_PUBLIC_MEMBERS_OPTION = selectinload(
+    Club.members.and_(ClubMember.membership != ClubMembershipEnum.left),
+).selectinload(ClubMember.user)
 
 
 def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple[Club]]:
@@ -49,18 +52,23 @@ def _apply_search(stmt: Select[tuple[Club]], search: str | None) -> Select[tuple
             Club.summary.bool_op("%")(search),
             Club.description.bool_op("%")(search),
         ),
-    ).order_by(score_func.desc())
+    ).order_by(score_func.desc(), Club.id.desc())
 
 
 class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     model = Club
+
+    async def exists(self, club_id: int) -> bool:
+        return (
+            await self.db.scalar(select(Club.id).where(Club.id == club_id)) is not None
+        )
 
     async def get_public(self, id_: int) -> Club | None:
         """公开详情读取: general_activity_records 只加载已审核通过的记录."""
         stmt = (
             select(self.model)
             .where(self.model.id == id_)
-            .options(_PUBLIC_RECORDS_OPTION)
+            .options(_PUBLIC_RECORDS_OPTION, _PUBLIC_MEMBERS_OPTION)
         )
         return (await self.db.execute(stmt)).scalars().first()
 
@@ -119,6 +127,19 @@ class ClubMemberRepository(
     RepositoryBase[ClubMember, ClubMemberUpdate, ClubMemberUpdate],
 ):
     model = ClubMember
+
+    async def count_vice_presidents(self, club_id: int) -> int:
+        return (
+            await self.db.scalar(
+                select(func.count())
+                .select_from(ClubMember)
+                .where(
+                    ClubMember.club_id == club_id,
+                    ClubMember.membership == ClubMembershipEnum.vice_president,
+                ),
+            )
+            or 0
+        )
 
     async def get_by_club_user(self, club: Club, user: User) -> ClubMember | None:
         return await self.get_by_club_user_id(club.id, user.id)
@@ -254,6 +275,7 @@ class ClubUpdateRequestRepository(
         stmt = select(self.model).where(
             self.model.moderation_status == ModerationStatusEnum.pending,
         )
+        stmt = stmt.order_by(self.model.request_at.desc(), self.model.id.desc())
         return cast("Page[ClubUpdateRequest]", await apaginate(self.db, stmt))
 
     async def supersede_pending_requests_by_club(self, club_id: int) -> None:
@@ -283,6 +305,7 @@ class ClubMembershipRequestRepository(
             self.model.verification_status == VerificationStatusEnum.pending,
             self.model.club_id == club_id,
         )
+        stmt = stmt.order_by(self.model.apply_at.desc(), self.model.id.desc())
         return cast("Page[ClubMembershipRequest]", await apaginate(self.db, stmt))
 
     async def get_pending_clubs_by_user(self, user_id: int) -> Sequence[Club]:

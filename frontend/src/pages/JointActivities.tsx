@@ -1,54 +1,32 @@
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "motion/react";
 import { ArrowUpRight, CalendarDays, MapPin, Search, Users } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  inputClassName,
-} from "../components/ui/AppPrimitives";
+import { Badge, EmptyState, PageHeader, inputClassName } from "../components/ui/AppPrimitives";
 import { formatDateTime } from "../lib/format";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type JointActivity = components["schemas"]["JointActivityPublicInfo"];
 
 export function JointActivities() {
-  const [items, setItems] = useState<JointActivity[]>([]);
   const [search, setSearch] = useState("");
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      setIsLoading(true);
-      setError(null);
-      const response = await client.GET("/api/v1/joint-activities/", {
-        params: { query: { size: 50, search: search || undefined } },
+  const loadActivitiesPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const { data, error } = await client.GET("/api/v1/joint-activities/", {
+        params: {
+          query: { page, size: DEFAULT_PAGE_SIZE, search: search || undefined },
+        },
+        signal,
       });
-      if (cancelled) return;
-      if (response.error) {
-        setError(response.error);
-        setItems([]);
-      } else {
-        setItems(response.data?.items || []);
-      }
-      setIsLoading(false);
-    };
-    load().catch((requestError) => {
-      if (!cancelled) {
-        setError(requestError);
-        setItems([]);
-        setIsLoading(false);
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [search]);
+      return getPageResult(data, error, page);
+    },
+    [search],
+  );
+  const { items, hasMore, isInitialLoading, isLoadingMore, error, loadMore } =
+    useInfiniteList<JointActivity>(loadActivitiesPage);
 
   return (
     <motion.div
@@ -69,8 +47,7 @@ export function JointActivities() {
         />
       </div>
 
-      {error && <StatusMessage value={error} />}
-      {isLoading ? (
+      {isInitialLoading ? (
         <div className="flex min-h-64 items-center justify-center rounded-md border border-slate-100 bg-white text-sm font-medium text-slate-500">
           正在加载联合活动...
         </div>
@@ -113,6 +90,14 @@ export function JointActivities() {
         </div>
       ) : (
         <EmptyState title="暂无公开的联合活动" />
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={error}
+          onLoadMore={loadMore}
+        />
       )}
     </motion.div>
   );

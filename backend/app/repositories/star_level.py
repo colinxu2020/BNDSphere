@@ -59,6 +59,6 @@ class StarLevelRepository(
                 self.db,
                 select(self.model)
                 .where(self.model.club_id == club.id)
-                .order_by(self.model.created_at.desc()),
+                .order_by(self.model.created_at.desc(), self.model.id.desc()),
             ),
         )

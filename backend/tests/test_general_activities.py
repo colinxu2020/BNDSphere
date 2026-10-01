@@ -281,6 +281,15 @@ class TestPublicClubRecordsEcho:
         db_session.add_all([term, normal_club, normal_club_2, unreviewed_club])
         await db_session.flush()
 
+        former_member = request.cls.configured_users["ga_federation"]["user"]
+        db_session.add(
+            ClubMember(
+                club_id=normal_club.id,
+                user_id=former_member.id,
+                membership=ClubMembershipEnum.left,
+            ),
+        )
+
         activity = GeneralActivity(
             name="echo activity",
             description="d",
@@ -325,6 +334,7 @@ class TestPublicClubRecordsEcho:
         request.cls.approved_record_id = approved.id
         request.cls.pending_record_id = pending_dirty.id
         request.cls.unreviewed_club_record_id = unreviewed_club_record.id
+        request.cls.former_member_id = former_member.id
         await db_session.commit()
 
     async def test_public_detail_hides_unreviewed_records(
@@ -383,6 +393,8 @@ class TestPublicClubRecordsEcho:
         # Club with an approved record: only that record is echoed.
         resp = await client.get(f"/clubs/{self.normal_club_id}")
         assert resp.status_code == 200
+        public_member_ids = {member["user_id"] for member in resp.json()["members"]}
+        assert self.former_member_id not in public_member_ids
         assert [r["id"] for r in resp.json()["general_activity_records"]] == [
             self.approved_record_id
         ]
@@ -401,4 +413,5 @@ class TestPublicClubRecordsEcho:
         # Summary lists carry no activity records, even approved ones.
         assert {self.normal_club_id, self.normal_club_2_id} <= {c["id"] for c in items}
         assert all("general_activity_records" not in item for item in items)
+        assert all("members" not in item for item in items)
         assert "javascript:" not in resp.text

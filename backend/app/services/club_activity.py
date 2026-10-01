@@ -19,6 +19,7 @@ from app.repositories.club_activity import (
 )
 from app.schemas.club_activity import (
     ClubActivityCreate,
+    ClubActivityRef,
     ClubActivityUpdate,
     ensure_activity_time_range,
 )
@@ -100,6 +101,12 @@ class ClubActivityService(
         if club is None:
             raise ClubNotFoundError(club_id) from None
         return await self.get_club_activities(club)
+
+    async def get_club_activity_refs(self, club_id: int) -> list[ClubActivityRef]:
+        # Match the existing activity list: only club existence is required.
+        if not await self.club_repository.exists(club_id):
+            raise ClubNotFoundError(club_id) from None
+        return await self.repository.get_refs(club_id)
 
     async def create_club_activity(
         self,

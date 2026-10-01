@@ -32,6 +32,7 @@ class JointActivityRepository(
         stmt = select(self.model).order_by(
             self.model.starts_at.desc(),
             self.model.created_at.desc(),
+            self.model.id.desc(),
         )
         if public_only:
             stmt = stmt.where(
