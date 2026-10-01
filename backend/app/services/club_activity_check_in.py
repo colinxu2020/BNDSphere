@@ -13,6 +13,7 @@ from app.repositories.club_activity import ClubActivityRepository
 from app.repositories.club_activity_check_in import ClubActivityCheckInRepository
 from app.schemas.club_activity_check_in import ClubActivityCheckInCreate
 from app.services.base import ServiceBase
+from app.services.club_access import get_locked_normal_club
 from app.services.errors import (
     BusinessError,
     ClubActivityCheckInInvalidTokenError,
@@ -76,26 +77,23 @@ class ClubActivityCheckInService(
         """
         unique_user_ids = list(dict.fromkeys(user_ids))
 
-        await self._ensure_club_normal(club_id)
-        activity = await self._get_club_activity(club_id, activity_id)
-
-        # Filter to genuinely new ids *before* validating membership — an
-        # id that's already checked in must stay a no-op even if that user
-        # has since left the club, otherwise resubmitting the full roster
-        # (the documented idempotent way to add newly-attended members)
-        # would fail on the departed id and block the new ones with it.
-        already_checked_in = await self.repository.get_checked_in_user_ids(
-            activity.id,
-        )
-        new_user_ids = [
-            user_id for user_id in unique_user_ids if user_id not in already_checked_in
-        ]
-        if not new_user_ids:
-            return []
-
-        await self._ensure_active_members(club_id, new_user_ids)
-
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
+            activity = await self._get_locked_club_activity(club_id, activity_id)
+
+            # Already checked-in users stay no-ops even if they later leave.
+            already_checked_in = await self.repository.get_checked_in_user_ids(
+                activity.id,
+            )
+            new_user_ids = [
+                user_id
+                for user_id in unique_user_ids
+                if user_id not in already_checked_in
+            ]
+            if not new_user_ids:
+                return []
+
+            await self._ensure_active_members(club_id, new_user_ids)
             rows = await self.repository.create_many_ignoring_conflicts(
                 activity.id,
                 new_user_ids,
@@ -130,40 +128,25 @@ class ClubActivityCheckInService(
         second scan by the same user returns the existing row rather than
         erroring.
         """
-        await self._ensure_club_normal(club_id)
-        activity = await self._get_club_activity(club_id, activity_id)
-        self._ensure_activity_in_progress(activity)
-
-        try:
-            payload = verify_check_in_token(token)
-        except ValueError:
-            raise ClubActivityCheckInInvalidTokenError from None
-        if payload.get("activity_id") != activity.id:
-            raise ClubActivityCheckInInvalidTokenError from None
-
-        await self._ensure_active_members(club_id, [user.id])
-
-        return await self._create_check_in(
-            activity.id,
-            user.id,
-            CheckInMethodEnum.qrcode,
-            user.id,
-        )
-
-    async def _create_check_in(
-        self,
-        club_activity_id: int,
-        user_id: int,
-        method: CheckInMethodEnum,
-        recorded_by_user_id: int,
-    ) -> ClubActivityCheckIn:
         try:
             async with self.transaction():
+                await get_locked_normal_club(self.club_repository, club_id)
+                activity = await self._get_locked_club_activity(club_id, activity_id)
+                self._ensure_activity_in_progress(activity)
+
+                try:
+                    payload = verify_check_in_token(token)
+                except ValueError:
+                    raise ClubActivityCheckInInvalidTokenError from None
+                if payload.get("activity_id") != activity.id:
+                    raise ClubActivityCheckInInvalidTokenError from None
+
+                await self._ensure_active_members(club_id, [user.id])
                 return await self.repository.create_or_get_existing(
-                    club_activity_id,
-                    user_id,
-                    method,
-                    recorded_by_user_id,
+                    activity.id,
+                    user.id,
+                    CheckInMethodEnum.qrcode,
+                    user.id,
                 )
         except RuntimeError as err:
             # Same shape as ClubGeneralActivityService's IntegrityError/
@@ -174,8 +157,18 @@ class ClubActivityCheckInService(
                 "error.club_activity_check_in.conflict_lost",
                 500,
                 "CLUB_ACTIVITY_CHECK_IN_CONFLICT_LOST",
-                {"club_activity_id": club_activity_id, "user_id": user_id},
+                {"club_activity_id": activity_id, "user_id": user.id},
             ) from err
+
+    async def _get_locked_club_activity(
+        self,
+        club_id: int,
+        activity_id: int,
+    ) -> ClubActivity:
+        activity = await self.activity_repository.get_with_lock(activity_id)
+        if activity is None or activity.club_id != club_id:
+            raise ClubActivityNotFoundError(activity_id) from None
+        return activity
 
     async def _get_club_activity(self, club_id: int, activity_id: int) -> ClubActivity:
         activity = await self.activity_repository.get(activity_id)

@@ -4,8 +4,10 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
-from app.models import JointActivity, JointActivityParticipation
+from app.models import Club, JointActivity, JointActivityParticipation
+from app.models.club import ClubStatusEnum
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
 from app.models.verifications.verification_common import VerificationStatusEnum
@@ -16,16 +18,35 @@ from app.schemas.joint_activities import (
 )
 from app.schemas.verifications.joint_activity import JointActivityFinalVerification
 
+_PUBLIC_PARTICIPATIONS = selectinload(
+    JointActivity.participations.and_(
+        JointActivityParticipation.club.has(Club.status == ClubStatusEnum.normal),
+    ),
+)
+
 
 class JointActivityRepository(
     RepositoryBase[JointActivity, JointActivityCreate, JointActivityUpdate],
 ):
     model = JointActivity
 
+    async def get_public(self, activity_id: int) -> JointActivity | None:
+        stmt = (
+            select(self.model)
+            .where(
+                self.model.id == activity_id,
+                self.model.preliminary_status == ModerationStatusEnum.approved,
+                self.model.initiator_club.has(Club.status == ClubStatusEnum.normal),
+            )
+            .options(_PUBLIC_PARTICIPATIONS)
+        )
+        return (await self.db.execute(stmt)).scalars().first()
+
     async def get_multi(
         self,
         *,
         public_only: bool,
+        exclude_archived: bool = False,
         search: str | None = None,
         club_id: int | None = None,
     ) -> Page[JointActivity]:
@@ -37,7 +58,12 @@ class JointActivityRepository(
         if public_only:
             stmt = stmt.where(
                 self.model.preliminary_status == ModerationStatusEnum.approved,
-            )
+                self.model.initiator_club.has(Club.status == ClubStatusEnum.normal),
+            ).options(_PUBLIC_PARTICIPATIONS)
+        elif exclude_archived:
+            stmt = stmt.where(
+                self.model.initiator_club.has(Club.status == ClubStatusEnum.normal),
+            ).options(_PUBLIC_PARTICIPATIONS)
         if search:
             stmt = stmt.where(self.model.name.ilike(f"%{search}%"))
         if club_id is not None:

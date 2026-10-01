@@ -6,7 +6,7 @@ from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker
 
 from app.models.academic_term import AcademicTerm
-from app.models.club import Club, ClubCategoryEnum
+from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivity,
@@ -14,6 +14,7 @@ from app.models.general_activity import (
     ParticipationTypeEnum,
 )
 from app.models.user import AuditStatusEnum, User
+from app.repositories.club import ClubRepository
 from app.repositories.general_activities import ClubGeneralActivityRepository
 from app.schemas.general_activities import FederationRecordUpdate
 from app.services.errors import ResourceForbiddenError, ResourceNotFoundError
@@ -26,6 +27,17 @@ class TransactionlessSession:
 
     def in_transaction(self) -> bool:
         return False
+
+    async def refresh(self, _obj: object, *, attribute_names: list[str]) -> None:
+        assert attribute_names == ["status"]
+
+
+class NormalClubRepository:
+    def __init__(self, db: TransactionlessSession) -> None:
+        self.db = db
+
+    async def get_with_lock(self, club_id: int) -> Club:
+        return Club(id=club_id, status=ClubStatusEnum.normal)
 
 
 class ExistingRecordRepository:
@@ -70,6 +82,7 @@ async def test_review_rejects_a_record_that_was_already_reviewed(
     repository = ExistingRecordRepository(record)
     service = ClubGeneralActivityService(
         cast("ClubGeneralActivityRepository", repository),
+        club_repository=cast("ClubRepository", NormalClubRepository(repository.db)),
     )
     update = FederationRecordUpdate(
         audit_status=AuditStatusEnum.approved,
@@ -133,6 +146,7 @@ async def test_review_reloads_status_after_a_prior_session_read(
             summary="Summary",
             description="Description",
             category=ClubCategoryEnum.natural_science,
+            status=ClubStatusEnum.normal,
         )
         reviewer = User(
             username="review-stale-status-user",

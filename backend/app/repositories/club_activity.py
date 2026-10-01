@@ -79,6 +79,17 @@ class ClubActivityCreateRequestRepository(
         stmt = stmt.order_by(self.model.request_at.desc(), self.model.id.desc())
         return cast("Page[ClubActivityCreateRequest]", await apaginate(self.db, stmt))
 
+    async def supersede_pending_requests_by_club(self, club_id: int) -> None:
+        await self.db.execute(
+            update(self.model)
+            .where(
+                self.model.club_id == club_id,
+                self.model.moderation_status == ModerationStatusEnum.pending,
+            )
+            .values(moderation_status=ModerationStatusEnum.superseded),
+        )
+        await self.db.flush()
+
 
 class ClubActivityUpdateRequestRepository(
     RepositoryBase[
@@ -95,6 +106,18 @@ class ClubActivityUpdateRequestRepository(
         )
         stmt = stmt.order_by(self.model.request_at.desc(), self.model.id.desc())
         return cast("Page[ClubActivityUpdateRequest]", await apaginate(self.db, stmt))
+
+    async def supersede_pending_requests_by_club(self, club_id: int) -> None:
+        activity_ids = select(ClubActivity.id).where(ClubActivity.club_id == club_id)
+        await self.db.execute(
+            update(self.model)
+            .where(
+                self.model.club_activity_id.in_(activity_ids),
+                self.model.moderation_status == ModerationStatusEnum.pending,
+            )
+            .values(moderation_status=ModerationStatusEnum.superseded),
+        )
+        await self.db.flush()
 
     async def supersede_pending_requests_by_activity(
         self,

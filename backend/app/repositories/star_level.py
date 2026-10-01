@@ -6,6 +6,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import selectinload
 
 from app.models import Club
+from app.models.club import ClubStatusEnum
 from app.models.star_level import StarLevelApplication
 from app.repositories.base import RepositoryBase
 from app.schemas.star_level import (
@@ -23,6 +24,13 @@ class StarLevelRepository(
     ],
 ):
     model = StarLevelApplication
+
+    async def get_public(self, application_id: int) -> StarLevelApplication | None:
+        stmt = select(self.model).where(
+            self.model.id == application_id,
+            self.model.club.has(Club.status == ClubStatusEnum.normal),
+        )
+        return (await self.db.execute(stmt)).scalars().first()
 
     async def update_review(
         self,
@@ -42,6 +50,7 @@ class StarLevelRepository(
             await apaginate(
                 self.db,
                 select(self.model)
+                .where(self.model.club.has(Club.status == ClubStatusEnum.normal))
                 .options(
                     selectinload(self.model.club),
                     selectinload(self.model.academic_term),

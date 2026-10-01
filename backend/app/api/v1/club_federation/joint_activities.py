@@ -5,7 +5,7 @@ from fastapi_pagination import Page
 
 from app.api.common_responses import RESOURCE_NOT_FOUND_RESPONSE
 from app.api.dependencies import JointActivityServiceDep, get_current_user
-from app.models.user import User
+from app.models.user import RoleEnum, User
 from app.schemas.joint_activities import (
     JointActivityInfo,
 )
@@ -20,10 +20,14 @@ router = APIRouter(tags=["Federation: Joint Activities"])
 @router.get("/")
 async def list_joint_activities_for_federation(
     service: JointActivityServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
     search: str | None = None,
 ) -> Page[JointActivityInfo]:
     return Page[JointActivityInfo].model_validate(
-        await service.list_for_federation(search),
+        await service.list_for_federation(
+            search,
+            include_archived=user.role in (RoleEnum.admin, RoleEnum.dev),
+        ),
     )
 
 

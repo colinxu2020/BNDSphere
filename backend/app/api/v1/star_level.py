@@ -45,10 +45,9 @@ async def get_by_id(
     star_level_id: int,
     service: StarLevelServiceDep,
 ) -> StarLevelApplicationInfo:
-    star_level = await service.get(star_level_id)
-    if star_level is None:
-        raise StarLevelNotFoundError(star_level_id) from None
-    return StarLevelApplicationInfo.model_validate(star_level)
+    return StarLevelApplicationInfo.model_validate(
+        await service.get_public(star_level_id),
+    )
 
 
 @router.patch(

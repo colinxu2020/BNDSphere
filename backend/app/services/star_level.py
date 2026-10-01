@@ -4,6 +4,7 @@ from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
 from app.models import Club
+from app.models.club import ClubStatusEnum
 from app.models.star_level import StarLevelApplication
 from app.models.user import AuditStatusEnum, User
 from app.repositories.club import ClubRepository
@@ -16,8 +17,8 @@ from app.schemas.star_level import (
     StarLevelApplicationUpdate,
 )
 from app.services.base import ServiceBase
+from app.services.club_access import get_locked_normal_club
 from app.services.errors import (
-    ClubNotFoundError,
     DuplicateResourceError,
     StarLevelApplicationUpdateDeniedError,
     StarLevelNotFoundError,
@@ -49,6 +50,12 @@ class StarLevelService(
     async def list_public(self) -> Page[StarLevelApplication]:
         return await self.repository.list_public()
 
+    async def get_public(self, application_id: int) -> StarLevelApplication:
+        application = await self.repository.get_public(application_id)
+        if application is None:
+            raise StarLevelNotFoundError(application_id) from None
+        return application
+
     async def list_by_club(self, club: Club) -> Page[StarLevelApplication]:
         return await self.repository.list_by_club(club)
 
@@ -59,13 +66,33 @@ class StarLevelService(
         **kwargs: object,
     ) -> StarLevelApplication:
         try:
-            return await super().create(obj_in, **kwargs)
+            club_id = kwargs.get("club_id")
+            if not isinstance(club_id, int):
+                raise TypeError("club_id is required")
+            async with self.transaction():
+                await get_locked_normal_club(self.club_repository, club_id)
+                return await self.repository.create(obj_in, **kwargs)
         except IntegrityError:
             raise DuplicateResourceError(
                 message_key="error.star_level.duplicate_application",
                 error_code="DUPLICATE_STAR_LEVEL_APPLICATION",
                 details={"club_id": kwargs.get("club_id")},
             ) from None
+
+    @override
+    async def update(
+        self,
+        db_obj: StarLevelApplication,
+        obj_in: StarLevelApplicationUpdate,
+    ) -> StarLevelApplication:
+        async with self.transaction():
+            await get_locked_normal_club(self.club_repository, db_obj.club_id)
+            application = await self._get_with_lock(db_obj.id)
+            if application is None or application.club_id != db_obj.club_id:
+                raise StarLevelNotFoundError(db_obj.id) from None
+            if application.audit_status == AuditStatusEnum.approved:
+                raise StarLevelApplicationUpdateDeniedError(db_obj.id) from None
+            return await self.repository.update(application, obj_in)
 
     async def review(
         self,
@@ -74,6 +101,13 @@ class StarLevelService(
         auditor: User,
     ) -> StarLevelApplication:
         async with self.transaction():
+            application = await self.repository.get(application_id)
+            if application is None:
+                raise StarLevelNotFoundError(application_id) from None
+            club = await get_locked_normal_club(
+                self.club_repository,
+                application.club_id,
+            )
             application = await self._get_with_lock(application_id)
             if application is None:
                 raise StarLevelNotFoundError(application_id) from None
@@ -102,9 +136,6 @@ class StarLevelService(
                 )
                 application.approved_score = rating.total_score
                 application.approved_level = rating.star_level
-                club = await self.club_repository.get(application.club_id)
-                if club is None:
-                    raise ClubNotFoundError(application.club_id) from None
                 club.star_level = rating.star_level
                 self.repository.db.add(club)
             else:
@@ -120,9 +151,17 @@ class StarLevelService(
         self,
         application_id: int,
         review: StarLevelApplicationReview,
+        *,
+        include_archived: bool = False,
     ) -> StarLevelApplicationReviewPreview:
         application = await self.repository.get(application_id)
         if application is None:
+            raise StarLevelNotFoundError(application_id) from None
+        if (
+            not include_archived
+            and await self.club_repository.get_status(application.club_id)
+            != ClubStatusEnum.normal
+        ):
             raise StarLevelNotFoundError(application_id) from None
 
         if review.audit_status != AuditStatusEnum.approved:

@@ -7,6 +7,7 @@ from app.models import JointActivity
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.user import User
 from app.models.verifications.verification_common import VerificationStatusEnum
+from app.repositories.club import ClubRepository
 from app.repositories.joint_activities import JointActivityRepository
 from app.schemas.joint_activities import (
     JointActivityArchiveUpdate,
@@ -18,6 +19,7 @@ from app.schemas.moderations.joint_activity import (
 )
 from app.schemas.verifications.joint_activity import JointActivityFinalVerification
 from app.services.base import ServiceBase
+from app.services.club_access import get_locked_normal_club
 from app.services.errors import (
     BadRequestError,
     DuplicateResourceError,
@@ -39,12 +41,25 @@ class JointActivityService(
 ):
     repository: JointActivityRepository
 
+    def __init__(
+        self,
+        repository: JointActivityRepository,
+        club_repository: ClubRepository | None = None,
+    ) -> None:
+        super().__init__(repository)
+        self.club_repository = club_repository or ClubRepository(repository.db)
+
+    async def _lock_initiator(self, activity_id: int) -> None:
+        # Read the owner without locking the activity; all writers acquire
+        # the club lock before the activity lock to match archival.
+        activity = await self.repository.get(activity_id)
+        if activity is None:
+            raise _not_found(activity_id)
+        await get_locked_normal_club(self.club_repository, activity.initiator_club_id)
+
     async def get_public(self, activity_id: int) -> JointActivity:
-        activity = await self.get(activity_id)
-        if (
-            activity is None
-            or activity.preliminary_status != ModerationStatusEnum.approved
-        ):
+        activity = await self.repository.get_public(activity_id)
+        if activity is None:
             raise _not_found(activity_id)
         return activity
 
@@ -57,12 +72,19 @@ class JointActivityService(
     async def list_for_federation(
         self,
         search: str | None = None,
+        *,
+        include_archived: bool = False,
     ) -> Page[JointActivity]:
-        return await self.repository.get_multi(public_only=False, search=search)
+        return await self.repository.get_multi(
+            public_only=False,
+            exclude_archived=not include_archived,
+            search=search,
+        )
 
     async def list_for_club(self, club_id: int) -> Page[JointActivity]:
         return await self.repository.get_multi(
             public_only=False,
+            exclude_archived=True,
             club_id=club_id,
         )
 
@@ -74,6 +96,7 @@ class JointActivityService(
         user_id: int,
     ) -> JointActivity:
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
             activity = await self.repository.create_with_initiator(
                 obj_in,
                 club_id=club_id,
@@ -91,6 +114,7 @@ class JointActivityService(
         obj_in: JointActivityUpdate,
     ) -> JointActivity:
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
@@ -126,6 +150,7 @@ class JointActivityService(
     ) -> JointActivity:
         try:
             async with self.transaction():
+                await get_locked_normal_club(self.club_repository, club_id)
                 activity = await self._get_with_lock(activity_id)
                 if activity is None:
                     raise _not_found(activity_id)
@@ -173,6 +198,7 @@ class JointActivityService(
         obj_in: JointActivityArchiveUpdate,
     ) -> JointActivity:
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
@@ -201,6 +227,7 @@ class JointActivityService(
         club_id: int,
     ) -> JointActivity:
         async with self.transaction():
+            await get_locked_normal_club(self.club_repository, club_id)
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
@@ -236,6 +263,7 @@ class JointActivityService(
         moderator: User,
     ) -> JointActivity:
         async with self.transaction():
+            await self._lock_initiator(activity_id)
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)
@@ -258,6 +286,7 @@ class JointActivityService(
         verifier: User,
     ) -> JointActivity:
         async with self.transaction():
+            await self._lock_initiator(activity_id)
             activity = await self._get_with_lock(activity_id)
             if activity is None:
                 raise _not_found(activity_id)

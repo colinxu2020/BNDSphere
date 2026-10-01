@@ -106,6 +106,23 @@ async def update_unreviewed_club(
 
 
 @router.post(
+    "/{club_id}/archive",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
+async def archive_club(
+    club_id: int,
+    service: ClubServiceDep,
+    president: Annotated[
+        User,
+        Depends(ClubRoleChecker([ClubMembershipEnum.president], allow_archived=True)),
+    ],
+) -> None:
+    """Archive a normal club, preserving its history for administrators."""
+    await service.archive_club(club_id, president)
+
+
+@router.post(
     "/",
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE
