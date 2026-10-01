@@ -2687,19 +2687,6 @@ export interface components {
       /** Pages */
       pages: number;
     };
-    /** Page[ClubInfo] */
-    Page_ClubInfo_: {
-      /** Items */
-      items: components["schemas"]["ClubInfo"][];
-      /** Total */
-      total: number;
-      /** Page */
-      page: number;
-      /** Size */
-      size: number;
-      /** Pages */
-      pages: number;
-    };
     /** Page[ClubMembershipRequestInfo] */
     Page_ClubMembershipRequestInfo_: {
       /** Items */
@@ -2717,6 +2704,19 @@ export interface components {
     Page_ClubRef_: {
       /** Items */
       items: components["schemas"]["ClubRef"][];
+      /** Total */
+      total: number;
+      /** Page */
+      page: number;
+      /** Size */
+      size: number;
+      /** Pages */
+      pages: number;
+    };
+    /** Page[ClubSummary] */
+    Page_ClubSummary_: {
+      /** Items */
+      items: components["schemas"]["ClubSummary"][];
       /** Total */
       total: number;
       /** Page */
@@ -2979,7 +2979,7 @@ export interface components {
       target_grade_2?: components["schemas"]["UserGradeEnum"] | null;
       /** Club Id */
       club_id: number;
-      club: components["schemas"]["StarLevelClubInfo"];
+      club: components["schemas"]["ClubSummary"];
       academic_term: components["schemas"]["AcademicTermInfo"];
       audit_status: components["schemas"]["AuditStatusEnum"] | null;
       /** Final Contest Score */
@@ -3025,18 +3025,6 @@ export interface components {
       growth_story_url?: string | null;
       target_grade_1?: components["schemas"]["UserGradeEnum"] | null;
       target_grade_2?: components["schemas"]["UserGradeEnum"] | null;
-    };
-    /** StarLevelClubInfo */
-    StarLevelClubInfo: {
-      /** Id */
-      id: number;
-      /** Name */
-      name: string;
-      category: components["schemas"]["ClubCategoryEnum"];
-      /** Logo Uri */
-      logo_uri: string | null;
-      status: components["schemas"]["ClubStatusEnum"];
-      star_level: components["schemas"]["ClubStarLevelEnum"];
     };
     /** StarRatingBreakdown */
     StarRatingBreakdown: {
@@ -3214,10 +3202,10 @@ export interface components {
     };
     /** UserUpdateRequestInfo */
     UserUpdateRequestInfo: {
-      /** Update Fields */
-      update_fields?: string[];
       /** Id */
       id: number;
+      /** Update Fields */
+      update_fields?: string[];
       moderation_status: components["schemas"]["ModerationStatusEnum"];
       /** Moderate At */
       moderate_at?: string | null;
@@ -3829,7 +3817,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Page_ClubInfo_"];
+          "application/json": components["schemas"]["Page_ClubSummary_"];
         };
       };
       /** @description Validation Error */
@@ -5072,7 +5060,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["Page_ClubInfo_"];
+          "application/json": components["schemas"]["Page_ClubSummary_"];
         };
       };
       /** @description Unauthorized or Token invalid */

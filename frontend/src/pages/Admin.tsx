@@ -37,6 +37,7 @@ import {
   selectClassName,
   textareaClassName,
 } from "../components/ui/AppPrimitives";
+import { ClubPresident } from "../components/ui/ClubPresident";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { cn } from "../lib/utils";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
@@ -45,7 +46,7 @@ import { useAppliedSearch } from "../hooks/useAppliedSearch";
 
 type UserInfo = components["schemas"]["UserInfo"];
 type Role = components["schemas"]["RoleEnum"];
-type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummary = components["schemas"]["ClubSummary"];
 type ClubStarLevel = components["schemas"]["ClubStarLevelEnum"];
 type ClubStatus = components["schemas"]["ClubStatusEnum"];
 type AdminUserUpdate = components["schemas"]["AdminUserUpdate"];
@@ -330,7 +331,7 @@ function UsersAdmin() {
 function ClubsAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
-  const [selected, setSelected] = useState<ClubInfo | null>(null);
+  const [selected, setSelected] = useState<ClubSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     summary: "",
@@ -360,7 +361,7 @@ function ClubsAdmin() {
     error: loadError,
     loadMore,
     reload,
-  } = useInfiniteList<ClubInfo>(loadClubsPage);
+  } = useInfiniteList<ClubSummary>(loadClubsPage);
 
   const loadClubs = async () => {
     refreshStart();
@@ -371,7 +372,7 @@ function ClubsAdmin() {
     }
   };
 
-  const selectClub = (club: ClubInfo) => {
+  const selectClub = (club: ClubSummary) => {
     setSelected(club);
     setForm({
       summary: club.summary || "",
@@ -399,7 +400,14 @@ function ClubsAdmin() {
         body,
       });
       setResult(error, error ? null : "社团已保存");
-      if (data) selectClub(data);
+      if (data)
+        selectClub({
+          ...data,
+          president: data.members.find((member) => member.membership === "president")?.user ?? null,
+          vice_presidents: data.members
+            .filter((member) => member.membership === "vice_president")
+            .map((member) => member.user),
+        });
       if (!error) loadClubs();
     } catch (error) {
       setResult(error, null);
@@ -428,7 +436,15 @@ function ClubsAdmin() {
                 key={club.id}
                 active={selected?.id === club.id}
                 title={club.name}
-                meta={`${CLUB_STATUS_MAP[club.status]} · #${club.id}`}
+                meta={
+                  <>
+                    <span>
+                      {CLUB_STATUS_MAP[club.status]} · #{club.id}
+                    </span>
+                    <br />
+                    <ClubPresident president={club.president} />
+                  </>
+                }
                 onClick={() => selectClub(club)}
               />
             ))}
@@ -445,6 +461,7 @@ function ClubsAdmin() {
       {selected ? (
         <form onSubmit={saveClub} className="grid gap-4">
           <FormHeader title={selected.name} subtitle={`社团 #${selected.id}`} />
+          <ClubPresident president={selected.president} />
           <Field label="简介">
             <input
               className={inputClassName}
@@ -1219,7 +1236,7 @@ function ListButton({
 }: {
   key?: React.Key;
   title: string;
-  meta?: string;
+  meta?: React.ReactNode;
   badge?: string;
   active?: boolean;
   onClick: () => void;
