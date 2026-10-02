@@ -44,7 +44,16 @@ export function MarkdownEditor({
         components={{ preview: (source) => <MarkdownContent value={source} /> }}
       />
       <p className="mt-1.5 text-xs text-slate-500">
-        支持 Markdown，可切换预览。{value.length}/{maxLength}
+        支持 Markdown，可切换预览。
+        <a
+          href="https://sspai.com/post/36610"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-primary-600 underline underline-offset-2 hover:text-primary-700"
+        >
+          了解更多
+        </a>{" "}
+        {value.length}/{maxLength}
       </p>
     </div>
   );
