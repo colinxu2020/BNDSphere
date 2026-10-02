@@ -40,6 +40,7 @@ class UserUpdateRequestInfo(IdMixin, BaseModel):
     request_at: datetime = Field(...)
 
     user_id: int = Field(...)
+    requestor_username: str | None = Field(None)
     username: str | None = Field(None)
     avatar_uri: HttpUrl | None = Field(None)
     description: str | None = Field(None)

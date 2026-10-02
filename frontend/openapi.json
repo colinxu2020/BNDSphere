@@ -6811,6 +6811,14 @@
       },
       "ClubActivityCreateRequestInfo": {
         "properties": {
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
+          "club_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Name"
+          },
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
           "description": { "type": "string", "maxLength": 400, "title": "Description" },
           "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
@@ -6934,6 +6942,14 @@
       },
       "ClubActivityUpdateRequestInfo": {
         "properties": {
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
+          "club_activity_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Activity Name"
+          },
           "name": {
             "anyOf": [{ "type": "string", "maxLength": 64 }, { "type": "null" }],
             "title": "Name"
@@ -7385,7 +7401,15 @@
       },
       "ClubUpdateRequestInfo": {
         "properties": {
-          "summary": {
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
+          "club_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Name"
+          },
+                    "summary": {
             "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
             "title": "Summary"
           },
@@ -8799,6 +8823,15 @@
       },
       "UserUpdateRequestInfo": {
         "properties": {
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
+          "update_fields": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Update Fields"
+          },
           "id": { "type": "integer", "title": "Id" },
           "update_fields": {
             "items": { "type": "string" },

@@ -1,10 +1,21 @@
 from datetime import datetime
 
-from sqlalchemy import JSON, CheckConstraint, DateTime, ForeignKey, Index, String, Text
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+from sqlalchemy import (
+    JSON,
+    CheckConstraint,
+    DateTime,
+    ForeignKey,
+    Index,
+    String,
+    Text,
+    select,
+)
+from sqlalchemy.orm import Mapped, column_property, declared_attr, mapped_column
 
 from app.core import constants
 from app.core.database import Base
+from app.models.club import Club
+from app.models.club_activity import ClubActivity
 from app.models.moderations.moderation_common import (
     ModerationMixin,
     ModerationStatusEnum,
@@ -17,6 +28,13 @@ class ClubActivityCreateRequest(Base, ModerationMixin, RequestorMixin):
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
+    )
+
+    club_name: Mapped[str | None] = column_property(
+        select(Club.name)
+        .where(Club.id == club_id)
+        .correlate_except(Club)
+        .scalar_subquery(),
     )
 
     name: Mapped[str] = mapped_column(
@@ -41,6 +59,13 @@ class ClubActivityUpdateRequest(Base, ModerationMixin, RequestorMixin):
 
     club_activity_id: Mapped[int] = mapped_column(
         ForeignKey("club_activities.id", ondelete="CASCADE"),
+    )
+
+    club_activity_name: Mapped[str | None] = column_property(
+        select(ClubActivity.name)
+        .where(ClubActivity.id == club_activity_id)
+        .correlate_except(ClubActivity)
+        .scalar_subquery(),
     )
 
     name: Mapped[str | None] = mapped_column(
