@@ -68,6 +68,11 @@ class TestResourceCenter:
             "password": "47735b107f251fea",
             "role": RoleEnum.federation_staff,
         },
+        {
+            "username": "resource_other_staff",
+            "password": "9c41d0e2b7a85f36",
+            "role": RoleEnum.federation_staff,
+        },
     ]
     configured_users: ClassVar[dict[str, ConfiguredUser]]
     storage = FakeObjectStorageService()
@@ -179,6 +184,35 @@ class TestResourceCenter:
         assert confirm_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
         assert object_key in self.storage.deleted_keys
         assert object_key not in self.storage.object_sizes
+
+    async def test_confirm_never_deletes_another_users_oversized_object(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        initiate_response = await client.post(
+            "/uploads/initiate",
+            headers=self.configured_users["resource_federation_staff"]["headers"],
+            json={
+                "scene": "resource_file",
+                "filename": "someone-elses.bin",
+                "content_type": "application/octet-stream",
+                "size": 128,
+            },
+        )
+        assert initiate_response.status_code == 201
+        object_key = initiate_response.json()["object_key"]
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+
+        confirm_response = await client.post(
+            "/uploads/confirm",
+            headers=self.configured_users["resource_other_staff"]["headers"],
+            json={"scene": "resource_file", "object_key": object_key},
+        )
+
+        assert confirm_response.status_code == 400
+        assert confirm_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
+        assert object_key not in self.storage.deleted_keys
+        assert object_key in self.storage.object_sizes
 
     async def test_registration_deletes_an_uploaded_object_that_is_too_large(
         self,
