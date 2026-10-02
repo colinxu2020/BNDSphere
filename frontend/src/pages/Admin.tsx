@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useId, useState } from "react";
 import { motion } from "motion/react";
 import {
   Bell,
@@ -10,6 +10,8 @@ import {
   Users,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -142,6 +144,7 @@ const RefreshContext = React.createContext<{
 });
 
 function UsersAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<UserInfo | null>(null);
@@ -214,12 +217,17 @@ function UsersAdmin() {
   const saveUser = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 400);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminUserUpdate = {
       username: form.username.trim(),
       email: nullableText(form.email),
       avatar_uri: nullableText(form.avatar_uri),
-      description: form.description.trim(),
+      description: form.description,
       role: form.role || null,
     };
     try {
@@ -310,11 +318,13 @@ function UsersAdmin() {
               ))}
             </select>
           </Field>
-          <Field label="简介">
-            <textarea
-              className={textareaClassName}
+          <Field label="简介" htmlFor={descriptionId}>
+            <MarkdownEditor
+              id={descriptionId}
+              label="个人简介"
+              maxLength={400}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(description) => setForm({ ...form, description })}
             />
           </Field>
           <PrimaryButton type="submit" loading={isSaving}>
@@ -329,6 +339,7 @@ function UsersAdmin() {
 }
 
 function ClubsAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<ClubSummary | null>(null);
@@ -386,10 +397,15 @@ function ClubsAdmin() {
   const saveClub = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 4000);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminClubUpdate = {
       summary: form.summary.trim(),
-      description: form.description.trim(),
+      description: form.description,
       logo_uri: nullableText(form.logo_uri),
       star_level: form.star_level || null,
       status: form.status || null,
@@ -469,11 +485,13 @@ function ClubsAdmin() {
               onChange={(event) => setForm({ ...form, summary: event.target.value })}
             />
           </Field>
-          <Field label="详细介绍">
-            <textarea
-              className={textareaClassName}
+          <Field label="详细介绍" htmlFor={descriptionId}>
+            <MarkdownEditor
+              id={descriptionId}
+              label="社团详细介绍"
+              maxLength={4000}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(description) => setForm({ ...form, description })}
             />
           </Field>
           <Field label="Logo URL">

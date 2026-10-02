@@ -6,6 +6,7 @@ import type { components } from "../api/schema";
 import { GRADE_MAP, MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import { moderationDetails } from "../lib/moderationDetails";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 import {
   Badge,
   EmptyState,
@@ -64,9 +65,13 @@ function renderRequestDetails(item: ModerationItem) {
   return (
     <div className="grid gap-2">
       {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
+        <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
           <span className="font-semibold text-slate-500">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
+          {label === ("user_id" in item ? "简介" : "描述") ? (
+            <MarkdownContent value={String(value)} />
+          ) : (
+            <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
+          )}
         </div>
       ))}
     </div>
