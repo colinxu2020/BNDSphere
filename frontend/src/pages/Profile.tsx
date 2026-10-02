@@ -11,6 +11,7 @@ import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -67,6 +68,12 @@ export function Profile() {
 
   const submitUpdateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    const lengthError = markdownLengthError(updateDescription, 400);
+    if (lengthError) {
+      setUpdateTone("error");
+      setUpdateMessage(lengthError);
+      return;
+    }
     setIsSubmitting(true);
     setUpdateMessage(null);
 

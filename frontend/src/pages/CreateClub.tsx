@@ -17,6 +17,7 @@ import {
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 
 type Category = components["schemas"]["ClubCategoryEnum"];
 
@@ -37,6 +38,12 @@ export function CreateClub() {
     if (!description.trim()) {
       setMessageTone("error");
       setMessage("请填写社团详细介绍。");
+      return;
+    }
+    const lengthError = markdownLengthError(description, 4000);
+    if (lengthError) {
+      setMessageTone("error");
+      setMessage(lengthError);
       return;
     }
     setIsSubmitting(true);

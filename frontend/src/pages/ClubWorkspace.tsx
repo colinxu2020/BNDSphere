@@ -56,6 +56,7 @@ import {
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
@@ -475,6 +476,12 @@ export function ClubWorkspace() {
 
   const submitClubUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
+    const lengthError = markdownLengthError(clubDescription, 4000);
+    if (lengthError) {
+      setClubTone("error");
+      setClubMessage(lengthError);
+      return;
+    }
     setIsClubSubmitting(true);
     setClubMessage(null);
     try {

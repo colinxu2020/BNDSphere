@@ -11,6 +11,7 @@ import {
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -216,6 +217,11 @@ function UsersAdmin() {
   const saveUser = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 400);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminUserUpdate = {
       username: form.username.trim(),
@@ -391,6 +397,11 @@ function ClubsAdmin() {
   const saveClub = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 4000);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminClubUpdate = {
       summary: form.summary.trim(),
