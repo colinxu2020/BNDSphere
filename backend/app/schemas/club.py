@@ -5,7 +5,14 @@ from datetime import UTC, datetime
 from enum import StrEnum
 from typing import TYPE_CHECKING, ClassVar, Self
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl, model_validator
+from pydantic import (
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    HttpUrl,
+    model_validator,
+)
 
 from app.core import constants
 from app.models.club import ClubCategoryEnum, ClubStarLevelEnum, ClubStatusEnum
@@ -15,6 +22,7 @@ from app.schemas.club_activity import ClubActivityInfo
 from app.schemas.general_activities import ClubGeneralActivityInfo
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import LogoUri
+from app.services.errors import BadRequestError
 
 if TYPE_CHECKING:
     from app.models.club import Club
@@ -96,7 +104,18 @@ class ClubCreate(ClubBase):
 
 
 class AdminClubCreate(ClubCreate):
-    created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
+    # Club import: created_at backdates the club to its real founding time.
+    # Kept as a comment, not a docstring: docstrings land in openapi.json.
+    created_at: AwareDatetime = Field(default_factory=lambda: datetime.now(UTC))
+
+    @model_validator(mode="after")
+    def validate_created_at(self) -> Self:
+        if self.created_at > datetime.now(UTC):
+            raise BadRequestError(
+                "error.club.created_at_in_future",
+                "CLUB_CREATED_AT_IN_FUTURE",
+            )
+        return self
 
 
 class ClubUpdate(BaseModel):
