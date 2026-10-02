@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
 from pydantic import (
     BaseModel,
@@ -7,7 +7,7 @@ from pydantic import (
     EmailStr,
     Field,
     HttpUrl,
-    field_validator,
+    StringConstraints,
     model_validator,
 )
 
@@ -16,17 +16,25 @@ from app.models.user import RoleEnum, UserGradeEnum
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import AvatarUri
 
+# Every path that writes a username (registration, profile update requests,
+# admin edits) must normalize it the same way, or a value accepted by one
+# path is rejected later by another.
+Username = Annotated[
+    str,
+    StringConstraints(
+        strip_whitespace=True,
+        min_length=1,
+        max_length=constants.USER_MAX_USERNAME_LENGTH,
+    ),
+]
+
 
 class UserBase(BaseModel):
     username: str = Field(..., max_length=constants.USER_MAX_USERNAME_LENGTH)
 
 
 class UserCreate(UserBase):
-    username: str = Field(
-        ...,
-        min_length=1,
-        max_length=constants.USER_MAX_USERNAME_LENGTH,
-    )
+    username: Username
     password: str = Field(..., min_length=6)
     accepted_privacy_policy: Literal[True]
     accepted_user_agreement: Literal[True]
@@ -64,11 +72,7 @@ class PublicUserInfo(UserBase, IdMixin):
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(
-        None,
-        min_length=1,
-        max_length=constants.USER_MAX_USERNAME_LENGTH,
-    )
+    username: Username | None = Field(None)
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
@@ -77,11 +81,6 @@ class AdminUserUpdate(BaseModel):
     )
     role: RoleEnum | None = Field(None)
     grade: UserGradeEnum | None = Field(None)
-
-    @field_validator("username", mode="before")
-    @classmethod
-    def strip_username(cls, value: object) -> object:
-        return value.strip() if isinstance(value, str) else value
 
     @model_validator(mode="after")
     def validate_non_nullable_fields(self) -> Self:

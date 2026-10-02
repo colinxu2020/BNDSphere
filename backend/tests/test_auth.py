@@ -2,6 +2,7 @@ import asyncio
 from datetime import UTC, datetime
 from typing import ClassVar, TypedDict
 
+import pytest
 from altcha import Challenge, Payload, solve_challenge
 from httpx import AsyncClient
 from sqlalchemy import select
@@ -129,15 +130,17 @@ class TestRegister:
         assert detail[0]["loc"] == ["body", "password"]
         assert detail[0]["type"] == "string_too_short"
 
-    async def test_register_rejects_empty_username(
+    @pytest.mark.parametrize("username", ["", "   "])
+    async def test_register_rejects_blank_username(
         self,
         client: AsyncClient,
         setup_class_users: None,
+        username: str,
     ) -> None:
         response = await client.post(
             "/auth/register",
             json={
-                "username": "",
+                "username": username,
                 "password": "valid-password",
                 "altcha": await create_altcha_payload(client, "register"),
                 **VALID_CONSENTS,
