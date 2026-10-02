@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useId, useState } from "react";
 import { motion } from "motion/react";
 import { Building2, Save } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
@@ -21,6 +21,7 @@ import { MarkdownEditor } from "../components/ui/MarkdownEditor";
 type Category = components["schemas"]["ClubCategoryEnum"];
 
 export function CreateClub() {
+  const descriptionId = useId();
   const navigate = useNavigate();
   const [name, setName] = useState("");
   const [category, setCategory] = useState<Category>("stage_design");
@@ -33,6 +34,11 @@ export function CreateClub() {
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
+    if (!description.trim()) {
+      setMessageTone("error");
+      setMessage("请填写社团详细介绍。");
+      return;
+    }
     setIsSubmitting(true);
     setMessage(null);
 
@@ -114,8 +120,9 @@ export function CreateClub() {
           </div>
 
           <div className="md:col-span-2">
-            <Field label="详细介绍" hint="最多 4000 字。">
+            <Field label="详细介绍" hint="最多 4000 字。" htmlFor={descriptionId}>
               <MarkdownEditor
+                id={descriptionId}
                 label="社团详细介绍"
                 value={description}
                 onChange={setDescription}

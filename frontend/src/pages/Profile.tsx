@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
@@ -15,6 +15,7 @@ import { MarkdownEditor } from "../components/ui/MarkdownEditor";
 type UserInfo = components["schemas"]["UserInfo"];
 
 export function Profile() {
+  const descriptionId = useId();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -234,10 +235,14 @@ export function Profile() {
                   hint="上传后会自动使用新的头像访问地址。"
                 />
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+                  <label
+                    htmlFor={descriptionId}
+                    className="block text-sm font-medium text-slate-700 mb-1.5 ml-1"
+                  >
                     个人简介
                   </label>
                   <MarkdownEditor
+                    id={descriptionId}
                     label="个人简介"
                     value={updateDescription}
                     onChange={setUpdateDescription}

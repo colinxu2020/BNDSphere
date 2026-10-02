@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -122,6 +122,7 @@ async function loadAllGeneralActivities() {
 }
 
 export function ClubWorkspace() {
+  const descriptionId = useId();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const requestedActivityId = searchParams.get("activity");
@@ -975,8 +976,9 @@ export function ClubWorkspace() {
                     onChange={(event) => setClubSummary(event.target.value)}
                   />
                 </Field>
-                <Field label="详细介绍">
+                <Field label="详细介绍" htmlFor={descriptionId}>
                   <MarkdownEditor
+                    id={descriptionId}
                     label="社团详细介绍"
                     value={clubDescription}
                     maxLength={4000}

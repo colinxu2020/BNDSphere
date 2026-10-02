@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useId, useState } from "react";
 import { motion } from "motion/react";
 import {
   Bell,
@@ -143,6 +143,7 @@ const RefreshContext = React.createContext<{
 });
 
 function UsersAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<UserInfo | null>(null);
@@ -311,8 +312,9 @@ function UsersAdmin() {
               ))}
             </select>
           </Field>
-          <Field label="简介">
+          <Field label="简介" htmlFor={descriptionId}>
             <MarkdownEditor
+              id={descriptionId}
               label="个人简介"
               maxLength={400}
               value={form.description}
@@ -331,6 +333,7 @@ function UsersAdmin() {
 }
 
 function ClubsAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<ClubSummary | null>(null);
@@ -471,8 +474,9 @@ function ClubsAdmin() {
               onChange={(event) => setForm({ ...form, summary: event.target.value })}
             />
           </Field>
-          <Field label="详细介绍">
+          <Field label="详细介绍" htmlFor={descriptionId}>
             <MarkdownEditor
+              id={descriptionId}
               label="社团详细介绍"
               maxLength={4000}
               value={form.description}

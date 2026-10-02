@@ -124,17 +124,23 @@ export function Field({
   label,
   children,
   hint,
+  htmlFor,
 }: {
   label: string;
   children: ReactNode;
   hint?: string;
+  htmlFor?: string;
 }) {
+  const Wrapper = htmlFor ? "div" : "label";
+  const Label = htmlFor ? "label" : "span";
   return (
-    <label className="block min-w-0">
-      <span className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">{label}</span>
+    <Wrapper className="block min-w-0">
+      <Label htmlFor={htmlFor} className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+        {label}
+      </Label>
       {children}
       {hint && <span className="block text-xs text-slate-400 mt-1.5 ml-1">{hint}</span>}
-    </label>
+    </Wrapper>
   );
 }
 

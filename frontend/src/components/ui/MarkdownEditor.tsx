@@ -3,12 +3,14 @@ import * as commands from "@uiw/react-md-editor/commands-cn";
 import { MarkdownContent } from "./MarkdownContent";
 
 export function MarkdownEditor({
+  id,
   value,
   onChange,
   label,
   maxLength,
   required = false,
 }: {
+  id: string;
   value: string;
   onChange: (value: string) => void;
   label: string;
@@ -40,7 +42,7 @@ export function MarkdownEditor({
           { ...commands.codeEdit, buttonProps: { "aria-label": "编辑", title: "编辑" } },
           { ...commands.codePreview, buttonProps: { "aria-label": "预览", title: "预览" } },
         ]}
-        textareaProps={{ "aria-label": label, maxLength, required }}
+        textareaProps={{ id, "aria-label": label, maxLength, required }}
         components={{ preview: (source) => <MarkdownContent value={source} /> }}
       />
       <p className="mt-1.5 text-xs text-slate-500">
