@@ -17,6 +17,8 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
+    "@uiw/react-markdown-preview": "^5.2.1",
+    "@uiw/react-md-editor": "^4.1.2",
     "altcha": "^3.2.2",
     "clsx": "^2.1.1",
     "motion": "^12.23.24",
@@ -25,6 +27,8 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
+    "rehype-sanitize": "^6.0.0",
+    "remark-breaks": "^4.0.0",
     "tailwind-merge": "^3.6.0"
   },
   "devDependencies": {

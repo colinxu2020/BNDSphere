@@ -14,9 +14,9 @@ import {
   Surface,
   inputClassName,
   selectClassName,
-  textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
 
 type Category = components["schemas"]["ClubCategoryEnum"];
 
@@ -115,10 +115,10 @@ export function CreateClub() {
 
           <div className="md:col-span-2">
             <Field label="详细介绍" hint="最多 4000 字。">
-              <textarea
-                className={textareaClassName}
+              <MarkdownEditor
+                label="社团详细介绍"
                 value={description}
-                onChange={(event) => setDescription(event.target.value)}
+                onChange={setDescription}
                 maxLength={4000}
                 required
               />

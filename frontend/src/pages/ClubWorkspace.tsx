@@ -55,6 +55,7 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
@@ -478,7 +479,7 @@ export function ClubWorkspace() {
     try {
       const body = {
         summary: clubSummary.trim(),
-        description: clubDescription.trim(),
+        description: clubDescription,
         logo_uri: nullableText(clubLogo),
       };
       const { error } =
@@ -975,11 +976,11 @@ export function ClubWorkspace() {
                   />
                 </Field>
                 <Field label="详细介绍">
-                  <textarea
-                    className={textareaClassName}
+                  <MarkdownEditor
+                    label="社团详细介绍"
                     value={clubDescription}
                     maxLength={4000}
-                    onChange={(event) => setClubDescription(event.target.value)}
+                    onChange={setClubDescription}
                   />
                 </Field>
                 <FileUploadField
