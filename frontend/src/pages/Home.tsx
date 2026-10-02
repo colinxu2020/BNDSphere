@@ -13,6 +13,7 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP } from "../lib/labels";
 import { formatDate } from "../lib/format";
+import { buildMonthCalendar } from "../lib/homeCalendar";
 import { Badge, StatusMessage } from "../components/ui/AppPrimitives";
 import { cn } from "../lib/utils";
 
@@ -101,7 +102,14 @@ export function Home() {
     [activities],
   );
 
-  const calendar = useMemo(() => buildMonthCalendar(activities), [activities]);
+  const calendar = useMemo(
+    () =>
+      buildMonthCalendar(
+        activities,
+        joinedClubs.flatMap((club) => club.activities),
+      ),
+    [activities, joinedClubs],
+  );
   const showcaseClubs = clubs.slice(0, 6);
   const myClubActivities = useMemo(
     () => getMyClubActivities(joinedClubs).slice(0, 4),
@@ -210,7 +218,7 @@ export function Home() {
                         <div className="mt-1 flex h-2 gap-0.5">
                           {day.activities.slice(0, 3).map((activity) => (
                             <span
-                              key={activity.id}
+                              key={activity.key}
                               className={cn(
                                 "h-1.5 w-1.5 rounded-full",
                                 calendarColors[Math.abs(activity.id) % calendarColors.length],
@@ -232,7 +240,7 @@ export function Home() {
                           </div>
                           <div className="space-y-2">
                             {day.activities.slice(0, 3).map((activity) => (
-                              <div key={activity.id}>
+                              <div key={activity.key}>
                                 <p className="text-sm font-semibold">{activity.name}</p>
                                 <p className="mt-0.5 line-clamp-2 text-xs leading-5 text-slate-300">
                                   {activity.description || "暂无简介"}
@@ -544,40 +552,4 @@ function getMyClubActivities(joinedClubs: JoinedClub[]) {
         .filter((item): item is MyClubActivity => Boolean(item)),
     )
     .sort((left, right) => left.distanceMs - right.distanceMs);
-}
-
-function buildMonthCalendar(items: GeneralActivity[]) {
-  const today = new Date();
-  const year = today.getFullYear();
-  const month = today.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const leadingBlankCount = (firstDay.getDay() + 6) % 7;
-  const monthItems = items.filter((item) => {
-    const date = new Date(item.starts_at || item.created_at);
-    return date.getFullYear() === year && date.getMonth() === month;
-  });
-
-  const days: Array<{ date: Date | null; activities: GeneralActivity[] }> = [];
-  for (let index = 0; index < leadingBlankCount; index += 1) {
-    days.push({ date: null, activities: [] });
-  }
-  for (let dateNumber = 1; dateNumber <= daysInMonth; dateNumber += 1) {
-    const date = new Date(year, month, dateNumber);
-    days.push({
-      date,
-      activities: monthItems.filter((item) => {
-        const itemDate = new Date(item.starts_at || item.created_at);
-        return itemDate.getDate() === dateNumber;
-      }),
-    });
-  }
-  while (days.length % 7 !== 0) {
-    days.push({ date: null, activities: [] });
-  }
-
-  return {
-    days,
-    monthLabel: `${year} 年 ${month + 1} 月`,
-  };
 }
