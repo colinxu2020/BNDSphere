@@ -9,12 +9,13 @@ from app.models.user import UserGradeEnum
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.moderations.moderation_common import UpdateRequestCreateBase
 from app.schemas.upload import AvatarUri
+from app.schemas.user import Username
 
 
 class UserUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None, max_length=constants.USER_MAX_USERNAME_LENGTH)
+    username: Username | None = None
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,

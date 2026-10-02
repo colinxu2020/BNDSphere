@@ -52,7 +52,7 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
         window, or push a value past PostgreSQL's B-tree entry limit and turn a
         bad login into a 500.
         """
-        username = username[:USER_MAX_USERNAME_LENGTH]
+        username = username.strip()[:USER_MAX_USERNAME_LENGTH]
         async with self.transaction():
             await self.login_attempt_repository.lock_username(username)
 
