@@ -18,7 +18,7 @@ export function Login() {
   const [isLoading, setIsLoading] = useState(false);
   const altchaRef = useRef<AltchaVerificationRef>(null);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
 

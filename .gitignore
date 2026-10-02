@@ -142,3 +142,6 @@ docker-compose.yml.prev
 # copies drift into contradicting the code beside them.
 docs/superpowers/
 .serena/
+docs/agents/
+.claude/
+AGENTS.md

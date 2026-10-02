@@ -9,15 +9,10 @@ from app.core import constants
 from app.models.moderations.moderation_common import ModerationStatusEnum
 from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
+from app.schemas.club import ClubRef
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import JointActivityArchiveUri
 from app.services.errors import BadRequestError
-
-
-class JointActivityClubInfo(IdMixin, BaseModel):
-    model_config = ConfigDict(from_attributes=True)
-
-    name: str
 
 
 class JointActivityParticipationInfo(IdMixin, BaseModel):
@@ -28,7 +23,7 @@ class JointActivityParticipationInfo(IdMixin, BaseModel):
     registered_by_user_id: int
     is_initiator: bool
     created_at: datetime
-    club: JointActivityClubInfo
+    club: ClubRef
 
 
 class JointActivityPublicParticipationInfo(IdMixin, BaseModel):
@@ -38,7 +33,7 @@ class JointActivityPublicParticipationInfo(IdMixin, BaseModel):
     club_id: int
     is_initiator: bool
     created_at: datetime
-    club: JointActivityClubInfo
+    club: ClubRef
 
 
 class JointActivityBase(BaseModel):
@@ -122,7 +117,7 @@ class JointActivityInfo(JointActivityBase, IdMixin):
     created_at: datetime
     updated_at: datetime
     academic_term: AcademicTermInfo
-    initiator_club: JointActivityClubInfo
+    initiator_club: ClubRef
     participations: list[JointActivityParticipationInfo]
 
 
@@ -135,5 +130,5 @@ class JointActivityPublicInfo(JointActivityBase, IdMixin):
     final_status: VerificationStatusEnum | None
     final_score: int
     academic_term: AcademicTermInfo
-    initiator_club: JointActivityClubInfo
+    initiator_club: ClubRef
     participations: list[JointActivityPublicParticipationInfo]

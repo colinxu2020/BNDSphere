@@ -84,7 +84,7 @@ export const ROLE_OPTIONS: {
 }[] = [
   { label: "已封禁", value: "ban" },
   { label: "普通成员", value: "user" },
-  { label: "版主", value: "moderator" },
+  { label: "审核员", value: "moderator" },
   { label: "社联工作人员", value: "federation_staff" },
   { label: "系统管理员", value: "admin" },
   { label: "开发者", value: "dev" },
@@ -93,7 +93,7 @@ export const ROLE_OPTIONS: {
 export const ROLE_MAP: Record<components["schemas"]["RoleEnum"], string> = {
   ban: "已封禁",
   user: "普通成员",
-  moderator: "版主",
+  moderator: "审核员",
   federation_staff: "社联工作人员",
   admin: "系统管理员",
   dev: "开发者",
@@ -166,4 +166,17 @@ export const VERIFICATION_STATUS_MAP: Record<
   pending: "待审核",
   approved: "已通过",
   rejected: "已驳回",
+};
+
+export const GRADE_MAP: Record<components["schemas"]["UserGradeEnum"], string> = {
+  grade_7: "初一",
+  grade_8: "初二",
+  grade_9: "初三",
+  grade_10: "高一",
+  grade_11: "高二",
+  grade_12: "高三",
+  inter_grade_9: "国际初三",
+  inter_grade_10: "国际高一",
+  inter_grade_11: "国际高二",
+  inter_grade_12: "国际高三",
 };

@@ -1,35 +1,17 @@
-import { useEffect, useState, type Key } from "react";
+import { useCallback, type Key } from "react";
 import { motion } from "motion/react";
 import { Award, Building2, CalendarDays, ExternalLink, FileText } from "@/src/components/ui/Icons";
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { AUDIT_STATUS_MAP, CATEGORY_MAP, STAR_LEVEL_MAP } from "../lib/labels";
+import { AUDIT_STATUS_MAP, CATEGORY_MAP, GRADE_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
-import {
-  Badge,
-  EmptyState,
-  PageHeader,
-  StatusMessage,
-  Surface,
-} from "../components/ui/AppPrimitives";
+import { Badge, EmptyState, PageHeader, Surface } from "../components/ui/AppPrimitives";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type AuditStatus = components["schemas"]["AuditStatusEnum"];
-type UserGrade = components["schemas"]["UserGradeEnum"];
-
-const GRADE_MAP: Record<UserGrade, string> = {
-  grade_7: "初一",
-  grade_8: "初二",
-  grade_9: "初三",
-  grade_10: "高一",
-  grade_11: "高二",
-  grade_12: "高三",
-  inter_grade_9: "国际初三",
-  inter_grade_10: "国际高一",
-  inter_grade_11: "国际高二",
-  inter_grade_12: "国际高三",
-};
 
 const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
   pending: "yellow",
@@ -38,34 +20,21 @@ const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
 };
 
 export function StarLevelApplications() {
-  const [applications, setApplications] = useState<StarApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
-
-  const fetchApplications = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const { data, error } = await client.GET("/api/v1/star-level/", {
-        params: { query: { size: 50 } },
-      });
-      if (error) {
-        setLoadError(error);
-        setApplications([]);
-      } else {
-        setApplications(data?.items || []);
-      }
-    } catch (error) {
-      setLoadError(error);
-      setApplications([]);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchApplications();
+  const loadApplicationsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/star-level/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(data, error, page);
   }, []);
+  const {
+    items: applications,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+  } = useInfiniteList<StarApplication>(loadApplicationsPage);
 
   return (
     <motion.div
@@ -76,9 +45,7 @@ export function StarLevelApplications() {
     >
       <PageHeader eyebrow="Star Level" title="星级评价" />
 
-      {loadError && <StatusMessage value={loadError} />}
-
-      {isLoading ? (
+      {isInitialLoading ? (
         <Surface className="flex items-center justify-center py-16 text-slate-500">
           正在加载星级评价表...
         </Surface>
@@ -90,6 +57,14 @@ export function StarLevelApplications() {
         </div>
       ) : (
         <EmptyState title="暂无星级评价表" icon={<Award size={24} />} />
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={loadError}
+          onLoadMore={loadMore}
+        />
       )}
     </motion.div>
   );
