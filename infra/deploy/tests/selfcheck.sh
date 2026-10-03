@@ -159,6 +159,23 @@ _optional_ownership_fails() (
 assert_fail "optional provisioning refuses unreadable ownership" _optional_ownership_fails
 assert_eq "" "$(ls -A "$_optional_failure_dir/secrets")" \
     "failed provisioning leaves no unreadable placeholder or temporary file"
+_optional_protected_hardlinks() (
+    COMPOSE_PROJECT_DIR=$_optional_failure_dir
+    id() { printf '1001\n'; }
+    chown() { return 0; }
+    ln() { return 1; }
+    sudo() {
+        [ "$1" = -n ] || return 1
+        shift
+        [ "$1" = ln ] || return 1
+        printf 'privileged link\n' >> "$COMPOSE_PROJECT_DIR/link-check"
+        command "$@"
+    }
+    ensure_optional_secrets
+)
+assert_ok "optional provisioning handles protected hardlinks" _optional_protected_hardlinks
+assert_eq "3" "$(wc -l < "$_optional_failure_dir/link-check" | tr -d ' ')" \
+    "all new secrets use the privileged non-overwriting link fallback"
 rm -rf "$_optional_failure_dir"
 
 # ── the version record ───────────────────────────────────────────────

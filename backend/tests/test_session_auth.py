@@ -153,6 +153,55 @@ class TestLogout:
         {"username": "logout_user", "password": PASSWORD},
     ]
 
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"Origin": "https://sibling.school.example", "Sec-Fetch-Site": "same-site"},
+            {"Origin": "null", "Referer": "http://127.0.0.1:8000/profile"},
+            {"Referer": "https://attacker.example/form"},
+            {"Sec-Fetch-Site": "same-site"},
+        ],
+    )
+    async def test_foreign_cookie_writes_cannot_mutate_or_revoke(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+        headers: dict[str, str],
+    ) -> None:
+        token = await _login(client, "logout_user")
+        update = await client.post(
+            "/users/update-requests", headers=headers, json={"description": "forged"}
+        )
+        assert update.status_code == 403
+        response = await client.post("/auth/logout", headers=headers)
+        assert response.status_code == 403
+        assert "set-cookie" not in response.headers
+        assert SESSION_COOKIE_NAME in client.cookies
+        # Read-only requests and the genuine session still work.
+        assert (await client.get("/users/me", headers=headers)).status_code == 200
+        response = await client.post(
+            "/auth/logout", headers={"Referer": "http://127.0.0.1:8000/profile"}
+        )
+        assert response.status_code == 204
+        assert (
+            await client.get("/users/me", headers={"Authorization": f"Bearer {token}"})
+        ).status_code == 401
+
+    async def test_explicit_bearer_clients_do_not_need_cookie_origin_proof(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        token = await _login(client, "logout_user")
+        response = await client.post(
+            "/auth/logout",
+            headers={
+                "Authorization": f"Bearer {token}",
+                "Origin": "https://api-client.example",
+            },
+        )
+        assert response.status_code == 204
+
     async def test_logout_revokes_the_session(
         self,
         client: AsyncClient,

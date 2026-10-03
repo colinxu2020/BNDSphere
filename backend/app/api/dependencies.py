@@ -7,6 +7,7 @@ from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.api.request_origin import ensure_trusted_origin
 from app.core.constants import SESSION_COOKIE_NAME
 from app.core.database import SessionLocal
 from app.models.clubmember import ClubMembershipEnum
@@ -285,7 +286,12 @@ def session_token(
     credential, so a stale cookie left over from the SPA cannot silently
     override the identity a Swagger user deliberately pasted in.
     """
-    return bearer or request.cookies.get(SESSION_COOKIE_NAME)
+    if bearer:
+        return bearer
+    cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    if cookie and request.method not in {"GET", "HEAD", "OPTIONS"}:
+        ensure_trusted_origin(request)
+    return cookie
 
 
 async def get_current_user(

@@ -258,10 +258,14 @@ ensure_optional_secrets() {
                 fi
             fi
         fi
-        if ! ln "$_optional_tmp" "$_optional_path"; then
-            rm -f "$_optional_tmp"
-            [ -f "$_optional_path" ] || return 1
-            continue
+        if ! ln "$_optional_tmp" "$_optional_path" 2>/dev/null; then
+            # Linux protected_hardlinks rejects linking another uid's 600
+            # file. Use the same privilege required for chown, without force.
+            if [ ! -f "$_optional_path" ] && ! sudo -n ln "$_optional_tmp" "$_optional_path"; then
+                rm -f "$_optional_tmp"
+                [ -f "$_optional_path" ] || return 1
+                continue
+            fi
         fi
         rm -f "$_optional_tmp"
     done

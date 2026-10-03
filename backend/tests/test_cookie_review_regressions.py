@@ -13,7 +13,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 from starlette.requests import Request
 
-from app.api.v1.auth import _check_login_origin
+from app.api.request_origin import ensure_trusted_origin
 from app.core import constants
 from app.core.security import get_password_hash, hash_verification_code
 from app.core.settings import SmtpSettings, web_settings
@@ -62,7 +62,7 @@ def test_login_accepts_explicitly_configured_origin(
             ],
         }
     )
-    _check_login_origin(request)
+    ensure_trusted_origin(request)
 
 
 async def test_lowered_budget_waits_until_enough_sends_expire(
