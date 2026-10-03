@@ -24,6 +24,24 @@ class VerificationCodeRepository(
 ):
     model = VerificationCode
 
+    async def lock_send_budget(
+        self,
+        channel: VerificationChannelEnum,
+        target: str,
+        *,
+        global_budget: bool,
+    ) -> None:
+        # All sends take locks in this order: global, target, account. Confirm
+        # only takes the account lock and never waits for a budget lock.
+        keys = []
+        if global_budget:
+            keys.append(_advisory_key("verification-global", channel.value))
+        keys.append(_advisory_key(f"verification-target-{channel.value}", target))
+        for key in keys:
+            await self.db.execute(
+                select(func.pg_advisory_xact_lock(cast(key, BigInteger))),
+            )
+
     async def lock_user_channel(
         self,
         user_id: int,
@@ -52,25 +70,59 @@ class VerificationCodeRepository(
         target: str,
         now: datetime,
     ) -> VerificationCode | None:
-        """Newest unconsumed, unexpired code for this account/channel/target.
+        """Only the latest issuance on this channel can ever be answered.
 
-        Newest wins: requesting a fresh code has to make the previous one
-        unusable, otherwise every resend would widen the set of codes that
-        open the account rather than replace it.
+        Filter validity after selecting it: consuming or expiring a newer
+        code must not revive an older one, even for a different target.
         """
         result = await self.db.execute(
             select(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
-                VerificationCode.target == target,
-                VerificationCode.consumed_at.is_(None),
-                VerificationCode.expires_at > now,
             )
-            .order_by(VerificationCode.created_at.desc())
+            .order_by(VerificationCode.created_at.desc(), VerificationCode.id.desc())
+            .limit(1)
+            .execution_options(populate_existing=True),
+        )
+        record = result.scalars().first()
+        if (
+            record is None
+            or record.target != target
+            or record.consumed_at is not None
+            or record.expires_at <= now
+        ):
+            return None
+        return record
+
+    async def budget_reset_at(
+        self,
+        channel: VerificationChannelEnum,
+        since: datetime,
+        limit: int,
+        *,
+        user_id: int | None = None,
+        target: str | None = None,
+    ) -> datetime | None:
+        """Timestamp of the send that must leave the window to allow another.
+
+        The limit-th newest send works even if a lowered limit leaves the
+        window over budget. No row means the window still has capacity.
+        """
+        statement = select(VerificationCode.created_at).where(
+            VerificationCode.channel == channel,
+            VerificationCode.created_at > since,
+        )
+        if user_id is not None:
+            statement = statement.where(VerificationCode.user_id == user_id)
+        if target is not None:
+            statement = statement.where(VerificationCode.target == target)
+        result = await self.db.execute(
+            statement.order_by(VerificationCode.created_at.desc())
+            .offset(limit - 1)
             .limit(1),
         )
-        return result.scalars().first()
+        return result.scalar_one_or_none()
 
     async def last_sent_at(
         self,

@@ -81,7 +81,10 @@ class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     username: Username | None = None
-    email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
+    email: Annotated[EmailStr, AfterValidator(str.lower)] | None = Field(
+        None,
+        max_length=constants.USER_MAX_EMAIL_LENGTH,
+    )
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,

@@ -11031,7 +11031,6 @@
           },
           "password": {
             "type": "string",
-            "maxLength": 128,
             "minLength": 1,
             "title": "Password"
           }
@@ -12823,7 +12822,6 @@
           },
           "password": {
             "type": "string",
-            "maxLength": 128,
             "minLength": 1,
             "title": "Password"
           }

@@ -195,12 +195,14 @@ class ContactVerificationService(
         """
         policy = _POLICIES[channel]
         code = _generate_code()
-        now = datetime.now(UTC)
-
         async with self.transaction():
-            # Two concurrent "resend" clicks would otherwise both read the
-            # pre-insert counts and both send.
+            await self.repository.lock_send_budget(
+                channel,
+                target,
+                global_budget=policy.global_daily is not None,
+            )
             await self.repository.lock_user_channel(user.id, channel)
+            now = datetime.now(UTC)
             await self._enforce_budgets(user, channel, target, policy, now)
             await self.repository.create(
                 VerificationCodeCreate(
@@ -226,37 +228,39 @@ class ContactVerificationService(
         now: datetime,
     ) -> None:
         cooldown = timedelta(seconds=constants.VERIFICATION_RESEND_INTERVAL_SECONDS)
+        resets = []
         last_sent = await self.repository.last_sent_at(user.id, channel)
         if last_sent is not None and now - last_sent < cooldown:
-            raise VerificationSendThrottledError(
-                _seconds_until(last_sent + cooldown, now),
-            )
+            resets.append(last_sent + cooldown)
 
-        hour_ago = now - timedelta(hours=1)
-        if (
-            await self.repository.count_for_user_since(user.id, channel, hour_ago)
-            >= policy.per_account_hourly
-        ):
-            raise VerificationSendThrottledError(
-                _seconds_until(hour_ago + timedelta(hours=1), now)
+        hourly = timedelta(hours=1)
+        daily = timedelta(days=1)
+        account_reset = await self.repository.budget_reset_at(
+            channel,
+            now - hourly,
+            policy.per_account_hourly,
+            user_id=user.id,
+        )
+        target_reset = await self.repository.budget_reset_at(
+            channel,
+            now - daily,
+            policy.per_target_daily,
+            target=target,
+        )
+        if account_reset is not None:
+            resets.append(account_reset + hourly)
+        if target_reset is not None:
+            resets.append(target_reset + daily)
+        if policy.global_daily is not None:
+            global_reset = await self.repository.budget_reset_at(
+                channel,
+                now - daily,
+                policy.global_daily,
             )
-
-        day_ago = now - timedelta(days=1)
-        if (
-            await self.repository.count_for_target_since(channel, target, day_ago)
-            >= policy.per_target_daily
-        ):
-            raise VerificationSendThrottledError(
-                _seconds_until(day_ago + timedelta(days=1), now)
-            )
-
-        if policy.global_daily is not None and (
-            await self.repository.count_for_channel_since(channel, day_ago)
-            >= policy.global_daily
-        ):
-            # The whole deployment is out of budget for the day. Nothing the
-            # caller can do differently, so the retry hint is the window.
-            raise VerificationSendThrottledError(int(timedelta(days=1).total_seconds()))
+            if global_reset is not None:
+                resets.append(global_reset + daily)
+        if resets:
+            raise VerificationSendThrottledError(_seconds_until(max(resets), now))
 
     # ── confirm ──────────────────────────────────────────────────────
 
@@ -277,13 +281,13 @@ class ContactVerificationService(
         target: str,
         submitted: str,
     ) -> None:
-        now = datetime.now(UTC)
         accepted = False
         async with self.transaction():
             # Same lock as the send path: without it two racing submissions of
             # the same wrong code each read ``attempts`` before the other's
             # increment lands, and the cap counts one attempt instead of two.
             await self.repository.lock_user_channel(user.id, channel)
+            now = datetime.now(UTC)
             record = await self.repository.get_active(user.id, channel, target, now)
             if record is not None and (
                 record.attempts < constants.VERIFICATION_CODE_MAX_ATTEMPTS

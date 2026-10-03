@@ -31,6 +31,7 @@ export function Profile() {
   const [updateMessage, setUpdateMessage] = useState<unknown>(null);
   const [updateTone, setUpdateTone] = useState<"error" | "success">("error");
   const [loadError, setLoadError] = useState<unknown>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
@@ -62,7 +63,11 @@ export function Profile() {
   }, [navigate]);
 
   const handleLogout = async () => {
-    await logout();
+    setLogoutError(null);
+    if (!(await logout())) {
+      setLogoutError("退出登录未完成，请检查网络后重试。");
+      return;
+    }
     navigate("/login");
   };
 
@@ -137,6 +142,7 @@ export function Profile() {
         </button>
       </div>
 
+      {logoutError && <StatusMessage value={logoutError} />}
       <div className="bg-white rounded-md border border-slate-100 shadow-sm overflow-hidden">
         <div className="h-32 bg-slate-100 w-full relative"></div>
 

@@ -16,6 +16,7 @@ import { ThemeToggle } from "../ui/ThemeToggle";
 import { AUTH_STATE_CHANGED_EVENT, client, isAuthenticated, logout } from "../../api/client";
 import type { components } from "../../api/schema";
 import { cn } from "../../lib/utils";
+import { StatusMessage } from "../ui/AppPrimitives";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
@@ -33,6 +34,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoggedIn, setIsLoggedIn] = useState(isAuthenticated);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   const userMenuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -103,7 +105,11 @@ export function RootLayout({ children }: { children: ReactNode }) {
     user?.role === "moderator" || user?.role === "federation_staff" || canOpenAdmin;
 
   const handleLogout = async () => {
-    await logout();
+    setLogoutError(null);
+    if (!(await logout())) {
+      setLogoutError("退出登录未完成，请检查网络后重试。");
+      return;
+    }
     setIsLoggedIn(false);
     setUser(null);
     navigate("/login");
@@ -264,6 +270,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       </header>
 
       <main className="mx-auto flex w-full max-w-7xl flex-col px-4 py-6 sm:px-6 lg:px-8">
+        {logoutError && <StatusMessage value={logoutError} />}
         {children}
       </main>
 

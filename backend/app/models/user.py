@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.core.database import Base
@@ -116,6 +116,8 @@ class User(Base):
         back_populates="user",
         passive_deletes=True,
     )
+
+    __table_args__ = (Index("uq_users_email_lower", func.lower(email), unique=True),)
 
 
 class AuditMixin:

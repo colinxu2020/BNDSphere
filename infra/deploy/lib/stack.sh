@@ -236,6 +236,37 @@ app_ready() {
     curl -fsS --max-time 5 -o /dev/null "$_base_url/api/openapi.json"
 }
 
+ensure_optional_secrets() {
+    # A release may introduce optional provider credentials. Empty files let
+    # Compose start while the channel remains explicitly unconfigured.
+    # Install without overwriting any existing operator-supplied credential.
+    for _optional_name in smtp_password tencent_sms_secret_id tencent_sms_secret_key; do
+        _optional_path="$COMPOSE_PROJECT_DIR/secrets/${_optional_name}.txt"
+        if [ -e "$_optional_path" ] || [ -L "$_optional_path" ]; then
+            [ -f "$_optional_path" ] || return 1
+            continue
+        fi
+        _optional_tmp=$(mktemp "$COMPOSE_PROJECT_DIR/secrets/.optional.XXXXXX") || return 1
+        chmod 600 "$_optional_tmp" || { rm -f "$_optional_tmp"; return 1; }
+        # Compose file secrets retain host ownership; backend runs as uid 1000.
+        if [ "$(id -u)" != 1000 ]; then
+            if ! chown 1000:1000 "$_optional_tmp" 2>/dev/null; then
+                if ! sudo -n chown 1000:1000 "$_optional_tmp"; then
+                    rm -f "$_optional_tmp"
+                    log "cannot prepare optional secret ownership for uid 1000"
+                    return 1
+                fi
+            fi
+        fi
+        if ! ln "$_optional_tmp" "$_optional_path"; then
+            rm -f "$_optional_tmp"
+            [ -f "$_optional_path" ] || return 1
+            continue
+        fi
+        rm -f "$_optional_tmp"
+    done
+}
+
 run_update() {
     _version=$1
 
@@ -247,6 +278,11 @@ run_update() {
 
     _staged_compose=$(fetch_compose "$_version") || {
         log "could not fetch the release's docker-compose.yml"
+        return 1
+    }
+
+    ensure_optional_secrets || {
+        log "could not prepare optional provider secrets; refusing to deploy"
         return 1
     }
 

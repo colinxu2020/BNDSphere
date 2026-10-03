@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Form, Request, Response, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
 from app.api.common_responses import ALTCHA_VERIFICATION_FAILED_RESPONSE
@@ -26,6 +26,19 @@ from app.services.errors import AuthenticationError
 router = APIRouter(tags=["Auth"])
 
 
+def _check_login_origin(request: Request) -> None:
+    # Lax cookies do not prevent a top-level foreign form from setting a new
+    # session cookie. Check the login's source before verifying credentials.
+    origin = request.headers.get("origin")
+    trusted = {str(request.base_url).rstrip("/"), web_settings().cors_origin}
+    if origin is not None:
+        if origin in {"null", "*"} or origin not in trusted:
+            raise HTTPException(status_code=403, detail="Untrusted login origin")
+    elif request.headers.get("sec-fetch-site") in {"cross-site", "same-site"}:
+        raise HTTPException(status_code=403, detail="Untrusted login origin")
+    # CLI clients and same-origin browser requests may omit Origin.
+
+
 def _set_session_cookie(response: Response, token: str) -> None:
     """Hand the session token to the browser as a cookie.
 
@@ -37,6 +50,9 @@ def _set_session_cookie(response: Response, token: str) -> None:
     POST/PUT/PATCH/DELETE, and Lax withholds the cookie from cross-site
     requests with those methods; it is only sent on top-level GET navigations,
     which change nothing.
+
+    Login also checks Origin, since a foreign form can otherwise SET a cookie
+    even when SameSite prevents it from sending the previous cookie.
 
     ``Secure`` is dropped in debug so local development over plain HTTP still
     works; production runs behind Caddy over TLS and sets it.
@@ -133,6 +149,7 @@ async def login(
 
     Note that all optional fields in the form data are ignored.
     """
+    _check_login_origin(request)
     altcha_service.verify(altcha, AltchaPurpose.login)
     user = await service.authenticate(
         form_data.username,

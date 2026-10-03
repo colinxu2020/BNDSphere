@@ -33,24 +33,29 @@ export const client = createClient<paths>({
   baseUrl: window.location.origin,
 });
 
-export async function logout() {
-  // Must go through the server: clearing the flag alone would leave the
-  // session row and its cookie alive, so "signed out" would only be true in
-  // this tab. Errors are ignored — an unreachable backend must not strand the
-  // user in a half-signed-in UI, and the cookie expires on its own.
+export async function logout(): Promise<boolean> {
+  // Keep the UI and HttpOnly cookie in agreement. Failure leaves the session
+  // available for a retry; callers display it instead of claiming sign-out.
   try {
-    await client.POST("/api/v1/auth/logout");
-  } finally {
+    const { response } = await client.POST("/api/v1/auth/logout");
+    if (response.status !== 204) return false;
     clearAuthState();
+    return true;
+  } catch {
+    return false;
   }
 }
 
 client.use({
-  onResponse({ response, schemaPath }) {
+  async onResponse({ response, schemaPath }) {
     // The cookie expired or was revoked server-side: drop the stale UI flag so
     // the app stops pretending to be signed in.
     if (response.status === 401 && schemaPath !== "/api/v1/auth/login") {
-      clearAuthState();
+      const body = await response
+        .clone()
+        .json()
+        .catch(() => null);
+      if (body?.error_code === "AUTH_TOKEN_INVALID") clearAuthState();
     }
   },
 });

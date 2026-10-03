@@ -3,6 +3,7 @@
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar
 
+import pytest
 from httpx import AsyncClient
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -36,6 +37,47 @@ class TestSessionCookie:
     USER_SPECS: ClassVar[list[dict[str, str]]] = [
         {"username": "cookie_user", "password": PASSWORD},
     ]
+
+    @pytest.mark.parametrize(
+        "headers",
+        [
+            {"Origin": "https://attacker.example"},
+            {"Origin": "null"},
+            {"Sec-Fetch-Site": "cross-site"},
+            {"Sec-Fetch-Site": "same-site"},
+        ],
+    )
+    async def test_foreign_login_cannot_set_a_session(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+        headers: dict[str, str],
+    ) -> None:
+        client.cookies.clear()
+        payload = await create_altcha_payload(client, "login")
+        response = await client.post(
+            "/auth/login",
+            headers=headers,
+            data={
+                "username": "cookie_user",
+                "password": PASSWORD,
+                "altcha": payload,
+            },
+        )
+        assert response.status_code == 403
+        assert "set-cookie" not in response.headers
+        # Origin rejection happens before challenge consumption.
+        response = await client.post(
+            "/auth/login",
+            headers={"Origin": "http://127.0.0.1:8000"},
+            data={
+                "username": "cookie_user",
+                "password": PASSWORD,
+                "altcha": payload,
+            },
+        )
+        assert response.status_code == 200
+        client.cookies.clear()
 
     async def test_cookie_alone_authenticates(
         self,

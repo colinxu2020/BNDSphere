@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import smtplib
+import ssl
 from email.message import EmailMessage
 
 from app.core.settings import SmtpSettings, smtp_settings, web_settings
@@ -29,7 +30,7 @@ def _send_blocking(settings: SmtpSettings, to: str, code: str, minutes: int) -> 
 
     with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
         if settings.smtp_starttls:
-            smtp.starttls()
+            smtp.starttls(context=ssl.create_default_context())
         if settings.smtp_username:
             smtp.login(settings.smtp_username, settings.smtp_password)
         smtp.send_message(message)

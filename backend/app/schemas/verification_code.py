@@ -15,11 +15,11 @@ class VerificationCodeCreate(BaseModel):
     expires_at: datetime
 
 
-# Bounded at the same ceiling as the password itself: it is fed to the same
-# argon2 verify, so leaving it open would only move the CPU-burning field.
+# Existing registration and login accept long passwords; reauthentication
+# must accept those same credentials.
 CurrentPassword = Annotated[
     str,
-    Field(min_length=1, max_length=constants.USER_MAX_PASSWORD_LENGTH),
+    Field(min_length=1),
 ]
 VerificationCodeDigits = Annotated[
     str,
