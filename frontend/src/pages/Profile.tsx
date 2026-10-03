@@ -2,13 +2,14 @@ import React, { useState, useEffect, useId } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
-import { client } from "../api/client";
+import { client, isAuthenticated, logout } from "../api/client";
 import type { components } from "../api/schema";
 import { ROLE_MAP } from "../lib/labels";
 import { nullableText } from "../lib/format";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
+import { ContactVerification } from "../components/ContactVerification";
 import { MarkdownContent } from "../components/ui/MarkdownContent";
 import { MarkdownEditor } from "../components/ui/MarkdownEditor";
 import { markdownLengthError } from "../lib/markdown";
@@ -30,12 +31,12 @@ export function Profile() {
   const [updateMessage, setUpdateMessage] = useState<unknown>(null);
   const [updateTone, setUpdateTone] = useState<"error" | "success">("error");
   const [loadError, setLoadError] = useState<unknown>(null);
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchUser = async () => {
       setIsLoading(true);
-      const token = localStorage.getItem("bnd_token");
-      if (!token) {
+      if (!isAuthenticated()) {
         navigate("/login");
         return;
       }
@@ -61,8 +62,12 @@ export function Profile() {
     fetchUser();
   }, [navigate]);
 
-  const handleLogout = () => {
-    localStorage.removeItem("bnd_token");
+  const handleLogout = async () => {
+    setLogoutError(null);
+    if (!(await logout())) {
+      setLogoutError("退出登录未完成，请检查网络后重试。");
+      return;
+    }
     navigate("/login");
   };
 
@@ -137,6 +142,7 @@ export function Profile() {
         </button>
       </div>
 
+      {logoutError && <StatusMessage value={logoutError} />}
       <div className="bg-white rounded-md border border-slate-100 shadow-sm overflow-hidden">
         <div className="h-32 bg-slate-100 w-full relative"></div>
 
@@ -186,6 +192,8 @@ export function Profile() {
           )}
         </div>
       </div>
+
+      <ContactVerification user={user} onVerified={setUser} />
 
       <AnimatePresence>
         {isUpdateModalOpen && (

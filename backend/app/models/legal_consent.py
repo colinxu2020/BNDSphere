@@ -23,7 +23,7 @@ class LegalDocumentEnum(StrEnum):
 CURRENT_LEGAL_DOCUMENT_VERSIONS: Final[Mapping[LegalDocumentEnum, date]] = (
     MappingProxyType(
         {
-            LegalDocumentEnum.privacy_policy: date(2026, 9, 15),
+            LegalDocumentEnum.privacy_policy: date(2026, 9, 20),
             LegalDocumentEnum.user_agreement: date(2026, 9, 15),
             LegalDocumentEnum.cross_border_transfer_consent: date(2026, 9, 15),
         },

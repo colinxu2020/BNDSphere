@@ -10,7 +10,7 @@ import {
   Search,
   Trash2,
 } from "@/src/components/ui/Icons";
-import { client } from "../api/client";
+import { client, isAuthenticated } from "../api/client";
 import { uploadFileWithDetails } from "../api/uploads";
 import type { components } from "../api/schema";
 import {
@@ -89,7 +89,7 @@ export function ResourceCenter() {
   useEffect(() => {
     void loadResources();
 
-    if (!localStorage.getItem("bnd_token")) return;
+    if (!isAuthenticated()) return;
     let cancelled = false;
     void client.GET("/api/v1/users/me").then(({ data }) => {
       if (!cancelled) setUser(data || null);

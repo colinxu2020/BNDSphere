@@ -19,6 +19,7 @@ import os
 import secrets
 import sys
 from collections.abc import AsyncGenerator
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from urllib.parse import quote
 
@@ -37,9 +38,14 @@ from sqlalchemy.ext.asyncio import (
 
 from app.api.dependencies import get_db
 from app.api.rate_limit import auth_rate_limiter
-from app.core.security import create_access_token, get_password_hash
+from app.core.constants import SESSION_LIFETIME_DAYS
+from app.core.security import (
+    generate_session_token,
+    get_password_hash,
+    hash_session_token,
+)
 from app.main import app
-from app.models import User
+from app.models import User, UserSession
 
 # ── helpers ──────────────────────────────────────────────────────────
 
@@ -428,7 +434,18 @@ async def setup_class_users(
         await db_session.flush()
         await db_session.refresh(user)
 
-        token = create_access_token({"sub": str(user.id)})
+        # A real session row, exactly as /auth/login would open. Tests keep
+        # using the bearer header (the cookie and the header resolve to the
+        # same session), so nothing outside this fixture had to change.
+        token = generate_session_token()
+        db_session.add(
+            UserSession(
+                user_id=user.id,
+                token_hash=hash_session_token(token),
+                expires_at=datetime.now(UTC) + timedelta(days=SESSION_LIFETIME_DAYS),
+            ),
+        )
+        await db_session.flush()
         headers = {"Authorization": f"Bearer {token}"}
 
         class_users[username] = {"headers": headers, "user": user}

@@ -13,7 +13,7 @@ from app.repositories.user import UserRepository
 from app.schemas.login_attempt import LoginAttemptCreate
 from app.schemas.user import AdminUserUpdate, UserCreate
 from app.services.base import ServiceBase
-from app.services.errors import LoginThrottledError
+from app.services.errors import AuthenticationError, LoginThrottledError
 
 
 class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
@@ -74,6 +74,30 @@ class AuthService(ServiceBase[User, UserCreate, AdminUserUpdate]):
             )
             await self._record_attempt(username, ip, successful=successful)
             return user if successful else None
+
+    async def reauthenticate(
+        self,
+        user: User,
+        password: str,
+        *,
+        ip: str | None,
+    ) -> None:
+        """Re-check the password of an account that is already signed in.
+
+        Routes that change *how* an account is reached — binding a new address
+        or number — ask for it again, because the question they decide is
+        whether a stolen session can point the account's recovery channel at
+        someone else.
+
+        Through ``authenticate`` rather than ``verify_password`` directly, so
+        they cannot be used as an unthrottled password oracle that happens to
+        need a session.
+        """
+        if await self.authenticate(user.username, password, ip=ip) is None:
+            raise AuthenticationError(
+                "error.auth.incorrect_user_passwd",
+                "INCORRECT_USER_PASSWD",
+            )
 
     async def _recent_failure_count(self, username: str, since: datetime) -> int:
         return await self.login_attempt_repository.count_failures_since(

@@ -81,7 +81,14 @@ class UserService(
     @override
     async def update(self, db_obj: User, obj_in: AdminUserUpdate) -> User:
         try:
-            return await super().update(db_obj, obj_in)
+            async with self.transaction():
+                previous_email = db_obj.email.lower() if db_obj.email else None
+                if (
+                    "email" in obj_in.model_fields_set
+                    and obj_in.email != previous_email
+                ):
+                    db_obj.email_verified_at = None
+                return await self.repository.update(db_obj, obj_in)
         except IntegrityError:
             raise DuplicateResourceError(
                 message_key="error.user.duplicate_email",

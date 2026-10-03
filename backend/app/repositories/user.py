@@ -4,7 +4,7 @@ from typing import cast
 
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
-from sqlalchemy import or_, select, update
+from sqlalchemy import func, or_, select, update
 
 from app.models.legal_consent import LegalConsent, LegalDocumentEnum
 from app.models.moderations.moderation_common import ModerationStatusEnum
@@ -20,7 +20,13 @@ class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
     model = User
 
     async def get_by_email(self, email: str) -> User | None:
-        result = await self.db.execute(select(User).where(User.email == email))
+        result = await self.db.execute(
+            select(User).where(func.lower(User.email) == email.lower()),
+        )
+        return result.scalars().first()
+
+    async def get_by_phone(self, phone: str) -> User | None:
+        result = await self.db.execute(select(User).where(User.phone == phone))
         return result.scalars().first()
 
     async def get_by_username(self, username: str) -> User | None:
