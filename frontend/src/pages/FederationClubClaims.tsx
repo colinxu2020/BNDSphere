@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Check, Clock, ShieldCheck, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -13,6 +13,8 @@ import {
 } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 import { formatDateTime } from "../lib/format";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type ClubClaim = components["schemas"]["ClubClaimRequestReviewInfo"];
 
@@ -23,36 +25,42 @@ export function FederationClubClaims({
   refreshToken: number;
   onLoadingChange: (isLoading: boolean) => void;
 }) {
-  const [claims, setClaims] = useState<ClubClaim[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [busyId, setBusyId] = useState<number | null>(null);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
+  const previousRefreshToken = useRef(refreshToken);
+
+  const loadClaimsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/club-federation/club-claims/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(data, error, page);
+  }, []);
+  const {
+    items: claims,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<ClubClaim>(loadClaimsPage);
 
   const refresh = async () => {
-    setIsLoading(true);
     onLoadingChange(true);
-    try {
-      const response = await client.GET("/api/v1/club-federation/club-claims/", {
-        params: { query: { size: 100 } },
-      });
-      setClaims(response.error ? [] : response.data?.items || []);
-      if (response.error) {
-        setMessageTone("error");
-        setMessage(response.error);
-      }
-    } catch (error) {
-      setClaims([]);
-      setMessageTone("error");
-      setMessage(error);
-    } finally {
-      setIsLoading(false);
-      onLoadingChange(false);
-    }
+    await reload();
+    onLoadingChange(false);
   };
 
   useEffect(() => {
-    refresh();
+    onLoadingChange(isInitialLoading);
+  }, [isInitialLoading, onLoadingChange]);
+
+  useEffect(() => {
+    if (previousRefreshToken.current === refreshToken) return;
+    previousRefreshToken.current = refreshToken;
+    void refresh();
     // Refresh only when requested by the parent workspace.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [refreshToken]);
@@ -85,7 +93,7 @@ export function FederationClubClaims({
           title="审核社团认领申请"
           description="通过后，申请人将成为该社团社长；同一社团的其他待审核申请会自动驳回。"
         />
-        {isLoading ? (
+        {isInitialLoading ? (
           <PageLoading compact />
         ) : claims.length ? (
           <div className="grid gap-4 md:grid-cols-2">
@@ -131,6 +139,14 @@ export function FederationClubClaims({
           </div>
         ) : (
           <EmptyState title="暂无待审核认领申请" />
+        )}
+        {!isInitialLoading && (
+          <InfiniteScrollTrigger
+            hasMore={hasMore}
+            isLoading={isLoadingMore}
+            error={loadError}
+            onLoadMore={loadMore}
+          />
         )}
       </Surface>
     </div>

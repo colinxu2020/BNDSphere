@@ -1,7 +1,15 @@
 from datetime import datetime
-from typing import Literal, Self
+from typing import Annotated, Literal, Self
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl, model_validator
+from pydantic import (
+    AfterValidator,
+    BaseModel,
+    ConfigDict,
+    EmailStr,
+    Field,
+    HttpUrl,
+    model_validator,
+)
 
 from app.core import constants
 from app.models.user import RoleEnum, UserGradeEnum
@@ -9,11 +17,25 @@ from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import AvatarUri
 
 
+def validate_username(username: str) -> str:
+    if username != username.strip():
+        raise ValueError("Username must not start or end with whitespace")
+    return username
+
+
+type Username = Annotated[
+    str,
+    Field(min_length=1, max_length=constants.USER_MAX_USERNAME_LENGTH),
+    AfterValidator(validate_username),
+]
+
+
 class UserBase(BaseModel):
     username: str = Field(..., max_length=constants.USER_MAX_USERNAME_LENGTH)
 
 
 class UserCreate(UserBase):
+    username: Username
     password: str = Field(..., min_length=6)
     accepted_privacy_policy: Literal[True]
     accepted_user_agreement: Literal[True]
@@ -58,7 +80,7 @@ class PublicUserInfo(UserBase, IdMixin):
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: str | None = Field(None)
+    username: Username | None = None
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(

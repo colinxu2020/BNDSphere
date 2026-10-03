@@ -7,6 +7,7 @@
     "dev": "vite --port=3000 --host=0.0.0.0",
     "build": "vite build",
     "preview": "vite preview",
+    "test": "node --test src/lib/*.test.ts",
     "clean": "rm -rf dist server.js",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
@@ -16,6 +17,8 @@
   },
   "dependencies": {
     "@tabler/icons-react": "^3.46.0",
+    "@uiw/react-markdown-preview": "^5.2.1",
+    "@uiw/react-md-editor": "^4.1.2",
     "altcha": "^3.2.2",
     "clsx": "^2.1.1",
     "motion": "^12.23.24",
@@ -24,12 +27,18 @@
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^7.18.2",
-    "tailwind-merge": "^3.6.0"
+    "rehype-sanitize": "^6.0.0",
+    "remark-breaks": "^4.0.0",
+    "tailwind-merge": "^3.6.0",
+    "unist-util-visit": "^5.1.0"
   },
   "devDependencies": {
     "@eslint/js": "^9.0.0",
     "@tailwindcss/vite": "^4.3.3",
+    "@types/hast": "^3.0.5",
     "@types/node": "^22.14.0",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.0.5",
     "autoprefixer": "^10.4.21",
     "eslint": "^9.0.0",

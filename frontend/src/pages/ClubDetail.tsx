@@ -15,6 +15,7 @@ import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { client, isAuthenticated } from "../api/client";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
@@ -486,9 +487,7 @@ export function ClubDetail() {
             <h2 className="text-xl font-display font-bold text-slate-900 mb-4 flex items-center gap-2">
               关于社团
             </h2>
-            <div className="prose prose-slate prose-p:leading-relaxed prose-p:text-slate-600 max-w-none text-[17px]">
-              <p className="whitespace-pre-line">{club.description || "暂无详细介绍。"}</p>
-            </div>
+            <MarkdownContent value={club.description || "暂无详细介绍。"} />
           </section>
 
           <section className="flex flex-col gap-4">
@@ -531,9 +530,14 @@ export function ClubDetail() {
                         className="pointer-events-none absolute inset-0 bg-primary-500"
                       />
                     )}
-                    <div className="relative flex min-w-0 flex-col gap-1">
+                    <div className="flex min-w-0 flex-col gap-1">
                       <h3 className="font-semibold text-lg text-slate-900 group-hover:text-primary-600 transition-colors">
-                        {act.name}
+                        <Link
+                          to={`/club/${club.id}/activity/${act.id}`}
+                          className="after:absolute after:inset-0"
+                        >
+                          {act.name}
+                        </Link>
                       </h3>
                       <p className="text-slate-500 text-sm line-clamp-1">{act.description}</p>
                       <div className="flex flex-wrap items-center gap-3 mt-2 text-xs font-medium text-slate-400">
@@ -545,7 +549,7 @@ export function ClubDetail() {
                         </span>
                       </div>
                     </div>
-                    <div className="relative flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
+                    <div className="relative z-10 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
                       {canManage && (
                         <Link
                           to={`/club/${club.id}/manage?activity=${act.id}`}

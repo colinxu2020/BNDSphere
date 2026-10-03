@@ -16,60 +16,44 @@ import {
 } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 
-type Club = components["schemas"]["ClubInfo"];
-type UserInfo = components["schemas"]["UserInfo"];
+type UserClubMembership = components["schemas"]["UserClubMembership"];
 
 const MANAGER_ROLES = new Set(["president", "vice_president"]);
 
 export function Workspace() {
   const navigate = useNavigate();
-  const [user, setUser] = useState<UserInfo | null>(null);
-  const [clubs, setClubs] = useState<Club[]>([]);
+  const [memberships, setMemberships] = useState<UserClubMembership[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState<unknown>(null);
 
-  const managedClubs = useMemo(() => {
-    if (!user) return [];
-    return clubs
-      .map((club) => ({
-        club,
-        membership: club.members.find(
-          (member) => member.user_id === user.id && MANAGER_ROLES.has(member.membership),
-        ),
-      }))
-      .filter((item) => item.membership)
-      .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN"));
-  }, [clubs, user]);
+  const managedClubs = useMemo(
+    () =>
+      memberships
+        .filter(
+          ({ membership, club }) => MANAGER_ROLES.has(membership) && club.status !== "archived",
+        )
+        .sort((left, right) => left.club.name.localeCompare(right.club.name, "zh-Hans-CN")),
+    [memberships],
+  );
 
   const fetchManagedClubs = async () => {
     setIsLoading(true);
     setLoadError(null);
     try {
-      const meResponse = await client.GET("/api/v1/users/me");
-      if (meResponse.response.status === 401) {
+      const response = await client.GET("/api/v1/users/me/clubs/");
+      if (response.response.status === 401) {
         navigate("/login");
         return;
       }
-      if (meResponse.error || !meResponse.data) {
-        setLoadError(meResponse.error || "无法获取当前用户信息");
-        setUser(null);
-        setClubs([]);
-        return;
-      }
-
-      setUser(meResponse.data);
-      const clubsResponse = await client.GET("/api/v1/clubs/managed/", {
-        params: { query: { size: 100 } },
-      });
-      if (clubsResponse.error) {
-        setLoadError(clubsResponse.error);
-        setClubs([]);
+      if (response.error) {
+        setLoadError(response.error);
+        setMemberships([]);
       } else {
-        setClubs(clubsResponse.data?.items || []);
+        setMemberships(response.data || []);
       }
     } catch (error) {
       setLoadError(error);
-      setClubs([]);
+      setMemberships([]);
     } finally {
       setIsLoading(false);
     }
@@ -144,9 +128,7 @@ export function Workspace() {
                     </div>
 
                     <div className="mt-4 flex flex-wrap gap-2">
-                      <Badge tone="primary">
-                        {membership ? MEMBERSHIP_MAP[membership.membership] : ""}
-                      </Badge>
+                      <Badge tone="primary">{MEMBERSHIP_MAP[membership]}</Badge>
                       <Badge tone="slate">{CATEGORY_MAP[club.category]}</Badge>
                       <Badge tone="blue">{CLUB_STATUS_MAP[club.status]}</Badge>
                       {club.star_level !== "none" && (
@@ -158,8 +140,7 @@ export function Workspace() {
                       <span>创建于 {formatDate(club.created_at)}</span>
                       <span className="inline-flex items-center gap-1">
                         <Users size={14} />
-                        {club.members.filter((member) => member.membership !== "left").length}{" "}
-                        名成员
+                        {club.president ? `社长 ${club.president.username}` : "暂无社长"}
                       </span>
                     </div>
                   </div>

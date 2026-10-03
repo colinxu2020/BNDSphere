@@ -192,6 +192,21 @@ class TestLogin:
         assert body["access_token"]
         assert "." not in body["access_token"]
 
+    async def test_login_ignores_accidental_username_whitespace(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        resp = await client.post(
+            "/auth/login",
+            data={
+                "username": " login_user ",
+                "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
+        )
+        assert resp.status_code == 200
+
     async def test_login_wrong_password(
         self,
         client: AsyncClient,

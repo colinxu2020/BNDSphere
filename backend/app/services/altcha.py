@@ -45,9 +45,9 @@ class AltchaService:
             )
         self._hmac_secret = hmac_secret
         self._cost = cost
-        # Consumed signature -> challenge expiry. Insertion order tracks
-        # expiry order because the TTL is constant, so expired entries
-        # always cluster at the front.
+        # Consumed signature -> challenge expiry. Challenges may be solved in
+        # a different order from issuance, so insertion and expiry order can
+        # differ.
         self._consumed: OrderedDict[str, int] = OrderedDict()
         self._lock = Lock()
 
@@ -95,11 +95,9 @@ class AltchaService:
             self._consumed[signature] = expires_at
 
     def _prune_expired(self, now: float) -> None:
-        while self._consumed:
-            _signature, expires_at = next(iter(self._consumed.items()))
-            if expires_at >= now:
-                break
-            self._consumed.popitem(last=False)
+        for signature, expires_at in list(self._consumed.items()):
+            if expires_at < now:
+                del self._consumed[signature]
 
     @staticmethod
     def _verification_error() -> BadRequestError:

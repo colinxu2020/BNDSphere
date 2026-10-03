@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -33,10 +33,10 @@ import {
   fromDateTimeLocalValue,
   nullableNumber,
   nullableText,
-  stringifyBackendValue,
   toDateTimeLocalValue,
   toNumberOrZero,
 } from "../lib/format";
+import { formatWorkspaceLoadErrors } from "../lib/workspaceErrors";
 import {
   Badge,
   DangerButton,
@@ -55,8 +55,17 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import {
+  DEFAULT_PAGE_SIZE,
+  getPageResult,
+  loadAllPages,
+  useInfiniteList,
+} from "../hooks/useInfiniteList";
 
 type Club = components["schemas"]["ClubInfo"];
 type ClubMember = components["schemas"]["ClubMemberInfo"];
@@ -90,46 +99,31 @@ const CLUB_WORKSPACE_TABS: readonly { key: ClubWorkspaceTab; label: string }[] =
 ];
 
 async function loadAllClubActivities(clubId: number) {
-  const items: ClubActivity[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await client.GET("/api/v1/clubs/{club_id}/activities/", {
+  return loadAllPages<ClubActivity>((page) =>
+    client.GET("/api/v1/clubs/{club_id}/activities/", {
       params: { path: { club_id: clubId }, query: { page, size: 100 } },
-    });
-    if (response.error) {
-      return { items: [], error: response.error, response: response.response };
-    }
-
-    items.push(...(response.data?.items || []));
-    if (!response.data || page >= response.data.pages) {
-      return { items, error: null, response: response.response };
-    }
-    page += 1;
-  }
+    }),
+  );
 }
 
 async function loadAllClubGeneralActivityRecords(clubId: number) {
-  const items: ClubGeneralActivity[] = [];
-  let page = 1;
-
-  while (true) {
-    const response = await client.GET("/api/v1/clubs/{club_id}/general-activities/", {
+  return loadAllPages<ClubGeneralActivity>((page) =>
+    client.GET("/api/v1/clubs/{club_id}/general-activities/", {
       params: { path: { club_id: clubId }, query: { page, size: 100 } },
-    });
-    if (response.error) {
-      return { items: [], error: response.error, response: response.response };
-    }
+    }),
+  );
+}
 
-    items.push(...(response.data?.items || []));
-    if (!response.data || page >= response.data.pages) {
-      return { items, error: null, response: response.response };
-    }
-    page += 1;
-  }
+async function loadAllGeneralActivities() {
+  return loadAllPages<GeneralActivity>((page) =>
+    client.GET("/api/v1/general-activities/", {
+      params: { query: { page, size: 100 } },
+    }),
+  );
 }
 
 export function ClubWorkspace() {
+  const descriptionId = useId();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const requestedActivityId = searchParams.get("activity");
@@ -145,14 +139,12 @@ export function ClubWorkspace() {
 
   const [club, setClub] = useState<Club | null>(null);
   const [currentUser, setCurrentUser] = useState<UserInfo | null>(null);
-  const [membershipRequests, setMembershipRequests] = useState<ClubMembershipRequest[]>([]);
   const [membershipApplicants, setMembershipApplicants] = useState<Record<string, PublicUserInfo>>(
     {},
   );
   const [activities, setActivities] = useState<ClubActivity[]>([]);
   const [generalActivities, setGeneralActivities] = useState<GeneralActivity[]>([]);
   const [records, setRecords] = useState<ClubGeneralActivity[]>([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
   const [starRating, setStarRating] = useState<StarRating | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
@@ -221,6 +213,55 @@ export function ClubWorkspace() {
   const [starUpdateTone, setStarUpdateTone] = useState<"error" | "success">("error");
   const [isStarUpdating, setIsStarUpdating] = useState(false);
 
+  const loadMembershipRequestsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const response = await client.GET("/api/v1/clubs/{club_id}/membership-requests", {
+        params: { path: { club_id: clubId }, query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      const result = getPageResult(response.data, response.error, page);
+      const applicantResults = await Promise.all(
+        result.items.map(async (request) => {
+          const applicantResponse = await client.GET("/api/v1/users/{user_id}", {
+            params: { path: { user_id: request.applicant_id } },
+            signal,
+          });
+          return applicantResponse.data
+            ? ([request.applicant_id, applicantResponse.data] as const)
+            : null;
+        }),
+      );
+      if (!signal.aborted) {
+        const nextApplicants = Object.fromEntries(applicantResults.filter((item) => item !== null));
+        setMembershipApplicants((current) =>
+          page === 1 ? nextApplicants : { ...current, ...nextApplicants },
+        );
+      }
+      return result;
+    },
+    [clubId],
+  );
+  const loadStarApplicationsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const response = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
+        params: { path: { club_id: clubId }, query: { page, size: DEFAULT_PAGE_SIZE } },
+        signal,
+      });
+      return getPageResult(response.data, response.error, page);
+    },
+    [clubId],
+  );
+  const membershipRequestList = useInfiniteList<ClubMembershipRequest>(
+    loadMembershipRequestsPage,
+    club?.status === "normal",
+  );
+  const starApplicationList = useInfiniteList<StarApplication>(
+    loadStarApplicationsPage,
+    club?.status === "normal",
+  );
+  const membershipRequests = membershipRequestList.items;
+  const starApplications = starApplicationList.items;
+
   const refresh = async () => {
     setIsLoading(true);
     setIsForbidden(false);
@@ -257,38 +298,12 @@ export function ClubWorkspace() {
       }
 
       if (loadedClub?.status !== "normal") {
-        setMembershipRequests([]);
         setMembershipApplicants({});
         setActivities([]);
         setGeneralActivities([]);
         setRecords([]);
-        setStarApplications([]);
         setStarRating(null);
         return;
-      }
-
-      const membershipRequestsResponse = await client.GET(
-        "/api/v1/clubs/{club_id}/membership-requests",
-        { params: { path: { club_id: clubId }, query: { size: 100 } } },
-      );
-      if (membershipRequestsResponse.error) {
-        errors.membershipRequests = membershipRequestsResponse.error;
-        setMembershipRequests([]);
-        setMembershipApplicants({});
-      } else {
-        const nextRequests = membershipRequestsResponse.data?.items || [];
-        setMembershipRequests(nextRequests);
-        const applicantResults = await Promise.all(
-          nextRequests.map(async (request) => {
-            const response = await client.GET("/api/v1/users/{user_id}", {
-              params: { path: { user_id: request.applicant_id } },
-            });
-            return response.data ? ([request.applicant_id, response.data] as const) : null;
-          }),
-        );
-        setMembershipApplicants(
-          Object.fromEntries(applicantResults.filter((result) => result !== null)),
-        );
       }
 
       const activitiesResponse = await loadAllClubActivities(clubId);
@@ -302,14 +317,12 @@ export function ClubWorkspace() {
         setActivities(activitiesResponse.items);
       }
 
-      const generalActivitiesResponse = await client.GET("/api/v1/general-activities/", {
-        params: { query: { size: 100 } },
-      });
+      const generalActivitiesResponse = await loadAllGeneralActivities();
       if (generalActivitiesResponse.error) {
         errors.generalActivities = generalActivitiesResponse.error;
         setGeneralActivities([]);
       } else {
-        setGeneralActivities(generalActivitiesResponse.data?.items || []);
+        setGeneralActivities(generalActivitiesResponse.items);
       }
 
       const recordsResponse = await loadAllClubGeneralActivityRecords(clubId);
@@ -320,16 +333,6 @@ export function ClubWorkspace() {
         setRecords(recordsResponse.items);
       }
 
-      const applicationsResponse = await client.GET("/api/v1/clubs/{club_id}/star-level/", {
-        params: { path: { club_id: clubId }, query: { size: 50 } },
-      });
-      if (applicationsResponse.error) {
-        errors.starApplications = applicationsResponse.error;
-        setStarApplications([]);
-      } else {
-        setStarApplications(applicationsResponse.data?.items || []);
-      }
-
       const ratingResponse = await client.GET("/api/v1/clubs/{club_id}/star-rating/", {
         params: { path: { club_id: clubId } },
       });
@@ -338,6 +341,10 @@ export function ClubWorkspace() {
         setStarRating(null);
       } else {
         setStarRating(ratingResponse.data || null);
+      }
+
+      if (loadedClub?.id === clubId && loadedClub.status === "normal") {
+        await Promise.all([membershipRequestList.reload(), starApplicationList.reload()]);
       }
     } catch (error) {
       errors.workspace = error;
@@ -469,12 +476,18 @@ export function ClubWorkspace() {
 
   const submitClubUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
+    const lengthError = markdownLengthError(clubDescription, 4000);
+    if (lengthError) {
+      setClubTone("error");
+      setClubMessage(lengthError);
+      return;
+    }
     setIsClubSubmitting(true);
     setClubMessage(null);
     try {
       const body = {
         summary: clubSummary.trim(),
-        description: clubDescription.trim(),
+        description: clubDescription,
         logo_uri: nullableText(clubLogo),
       };
       const { error } =
@@ -885,13 +898,13 @@ export function ClubWorkspace() {
         <div className="animate-pulse bg-white rounded-md h-72 border border-slate-100" />
       ) : (
         <>
-          {Object.keys(loadErrors).length > 0 && (
+          {formatWorkspaceLoadErrors(loadErrors).length > 0 && (
             <Surface>
-              <SectionTitle title="加载反馈" description="以下内容直接来自后端响应。" />
+              <SectionTitle title="加载反馈" description="部分内容暂时无法加载。" />
               <div className="grid gap-3">
-                {Object.entries(loadErrors).map(([key, value]) => (
-                  <div key={key}>
-                    <InlineError value={`${key}: ${stringifyBackendValue(value)}`} />
+                {formatWorkspaceLoadErrors(loadErrors).map((entry) => (
+                  <div key={entry.key}>
+                    <InlineError value={entry.text} />
                   </div>
                 ))}
               </div>
@@ -970,12 +983,13 @@ export function ClubWorkspace() {
                     onChange={(event) => setClubSummary(event.target.value)}
                   />
                 </Field>
-                <Field label="详细介绍">
-                  <textarea
-                    className={textareaClassName}
+                <Field label="详细介绍" htmlFor={descriptionId}>
+                  <MarkdownEditor
+                    id={descriptionId}
+                    label="社团详细介绍"
                     value={clubDescription}
-                    maxLength={400}
-                    onChange={(event) => setClubDescription(event.target.value)}
+                    maxLength={4000}
+                    onChange={setClubDescription}
                   />
                 </Field>
                 <FileUploadField
@@ -1008,7 +1022,7 @@ export function ClubWorkspace() {
                       <div className="mb-3 flex items-center justify-between gap-3">
                         <h3 className="font-semibold text-slate-900">待审批申请</h3>
                         <Badge tone={membershipRequests.length ? "yellow" : "slate"}>
-                          {membershipRequests.length} 条
+                          {membershipRequestList.total} 条
                         </Badge>
                       </div>
                       <StatusMessage
@@ -1016,7 +1030,9 @@ export function ClubWorkspace() {
                         tone={membershipRequestTone}
                       />
                       <div className="mt-4 grid gap-3">
-                        {membershipRequests.length ? (
+                        {membershipRequestList.isInitialLoading ? (
+                          <PageLoading compact />
+                        ) : membershipRequests.length ? (
                           membershipRequests.map((request) => {
                             const applicant = membershipApplicants[request.applicant_id];
                             const isSubmitting = membershipRequestSubmittingId === request.id;
@@ -1060,6 +1076,12 @@ export function ClubWorkspace() {
                         ) : (
                           <EmptyState title="暂无待审批的入社申请" />
                         )}
+                        <InfiniteScrollTrigger
+                          hasMore={membershipRequestList.hasMore}
+                          isLoading={membershipRequestList.isLoadingMore}
+                          error={membershipRequestList.error}
+                          onLoadMore={membershipRequestList.loadMore}
+                        />
                       </div>
                     </section>
 
@@ -1540,6 +1562,8 @@ export function ClubWorkspace() {
                         <FileUploadField
                           label="证明材料"
                           scene="application_file"
+                          accept=".doc,.docx,.pdf"
+                          hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB；图片请先转为 PDF。"
                           values={proofFileUrls}
                           onValuesChange={setProofFileUrls}
                           multiple
@@ -1582,7 +1606,9 @@ export function ClubWorkspace() {
                   }`}
                 >
                   <div className="grid gap-3">
-                    {starApplications.length ? (
+                    {starApplicationList.isInitialLoading ? (
+                      <PageLoading compact />
+                    ) : starApplications.length ? (
                       starApplications.map((application) => (
                         <button
                           type="button"
@@ -1626,6 +1652,12 @@ export function ClubWorkspace() {
                     ) : (
                       <EmptyState title="暂无星级申请" />
                     )}
+                    <InfiniteScrollTrigger
+                      hasMore={starApplicationList.hasMore}
+                      isLoading={starApplicationList.isLoadingMore}
+                      error={starApplicationList.error}
+                      onLoadMore={starApplicationList.loadMore}
+                    />
                   </div>
 
                   {starEditorMode && (
@@ -1640,9 +1672,10 @@ export function ClubWorkspace() {
                           <FileUploadField
                             label="竞赛附件"
                             scene="application_file"
+                            accept=".doc,.docx,.pdf"
                             value={starAttachment}
                             onChange={setStarAttachment}
-                            hint="上传后作为星级申请附件。"
+                            hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB。上传后作为星级申请附件。"
                           />
                           <Field label="申请竞赛分">
                             <input
@@ -1674,9 +1707,10 @@ export function ClubWorkspace() {
                           <FileUploadField
                             label="竞赛附件"
                             scene="application_file"
+                            accept=".doc,.docx,.pdf"
                             value={starUpdateAttachment}
                             onChange={setStarUpdateAttachment}
-                            hint="上传后替换星级申请附件。"
+                            hint="仅支持 Word（.doc、.docx）或 PDF，单个文件不超过 50 MiB。上传后替换星级申请附件。"
                           />
                           <Field label="申请竞赛分">
                             <input

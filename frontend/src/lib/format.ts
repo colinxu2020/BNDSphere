@@ -18,6 +18,7 @@ export function stringifyBackendValue(value: unknown): string {
 }
 
 const ERROR_CODE_MESSAGES: Record<string, string> = {
+  VICE_PRESIDENT_LIMIT_REACHED: "每个社团最多任命两位副社长，请先调整现有副社长的身份。",
   ACADEMIC_TERM_NOT_FOUND: "没有找到这个学期",
   ANNOUNCEMENT_INVALID_TIME_RANGE: "公告结束时间不能早于开始时间",
   ANNOUNCEMENT_NOT_FOUND: "没有找到这条公告",
@@ -33,6 +34,10 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   CLUB_ACTIVITY_UPDATE_REQUEST_MODERATED: "这条活动修改申请已经审核过",
   CLUB_ACTIVITY_UPDATE_REQUEST_NOT_FOUND: "没有找到这条活动修改申请",
   CLUB_ACTIVITY_WRONG_BELONG: "该活动不属于当前社团",
+  CLUB_ALREADY_CLAIMED: "该社团已经有社长，不能再认领",
+  CLUB_CLAIM_REQUEST_NOT_FOUND: "没有找到这条社团认领申请",
+  CLUB_CLAIM_REQUEST_VERIFIED: "这条社团认领申请已经审核过",
+  CLUB_CREATED_AT_IN_FUTURE: "社团创建时间不能晚于当前时间",
   CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND: "没有找到这条社团综评记录",
   CLUB_NOT_ACTIVE: "该社团当前不可操作",
   CLUB_UPDATE_REQUIRES_REVIEW: "该社团已通过审核，请提交资料变更申请",
@@ -89,6 +94,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
 };
 
 const MESSAGE_KEY_TEXT: Record<string, string> = {
+  "error.club.vice_president_limit_reached":
+    "每个社团最多任命两位副社长，请先调整现有副社长的身份。",
   "error.academic_term.not_found": "没有找到这个学期",
   "error.announcement.invalid_time_range": "公告结束时间不能早于开始时间",
   "error.announcement.not_found": "没有找到这条公告",
@@ -99,6 +106,7 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.rate_limit.too_many_requests": "操作过于频繁，请稍后再试",
   "error.club.duplicate_join_request": "你已经提交过加入申请或已经是该社团成员",
   "error.club.duplicate_club_name": "社团名称已被使用",
+  "error.club.created_at_in_future": "社团创建时间不能晚于当前时间",
   "error.club.is_not_member": "你当前不是该社团成员",
   "error.club.not_active": "该社团当前不可操作",
   "error.club.update_requires_review": "该社团已通过审核，请提交资料变更申请",
@@ -117,6 +125,9 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.club_activity_update_request.moderated": "这条活动修改申请已经审核过",
   "error.club_activity_update_request.not_found": "没有找到这条活动修改申请",
   "error.club_activity.wrong_belong": "该活动不属于当前社团",
+  "error.club_claim_request.club_already_claimed": "该社团已经有社长，不能再认领",
+  "error.club_claim_request.not_found": "没有找到这条社团认领申请",
+  "error.club_claim_request.verified": "这条社团认领申请已经审核过",
   "error.club_general_activity_record.not_found": "没有找到这条社团综评记录",
   "error.club_update_request.moderated": "这条社团资料修改申请已经审核过",
   "error.club_update_request.not_found": "没有找到这条社团资料修改申请",
@@ -138,7 +149,7 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.verification.send_throttled": "验证码发送过于频繁，请稍后再试",
   "error.verification.target_invalid": "请填写有效的邮箱地址或中国内地手机号",
   "error.verification.target_taken": "该邮箱或手机号已被其他账号绑定",
-  "error.star_level.denied": "已通过的星级评价申请不能再修改",
+  "error.star_level.denied": "已通过的星级评价申请不能再修改或审核",
   "error.star_level.duplicate_application": "本学期已经提交过星级评价申请",
   "error.star_level.not_found": "没有找到这条星级评价申请",
   "error.update_request.is_null": "请至少填写一项需要修改的内容",

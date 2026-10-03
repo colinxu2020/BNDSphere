@@ -4,6 +4,7 @@ from datetime import UTC, datetime
 from fastapi_pagination import Page
 from sqlalchemy.exc import IntegrityError
 
+from app.core import constants
 from app.models.club import Club, ClubCategoryEnum, ClubStatusEnum
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.moderations.club import ClubUpdateRequest
@@ -25,7 +26,9 @@ from app.schemas.club import (
     ClubCreate,
     ClubMemberRoleUpdate,
     ClubMemberUpdate,
+    ClubSummary,
     ClubUpdate,
+    UserClubMembership,
 )
 from app.schemas.moderations.club import (
     ClubUpdateRequestCreate,
@@ -56,6 +59,7 @@ from app.services.errors import (
     ResourceForbiddenError,
     ResourceNotFoundError,
     UserNotFoundError,
+    VicePresidentLimitReachedError,
 )
 from app.services.moderation_payload import (
     build_update_payload,
@@ -130,16 +134,50 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         status: ClubStatusEnum | None = None,
         *,
         public_only: bool = False,
-    ) -> Page[Club]:
-        return await self.repository.get_multi(
+    ) -> Page[ClubSummary]:
+        page = await self.repository.get_multi(
             search,
             category,
             status,
             public_only=public_only,
         )
+        return Page[ClubSummary].model_validate(
+            {
+                **page.model_dump(exclude={"items"}),
+                "items": await self.summarize(page.items),
+            },
+        )
 
-    async def get_managed_by_user(self, user: User) -> Page[Club]:
-        return await self.repository.get_managed_by_user(user.id)
+    async def get_public_refs(self, search: str | None = None) -> Page[Club]:
+        """公开 Ref 档列表: 只列出 status=normal 的社团, 与公开的 get_multi 语义一致."""
+        return await self.repository.get_refs(search, status=ClubStatusEnum.normal)
+
+    async def summarize(self, clubs: Sequence[Club]) -> list[ClubSummary]:
+        """Summary 档: 社长/副社长用一条定向查询按 club_id 批量取得, 不装载成员集合."""
+        leaders = await self.member_repository.get_leaders_by_club_ids(
+            [club.id for club in clubs],
+        )
+        return [ClubSummary.from_club(club, leaders.get(club.id, [])) for club in clubs]
+
+    async def get_user_clubs(self, user: User) -> list[UserClubMembership]:
+        """当前用户的社团 (pending/member/president/vice_president, 不含 left)."""
+        memberships = await self.member_repository.get_memberships_by_user(user.id)
+        pending_clubs = (
+            await self.membership_request_repository.get_pending_clubs_by_user(user.id)
+        )
+        # 当前成员角色优先; left 不在 memberships 中, 重新申请时显示 pending.
+        relationships = {
+            club.id: (club, ClubMembershipEnum.pending) for club in pending_clubs
+        }
+        relationships.update({m.club_id: (m.club, m.membership) for m in memberships})
+        ordered = [
+            relationships[club_id] for club_id in sorted(relationships, reverse=True)
+        ]
+        summaries = await self.summarize([club for club, _ in ordered])
+        return [
+            UserClubMembership(membership=membership, club=summary)
+            for (_, membership), summary in zip(ordered, summaries, strict=True)
+        ]
 
     async def get_manageable_club(self, club_id: int) -> Club:
         club = await self.get(club_id)
@@ -267,6 +305,14 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                     "CANNOT_CHANGE_PRESIDENT_ROLE",
                     {"club_id": club_id},
                 ) from None
+
+            if (
+                desired_membership == ClubMembershipEnum.vice_president
+                and target.membership != ClubMembershipEnum.vice_president
+                and await self.member_repository.count_vice_presidents(club_id)
+                >= constants.CLUB_MAX_VICE_PRESIDENTS
+            ):
+                raise VicePresidentLimitReachedError(club_id)
 
             if desired_membership == ClubMembershipEnum.president:
                 await self.member_repository.set_membership(

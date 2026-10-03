@@ -97,6 +97,7 @@ class UserUpdateRequestRepository(
         stmt = select(self.model).where(
             self.model.moderation_status == ModerationStatusEnum.pending,
         )
+        stmt = stmt.order_by(self.model.request_at.desc(), self.model.id.desc())
         return cast("Page[UserUpdateRequest]", await apaginate(self.db, stmt))
 
     async def supersede_pending_requests_by_user(self, user_id: int) -> None:

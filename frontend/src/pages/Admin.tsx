@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useId, useState } from "react";
 import { motion } from "motion/react";
 import {
   Bell,
@@ -10,6 +10,8 @@ import {
   Users,
 } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
@@ -37,12 +39,16 @@ import {
   selectClassName,
   textareaClassName,
 } from "../components/ui/AppPrimitives";
+import { ClubPresident } from "../components/ui/ClubPresident";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { cn } from "../lib/utils";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
+import { useAppliedSearch } from "../hooks/useAppliedSearch";
 
 type UserInfo = components["schemas"]["UserInfo"];
 type Role = components["schemas"]["RoleEnum"];
-type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummary = components["schemas"]["ClubSummary"];
 type ClubStarLevel = components["schemas"]["ClubStarLevelEnum"];
 type ClubStatus = components["schemas"]["ClubStatusEnum"];
 type AdminUserUpdate = components["schemas"]["AdminUserUpdate"];
@@ -138,9 +144,9 @@ const RefreshContext = React.createContext<{
 });
 
 function UsersAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [users, setUsers] = useState<UserInfo[]>([]);
-  const [search, setSearch] = useState("");
+  const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<UserInfo | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -151,30 +157,51 @@ function UsersAdmin() {
     role: "" as Role | "",
   });
 
+  const loadUsersPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const { data, error } = await client.GET("/api/v1/admin/users/", {
+        params: {
+          query: { page, size: DEFAULT_PAGE_SIZE, search: appliedSearch || undefined },
+        },
+        signal,
+      });
+      return getPageResult(data, error, page);
+    },
+    [appliedSearch],
+  );
+  const {
+    items: users,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<UserInfo>(loadUsersPage);
+
   const loadUsers = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/users/", {
-        params: { query: { size: 50, search: search || undefined } },
-      });
-      if (error) setResult(error, null);
-      setUsers(data?.items || []);
-      if (selected) {
-        const nextSelected = data?.items.find((item) => item.id === selected.id) || null;
-        if (nextSelected) selectUser(nextSelected);
+      const result = await reload();
+      if (selected && result) {
+        const nextSelected = result.items.find((item) => item.id === selected.id);
+        if (nextSelected) {
+          selectUser(nextSelected);
+        } else {
+          setSelected(null);
+          setForm({
+            username: "",
+            email: "",
+            avatar_uri: "",
+            description: "",
+            role: "",
+          });
+        }
       }
-    } catch (error) {
-      setResult(error, null);
     } finally {
       refreshEnd();
     }
   };
-
-  useEffect(() => {
-    loadUsers();
-    // Initial load intentionally uses the initial search value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectUser = (user: UserInfo) => {
     setSelected(user);
@@ -190,12 +217,17 @@ function UsersAdmin() {
   const saveUser = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 400);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminUserUpdate = {
       username: form.username.trim(),
       email: nullableText(form.email),
       avatar_uri: nullableText(form.avatar_uri),
-      description: form.description.trim(),
+      description: form.description,
       role: form.role || null,
     };
     try {
@@ -217,14 +249,14 @@ function UsersAdmin() {
     <AdminGrid
       title="用户管理"
       onRefresh={loadUsers}
-      refreshing={isRefreshing}
+      refreshing={isRefreshing || isInitialLoading}
       list={
         <>
           <input
             className={inputClassName}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && loadUsers()}
+            onKeyDown={(event) => handleSearchKeyDown(event, loadUsers)}
             placeholder="搜索用户名、邮箱或姓名"
           />
           <ItemList>
@@ -237,6 +269,12 @@ function UsersAdmin() {
                 onClick={() => selectUser(user)}
               />
             ))}
+            <InfiniteScrollTrigger
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              error={loadError}
+              onLoadMore={loadMore}
+            />
           </ItemList>
         </>
       }
@@ -280,11 +318,13 @@ function UsersAdmin() {
               ))}
             </select>
           </Field>
-          <Field label="简介">
-            <textarea
-              className={textareaClassName}
+          <Field label="简介" htmlFor={descriptionId}>
+            <MarkdownEditor
+              id={descriptionId}
+              label="个人简介"
+              maxLength={400}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(description) => setForm({ ...form, description })}
             />
           </Field>
           <PrimaryButton type="submit" loading={isSaving}>
@@ -299,10 +339,10 @@ function UsersAdmin() {
 }
 
 function ClubsAdmin() {
+  const descriptionId = useId();
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [clubs, setClubs] = useState<ClubInfo[]>([]);
-  const [search, setSearch] = useState("");
-  const [selected, setSelected] = useState<ClubInfo | null>(null);
+  const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
+  const [selected, setSelected] = useState<ClubSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
     summary: "",
@@ -312,28 +352,38 @@ function ClubsAdmin() {
     status: "" as ClubStatus | "",
   });
 
+  const loadClubsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const { data, error } = await client.GET("/api/v1/admin/clubs/", {
+        params: {
+          query: { page, size: DEFAULT_PAGE_SIZE, search: appliedSearch || undefined },
+        },
+        signal,
+      });
+      return getPageResult(data, error, page);
+    },
+    [appliedSearch],
+  );
+  const {
+    items: clubs,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<ClubSummary>(loadClubsPage);
+
   const loadClubs = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/clubs/", {
-        params: { query: { size: 50, search: search || undefined } },
-      });
-      if (error) setResult(error, null);
-      setClubs(data?.items || []);
-    } catch (error) {
-      setResult(error, null);
+      await reload();
     } finally {
       refreshEnd();
     }
   };
 
-  useEffect(() => {
-    loadClubs();
-    // Initial load intentionally uses the initial search value.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const selectClub = (club: ClubInfo) => {
+  const selectClub = (club: ClubSummary) => {
     setSelected(club);
     setForm({
       summary: club.summary || "",
@@ -347,10 +397,15 @@ function ClubsAdmin() {
   const saveClub = async (event: React.FormEvent) => {
     event.preventDefault();
     if (!selected) return;
+    const lengthError = markdownLengthError(form.description, 4000);
+    if (lengthError) {
+      setResult(lengthError, null);
+      return;
+    }
     setIsSaving(true);
     const body: AdminClubUpdate = {
       summary: form.summary.trim(),
-      description: form.description.trim(),
+      description: form.description,
       logo_uri: nullableText(form.logo_uri),
       star_level: form.star_level || null,
       status: form.status || null,
@@ -361,7 +416,14 @@ function ClubsAdmin() {
         body,
       });
       setResult(error, error ? null : "社团已保存");
-      if (data) selectClub(data);
+      if (data)
+        selectClub({
+          ...data,
+          president: data.members.find((member) => member.membership === "president")?.user ?? null,
+          vice_presidents: data.members
+            .filter((member) => member.membership === "vice_president")
+            .map((member) => member.user),
+        });
       if (!error) loadClubs();
     } catch (error) {
       setResult(error, null);
@@ -374,14 +436,14 @@ function ClubsAdmin() {
     <AdminGrid
       title="社团管理"
       onRefresh={loadClubs}
-      refreshing={isRefreshing}
+      refreshing={isRefreshing || isInitialLoading}
       list={
         <>
           <input
             className={inputClassName}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            onKeyDown={(event) => event.key === "Enter" && loadClubs()}
+            onKeyDown={(event) => handleSearchKeyDown(event, loadClubs)}
             placeholder="搜索社团"
           />
           <ItemList>
@@ -390,10 +452,24 @@ function ClubsAdmin() {
                 key={club.id}
                 active={selected?.id === club.id}
                 title={club.name}
-                meta={`${CLUB_STATUS_MAP[club.status]} · #${club.id}`}
+                meta={
+                  <>
+                    <span>
+                      {CLUB_STATUS_MAP[club.status]} · #{club.id}
+                    </span>
+                    <br />
+                    <ClubPresident president={club.president} />
+                  </>
+                }
                 onClick={() => selectClub(club)}
               />
             ))}
+            <InfiniteScrollTrigger
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              error={loadError}
+              onLoadMore={loadMore}
+            />
           </ItemList>
         </>
       }
@@ -401,6 +477,7 @@ function ClubsAdmin() {
       {selected ? (
         <form onSubmit={saveClub} className="grid gap-4">
           <FormHeader title={selected.name} subtitle={`社团 #${selected.id}`} />
+          <ClubPresident president={selected.president} />
           <Field label="简介">
             <input
               className={inputClassName}
@@ -408,11 +485,13 @@ function ClubsAdmin() {
               onChange={(event) => setForm({ ...form, summary: event.target.value })}
             />
           </Field>
-          <Field label="详细介绍">
-            <textarea
-              className={textareaClassName}
+          <Field label="详细介绍" htmlFor={descriptionId}>
+            <MarkdownEditor
+              id={descriptionId}
+              label="社团详细介绍"
+              maxLength={4000}
               value={form.description}
-              onChange={(event) => setForm({ ...form, description: event.target.value })}
+              onChange={(description) => setForm({ ...form, description })}
             />
           </Field>
           <Field label="Logo URL">
@@ -468,7 +547,6 @@ function ClubsAdmin() {
 
 function TermsAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [terms, setTerms] = useState<AcademicTerm[]>([]);
   const [selected, setSelected] = useState<AcademicTerm | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -478,26 +556,31 @@ function TermsAdmin() {
     is_current: false,
   });
 
+  const loadTermsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/admin/academic-terms/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(data, error, page);
+  }, []);
+  const {
+    items: terms,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<AcademicTerm>(loadTermsPage);
+
   const loadTerms = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/academic-terms/", {
-        params: { query: { size: 100 } },
-      });
-      if (error) setResult(error, null);
-      setTerms(data?.items || []);
-    } catch (error) {
-      setResult(error, null);
+      await reload();
     } finally {
       refreshEnd();
     }
   };
-
-  useEffect(() => {
-    loadTerms();
-    // Load once when this admin panel is mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectTerm = (term: AcademicTerm) => {
     setSelected(term);
@@ -574,7 +657,7 @@ function TermsAdmin() {
     <AdminGrid
       title="学期管理"
       onRefresh={loadTerms}
-      refreshing={isRefreshing}
+      refreshing={isRefreshing || isInitialLoading}
       list={
         <>
           <SecondaryButton type="button" onClick={resetCreate}>
@@ -591,6 +674,12 @@ function TermsAdmin() {
                 onClick={() => selectTerm(term)}
               />
             ))}
+            <InfiniteScrollTrigger
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              error={loadError}
+              onLoadMore={loadMore}
+            />
           </ItemList>
         </>
       }
@@ -663,7 +752,6 @@ function TermsAdmin() {
 
 function ActivitiesAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [items, setItems] = useState<GeneralActivity[]>([]);
   const [selected, setSelected] = useState<GeneralActivity | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -676,26 +764,31 @@ function ActivitiesAdmin() {
     article_url: "",
   });
 
+  const loadItemsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/admin/general-activities/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(data, error, page);
+  }, []);
+  const {
+    items,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<GeneralActivity>(loadItemsPage);
+
   const loadItems = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/general-activities/", {
-        params: { query: { size: 100 } },
-      });
-      if (error) setResult(error, null);
-      setItems(data?.items || []);
-    } catch (error) {
-      setResult(error, null);
+      await reload();
     } finally {
       refreshEnd();
     }
   };
-
-  useEffect(() => {
-    loadItems();
-    // Load once when this admin panel is mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectItem = (item: GeneralActivity) => {
     setSelected(item);
@@ -773,7 +866,7 @@ function ActivitiesAdmin() {
     <AdminGrid
       title="大型活动管理"
       onRefresh={loadItems}
-      refreshing={isRefreshing}
+      refreshing={isRefreshing || isInitialLoading}
       list={
         <>
           <SecondaryButton type="button" onClick={resetCreate} className="w-full whitespace-nowrap">
@@ -789,6 +882,12 @@ function ActivitiesAdmin() {
                 onClick={() => selectItem(item)}
               />
             ))}
+            <InfiniteScrollTrigger
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              error={loadError}
+              onLoadMore={loadMore}
+            />
           </ItemList>
         </>
       }
@@ -890,7 +989,6 @@ function ActivitiesAdmin() {
 
 function AnnouncementsAdmin() {
   const { isRefreshing, refreshStart, refreshEnd, setResult } = React.useContext(RefreshContext);
-  const [items, setItems] = useState<Announcement[]>([]);
   const [selected, setSelected] = useState<Announcement | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
@@ -902,26 +1000,31 @@ function AnnouncementsAdmin() {
     is_active: true,
   });
 
+  const loadItemsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const { data, error } = await client.GET("/api/v1/admin/announcements/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE, active_only: false } },
+      signal,
+    });
+    return getPageResult(data, error, page);
+  }, []);
+  const {
+    items,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error: loadError,
+    loadMore,
+    reload,
+  } = useInfiniteList<Announcement>(loadItemsPage);
+
   const loadItems = async () => {
     refreshStart();
     try {
-      const { data, error } = await client.GET("/api/v1/admin/announcements/", {
-        params: { query: { size: 100, active_only: false } },
-      });
-      if (error) setResult(error, null);
-      setItems(data?.items || []);
-    } catch (error) {
-      setResult(error, null);
+      await reload();
     } finally {
       refreshEnd();
     }
   };
-
-  useEffect(() => {
-    loadItems();
-    // Load once when this admin panel is mounted.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
 
   const selectItem = (item: Announcement) => {
     setSelected(item);
@@ -999,7 +1102,7 @@ function AnnouncementsAdmin() {
     <AdminGrid
       title="公告管理"
       onRefresh={loadItems}
-      refreshing={isRefreshing}
+      refreshing={isRefreshing || isInitialLoading}
       list={
         <>
           <SecondaryButton type="button" onClick={resetCreate}>
@@ -1016,6 +1119,12 @@ function AnnouncementsAdmin() {
                 onClick={() => selectItem(item)}
               />
             ))}
+            <InfiniteScrollTrigger
+              hasMore={hasMore}
+              isLoading={isLoadingMore}
+              error={loadError}
+              onLoadMore={loadMore}
+            />
           </ItemList>
         </>
       }
@@ -1145,7 +1254,7 @@ function ListButton({
 }: {
   key?: React.Key;
   title: string;
-  meta?: string;
+  meta?: React.ReactNode;
   badge?: string;
   active?: boolean;
   onClick: () => void;
