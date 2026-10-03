@@ -150,8 +150,15 @@ class TestClubActivityCancellation:
     ) -> None:
         headers = self.configured_users["cancel-president"]["headers"]
         url = f"/clubs/{activities['club']}/activities/{activities['future']}/cancel"
+        rating_url = f"/clubs/{activities['club']}/star-rating/"
+        before = await client.get(rating_url)
+        assert before.status_code == 200, before.text
+        assert before.json()["breakdown"]["internal_activities"] == 10
         first = await client.post(url, headers=headers)
         assert first.status_code == 200, first.text
+        after = await client.get(rating_url)
+        assert after.status_code == 200, after.text
+        assert after.json()["breakdown"]["internal_activities"] == 3
         cancelled_at = first.json()["cancelled_at"]
         assert cancelled_at is not None
         second = await client.post(url, headers=headers)

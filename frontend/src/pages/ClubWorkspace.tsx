@@ -615,7 +615,7 @@ export function ClubWorkspace() {
   };
 
   const cancelActivity = async (activityItem: ClubActivity) => {
-    if (!canCancelClubActivity(activityItem) || isActivityCancelling) return;
+    if (isActivityCancelling) return;
     if (!window.confirm(`确定取消社团活动「${activityItem.name}」吗？取消后不能恢复或新增签到。`)) {
       return;
     }

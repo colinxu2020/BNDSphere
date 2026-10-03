@@ -162,6 +162,7 @@ class StarRatingRepository:
             .select_from(ClubActivity)
             .where(
                 ClubActivity.club_id == club_id,
+                ClubActivity.cancelled_at.is_(None),
             )
         )
         if term is not None:
