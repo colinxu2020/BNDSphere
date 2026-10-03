@@ -51,9 +51,6 @@ class ResourceFileRepository(
 
     async def get_by_object_key(self, object_key: str) -> ResourceFile | None:
         result = await self.db.execute(
-            select(self.model).where(
-                self.model.object_key == object_key,
-                self.model.deletion_requested_at.is_(None),
-            ),
+            select(self.model).where(self.model.object_key == object_key),
         )
         return result.scalars().first()

@@ -1,8 +1,11 @@
 from collections.abc import Iterator
+from datetime import UTC, datetime
 from typing import ClassVar, TypedDict
 
 import pytest
 from httpx import AsyncClient
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.main import app
 from app.models.resource_file import ResourceFile
@@ -63,6 +66,11 @@ class TestResourceCenter:
         {
             "username": "resource_federation_staff",
             "password": "47735b107f251fea",
+            "role": RoleEnum.federation_staff,
+        },
+        {
+            "username": "resource_other_staff",
+            "password": "9c41d0e2b7a85f36",
             "role": RoleEnum.federation_staff,
         },
     ]
@@ -146,6 +154,158 @@ class TestResourceCenter:
             },
         )
         assert response.status_code == 413
+
+    async def test_confirm_deletes_an_uploaded_object_that_is_too_large(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        staff_headers = self.configured_users["resource_federation_staff"]["headers"]
+        initiate_response = await client.post(
+            "/uploads/initiate",
+            headers=staff_headers,
+            json={
+                "scene": "resource_file",
+                "filename": "oversized-after-put.bin",
+                "content_type": "application/octet-stream",
+                "size": 128,
+            },
+        )
+        assert initiate_response.status_code == 201
+        object_key = initiate_response.json()["object_key"]
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+
+        confirm_response = await client.post(
+            "/uploads/confirm",
+            headers=staff_headers,
+            json={"scene": "resource_file", "object_key": object_key},
+        )
+
+        assert confirm_response.status_code == 400
+        assert confirm_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
+        assert object_key in self.storage.deleted_keys
+        assert object_key not in self.storage.object_sizes
+
+    async def test_confirm_never_deletes_another_users_oversized_object(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        initiate_response = await client.post(
+            "/uploads/initiate",
+            headers=self.configured_users["resource_federation_staff"]["headers"],
+            json={
+                "scene": "resource_file",
+                "filename": "someone-elses.bin",
+                "content_type": "application/octet-stream",
+                "size": 128,
+            },
+        )
+        assert initiate_response.status_code == 201
+        object_key = initiate_response.json()["object_key"]
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+
+        confirm_response = await client.post(
+            "/uploads/confirm",
+            headers=self.configured_users["resource_other_staff"]["headers"],
+            json={"scene": "resource_file", "object_key": object_key},
+        )
+
+        assert confirm_response.status_code == 400
+        assert confirm_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
+        assert object_key not in self.storage.deleted_keys
+        assert object_key in self.storage.object_sizes
+
+    async def test_registration_deletes_an_uploaded_object_that_is_too_large(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        staff_headers = self.configured_users["resource_federation_staff"]["headers"]
+        initiate_response = await client.post(
+            "/uploads/initiate",
+            headers=staff_headers,
+            json={
+                "scene": "resource_file",
+                "filename": "oversized-at-registration.bin",
+                "content_type": "application/octet-stream",
+                "size": 128,
+            },
+        )
+        assert initiate_response.status_code == 201
+        object_key = initiate_response.json()["object_key"]
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+
+        create_response = await client.post(
+            "/resources/",
+            headers=staff_headers,
+            json={
+                "filename": "oversized-at-registration.bin",
+                "object_key": object_key,
+                "content_type": "application/octet-stream",
+            },
+        )
+
+        assert create_response.status_code == 400
+        assert create_response.json()["error_code"] == "UPLOAD_OBJECT_TOO_LARGE"
+        assert object_key in self.storage.deleted_keys
+        assert object_key not in self.storage.object_sizes
+
+    async def test_duplicate_registration_never_deletes_referenced_oversized_object(
+        self,
+        client: AsyncClient,
+    ) -> None:
+        resource_id, object_key = await self._publish_resource(
+            client,
+            "registered-then-oversized.bin",
+        )
+        self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+        response = await client.post(
+            "/resources/",
+            headers=self.configured_users["resource_federation_staff"]["headers"],
+            json={
+                "filename": "duplicate.bin",
+                "object_key": object_key,
+                "content_type": "application/octet-stream",
+            },
+        )
+        assert response.status_code == 409
+        assert response.json()["error_code"] == "RESOURCE_FILE_ALREADY_REGISTERED"
+        assert object_key not in self.storage.deleted_keys
+        assert object_key in self.storage.object_sizes
+        download = await client.get(f"/resources/{resource_id}/download")
+        assert download.status_code == 307
+
+    async def test_duplicate_registration_preserves_pending_deletion_object(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+    ) -> None:
+        resource_id, object_key = await self._publish_resource(
+            client,
+            "pending-deletion-oversized.bin",
+        )
+        resource = await db_session.scalar(
+            select(ResourceFile).where(ResourceFile.id == resource_id),
+        )
+        assert resource is not None
+        resource.deletion_requested_at = datetime.now(UTC)
+        await db_session.commit()
+        try:
+            self.storage.object_sizes[object_key] = RESOURCE_FILE_MAX_SIZE + 1
+            response = await client.post(
+                "/resources/",
+                headers=self.configured_users["resource_federation_staff"]["headers"],
+                json={
+                    "filename": "duplicate-pending.bin",
+                    "object_key": object_key,
+                    "content_type": "application/octet-stream",
+                },
+            )
+            assert response.status_code == 409
+            assert response.json()["error_code"] == "RESOURCE_FILE_ALREADY_REGISTERED"
+            assert object_key not in self.storage.deleted_keys
+            assert object_key in self.storage.object_sizes
+        finally:
+            resource.deletion_requested_at = None
+            await db_session.commit()
 
     async def test_staff_can_publish_any_file_type_and_anyone_can_download_it(
         self,
