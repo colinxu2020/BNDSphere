@@ -2,7 +2,7 @@ from collections.abc import Sequence
 from datetime import datetime
 from typing import cast
 
-from fastapi_pagination import Page
+from fastapi_pagination import Page, set_page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import Select, func, or_, select, update
 from sqlalchemy.dialects.postgresql import insert
@@ -97,14 +97,16 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
         else:
             stmt = _apply_search(select(Club), search)
 
-        if public_only:
-            stmt = stmt.options(_PUBLIC_RECORDS_OPTION, _PUBLIC_MEMBERS_OPTION)
+        # Summary lists never load the full member/activity/record collections.
+        stmt = stmt.options(raiseload("*"))
         if category is not None:
             stmt = stmt.where(Club.category == category)
         if status is not None:
             stmt = stmt.where(Club.status == status)
 
-        return cast("Page[Club]", await apaginate(self.db, stmt))
+        # Assemble leadership in the service before validating ClubSummary.
+        with set_page(Page):
+            return cast("Page[Club]", await apaginate(self.db, stmt))
 
     async def get_refs(
         self,

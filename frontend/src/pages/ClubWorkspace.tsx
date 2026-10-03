@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 import { motion } from "motion/react";
 import {
   ArrowLeft,
@@ -56,6 +56,8 @@ import {
   textareaClassName,
 } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
 import { JointActivityWorkspace } from "./JointActivityWorkspace";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
@@ -122,6 +124,7 @@ async function loadAllGeneralActivities() {
 }
 
 export function ClubWorkspace() {
+  const descriptionId = useId();
   const { id } = useParams<{ id: string }>();
   const [searchParams] = useSearchParams();
   const requestedActivityId = searchParams.get("activity");
@@ -481,12 +484,18 @@ export function ClubWorkspace() {
 
   const submitClubUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
+    const lengthError = markdownLengthError(clubDescription, 4000);
+    if (lengthError) {
+      setClubTone("error");
+      setClubMessage(lengthError);
+      return;
+    }
     setIsClubSubmitting(true);
     setClubMessage(null);
     try {
       const body = {
         summary: clubSummary.trim(),
-        description: clubDescription.trim(),
+        description: clubDescription,
         logo_uri: nullableText(clubLogo),
       };
       const { error } =
@@ -1012,12 +1021,13 @@ export function ClubWorkspace() {
                     onChange={(event) => setClubSummary(event.target.value)}
                   />
                 </Field>
-                <Field label="详细介绍">
-                  <textarea
-                    className={textareaClassName}
+                <Field label="详细介绍" htmlFor={descriptionId}>
+                  <MarkdownEditor
+                    id={descriptionId}
+                    label="社团详细介绍"
                     value={clubDescription}
                     maxLength={4000}
-                    onChange={(event) => setClubDescription(event.target.value)}
+                    onChange={setClubDescription}
                   />
                 </Field>
                 <FileUploadField

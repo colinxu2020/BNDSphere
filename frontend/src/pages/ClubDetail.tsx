@@ -15,6 +15,7 @@ import { useParams, Link, useSearchParams } from "react-router-dom";
 import { motion } from "motion/react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { client } from "../api/client";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
@@ -487,9 +488,7 @@ export function ClubDetail() {
             <h2 className="text-xl font-display font-bold text-slate-900 mb-4 flex items-center gap-2">
               关于社团
             </h2>
-            <div className="prose prose-slate prose-p:leading-relaxed prose-p:text-slate-600 max-w-none text-[17px]">
-              <p className="whitespace-pre-line">{club.description || "暂无详细介绍。"}</p>
-            </div>
+            <MarkdownContent value={club.description || "暂无详细介绍。"} />
           </section>
 
           <section className="flex flex-col gap-4">

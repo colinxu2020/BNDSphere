@@ -190,6 +190,21 @@ class TestLogin:
         # JWT is three dot-separated segments: header.payload.signature.
         assert body["access_token"].count(".") == 2
 
+    async def test_login_ignores_accidental_username_whitespace(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        resp = await client.post(
+            "/auth/login",
+            data={
+                "username": " login_user ",
+                "password": "correct-horse-battery",
+                "altcha": await create_altcha_payload(client, "login"),
+            },
+        )
+        assert resp.status_code == 200
+
     async def test_login_wrong_password(
         self,
         client: AsyncClient,

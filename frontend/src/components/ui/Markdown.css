@@ -1,0 +1,48 @@
+.markdown-content.wmde-markdown,
+.markdown-editor .w-md-editor {
+  color-scheme: inherit;
+  --color-fg-default: var(--color-slate-700);
+  --color-fg-muted: var(--color-slate-500);
+  --color-fg-subtle: var(--color-slate-400);
+  --color-canvas-default: var(--color-white);
+  --color-canvas-subtle: var(--color-slate-50);
+  --color-border-default: var(--color-slate-200);
+  --color-border-muted: var(--color-slate-100);
+  --color-neutral-muted: var(--color-slate-100);
+  --color-accent-fg: var(--color-primary-600);
+  --color-danger-fg: var(--color-red-600);
+}
+
+.markdown-content.wmde-markdown {
+  min-width: 0;
+  background: transparent;
+  font-family: var(--font-sans);
+  font-size: inherit;
+  overflow-wrap: anywhere;
+}
+
+.markdown-content.wmde-markdown img {
+  background: transparent;
+}
+
+.markdown-content.wmde-markdown ul {
+  list-style-type: disc;
+}
+
+.markdown-content.wmde-markdown ol {
+  list-style-type: decimal;
+}
+
+.markdown-editor .w-md-editor {
+  --md-editor-background-color: var(--color-white);
+  --md-editor-box-shadow-color: var(--color-slate-200);
+}
+
+.markdown-editor .w-md-editor:focus-within {
+  outline: 2px solid var(--color-primary-500);
+  outline-offset: 2px;
+}
+
+.markdown-editor .w-md-editor-toolbar {
+  flex-wrap: wrap;
+}

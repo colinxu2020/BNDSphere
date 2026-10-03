@@ -1,9 +1,30 @@
 from collections.abc import Collection
+from dataclasses import dataclass
 
 from app.models.club import Club
 from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.services.errors import ResourceForbiddenError
+
+
+@dataclass(frozen=True)
+class RoleCapabilities:
+    allowed_roles: frozenset[RoleEnum]
+    bypass_role_checks: bool = False
+
+
+# Role inheritance is explicit, not an ordinal hierarchy. Banned users are
+# rejected before consulting capabilities, including club membership checks.
+ROLE_CAPABILITIES = {
+    RoleEnum.ban: RoleCapabilities(frozenset()),
+    RoleEnum.user: RoleCapabilities(frozenset({RoleEnum.user})),
+    RoleEnum.moderator: RoleCapabilities(frozenset({RoleEnum.moderator})),
+    RoleEnum.federation_staff: RoleCapabilities(
+        frozenset({RoleEnum.federation_staff, RoleEnum.moderator}),
+    ),
+    RoleEnum.admin: RoleCapabilities(frozenset(), bypass_role_checks=True),
+    RoleEnum.dev: RoleCapabilities(frozenset(), bypass_role_checks=True),
+}
 
 
 class AccessPolicy:
@@ -22,14 +43,10 @@ class AccessPolicy:
         allowed_roles: Collection[RoleEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role in allowed_roles:
-            return
-        if (
-            user.role == RoleEnum.federation_staff
-            and RoleEnum.moderator in allowed_roles
+        capabilities = ROLE_CAPABILITIES[user.role]
+        if capabilities.bypass_role_checks or not capabilities.allowed_roles.isdisjoint(
+            allowed_roles,
         ):
-            return
-        if user.role in (RoleEnum.dev, RoleEnum.admin):
             return
         raise ResourceForbiddenError(
             "error.role.not_allowed",
@@ -44,7 +61,7 @@ class AccessPolicy:
         allowed_roles: Collection[ClubMembershipEnum],
     ) -> None:
         AccessPolicy.ensure_user_active(user)
-        if user.role in (RoleEnum.dev, RoleEnum.admin):
+        if ROLE_CAPABILITIES[user.role].bypass_role_checks:
             return
         if membership is not None and membership.membership in allowed_roles:
             return

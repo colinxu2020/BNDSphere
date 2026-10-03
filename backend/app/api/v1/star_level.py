@@ -33,10 +33,26 @@ router = APIRouter(tags=["Star Level"])
 @router.get("/")
 async def list_public_applications(
     service: StarLevelServiceDep,
+    club_service: ClubServiceDep,
 ) -> Page[StarLevelApplicationPublicInfo]:
     """List all star level applications, newest first."""
+    page = await service.list_public()
+    summaries = await club_service.summarize([item.club for item in page.items])
+    items = [
+        StarLevelApplicationPublicInfo.model_validate(
+            {
+                **{
+                    field: getattr(application, field)
+                    for field in StarLevelApplicationPublicInfo.model_fields
+                    if field != "club"
+                },
+                "club": summary,
+            },
+        )
+        for application, summary in zip(page.items, summaries, strict=True)
+    ]
     return Page[StarLevelApplicationPublicInfo].model_validate(
-        await service.list_public(),
+        {**page.model_dump(exclude={"items"}), "items": items},
     )
 
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useId } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { User, LogOut, Edit3, X } from "@/src/components/ui/Icons";
 import { useNavigate } from "react-router-dom";
@@ -9,10 +9,14 @@ import { nullableText } from "../lib/format";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { FileUploadField } from "../components/ui/FileUploadField";
 import { PageLoading } from "../components/ui/PageStates";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
+import { MarkdownEditor } from "../components/ui/MarkdownEditor";
+import { markdownLengthError } from "../lib/markdown";
 
 type UserInfo = components["schemas"]["UserInfo"];
 
 export function Profile() {
+  const descriptionId = useId();
   const navigate = useNavigate();
   const [user, setUser] = useState<UserInfo | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -64,6 +68,12 @@ export function Profile() {
 
   const submitUpdateRequest = async (e: React.FormEvent) => {
     e.preventDefault();
+    const lengthError = markdownLengthError(updateDescription, 400);
+    if (lengthError) {
+      setUpdateTone("error");
+      setUpdateMessage(lengthError);
+      return;
+    }
     setIsSubmitting(true);
     setUpdateMessage(null);
 
@@ -171,7 +181,7 @@ export function Profile() {
           {user.description && (
             <div className="mt-8 p-5 bg-slate-50 rounded-md border border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 mb-2 font-display">个人简介</h3>
-              <p className="text-slate-600 leading-relaxed">{user.description}</p>
+              <MarkdownContent value={user.description} />
             </div>
           )}
         </div>
@@ -191,7 +201,7 @@ export function Profile() {
               initial={{ opacity: 0, scale: 0.95, y: 20 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 20 }}
-              className="relative bg-white w-full max-w-md p-8 rounded-md shadow-md z-10"
+              className="relative bg-white w-full max-w-2xl max-h-[90dvh] overflow-y-auto p-6 sm:p-8 rounded-md shadow-md z-10"
             >
               <button
                 onClick={() => setIsUpdateModalOpen(false)}
@@ -232,13 +242,18 @@ export function Profile() {
                   hint="上传后会自动使用新的头像访问地址。"
                 />
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-1.5 ml-1">
+                  <label
+                    htmlFor={descriptionId}
+                    className="block text-sm font-medium text-slate-700 mb-1.5 ml-1"
+                  >
                     个人简介
                   </label>
-                  <textarea
+                  <MarkdownEditor
+                    id={descriptionId}
+                    label="个人简介"
                     value={updateDescription}
-                    onChange={(e) => setUpdateDescription(e.target.value)}
-                    className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-md focus:ring-2 focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all font-medium text-slate-900 min-h-[100px] resize-none"
+                    onChange={setUpdateDescription}
+                    maxLength={400}
                   />
                 </div>
 
