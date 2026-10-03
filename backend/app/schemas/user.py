@@ -2,12 +2,12 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 
 from pydantic import (
+    AfterValidator,
     BaseModel,
     ConfigDict,
     EmailStr,
     Field,
     HttpUrl,
-    StringConstraints,
     model_validator,
 )
 
@@ -16,16 +16,17 @@ from app.models.user import RoleEnum, UserGradeEnum
 from app.schemas.generic import IdMixin, ensure_non_nullable_fields_present
 from app.schemas.upload import AvatarUri
 
-# Every path that writes a username (registration, profile update requests,
-# admin edits) must normalize it the same way, or a value accepted by one
-# path is rejected later by another.
-Username = Annotated[
+
+def validate_username(username: str) -> str:
+    if username != username.strip():
+        raise ValueError("Username must not start or end with whitespace")
+    return username
+
+
+type Username = Annotated[
     str,
-    StringConstraints(
-        strip_whitespace=True,
-        min_length=1,
-        max_length=constants.USER_MAX_USERNAME_LENGTH,
-    ),
+    Field(min_length=1, max_length=constants.USER_MAX_USERNAME_LENGTH),
+    AfterValidator(validate_username),
 ]
 
 
@@ -72,7 +73,7 @@ class PublicUserInfo(UserBase, IdMixin):
 class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    username: Username | None = Field(None)
+    username: Username | None = None
     email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(

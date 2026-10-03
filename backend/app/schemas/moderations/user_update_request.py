@@ -15,7 +15,7 @@ from app.schemas.user import Username
 class UserUpdateRequestCreate(UpdateRequestCreateBase):
     model_config = ConfigDict(from_attributes=True)
 
-    username: Username | None = Field(None)
+    username: Username | None = None
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,

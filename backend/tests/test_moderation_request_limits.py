@@ -39,7 +39,8 @@ def test_user_update_request_rejects_a_blank_username(username: str) -> None:
         UserUpdateRequestCreate(username=username)
 
 
-def test_user_update_request_strips_username_like_admin_update() -> None:
+def test_user_update_request_rejects_username_boundaries_like_admin_update() -> None:
     # Approval replays the stored request through AdminUserUpdate, so both
     # schemas must agree on what a valid username is.
-    assert UserUpdateRequestCreate(username="  bob  ").username == "bob"
+    with pytest.raises(ValidationError):
+        UserUpdateRequestCreate(username="  bob  ")
