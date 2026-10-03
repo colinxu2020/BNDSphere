@@ -43,6 +43,7 @@ class ClubActivityInfo(ClubActivityBase, IdMixin):
 
     club_id: int
     picture_urls: list[str]
+    cancelled_at: datetime | None
     academic_term: AcademicTermInfo
 
 

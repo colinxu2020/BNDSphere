@@ -67,6 +67,9 @@ export function ClubActivityDetail() {
         <>
           <Surface>
             <PageHeader eyebrow={current.club?.name} title={activity.name} />
+            {activity.cancelled_at && (
+              <StatusMessage value="此活动已取消，历史信息仅供查看。" tone="info" />
+            )}
             <dl className="mt-6 grid gap-4 text-sm text-slate-600">
               <div>
                 <dt className="font-semibold">时间</dt>

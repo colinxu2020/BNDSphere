@@ -29,6 +29,8 @@ const ERROR_CODE_MESSAGES: Record<string, string> = {
   AUTH_TOKEN_INVALID: "登录状态已失效，请重新登录",
   CLUB_ACTIVITY_CREATE_REQUEST_MODERATED: "这条活动创建申请已经审核过",
   CLUB_ACTIVITY_CREATE_REQUEST_NOT_FOUND: "没有找到这条活动创建申请",
+  CLUB_ACTIVITY_ALREADY_STARTED: "活动已经开始，不能取消",
+  CLUB_ACTIVITY_CANCELLED: "活动已取消，不能再修改或签到",
   CLUB_ACTIVITY_INVALID_TIME_RANGE: "活动结束时间必须晚于开始时间",
   CLUB_ACTIVITY_NOT_FOUND: "没有找到这个社团活动",
   CLUB_ACTIVITY_UPDATE_REQUEST_MODERATED: "这条活动修改申请已经审核过",

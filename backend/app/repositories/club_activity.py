@@ -29,6 +29,15 @@ class ClubActivityRepository(
 ):
     model = ClubActivity
 
+    async def get_with_lock(self, id_: int) -> ClubActivity | None:
+        result = await self.db.execute(
+            select(ClubActivity)
+            .where(ClubActivity.id == id_)
+            .with_for_update()
+            .execution_options(populate_existing=True),
+        )
+        return result.scalar_one_or_none()
+
     async def get_refs(self, club_id: int) -> list[ClubActivityRef]:
         rows = await self.db.execute(
             select(ClubActivity.id, ClubActivity.name)
@@ -88,6 +97,15 @@ class ClubActivityUpdateRequestRepository(
     ],
 ):
     model = ClubActivityUpdateRequest
+
+    async def get_with_lock(self, id_: int) -> ClubActivityUpdateRequest | None:
+        result = await self.db.execute(
+            select(self.model)
+            .where(self.model.id == id_)
+            .with_for_update()
+            .execution_options(populate_existing=True),
+        )
+        return result.scalar_one_or_none()
 
     async def get_pending_requests(self) -> Page[ClubActivityUpdateRequest]:
         stmt = select(self.model).where(
