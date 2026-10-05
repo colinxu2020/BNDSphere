@@ -41,7 +41,11 @@ async def create_club(
 ) -> ClubInfo:
     """Create an active, unclaimed club with an optional historical creation time."""
     try:
-        club_created = await service.create(club, status=ClubStatusEnum.normal)
+        club_created = await service.create(
+            club,
+            status=ClubStatusEnum.normal,
+            claimed=False,
+        )
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",

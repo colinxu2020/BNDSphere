@@ -97,7 +97,7 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
 
     async def create_club(self, obj_in: ClubCreate, president: User) -> Club:
         async with self.transaction():
-            club = await self.create(obj_in)
+            club = await self.create(obj_in, claimed=True)
             await self.member_repository.set_relationship(
                 club,
                 president,
@@ -672,6 +672,7 @@ class ClubClaimRequestService(
                 applicant = await self.user_repository.get(request.applicant_id)
                 if applicant is None:
                     raise UserNotFoundError(request.applicant_id) from None
+                club.claimed = True
                 await self.member_repository.set_relationship(
                     club,
                     applicant,
