@@ -149,11 +149,16 @@ class ContactVerificationService(
     ) -> VerificationCodeSent:
         """Send a binding code, after the account owner proves it is them.
 
-        The password is checked before the budget is touched, so a wrong one
-        costs the account nothing but a recorded failed attempt.
+        The budget is checked before the password: verifying one is an argon2
+        hash, which is expensive by design, so requests that are over quota
+        must be turned away before they reach it — otherwise the send budget
+        itself becomes the rate limit on a CPU-burning oracle. This early
+        pass is unlocked and only decides whether the request is worth the
+        hash; the authoritative, locked check still runs inside ``_issue``.
         """
-        await self.auth_service.reauthenticate(user, password, ip=ip)
         email = normalize_email(raw_email)
+        await self._ensure_send_allowed(VerificationChannelEnum.email, user, email)
+        await self.auth_service.reauthenticate(user, password, ip=ip)
         await self._ensure_target_free(VerificationChannelEnum.email, email, user)
         code, sent = await self._issue(user, VerificationChannelEnum.email, email)
         await self.email_sender.send_code(
@@ -171,12 +176,35 @@ class ContactVerificationService(
         *,
         ip: str | None,
     ) -> VerificationCodeSent:
-        await self.auth_service.reauthenticate(user, password, ip=ip)
+        """Send an SMS code with the same ordering: budget first, argon2 second."""
         phone = normalize_phone(raw_phone)
+        await self._ensure_send_allowed(VerificationChannelEnum.sms, user, phone)
+        await self.auth_service.reauthenticate(user, password, ip=ip)
         await self._ensure_target_free(VerificationChannelEnum.sms, phone, user)
         code, sent = await self._issue(user, VerificationChannelEnum.sms, phone)
         await self.sms_sender.send_code(phone, code, constants.SMS_CODE_TTL_MINUTES)
         return sent
+
+    async def _ensure_send_allowed(
+        self,
+        channel: VerificationChannelEnum,
+        user: User,
+        target: str,
+    ) -> None:
+        """Cheap, unlocked budget check run ahead of the password hash.
+
+        Raises the same throttling error as the locked check inside
+        ``_issue``, so an over-quota caller never reaches argon2. Racing
+        requests can slip past this pass; the locked re-check in ``_issue``
+        remains what actually enforces the budget.
+        """
+        await self._enforce_budgets(
+            user,
+            channel,
+            target,
+            _POLICIES[channel],
+            datetime.now(UTC),
+        )
 
     async def _issue(
         self,

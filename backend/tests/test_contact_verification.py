@@ -178,6 +178,24 @@ class TestEmailVerification:
         # Throttled means *not sent* — otherwise the budget would be theatre.
         assert len(sender.sent) == before
 
+    async def test_throttled_send_never_reaches_the_password_check(
+        self,
+        client: AsyncClient,
+        sender: RecordingSender,
+        setup_class_users: None,
+    ) -> None:
+        # The password check is an argon2 hash — expensive by design — so an
+        # over-quota request must be turned away before it runs. A wrong
+        # password inside the cooldown therefore gets the throttle, not an
+        # authentication error.
+        resp = await client.post(
+            "/verification/email/send",
+            json={"email": "student@example.com", "password": "not-the-password"},
+            headers=self.configured_users["email_binder"]["headers"],
+        )
+        assert resp.status_code == 429
+        assert resp.json()["error_code"] == "VERIFICATION_SEND_THROTTLED"
+
     async def test_address_owned_by_another_account_is_refused(
         self,
         client: AsyncClient,

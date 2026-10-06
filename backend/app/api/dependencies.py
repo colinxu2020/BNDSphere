@@ -285,11 +285,17 @@ def session_token(
     The header wins when both are present. It is the explicit, per-request
     credential, so a stale cookie left over from the SPA cannot silently
     override the identity a Swagger user deliberately pasted in.
+
+    The origin check runs on every cookie-transport write, including ones
+    where the cookie never arrived. SameSite=Lax withholds the cookie from
+    cross-site requests, so a foreign form posting to ``/auth/logout`` shows
+    up with no cookie at all — and if the check were skipped for cookie-less
+    requests, that post would sail through and still delete the cookie.
     """
     if bearer:
         return bearer
     cookie = request.cookies.get(SESSION_COOKIE_NAME)
-    if cookie and request.method not in {"GET", "HEAD", "OPTIONS"}:
+    if request.method not in {"GET", "HEAD", "OPTIONS"}:
         ensure_trusted_origin(request)
     return cookie
 

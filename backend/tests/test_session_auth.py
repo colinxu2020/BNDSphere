@@ -247,6 +247,23 @@ class TestLogout:
         resp = await client.post("/auth/logout")
         assert resp.status_code == 204
 
+    async def test_cross_site_logout_stripped_by_lax_is_still_rejected(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+    ) -> None:
+        # SameSite=Lax strips the cookie from a cross-site POST, so a foreign
+        # logout form arrives with no credential at all. It must be refused on
+        # origin anyway — otherwise the response still deletes the cookie the
+        # request never carried, and any site can sign users out.
+        client.cookies.clear()
+        resp = await client.post(
+            "/auth/logout",
+            headers={"Origin": "https://attacker.example"},
+        )
+        assert resp.status_code == 403
+        assert "set-cookie" not in resp.headers
+
 
 class TestSessionExpiry:
     """An expired row must not authenticate, sweep or no sweep."""
