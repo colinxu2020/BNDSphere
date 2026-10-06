@@ -9916,6 +9916,17 @@
             "type": "integer",
             "title": "Requestor Id"
           },
+          "requestor_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestor Username"
+          },
           "request_at": {
             "type": "string",
             "format": "date-time",
@@ -9924,6 +9935,17 @@
           "club_id": {
             "type": "integer",
             "title": "Club Id"
+          },
+          "club_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Name"
           }
         },
         "type": "object",
@@ -10231,6 +10253,17 @@
             "type": "integer",
             "title": "Requestor Id"
           },
+          "requestor_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestor Username"
+          },
           "request_at": {
             "type": "string",
             "format": "date-time",
@@ -10239,6 +10272,39 @@
           "club_activity_id": {
             "type": "integer",
             "title": "Club Activity Id"
+          },
+          "club_activity_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Activity Name"
+          },
+          "club_id": {
+            "type": "integer",
+            "title": "Club Id"
+          },
+          "club_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Name"
+          },
+          "update_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Update Fields"
           }
         },
         "type": "object",
@@ -10247,7 +10313,8 @@
           "moderation_status",
           "requestor_id",
           "request_at",
-          "club_activity_id"
+          "club_activity_id",
+          "club_id"
         ],
         "title": "ClubActivityUpdateRequestInfo"
       },
@@ -11143,6 +11210,17 @@
             "type": "integer",
             "title": "Requestor Id"
           },
+          "requestor_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestor Username"
+          },
           "request_at": {
             "type": "string",
             "format": "date-time",
@@ -11151,6 +11229,24 @@
           "club_id": {
             "type": "integer",
             "title": "Club Id"
+          },
+          "club_name": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Club Name"
+          },
+          "update_fields": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Update Fields"
           }
         },
         "type": "object",
@@ -14241,6 +14337,17 @@
           "user_id": {
             "type": "integer",
             "title": "User Id"
+          },
+          "requestor_username": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requestor Username"
           },
           "username": {
             "anyOf": [

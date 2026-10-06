@@ -1987,6 +1987,8 @@ export interface components {
             moderate_at?: string | null;
             /** Requestor Id */
             requestor_id: number;
+            /** Requestor Username */
+            requestor_username?: string | null;
             /**
              * Request At
              * Format: date-time
@@ -1994,6 +1996,8 @@ export interface components {
             request_at: string;
             /** Club Id */
             club_id: number;
+            /** Club Name */
+            club_name?: string | null;
         };
         /** ClubActivityInfo */
         ClubActivityInfo: {
@@ -2081,6 +2085,8 @@ export interface components {
             moderate_at?: string | null;
             /** Requestor Id */
             requestor_id: number;
+            /** Requestor Username */
+            requestor_username?: string | null;
             /**
              * Request At
              * Format: date-time
@@ -2088,6 +2094,14 @@ export interface components {
             request_at: string;
             /** Club Activity Id */
             club_activity_id: number;
+            /** Club Activity Name */
+            club_activity_name?: string | null;
+            /** Club Id */
+            club_id: number;
+            /** Club Name */
+            club_name?: string | null;
+            /** Update Fields */
+            update_fields?: string[];
         };
         /**
          * ClubCategoryEnum
@@ -2386,6 +2400,8 @@ export interface components {
             moderate_at?: string | null;
             /** Requestor Id */
             requestor_id: number;
+            /** Requestor Username */
+            requestor_username?: string | null;
             /**
              * Request At
              * Format: date-time
@@ -2393,6 +2409,10 @@ export interface components {
             request_at: string;
             /** Club Id */
             club_id: number;
+            /** Club Name */
+            club_name?: string | null;
+            /** Update Fields */
+            update_fields?: string[];
         };
         /** ConfirmUploadRequest */
         ConfirmUploadRequest: {
@@ -3383,6 +3403,8 @@ export interface components {
             request_at: string;
             /** User Id */
             user_id: number;
+            /** Requestor Username */
+            requestor_username?: string | null;
             /** Username */
             username?: string | null;
             /** Avatar Uri */

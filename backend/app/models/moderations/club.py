@@ -1,8 +1,9 @@
 from pydantic import HttpUrl
-from sqlalchemy import JSON, ForeignKey, Index, Text
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column
+from sqlalchemy import JSON, ForeignKey, Index, Text, select
+from sqlalchemy.orm import Mapped, column_property, declared_attr, mapped_column
 
 from app.core.database import Base
+from app.models.club import Club
 from app.models.moderations.moderation_common import (
     ModerationMixin,
     ModerationStatusEnum,
@@ -16,6 +17,13 @@ class ClubUpdateRequest(Base, ModerationMixin, RequestorMixin):
 
     club_id: Mapped[int] = mapped_column(
         ForeignKey("clubs.id", ondelete="CASCADE"),
+    )
+
+    club_name: Mapped[str | None] = column_property(
+        select(Club.name)
+        .where(Club.id == club_id)
+        .correlate_except(Club)
+        .scalar_subquery(),
     )
 
     summary: Mapped[str | None] = mapped_column(Text, default=None)

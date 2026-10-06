@@ -38,8 +38,12 @@ const QUEUES: { key: QueueKey; label: string; description: string }[] = [
 ];
 
 function getTargetLabel(item: ModerationItem) {
-  if ("user_id" in item) return `用户 #${item.user_id}`;
-  return `社团 #${item.club_id}`;
+  if ("user_id" in item) return `用户 ${identityLabel(item.requestor_username, item.user_id)}`;
+  return `社团 ${identityLabel(item.club_name, item.club_id)}`;
+}
+
+function identityLabel(name: string | null | undefined, id: number) {
+  return name ? `${name} (#${id})` : `#${id}`;
 }
 
 function renderRequestDetails(item: ModerationItem) {
@@ -58,22 +62,35 @@ function renderRequestDetails(item: ModerationItem) {
     rows.push(["logo_uri", "Logo", item.logo_uri]);
   }
 
-  const visibleRows = moderationDetails("user_id" in item ? item.update_fields : undefined, rows);
-  if (!visibleRows.length) {
-    return <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>;
-  }
+  const visibleRows = moderationDetails(item.update_fields, rows);
   return (
     <div className="grid gap-2">
-      {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
-          <span className="font-semibold text-slate-500">{label}</span>
-          {label === ("user_id" in item ? "简介" : "描述") ? (
-            <MarkdownContent value={String(value)} />
-          ) : (
-            <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
-          )}
+      {"requestor_id" in item && (
+        <div className="grid grid-cols-[80px_1fr] gap-3 text-sm">
+          <span className="font-semibold text-slate-500">申请人</span>
+          <span className="whitespace-pre-wrap break-words text-slate-700">
+            {identityLabel(item.requestor_username, item.requestor_id)}
+          </span>
         </div>
-      ))}
+      )}
+      {/* 申请人必须独立于变更字段展示: 仅清空 Logo 的合法请求会让全部变更字段
+          为 null, 提前返回会把申请人一起藏起来, 而标题只有社团名. */}
+      {visibleRows.length ? (
+        visibleRows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
+            <span className="font-semibold text-slate-500">{label}</span>
+            {label === ("user_id" in item ? "简介" : "描述") ? (
+              <MarkdownContent value={String(value)} />
+            ) : (
+              <span className="whitespace-pre-wrap break-words text-slate-700">
+                {String(value)}
+              </span>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>
+      )}
     </div>
   );
 }
@@ -470,22 +487,25 @@ function ActivityRequestList({
 }
 
 function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  const rows: [string, unknown][] = [["申请人", `#${item.requestor_id}`]];
+  const rows: [string, unknown][] = [
+    ["申请人", identityLabel(item.requestor_username, item.requestor_id)],
+  ];
 
-  if ("club_id" in item) rows.push(["社团", `#${item.club_id}`]);
-  if ("club_activity_id" in item) rows.push(["原活动", `#${item.club_activity_id}`]);
-  if ("name" in item) rows.push(["名称", item.name]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("start_time" in item) {
-    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
-  }
-  if ("end_time" in item) {
-    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
-  }
-  if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
-
-  const visibleRows = rows.filter(([, value]) => value != null && value !== "");
+  if ("club_id" in item) rows.push(["社团", identityLabel(item.club_name, item.club_id)]);
+  if ("club_activity_id" in item)
+    rows.push(["原活动", identityLabel(item.club_activity_name, item.club_activity_id)]);
+  const changes: [string, string, unknown][] = [
+    ["name", "名称", item.name],
+    ["description", "描述", item.description],
+    ["start_time", "开始时间", item.start_time ? formatDateTime(item.start_time) : null],
+    ["end_time", "结束时间", item.end_time ? formatDateTime(item.end_time) : null],
+    ["location", "地点", item.location],
+  ];
+  if ("picture_urls" in item) changes.push(["picture_urls", "图片", item.picture_urls?.join("\n")]);
+  const visibleRows = [
+    ...rows,
+    ...moderationDetails("update_fields" in item ? item.update_fields : undefined, changes),
+  ];
   return (
     <div className="grid gap-2">
       {visibleRows.map(([label, value]) => (
@@ -499,6 +519,8 @@ function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpda
 }
 
 function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  if ("club_id" in item) return `社团 #${item.club_id}`;
-  return `原活动 #${item.club_activity_id}`;
+  const clubLabel = `社团 ${identityLabel(item.club_name, item.club_id)}`;
+  if ("club_activity_id" in item)
+    return `${clubLabel} · 原活动 ${identityLabel(item.club_activity_name, item.club_activity_id)}`;
+  return clubLabel;
 }

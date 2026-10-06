@@ -1,12 +1,16 @@
 from datetime import datetime
 from enum import StrEnum
-from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, func
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy import DateTime, ForeignKey, func, select
+from sqlalchemy.orm import (
+    Mapped,
+    column_property,
+    declared_attr,
+    mapped_column,
+    relationship,
+)
 
-if TYPE_CHECKING:
-    from app.models.user import User
+from app.models.user import User
 
 
 class ModerationStatusEnum(StrEnum):
@@ -47,6 +51,17 @@ class ModerationMixin:
 
 
 class RequestorMixin:
+    @declared_attr
+    @classmethod
+    def requestor_username(cls) -> Mapped[str | None]:
+        # Load only the current label in the request query, without lazy I/O.
+        return column_property(
+            select(User.username)
+            .where(User.id == cls.requestor_id)
+            .correlate_except(User)
+            .scalar_subquery(),
+        )
+
     @declared_attr
     @classmethod
     def requestor_id(cls) -> Mapped[int]:
