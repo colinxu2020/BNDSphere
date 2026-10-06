@@ -8,9 +8,7 @@
   "paths": {
     "/api/v1/users/me": {
       "get": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "Get Current User Info",
         "description": "Get public profile of current user.",
         "operationId": "get_current_user_info_api_v1_users_me_get",
@@ -49,9 +47,7 @@
     },
     "/api/v1/users/me/clubs/": {
       "get": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "List Current User Clubs",
         "description": "List the current user's clubs with their role in each (Summary tier).\n\nIncludes pending / member / president / vice_president; excludes left.",
         "operationId": "list_current_user_clubs_api_v1_users_me_clubs__get",
@@ -94,9 +90,7 @@
     },
     "/api/v1/users/{user_id}": {
       "get": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "Get User Profile",
         "description": "Get public profile of a user by user id.",
         "operationId": "get_user_profile_api_v1_users__user_id__get",
@@ -154,9 +148,7 @@
     },
     "/api/v1/users/update-requests": {
       "post": {
-        "tags": [
-          "Users"
-        ],
+        "tags": ["Users"],
         "summary": "Request Update Profile",
         "description": "Request update user profile of current user.",
         "operationId": "request_update_profile_api_v1_users_update_requests_post",
@@ -229,9 +221,7 @@
     },
     "/api/v1/auth/altcha/challenge": {
       "get": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Get Altcha Challenge",
         "description": "Create a short-lived, single-use ALTCHA Core challenge.",
         "operationId": "get_altcha_challenge_api_v1_auth_altcha_challenge_get",
@@ -271,9 +261,7 @@
     },
     "/api/v1/auth/register": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Register",
         "description": "Register a new user after all legal consents are explicitly accepted.\n\nUsername must be unique.",
         "operationId": "register_api_v1_auth_register_post",
@@ -337,9 +325,7 @@
     },
     "/api/v1/auth/login": {
       "post": {
-        "tags": [
-          "Auth"
-        ],
+        "tags": ["Auth"],
         "summary": "Login",
         "description": "Login with username and password. Returns a JWT token if successful.\n\nNote that all optional fields in the form data are ignored.",
         "operationId": "login_api_v1_auth_login_post",
@@ -403,9 +389,7 @@
     },
     "/api/v1/clubs/refs/": {
       "get": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "List Club Refs",
         "description": "List id/name references of active clubs, for pickers and embeds.",
         "operationId": "list_club_refs_api_v1_clubs_refs__get",
@@ -480,9 +464,7 @@
     },
     "/api/v1/clubs/{club_id}": {
       "get": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Get Club Info",
         "description": "Get information of a club by club id.",
         "operationId": "get_club_info_api_v1_clubs__club_id__get",
@@ -535,9 +517,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Update Unreviewed Club",
         "description": "Update an unreviewed club without creating a moderation request.",
         "operationId": "update_unreviewed_club_api_v1_clubs__club_id__patch",
@@ -621,9 +601,7 @@
     },
     "/api/v1/clubs/{club_id}/manage": {
       "get": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Get Managed Club Info",
         "description": "Get a club for its managers, including while it is unreviewed.",
         "operationId": "get_managed_club_info_api_v1_clubs__club_id__manage_get",
@@ -697,9 +675,7 @@
     },
     "/api/v1/clubs/": {
       "post": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Create Club",
         "description": "Create a new club. Club name must be unique among non-archived clubs.",
         "operationId": "create_club_api_v1_clubs__post",
@@ -766,9 +742,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "List Clubs",
         "description": "Search Clubs.",
         "operationId": "list_clubs_api_v1_clubs__get",
@@ -859,9 +833,7 @@
     },
     "/api/v1/clubs/{club_id}/update-requests": {
       "post": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Update Request",
         "operationId": "update_request_api_v1_clubs__club_id__update_requests_post",
         "security": [
@@ -944,9 +916,7 @@
     },
     "/api/v1/clubs/{club_id}/membership-requests": {
       "post": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Request Join Club",
         "description": "Apply to join a club, pending the club president's verification.",
         "operationId": "request_join_club_api_v1_clubs__club_id__membership_requests_post",
@@ -1028,9 +998,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Verification: Club Memberships"
-        ],
+        "tags": ["Verification: Club Memberships"],
         "summary": "Get Pending Membership Requests",
         "description": "Get pending club membership requests for the club.",
         "operationId": "get_pending_membership_requests_api_v1_clubs__club_id__membership_requests_get",
@@ -1148,9 +1116,7 @@
     },
     "/api/v1/clubs/{club_id}/claim-requests": {
       "post": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Request Claim Club",
         "description": "Request to become president of an unclaimed club.",
         "operationId": "request_claim_club_api_v1_clubs__club_id__claim_requests_post",
@@ -1265,9 +1231,7 @@
     },
     "/api/v1/clubs/{club_id}/members/me": {
       "delete": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Leave Club",
         "description": "Leave a club.",
         "operationId": "leave_club_api_v1_clubs__club_id__members_me_delete",
@@ -1337,9 +1301,7 @@
     },
     "/api/v1/clubs/{club_id}/members/{user_id}": {
       "patch": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Update Club Member Role",
         "description": "Appoint a vice president, demote one, or transfer the presidency.",
         "operationId": "update_club_member_role_api_v1_clubs__club_id__members__user_id__patch",
@@ -1447,9 +1409,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Clubs"
-        ],
+        "tags": ["Clubs"],
         "summary": "Remove Club Member",
         "description": "Remove a member from the club.",
         "operationId": "remove_club_member_api_v1_clubs__club_id__members__user_id__delete",
@@ -1542,9 +1502,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/": {
       "get": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Get Club Activities",
         "description": "List all activities of the given club.",
         "operationId": "get_club_activities_api_v1_clubs__club_id__activities__get",
@@ -1612,9 +1570,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/refs/": {
       "get": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Get Club Activity Refs",
         "description": "List activity identities with the same visibility as the full list.",
         "operationId": "get_club_activity_refs_api_v1_clubs__club_id__activities_refs__get",
@@ -1659,9 +1615,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/create-requests": {
       "post": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Create Club Activity Request",
         "description": "Create a new club activity request.",
         "operationId": "create_club_activity_request_api_v1_clubs__club_id__activities_create_requests_post",
@@ -1745,9 +1699,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/update-requests/{activity_id}": {
       "post": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Update Club Activity Request",
         "description": "Request to update a club activity.",
         "operationId": "update_club_activity_request_api_v1_clubs__club_id__activities_update_requests__activity_id__post",
@@ -1840,9 +1792,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/{activity_id}/check-ins": {
       "get": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Get Club Activity Check Ins",
         "description": "List an activity's check-in roster (president/vice-president only).",
         "operationId": "get_club_activity_check_ins_api_v1_clubs__club_id__activities__activity_id__check_ins_get",
@@ -1950,9 +1900,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Check In Club Activity Manual",
         "description": "(President/vice-president) record the roster of members who attended,\nafter the fact. Resubmitting the same user ids is a no-op for them.",
         "operationId": "check_in_club_activity_manual_api_v1_clubs__club_id__activities__activity_id__check_ins_post",
@@ -2049,9 +1997,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode": {
       "post": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Generate Club Activity Check In Qrcode",
         "description": "(President/vice-president) mint a check-in token to render as a QR\ncode. Only works while the activity is in progress, and the token\nexpires with it.",
         "operationId": "generate_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_post",
@@ -2134,9 +2080,7 @@
     },
     "/api/v1/clubs/{club_id}/activities/{activity_id}/check-in-qrcode/scan": {
       "post": {
-        "tags": [
-          "Club Activities"
-        ],
+        "tags": ["Club Activities"],
         "summary": "Scan Club Activity Check In Qrcode",
         "description": "Self check-in by scanning the activity's QR code. Any logged-in club\nmember may call this — no president/vice-president role required.",
         "operationId": "scan_club_activity_check_in_qrcode_api_v1_clubs__club_id__activities__activity_id__check_in_qrcode_scan_post",
@@ -2229,9 +2173,7 @@
     },
     "/api/v1/admin/users/": {
       "get": {
-        "tags": [
-          "Admin: Users"
-        ],
+        "tags": ["Admin: Users"],
         "summary": "List Users",
         "description": "List users for admin.",
         "operationId": "list_users_api_v1_admin_users__get",
@@ -2355,9 +2297,7 @@
     },
     "/api/v1/admin/users/{user_id}": {
       "patch": {
-        "tags": [
-          "Admin: Users"
-        ],
+        "tags": ["Admin: Users"],
         "summary": "Admin Update User",
         "description": "Update the information of a user.",
         "operationId": "admin_update_user_api_v1_admin_users__user_id__patch",
@@ -2458,9 +2398,7 @@
     },
     "/api/v1/admin/clubs/": {
       "post": {
-        "tags": [
-          "Admin: Clubs"
-        ],
+        "tags": ["Admin: Clubs"],
         "summary": "Create Club",
         "description": "Create an active, unclaimed club with an optional historical creation time.",
         "operationId": "create_club_api_v1_admin_clubs__post",
@@ -2541,9 +2479,7 @@
         }
       },
       "get": {
-        "tags": [
-          "Admin: Clubs"
-        ],
+        "tags": ["Admin: Clubs"],
         "summary": "List Clubs",
         "description": "Search Clubs. For admin.",
         "operationId": "list_clubs_api_v1_admin_clubs__get",
@@ -2683,9 +2619,7 @@
     },
     "/api/v1/admin/clubs/{club_id}": {
       "get": {
-        "tags": [
-          "Admin: Clubs"
-        ],
+        "tags": ["Admin: Clubs"],
         "summary": "Get Club Info",
         "description": "Get information of a club by club id. For admin.",
         "operationId": "get_club_info_api_v1_admin_clubs__club_id__get",
@@ -2774,9 +2708,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin: Clubs"
-        ],
+        "tags": ["Admin: Clubs"],
         "summary": "Admin Update Club Info",
         "description": "Update the information of a club.",
         "operationId": "admin_update_club_info_api_v1_admin_clubs__club_id__patch",
@@ -2877,9 +2809,7 @@
     },
     "/api/v1/admin/academic-terms/": {
       "get": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "List Terms",
         "description": "List all academic terms, ordered by start date in descending order.",
         "operationId": "list_terms_api_v1_admin_academic_terms__get",
@@ -2969,9 +2899,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "Create Term",
         "description": "Create a new academic term.",
         "operationId": "create_term_api_v1_admin_academic_terms__post",
@@ -3044,9 +2972,7 @@
     },
     "/api/v1/admin/academic-terms/{term_id}": {
       "get": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "Get Term",
         "description": "Get the academic term with the given ID.",
         "operationId": "get_term_api_v1_admin_academic_terms__term_id__get",
@@ -3135,9 +3061,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "Update Term",
         "description": "Update the academic term with the given ID.",
         "operationId": "update_term_api_v1_admin_academic_terms__term_id__patch",
@@ -3236,9 +3160,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "Delete Term",
         "description": "Delete the academic term with the given ID.",
         "operationId": "delete_term_api_v1_admin_academic_terms__term_id__delete",
@@ -3329,9 +3251,7 @@
     },
     "/api/v1/admin/academic-terms/{term_id}/set-current": {
       "post": {
-        "tags": [
-          "Admin: Academic Terms"
-        ],
+        "tags": ["Admin: Academic Terms"],
         "summary": "Set Current Term",
         "description": "Set the academic term with the given ID as the current term.",
         "operationId": "set_current_term_api_v1_admin_academic_terms__term_id__set_current_post",
@@ -3422,9 +3342,7 @@
     },
     "/api/v1/admin/general-activities/": {
       "get": {
-        "tags": [
-          "Admin: General Activities"
-        ],
+        "tags": ["Admin: General Activities"],
         "summary": "List General Activities",
         "description": "List general activities for admin.",
         "operationId": "list_general_activities_api_v1_admin_general_activities__get",
@@ -3546,9 +3464,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Admin: General Activities"
-        ],
+        "tags": ["Admin: General Activities"],
         "summary": "Create General Activity",
         "description": "Create a general activity.",
         "operationId": "create_general_activity_api_v1_admin_general_activities__post",
@@ -3621,9 +3537,7 @@
     },
     "/api/v1/admin/general-activities/{activity_id}": {
       "patch": {
-        "tags": [
-          "Admin: General Activities"
-        ],
+        "tags": ["Admin: General Activities"],
         "summary": "Update General Activity",
         "description": "Update a general activity.",
         "operationId": "update_general_activity_api_v1_admin_general_activities__activity_id__patch",
@@ -3722,9 +3636,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Admin: General Activities"
-        ],
+        "tags": ["Admin: General Activities"],
         "summary": "Delete General Activity",
         "description": "Delete a general activity.",
         "operationId": "delete_general_activity_api_v1_admin_general_activities__activity_id__delete",
@@ -3815,9 +3727,7 @@
     },
     "/api/v1/admin/announcements/": {
       "get": {
-        "tags": [
-          "Admin: Announcements"
-        ],
+        "tags": ["Admin: Announcements"],
         "summary": "List Announcements",
         "description": "List announcements for admin.",
         "operationId": "list_announcements_api_v1_admin_announcements__get",
@@ -3933,9 +3843,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Admin: Announcements"
-        ],
+        "tags": ["Admin: Announcements"],
         "summary": "Create Announcement",
         "description": "Create an announcement.",
         "operationId": "create_announcement_api_v1_admin_announcements__post",
@@ -4008,9 +3916,7 @@
     },
     "/api/v1/admin/announcements/{announcement_id}": {
       "patch": {
-        "tags": [
-          "Admin: Announcements"
-        ],
+        "tags": ["Admin: Announcements"],
         "summary": "Update Announcement",
         "description": "Update an announcement.",
         "operationId": "update_announcement_api_v1_admin_announcements__announcement_id__patch",
@@ -4109,9 +4015,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Admin: Announcements"
-        ],
+        "tags": ["Admin: Announcements"],
         "summary": "Delete Announcement",
         "description": "Delete an announcement.",
         "operationId": "delete_announcement_api_v1_admin_announcements__announcement_id__delete",
@@ -4202,9 +4106,7 @@
     },
     "/api/v1/general-activities/{activity_id}": {
       "get": {
-        "tags": [
-          "General Activities"
-        ],
+        "tags": ["General Activities"],
         "summary": "Get",
         "description": "Get the general activity with the given ID.",
         "operationId": "get_api_v1_general_activities__activity_id__get",
@@ -4245,9 +4147,7 @@
     },
     "/api/v1/general-activities/": {
       "get": {
-        "tags": [
-          "General Activities"
-        ],
+        "tags": ["General Activities"],
         "summary": "List Activities",
         "description": "List general activities.\nOptionally filtered by search keyword and/or activity level.",
         "operationId": "list_activities_api_v1_general_activities__get",
@@ -4388,9 +4288,7 @@
     },
     "/api/v1/joint-activities/": {
       "get": {
-        "tags": [
-          "Joint Activities"
-        ],
+        "tags": ["Joint Activities"],
         "summary": "List Joint Activities",
         "description": "List pre-approved joint activities for public viewing.",
         "operationId": "list_joint_activities_api_v1_joint_activities__get",
@@ -4465,9 +4363,7 @@
     },
     "/api/v1/joint-activities/{activity_id}": {
       "get": {
-        "tags": [
-          "Joint Activities"
-        ],
+        "tags": ["Joint Activities"],
         "summary": "Get Joint Activity",
         "description": "Get a pre-approved joint activity for public viewing.",
         "operationId": "get_joint_activity_api_v1_joint_activities__activity_id__get",
@@ -4525,9 +4421,7 @@
     },
     "/api/v1/clubs/{club_id}/joint-activities/": {
       "get": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "List Club Joint Activities",
         "operationId": "list_club_joint_activities_api_v1_clubs__club_id__joint_activities__get",
         "security": [
@@ -4625,9 +4519,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "Create Joint Activity",
         "operationId": "create_joint_activity_api_v1_clubs__club_id__joint_activities__post",
         "security": [
@@ -4710,9 +4602,7 @@
     },
     "/api/v1/clubs/{club_id}/joint-activities/{activity_id}": {
       "patch": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "Update Joint Activity",
         "operationId": "update_joint_activity_api_v1_clubs__club_id__joint_activities__activity_id__patch",
         "security": [
@@ -4821,9 +4711,7 @@
     },
     "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/participations": {
       "post": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "Register Joint Activity Participation",
         "operationId": "register_joint_activity_participation_api_v1_clubs__club_id__joint_activities__activity_id__participations_post",
         "security": [
@@ -4922,9 +4810,7 @@
     },
     "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/archive": {
       "patch": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "Update Joint Activity Archive",
         "operationId": "update_joint_activity_archive_api_v1_clubs__club_id__joint_activities__activity_id__archive_patch",
         "security": [
@@ -5033,9 +4919,7 @@
     },
     "/api/v1/clubs/{club_id}/joint-activities/{activity_id}/final-submission": {
       "post": {
-        "tags": [
-          "Club Joint Activities"
-        ],
+        "tags": ["Club Joint Activities"],
         "summary": "Submit Joint Activity Final Review",
         "operationId": "submit_joint_activity_final_review_api_v1_clubs__club_id__joint_activities__activity_id__final_submission_post",
         "security": [
@@ -5134,9 +5018,7 @@
     },
     "/api/v1/clubs/{club_id}/general-activities/": {
       "get": {
-        "tags": [
-          "Club General Activities"
-        ],
+        "tags": ["Club General Activities"],
         "summary": "Get Club General Activities",
         "description": "List the general activities the given club practiced.\n\nOnly club president and vice president can perform this operation:\nthe response includes pending records whose proof_files have not been\nreviewed yet, so it must not be anonymously readable.",
         "operationId": "get_club_general_activities_api_v1_clubs__club_id__general_activities__get",
@@ -5235,9 +5117,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Club General Activities"
-        ],
+        "tags": ["Club General Activities"],
         "summary": "Create Club General Activities",
         "description": "Create a new record of general activity practiced by the club.\nOnly club president and vice president can perform this operation.",
         "operationId": "create_club_general_activities_api_v1_clubs__club_id__general_activities__post",
@@ -5319,9 +5199,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Club General Activities"
-        ],
+        "tags": ["Club General Activities"],
         "summary": "Update Club General Activities",
         "description": "Update the record of general activity practiced by the club.",
         "operationId": "update_club_general_activities_api_v1_clubs__club_id__general_activities__patch",
@@ -5422,9 +5300,7 @@
     },
     "/api/v1/clubs/{club_id}/star-level/": {
       "get": {
-        "tags": [
-          "Club Star Level"
-        ],
+        "tags": ["Club Star Level"],
         "summary": "Get Club Applications",
         "description": "List all star level applications of the given club.",
         "operationId": "get_club_applications_api_v1_clubs__club_id__star_level__get",
@@ -5523,9 +5399,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Club Star Level"
-        ],
+        "tags": ["Club Star Level"],
         "summary": "Create Club Star Level Application",
         "description": "Create a new star level application for the given club.",
         "operationId": "create_club_star_level_application_api_v1_clubs__club_id__star_level__post",
@@ -5609,9 +5483,7 @@
     },
     "/api/v1/clubs/{club_id}/star-rating/": {
       "get": {
-        "tags": [
-          "Club Star Rating"
-        ],
+        "tags": ["Club Star Rating"],
         "summary": "Get Club Star Rating",
         "operationId": "get_club_star_rating_api_v1_clubs__club_id__star_rating__get",
         "parameters": [
@@ -5651,9 +5523,7 @@
     },
     "/api/v1/star-level/": {
       "get": {
-        "tags": [
-          "Star Level"
-        ],
+        "tags": ["Star Level"],
         "summary": "List Public Applications",
         "description": "List all star level applications, newest first.",
         "operationId": "list_public_applications_api_v1_star_level__get",
@@ -5712,9 +5582,7 @@
     },
     "/api/v1/star-level/{star_level_id}": {
       "get": {
-        "tags": [
-          "Star Level"
-        ],
+        "tags": ["Star Level"],
         "summary": "Get By Id",
         "operationId": "get_by_id_api_v1_star_level__star_level_id__get",
         "parameters": [
@@ -5752,9 +5620,7 @@
         }
       },
       "patch": {
-        "tags": [
-          "Star Level"
-        ],
+        "tags": ["Star Level"],
         "summary": "Update Application",
         "description": "Update a star level application.\nOnly the club president can perform this operation.",
         "operationId": "update_application_api_v1_star_level__star_level_id__patch",
@@ -5855,9 +5721,7 @@
     },
     "/api/v1/club-federation/general-activity/": {
       "get": {
-        "tags": [
-          "Federation: General Activities"
-        ],
+        "tags": ["Federation: General Activities"],
         "summary": "List Activities",
         "description": "List general activities for federation review.\n\nUnlike the public list endpoint, club_records includes pending and rejected\nrecords so federation staff can review them.",
         "operationId": "list_activities_api_v1_club_federation_general_activity__get",
@@ -5979,9 +5843,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Federation: General Activities"
-        ],
+        "tags": ["Federation: General Activities"],
         "summary": "Create",
         "description": "Create a new general activity.",
         "operationId": "create_api_v1_club_federation_general_activity__post",
@@ -6054,9 +5916,7 @@
     },
     "/api/v1/club-federation/general-activity/{activity_id}": {
       "patch": {
-        "tags": [
-          "Federation: General Activities"
-        ],
+        "tags": ["Federation: General Activities"],
         "summary": "Update",
         "description": "Update the general activity with the given ID.",
         "operationId": "update_api_v1_club_federation_general_activity__activity_id__patch",
@@ -6155,9 +6015,7 @@
         }
       },
       "delete": {
-        "tags": [
-          "Federation: General Activities"
-        ],
+        "tags": ["Federation: General Activities"],
         "summary": "Delete",
         "description": "Delete the general activity with the given ID.",
         "operationId": "delete_api_v1_club_federation_general_activity__activity_id__delete",
@@ -6248,9 +6106,7 @@
     },
     "/api/v1/club-federation/general-activity/club-records/{record_id}": {
       "patch": {
-        "tags": [
-          "Club General Activities"
-        ],
+        "tags": ["Club General Activities"],
         "summary": "Update Record",
         "operationId": "update_record_api_v1_club_federation_general_activity_club_records__record_id__patch",
         "security": [
@@ -6350,9 +6206,7 @@
     },
     "/api/v1/club-federation/star-level/{star_level_id}/preview": {
       "post": {
-        "tags": [
-          "Club Federation: Star Level"
-        ],
+        "tags": ["Club Federation: Star Level"],
         "summary": "Preview Star Level Application Review",
         "operationId": "preview_star_level_application_review_api_v1_club_federation_star_level__star_level_id__preview_post",
         "security": [
@@ -6435,9 +6289,7 @@
     },
     "/api/v1/club-federation/star-level/{star_level_id}": {
       "patch": {
-        "tags": [
-          "Club Federation: Star Level"
-        ],
+        "tags": ["Club Federation: Star Level"],
         "summary": "Review Star Level Application",
         "operationId": "review_star_level_application_api_v1_club_federation_star_level__star_level_id__patch",
         "security": [
@@ -6520,9 +6372,7 @@
     },
     "/api/v1/club-federation/joint-activities/": {
       "get": {
-        "tags": [
-          "Federation: Joint Activities"
-        ],
+        "tags": ["Federation: Joint Activities"],
         "summary": "List Joint Activities For Federation",
         "operationId": "list_joint_activities_for_federation_api_v1_club_federation_joint_activities__get",
         "security": [
@@ -6629,9 +6479,7 @@
     },
     "/api/v1/club-federation/joint-activities/{activity_id}/preliminary-review": {
       "patch": {
-        "tags": [
-          "Federation: Joint Activities"
-        ],
+        "tags": ["Federation: Joint Activities"],
         "summary": "Review Joint Activity Preliminarily",
         "operationId": "review_joint_activity_preliminarily_api_v1_club_federation_joint_activities__activity_id__preliminary_review_patch",
         "security": [
@@ -6731,9 +6579,7 @@
     },
     "/api/v1/club-federation/joint-activities/{activity_id}/final-review": {
       "patch": {
-        "tags": [
-          "Federation: Joint Activities"
-        ],
+        "tags": ["Federation: Joint Activities"],
         "summary": "Review Joint Activity Finally",
         "operationId": "review_joint_activity_finally_api_v1_club_federation_joint_activities__activity_id__final_review_patch",
         "security": [
@@ -6833,9 +6679,7 @@
     },
     "/api/v1/club-federation/club-claims/": {
       "get": {
-        "tags": [
-          "Federation: Club Claims"
-        ],
+        "tags": ["Federation: Club Claims"],
         "summary": "Get Pending Claim Requests",
         "description": "List pending club claim requests.",
         "operationId": "get_pending_claim_requests_api_v1_club_federation_club_claims__get",
@@ -6927,9 +6771,7 @@
     },
     "/api/v1/club-federation/club-claims/{request_id}": {
       "patch": {
-        "tags": [
-          "Federation: Club Claims"
-        ],
+        "tags": ["Federation: Club Claims"],
         "summary": "Verify Claim Request",
         "description": "Approve or reject a club claim request.",
         "operationId": "verify_claim_request_api_v1_club_federation_club_claims__request_id__patch",
@@ -7030,9 +6872,7 @@
     },
     "/api/v1/moderations/users/update-requests": {
       "get": {
-        "tags": [
-          "Moderation: Users"
-        ],
+        "tags": ["Moderation: Users"],
         "summary": "Get User Profile Update Requests",
         "description": "Get all pending user profile update requests.",
         "operationId": "get_user_profile_update_requests_api_v1_moderations_users_update_requests_get",
@@ -7124,9 +6964,7 @@
     },
     "/api/v1/moderations/users/update-requests/{request_id}": {
       "patch": {
-        "tags": [
-          "Moderation: Users"
-        ],
+        "tags": ["Moderation: Users"],
         "summary": "Moderate User Profile Update Request",
         "operationId": "moderate_user_profile_update_request_api_v1_moderations_users_update_requests__request_id__patch",
         "security": [
@@ -7209,9 +7047,7 @@
     },
     "/api/v1/moderations/club-activities/create-requests": {
       "get": {
-        "tags": [
-          "Moderation: Club Activities"
-        ],
+        "tags": ["Moderation: Club Activities"],
         "summary": "Get Pending Create Request",
         "description": "Get pending club activity create request.",
         "operationId": "get_pending_create_request_api_v1_moderations_club_activities_create_requests_get",
@@ -7303,9 +7139,7 @@
     },
     "/api/v1/moderations/club-activities/create-requests/{request_id}": {
       "patch": {
-        "tags": [
-          "Moderation: Club Activities"
-        ],
+        "tags": ["Moderation: Club Activities"],
         "summary": "Moderate Create Request",
         "description": "Moderate club activity create request.",
         "operationId": "moderate_create_request_api_v1_moderations_club_activities_create_requests__request_id__patch",
@@ -7389,9 +7223,7 @@
     },
     "/api/v1/moderations/club-activities/update-requests": {
       "get": {
-        "tags": [
-          "Moderation: Club Activities"
-        ],
+        "tags": ["Moderation: Club Activities"],
         "summary": "Get Pending Update Request",
         "description": "Get pending club activity update request.",
         "operationId": "get_pending_update_request_api_v1_moderations_club_activities_update_requests_get",
@@ -7483,9 +7315,7 @@
     },
     "/api/v1/moderations/club-activities/update-requests/{request_id}": {
       "patch": {
-        "tags": [
-          "Moderation: Club Activities"
-        ],
+        "tags": ["Moderation: Club Activities"],
         "summary": "Moderate Update Request",
         "description": "Moderate club activity update request.",
         "operationId": "moderate_update_request_api_v1_moderations_club_activities_update_requests__request_id__patch",
@@ -7569,9 +7399,7 @@
     },
     "/api/v1/moderations/clubs/update-requests": {
       "get": {
-        "tags": [
-          "Moderation: Clubs"
-        ],
+        "tags": ["Moderation: Clubs"],
         "summary": "Get Pending Update Request",
         "description": "Get pending club update request.",
         "operationId": "get_pending_update_request_api_v1_moderations_clubs_update_requests_get",
@@ -7663,9 +7491,7 @@
     },
     "/api/v1/moderations/clubs/update-requests/{request_id}": {
       "patch": {
-        "tags": [
-          "Moderation: Clubs"
-        ],
+        "tags": ["Moderation: Clubs"],
         "summary": "Moderate Update Request",
         "description": "Moderate club update request.",
         "operationId": "moderate_update_request_api_v1_moderations_clubs_update_requests__request_id__patch",
@@ -7749,9 +7575,7 @@
     },
     "/api/v1/clubs/{club_id}/membership-requests/{request_id}": {
       "patch": {
-        "tags": [
-          "Verification: Club Memberships"
-        ],
+        "tags": ["Verification: Club Memberships"],
         "summary": "Verify Membership Request",
         "description": "Verify (approve / reject) a club membership request.",
         "operationId": "verify_membership_request_api_v1_clubs__club_id__membership_requests__request_id__patch",
@@ -7861,9 +7685,7 @@
     },
     "/api/v1/uploads/initiate": {
       "post": {
-        "tags": [
-          "Uploads"
-        ],
+        "tags": ["Uploads"],
         "summary": "Initiate Upload",
         "operationId": "initiate_upload_api_v1_uploads_initiate_post",
         "requestBody": {
@@ -7907,9 +7729,7 @@
     },
     "/api/v1/uploads/confirm": {
       "post": {
-        "tags": [
-          "Uploads"
-        ],
+        "tags": ["Uploads"],
         "summary": "Confirm Upload",
         "operationId": "confirm_upload_api_v1_uploads_confirm_post",
         "requestBody": {
@@ -7953,9 +7773,7 @@
     },
     "/api/v1/announcements/": {
       "get": {
-        "tags": [
-          "Announcements"
-        ],
+        "tags": ["Announcements"],
         "summary": "List Announcements",
         "description": "List announcements for the homepage.",
         "operationId": "list_announcements_api_v1_announcements__get",
@@ -8040,9 +7858,7 @@
     },
     "/api/v1/resources/": {
       "get": {
-        "tags": [
-          "Resource Center"
-        ],
+        "tags": ["Resource Center"],
         "summary": "List Resource Files",
         "description": "List files in the public resource center.",
         "operationId": "list_resource_files_api_v1_resources__get",
@@ -8115,9 +7931,7 @@
         }
       },
       "post": {
-        "tags": [
-          "Resource Center"
-        ],
+        "tags": ["Resource Center"],
         "summary": "Create Resource File",
         "description": "Register an uploaded file in the resource center.",
         "operationId": "create_resource_file_api_v1_resources__post",
@@ -8190,9 +8004,7 @@
     },
     "/api/v1/resources/retry-pending-deletions": {
       "post": {
-        "tags": [
-          "Resource Center"
-        ],
+        "tags": ["Resource Center"],
         "summary": "Retry Pending Resource Deletions",
         "description": "Retry object and database cleanup for all pending resource deletions.",
         "operationId": "retry_pending_resource_deletions_api_v1_resources_retry_pending_deletions_post",
@@ -8245,9 +8057,7 @@
     },
     "/api/v1/resources/{resource_id}/download": {
       "get": {
-        "tags": [
-          "Resource Center"
-        ],
+        "tags": ["Resource Center"],
         "summary": "Download Resource File",
         "description": "Redirect anyone to a short-lived download URL.",
         "operationId": "download_resource_file_api_v1_resources__resource_id__download_get",
@@ -8298,9 +8108,7 @@
     },
     "/api/v1/resources/{resource_id}": {
       "delete": {
-        "tags": [
-          "Resource Center"
-        ],
+        "tags": ["Resource Center"],
         "summary": "Delete Resource File",
         "description": "Delete a resource-center file and its stored object.",
         "operationId": "delete_resource_file_api_v1_resources__resource_id__delete",
@@ -8434,11 +8242,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "start_date",
-          "end_date",
-          "is_current"
-        ],
+        "required": ["start_date", "end_date", "is_current"],
         "title": "AcademicTermCreate"
       },
       "AcademicTermInfo": {
@@ -8468,13 +8272,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "term_name",
-          "start_date",
-          "end_date",
-          "is_current"
-        ],
+        "required": ["id", "term_name", "start_date", "end_date", "is_current"],
         "title": "AcademicTermInfo"
       },
       "AcademicTermUpdate": {
@@ -8561,12 +8359,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "category",
-          "summary",
-          "description"
-        ],
+        "required": ["name", "category", "summary", "description"],
         "title": "AdminClubCreate"
       },
       "AdminClubUpdate": {
@@ -8719,10 +8512,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "parameters",
-          "signature"
-        ],
+        "required": ["parameters", "signature"],
         "title": "AltchaChallenge"
       },
       "AltchaChallengeParameters": {
@@ -8827,10 +8617,7 @@
       },
       "AltchaPurpose": {
         "type": "string",
-        "enum": [
-          "login",
-          "register"
-        ],
+        "enum": ["login", "register"],
         "title": "AltchaPurpose"
       },
       "AnnouncementCreate": {
@@ -8890,10 +8677,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "title",
-          "body"
-        ],
+        "required": ["title", "body"],
         "title": "AnnouncementCreate"
       },
       "AnnouncementInfo": {
@@ -8962,12 +8746,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "title",
-          "body",
-          "created_at"
-        ],
+        "required": ["id", "title", "body", "created_at"],
         "title": "AnnouncementInfo"
       },
       "AnnouncementUpdate": {
@@ -9051,11 +8830,7 @@
       },
       "AuditStatusEnum": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected"
-        ],
+        "enum": ["pending", "approved", "rejected"],
         "title": "AuditStatusEnum"
       },
       "Body_login_api_v1_auth_login_post": {
@@ -9117,19 +8892,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "altcha",
-          "username",
-          "password"
-        ],
+        "required": ["altcha", "username", "password"],
         "title": "Body_login_api_v1_auth_login_post"
       },
       "CheckInMethodEnum": {
         "type": "string",
-        "enum": [
-          "manual",
-          "qrcode"
-        ],
+        "enum": ["manual", "qrcode"],
         "title": "CheckInMethodEnum"
       },
       "ClubActivityCheckInInfo": {
@@ -9183,10 +8951,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "token",
-          "expires_at"
-        ],
+        "required": ["token", "expires_at"],
         "title": "ClubActivityCheckInQrTokenInfo"
       },
       "ClubActivityCreateRequestCreatePublic": {
@@ -9218,13 +8983,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "description",
-          "start_time",
-          "end_time",
-          "location"
-        ],
+        "required": ["name", "description", "start_time", "end_time", "location"],
         "title": "ClubActivityCreateRequestCreatePublic"
       },
       "ClubActivityCreateRequestInfo": {
@@ -9397,9 +9156,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "user_ids"
-        ],
+        "required": ["user_ids"],
         "title": "ClubActivityManualCheckInRequest",
         "description": "Request body for the president/vice-president manually recording the\nroster of members who attended."
       },
@@ -9411,9 +9168,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "token"
-        ],
+        "required": ["token"],
         "title": "ClubActivityQrCheckInRequest"
       },
       "ClubActivityRef": {
@@ -9428,10 +9183,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
+        "required": ["id", "name"],
         "title": "ClubActivityRef",
         "description": "Minimal activity identity for references and selectors."
       },
@@ -9712,10 +9464,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "username"
-        ],
+        "required": ["id", "username"],
         "title": "ClubClaimApplicantInfo"
       },
       "ClubClaimClubInfo": {
@@ -9730,10 +9479,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
+        "required": ["id", "name"],
         "title": "ClubClaimClubInfo"
       },
       "ClubClaimRequestCreatePublic": {
@@ -9789,14 +9535,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message",
-          "id",
-          "verification_status",
-          "applicant_id",
-          "apply_at",
-          "club_id"
-        ],
+        "required": ["message", "id", "verification_status", "applicant_id", "apply_at", "club_id"],
         "title": "ClubClaimRequestInfo"
       },
       "ClubClaimRequestReviewInfo": {
@@ -9894,12 +9633,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "category",
-          "summary",
-          "description"
-        ],
+        "required": ["name", "category", "summary", "description"],
         "title": "ClubCreate"
       },
       "ClubGeneralActivityCreate": {
@@ -9925,11 +9659,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "activity_id",
-          "participation_type",
-          "requested_score"
-        ],
+        "required": ["activity_id", "participation_type", "requested_score"],
         "title": "ClubGeneralActivityCreate"
       },
       "ClubGeneralActivityInfo": {
@@ -10025,11 +9755,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "activity_id",
-          "participation_type",
-          "requested_score"
-        ],
+        "required": ["activity_id", "participation_type", "requested_score"],
         "title": "ClubGeneralActivityUpdate"
       },
       "ClubInfo": {
@@ -10122,11 +9848,7 @@
       },
       "ClubMemberAssignableRoleEnum": {
         "type": "string",
-        "enum": [
-          "member",
-          "vice_president",
-          "president"
-        ],
+        "enum": ["member", "vice_president", "president"],
         "title": "ClubMemberAssignableRoleEnum"
       },
       "ClubMemberInfo": {
@@ -10156,14 +9878,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "user_id",
-          "club_id",
-          "membership",
-          "updated_at",
-          "user"
-        ],
+        "required": ["id", "user_id", "club_id", "membership", "updated_at", "user"],
         "title": "ClubMemberInfo"
       },
       "ClubMemberRoleUpdate": {
@@ -10173,9 +9888,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "membership"
-        ],
+        "required": ["membership"],
         "title": "ClubMemberRoleUpdate"
       },
       "ClubMemberUserInfo": {
@@ -10214,23 +9927,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "username",
-          "avatar_uri",
-          "grade"
-        ],
+        "required": ["id", "username", "avatar_uri", "grade"],
         "title": "ClubMemberUserInfo"
       },
       "ClubMembershipEnum": {
         "type": "string",
-        "enum": [
-          "pending",
-          "member",
-          "president",
-          "vice_president",
-          "left"
-        ],
+        "enum": ["pending", "member", "president", "vice_president", "left"],
         "title": "ClubMembershipEnum"
       },
       "ClubMembershipRequestCreatePublic": {
@@ -10241,9 +9943,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message"
-        ],
+        "required": ["message"],
         "title": "ClubMembershipRequestCreatePublic"
       },
       "ClubMembershipRequestInfo": {
@@ -10286,14 +9986,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message",
-          "id",
-          "verification_status",
-          "applicant_id",
-          "apply_at",
-          "club_id"
-        ],
+        "required": ["message", "id", "verification_status", "applicant_id", "apply_at", "club_id"],
         "title": "ClubMembershipRequestInfo"
       },
       "ClubRef": {
@@ -10308,10 +10001,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "name"
-        ],
+        "required": ["id", "name"],
         "title": "ClubRef",
         "description": "Ref 档: 只含 id 与 name, 用于下拉选择与被其它实体内嵌引用."
       },
@@ -10330,11 +10020,7 @@
       },
       "ClubStatusEnum": {
         "type": "string",
-        "enum": [
-          "unreviewed",
-          "normal",
-          "archived"
-        ],
+        "enum": ["unreviewed", "normal", "archived"],
         "title": "ClubStatusEnum"
       },
       "ClubSummary": {
@@ -10611,13 +10297,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "moderation_status",
-          "requestor_id",
-          "request_at",
-          "club_id"
-        ],
+        "required": ["id", "moderation_status", "requestor_id", "request_at", "club_id"],
         "title": "ClubUpdateRequestInfo"
       },
       "ConfirmUploadRequest": {
@@ -10633,10 +10313,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "scene",
-          "object_key"
-        ],
+        "required": ["scene", "object_key"],
         "title": "ConfirmUploadRequest"
       },
       "ConfirmUploadResponse": {
@@ -10650,9 +10327,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "url"
-        ],
+        "required": ["url"],
         "title": "ConfirmUploadResponse"
       },
       "ErrorResponseModel": {
@@ -10675,10 +10350,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "message_key",
-          "error_code"
-        ],
+        "required": ["message_key", "error_code"],
         "title": "ErrorResponseModel"
       },
       "FederationRecordUpdate": {
@@ -10699,9 +10371,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "audit_status"
-        ],
+        "required": ["audit_status"],
         "title": "FederationRecordUpdate"
       },
       "GeneralActivityCreate": {
@@ -10772,11 +10442,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "description",
-          "level"
-        ],
+        "required": ["name", "description", "level"],
         "title": "GeneralActivityCreate"
       },
       "GeneralActivityInfo": {
@@ -10879,11 +10545,7 @@
       },
       "GeneralActivityLevelEnum": {
         "type": "string",
-        "enum": [
-          "school",
-          "large",
-          "club_federation"
-        ],
+        "enum": ["school", "large", "club_federation"],
         "title": "GeneralActivityLevelEnum"
       },
       "GeneralActivityUpdate": {
@@ -11012,12 +10674,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "scene",
-          "filename",
-          "content_type",
-          "size"
-        ],
+        "required": ["scene", "filename", "content_type", "size"],
         "title": "InitiateUploadRequest"
       },
       "InitiateUploadResponse": {
@@ -11036,11 +10693,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "object_key",
-          "upload_url",
-          "expires_seconds"
-        ],
+        "required": ["object_key", "upload_url", "expires_seconds"],
         "title": "InitiateUploadResponse"
       },
       "JointActivityArchiveUpdate": {
@@ -11096,13 +10749,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "name",
-          "description",
-          "location",
-          "starts_at",
-          "ends_at"
-        ],
+        "required": ["name", "description", "location", "starts_at", "ends_at"],
         "title": "JointActivityCreate"
       },
       "JointActivityFinalVerification": {
@@ -11119,9 +10766,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "verification_status"
-        ],
+        "required": ["verification_status"],
         "title": "JointActivityFinalVerification"
       },
       "JointActivityInfo": {
@@ -11357,9 +11002,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "moderation_status"
-        ],
+        "required": ["moderation_status"],
         "title": "JointActivityPreliminaryModeration"
       },
       "JointActivityPublicInfo": {
@@ -11489,14 +11132,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "activity_id",
-          "club_id",
-          "is_initiator",
-          "created_at",
-          "club"
-        ],
+        "required": ["id", "activity_id", "club_id", "is_initiator", "created_at", "club"],
         "title": "JointActivityPublicParticipationInfo"
       },
       "JointActivityUpdate": {
@@ -11566,12 +11202,7 @@
       },
       "ModerationStatusEnum": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected",
-          "superseded"
-        ],
+        "enum": ["pending", "approved", "rejected", "superseded"],
         "title": "ModerationStatusEnum"
       },
       "Page_AcademicTermInfo_": {
@@ -11605,13 +11236,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[AcademicTermInfo]"
       },
       "Page_AnnouncementInfo_": {
@@ -11645,13 +11270,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[AnnouncementInfo]"
       },
       "Page_ClubActivityCheckInInfo_": {
@@ -11685,13 +11304,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubActivityCheckInInfo]"
       },
       "Page_ClubActivityCreateRequestInfo_": {
@@ -11725,13 +11338,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubActivityCreateRequestInfo]"
       },
       "Page_ClubActivityInfo_": {
@@ -11765,13 +11372,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubActivityInfo]"
       },
       "Page_ClubActivityUpdateRequestInfo_": {
@@ -11805,13 +11406,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubActivityUpdateRequestInfo]"
       },
       "Page_ClubClaimRequestReviewInfo_": {
@@ -11845,13 +11440,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubClaimRequestReviewInfo]"
       },
       "Page_ClubGeneralActivityInfo_": {
@@ -11885,13 +11474,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubGeneralActivityInfo]"
       },
       "Page_ClubMembershipRequestInfo_": {
@@ -11925,13 +11508,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubMembershipRequestInfo]"
       },
       "Page_ClubRef_": {
@@ -11965,13 +11542,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubRef]"
       },
       "Page_ClubSummary_": {
@@ -12005,13 +11576,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubSummary]"
       },
       "Page_ClubUpdateRequestInfo_": {
@@ -12045,13 +11610,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubUpdateRequestInfo]"
       },
       "Page_GeneralActivityInfo_": {
@@ -12085,13 +11644,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[GeneralActivityInfo]"
       },
       "Page_JointActivityInfo_": {
@@ -12125,13 +11678,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[JointActivityInfo]"
       },
       "Page_JointActivityPublicInfo_": {
@@ -12165,13 +11712,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[JointActivityPublicInfo]"
       },
       "Page_ResourceFileInfo_": {
@@ -12205,13 +11746,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ResourceFileInfo]"
       },
       "Page_StarLevelApplicationInfo_": {
@@ -12245,13 +11780,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[StarLevelApplicationInfo]"
       },
       "Page_StarLevelApplicationPublicInfo_": {
@@ -12285,13 +11814,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[StarLevelApplicationPublicInfo]"
       },
       "Page_UserInfo_": {
@@ -12325,13 +11848,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[UserInfo]"
       },
       "Page_UserUpdateRequestInfo_": {
@@ -12365,21 +11882,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "items",
-          "total",
-          "page",
-          "size",
-          "pages"
-        ],
+        "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[UserUpdateRequestInfo]"
       },
       "ParticipationTypeEnum": {
         "type": "string",
-        "enum": [
-          "participate_only",
-          "organize"
-        ],
+        "enum": ["participate_only", "organize"],
         "title": "ParticipationTypeEnum"
       },
       "PendingDeletionRetryResult": {
@@ -12398,11 +11906,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "attempted",
-          "deleted",
-          "failed"
-        ],
+        "required": ["attempted", "deleted", "failed"],
         "title": "PendingDeletionRetryResult"
       },
       "PublicUserInfo": {
@@ -12452,14 +11956,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "username",
-          "avatar_uri",
-          "description",
-          "grade",
-          "created_at"
-        ],
+        "required": ["id", "username", "avatar_uri", "description", "grade", "created_at"],
         "title": "PublicUserInfo"
       },
       "RecordConditionDetail": {
@@ -12478,11 +11975,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "is_met",
-          "record_id",
-          "condition_id"
-        ],
+        "required": ["is_met", "record_id", "condition_id"],
         "title": "RecordConditionDetail"
       },
       "RequestModeratePublic": {
@@ -12492,9 +11985,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "moderation_status"
-        ],
+        "required": ["moderation_status"],
         "title": "RequestModeratePublic"
       },
       "RequestVerifyPublic": {
@@ -12504,9 +11995,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "verification_status"
-        ],
+        "required": ["verification_status"],
         "title": "RequestVerifyPublic"
       },
       "ResourceFileCreate": {
@@ -12531,11 +12020,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "filename",
-          "object_key",
-          "content_type"
-        ],
+        "required": ["filename", "object_key", "content_type"],
         "title": "ResourceFileCreate"
       },
       "ResourceFileInfo": {
@@ -12563,25 +12048,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "filename",
-          "content_type",
-          "file_size",
-          "created_at"
-        ],
+        "required": ["id", "filename", "content_type", "file_size", "created_at"],
         "title": "ResourceFileInfo"
       },
       "RoleEnum": {
         "type": "string",
-        "enum": [
-          "ban",
-          "user",
-          "moderator",
-          "federation_staff",
-          "admin",
-          "dev"
-        ],
+        "enum": ["ban", "user", "moderator", "federation_staff", "admin", "dev"],
         "title": "RoleEnum"
       },
       "StarLevelApplicationCreate": {
@@ -13042,9 +12514,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "audit_status"
-        ],
+        "required": ["audit_status"],
         "title": "StarLevelApplicationReview"
       },
       "StarLevelApplicationReviewPreview": {
@@ -13072,10 +12542,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "approved_score",
-          "approved_level"
-        ],
+        "required": ["approved_score", "approved_level"],
         "title": "StarLevelApplicationReviewPreview"
       },
       "StarLevelApplicationUpdate": {
@@ -13275,10 +12742,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "access_token",
-          "token_type"
-        ],
+        "required": ["access_token", "token_type"],
         "title": "Token"
       },
       "UploadScene": {
@@ -13303,10 +12767,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "membership",
-          "club"
-        ],
+        "required": ["membership", "club"],
         "title": "UserClubMembership",
         "description": "当前用户在一个社团中的角色, 连同该社团的 Summary."
       },
@@ -13599,12 +13060,7 @@
           }
         },
         "type": "object",
-        "required": [
-          "id",
-          "moderation_status",
-          "request_at",
-          "user_id"
-        ],
+        "required": ["id", "moderation_status", "request_at", "user_id"],
         "title": "UserUpdateRequestInfo"
       },
       "Username": {
@@ -13645,20 +13101,12 @@
           }
         },
         "type": "object",
-        "required": [
-          "loc",
-          "msg",
-          "type"
-        ],
+        "required": ["loc", "msg", "type"],
         "title": "ValidationError"
       },
       "VerificationStatusEnum": {
         "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected"
-        ],
+        "enum": ["pending", "approved", "rejected"],
         "title": "VerificationStatusEnum"
       }
     },
