@@ -3220,8 +3220,6 @@ export interface components {
       update_fields?: string[];
       /** Id */
       id: number;
-      /** Update Fields */
-      update_fields?: string[];
       moderation_status: components["schemas"]["ModerationStatusEnum"];
       /** Moderate At */
       moderate_at?: string | null;

@@ -63,9 +63,6 @@ function renderRequestDetails(item: ModerationItem) {
   }
 
   const visibleRows = moderationDetails("user_id" in item ? item.update_fields : undefined, rows);
-  if (!visibleRows.length) {
-    return <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>;
-  }
   return (
     <div className="grid gap-2">
       {"requestor_id" in item && (
@@ -76,16 +73,24 @@ function renderRequestDetails(item: ModerationItem) {
           </span>
         </div>
       )}
-      {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
-          <span className="font-semibold text-slate-500">{label}</span>
-          {label === ("user_id" in item ? "简介" : "描述") ? (
-            <MarkdownContent value={String(value)} />
-          ) : (
-            <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
-          )}
-        </div>
-      ))}
+      {/* 申请人必须独立于变更字段展示: 仅清空 Logo 的合法请求会让全部变更字段
+          为 null, 提前返回会把申请人一起藏起来, 而标题只有社团名. */}
+      {visibleRows.length ? (
+        visibleRows.map(([label, value]) => (
+          <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
+            <span className="font-semibold text-slate-500">{label}</span>
+            {label === ("user_id" in item ? "简介" : "描述") ? (
+              <MarkdownContent value={String(value)} />
+            ) : (
+              <span className="whitespace-pre-wrap break-words text-slate-700">
+                {String(value)}
+              </span>
+            )}
+          </div>
+        ))
+      ) : (
+        <p className="text-sm text-slate-500">此请求没有可展示的变更字段。</p>
+      )}
     </div>
   );
 }
