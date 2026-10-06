@@ -149,7 +149,7 @@ BNDSphere 运营团队（以下简称“我们”）重视您的个人信息和�
 
 对应 Cookie 名称为：
 
-`bnd_session`
+`__Host-bnd_session`（启用 HTTPS 的生产部署）或 `bnd_session`（本地开发环境）
 
 该 Cookie 标记为 HttpOnly 和 SameSite=Lax，在启用 HTTPS 的部署中还标记为 Secure，网页脚本无法读取其内容。
 
@@ -666,7 +666,7 @@ BNDSphere 具有校园社团和活动信息展示属性。
 
 当前 BNDSphere 使用 Cookie 保存登录认证凭证：
 
-`bnd_session`
+`__Host-bnd_session`（启用 HTTPS 的生产部署）或 `bnd_session`（本地开发环境）
 
 用于：
 

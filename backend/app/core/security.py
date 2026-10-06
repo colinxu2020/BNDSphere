@@ -6,6 +6,7 @@ from typing import Any
 import jwt
 from passlib.context import CryptContext
 
+from .constants import SESSION_COOKIE_NAME
 from .settings import web_settings
 
 settings = web_settings()
@@ -34,6 +35,21 @@ def hash_session_token(token: str) -> str:
     ``user_sessions`` from being replayed as a set of live logins.
     """
     return hashlib.sha256(token.encode()).hexdigest()
+
+
+def session_cookie_name() -> str:
+    """Name of the cookie carrying the session token.
+
+    Production prefixes it with ``__Host-``: browsers only accept such a
+    cookie when it is ``Secure``, ``Path=/``, and set without a ``Domain``
+    attribute, so a sibling or compromised child domain cannot shadow it with
+    a same-named cookie of its own (cookie tossing). Debug keeps the plain
+    name, because local development runs over plain HTTP where a ``Secure``
+    cookie would never be stored.
+    """
+    if web_settings().debug:
+        return SESSION_COOKIE_NAME
+    return f"__Host-{SESSION_COOKIE_NAME}"
 
 
 def hash_verification_code(code: str) -> str:

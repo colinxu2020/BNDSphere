@@ -8,8 +8,8 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.api.request_origin import ensure_trusted_origin
-from app.core.constants import SESSION_COOKIE_NAME
 from app.core.database import SessionLocal
+from app.core.security import session_cookie_name
 from app.models.clubmember import ClubMembershipEnum
 from app.models.user import RoleEnum, User
 from app.repositories.academic_term import AcademicTermRepository
@@ -294,7 +294,7 @@ def session_token(
     """
     if bearer:
         return bearer
-    cookie = request.cookies.get(SESSION_COOKIE_NAME)
+    cookie = request.cookies.get(session_cookie_name())
     if request.method not in {"GET", "HEAD", "OPTIONS"}:
         ensure_trusted_origin(request)
     return cookie

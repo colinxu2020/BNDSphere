@@ -19,6 +19,7 @@ from app.api.rate_limit import (
 )
 from app.api.request_origin import ensure_trusted_origin
 from app.core import constants
+from app.core.security import session_cookie_name
 from app.core.settings import web_settings
 from app.schemas.altcha import AltchaChallenge, AltchaPurpose
 from app.schemas.user import Token, UserInfo, UserRegistration
@@ -42,10 +43,12 @@ def _set_session_cookie(response: Response, token: str) -> None:
     even when SameSite prevents it from sending the previous cookie.
 
     ``Secure`` is dropped in debug so local development over plain HTTP still
-    works; production runs behind Caddy over TLS and sets it.
+    works; production runs behind Caddy over TLS and sets it. Production also
+    prefixes the name with ``__Host-`` (see ``session_cookie_name``), which
+    requires exactly these attributes.
     """
     response.set_cookie(
-        constants.SESSION_COOKIE_NAME,
+        session_cookie_name(),
         token,
         max_age=constants.SESSION_LIFETIME_DAYS * 24 * 60 * 60,
         httponly=True,
@@ -173,7 +176,7 @@ async def logout(
     # The attributes must match the ones the cookie was set with, or the
     # browser treats this as a different cookie and leaves the original.
     response.delete_cookie(
-        constants.SESSION_COOKIE_NAME,
+        session_cookie_name(),
         path="/",
         httponly=True,
         secure=not web_settings().debug,

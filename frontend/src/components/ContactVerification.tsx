@@ -98,6 +98,11 @@ function ChannelRow({
         setMessage(`验证码已发送，请在 ${Math.round((data?.expires_in ?? 0) / 60)} 分钟内填写。`);
       }
     } catch (err) {
+      // A network failure is ambiguous: the server may have committed a live
+      // code before the response was lost, and the budget is spent either
+      // way. Keep the code entry visible so a code that did arrive can still
+      // be confirmed instead of forcing a resend.
+      setCodeSent(true);
       setTone("error");
       setMessage(err);
     } finally {

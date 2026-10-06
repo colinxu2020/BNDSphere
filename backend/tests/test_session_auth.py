@@ -10,6 +10,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.constants import SESSION_COOKIE_NAME
 from app.core.security import generate_session_token, hash_session_token
+from app.core.settings import web_settings
 from app.models import User, UserSession
 from tests.test_auth import ConfiguredUser, create_altcha_payload
 
@@ -52,7 +53,11 @@ class TestSessionCookie:
         client: AsyncClient,
         setup_class_users: None,
         headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        # The wildcard the dev/test settings run with matches any origin;
+        # pin a concrete one so "foreign" is actually foreign.
+        monkeypatch.setattr(web_settings(), "cors_origin", "https://school.example.com")
         client.cookies.clear()
         payload = await create_altcha_payload(client, "login")
         response = await client.post(
@@ -167,7 +172,10 @@ class TestLogout:
         client: AsyncClient,
         setup_class_users: None,
         headers: dict[str, str],
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
+        # Same wildcard caveat as the login test above.
+        monkeypatch.setattr(web_settings(), "cors_origin", "https://school.example.com")
         token = await _login(client, "logout_user")
         update = await client.post(
             "/users/update-requests", headers=headers, json={"description": "forged"}
@@ -251,11 +259,13 @@ class TestLogout:
         self,
         client: AsyncClient,
         setup_class_users: None,
+        monkeypatch: pytest.MonkeyPatch,
     ) -> None:
         # SameSite=Lax strips the cookie from a cross-site POST, so a foreign
         # logout form arrives with no credential at all. It must be refused on
         # origin anyway — otherwise the response still deletes the cookie the
         # request never carried, and any site can sign users out.
+        monkeypatch.setattr(web_settings(), "cors_origin", "https://school.example.com")
         client.cookies.clear()
         resp = await client.post(
             "/auth/logout",
