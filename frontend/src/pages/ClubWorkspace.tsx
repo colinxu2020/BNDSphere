@@ -38,6 +38,7 @@ import {
   toNumberOrZero,
 } from "../lib/format";
 import { formatWorkspaceLoadErrors } from "../lib/workspaceErrors";
+import { canCancelClubActivity, countCurrentTermActivities } from "../lib/clubActivityCancellation";
 import {
   Badge,
   DangerButton,
@@ -189,6 +190,11 @@ export function ClubWorkspace() {
   const [activityUpdateMessage, setActivityUpdateMessage] = useState<unknown>(null);
   const [activityUpdateTone, setActivityUpdateTone] = useState<"error" | "success">("error");
   const [isActivityUpdating, setIsActivityUpdating] = useState(false);
+  const [isActivityCancelling, setIsActivityCancelling] = useState(false);
+  const [activityCancellationMessage, setActivityCancellationMessage] = useState<unknown>(null);
+  const [activityCancellationTone, setActivityCancellationTone] = useState<"error" | "success">(
+    "error",
+  );
 
   const [generalActivityId, setGeneralActivityId] = useState("");
   const [participationType, setParticipationType] = useState<ParticipationType>("participate_only");
@@ -373,6 +379,7 @@ export function ClubWorkspace() {
 
     const activityItem = activities.find((item) => String(item.id) === requestedActivityId);
     if (!activityItem) return;
+    if (activityItem.cancelled_at) return;
 
     const deepLinkKey = `${clubId}:${requestedActivityId}`;
     if (updateActivityId !== requestedActivityId) {
@@ -428,11 +435,10 @@ export function ClubWorkspace() {
   const activeMembers = (club?.members || [])
     .filter((member) => ["member", "president", "vice_president"].includes(member.membership))
     .sort((left, right) => membershipOrder(left.membership) - membershipOrder(right.membership));
-  const currentTermActivityCount = activities.filter(
-    (activityItem) => activityItem.academic_term.is_current,
-  ).length;
+  const currentTermActivityCount = countCurrentTermActivities(activities);
 
   const selectActivityForUpdate = (activityItem: ClubActivity) => {
+    if (activityItem.cancelled_at) return;
     setActivityEditorMode("update");
     setUpdateActivityId(String(activityItem.id));
     setUpdateActivityName(activityItem.name);
@@ -550,7 +556,7 @@ export function ClubWorkspace() {
 
   const submitActivityUpdate = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selectedUpdateActivity) {
+    if (!selectedUpdateActivity || selectedUpdateActivity.cancelled_at) {
       setActivityUpdateTone("error");
       setActivityUpdateMessage("请先选择一个社团活动");
       return;
@@ -607,6 +613,36 @@ export function ClubWorkspace() {
       setActivityUpdateMessage(error);
     } finally {
       setIsActivityUpdating(false);
+    }
+  };
+
+  const cancelActivity = async (activityItem: ClubActivity) => {
+    if (isActivityCancelling) return;
+    if (!window.confirm(`确定取消社团活动「${activityItem.name}」吗？取消后不能恢复或新增签到。`)) {
+      return;
+    }
+
+    setIsActivityCancelling(true);
+    setActivityCancellationMessage(null);
+    try {
+      const { error } = await client.POST(
+        "/api/v1/clubs/{club_id}/activities/{activity_id}/cancel",
+        { params: { path: { club_id: clubId, activity_id: activityItem.id } } },
+      );
+      if (error) {
+        setActivityCancellationTone("error");
+        setActivityCancellationMessage(error);
+        return;
+      }
+      closeActivityEditor();
+      await refresh();
+      setActivityCancellationTone("success");
+      setActivityCancellationMessage("活动已取消，历史记录仍可查看");
+    } catch (error) {
+      setActivityCancellationTone("error");
+      setActivityCancellationMessage(error);
+    } finally {
+      setIsActivityCancelling(false);
     }
   };
 
@@ -1290,6 +1326,10 @@ export function ClubWorkspace() {
                       <Plus size={16} /> 新建社团活动申请
                     </SecondaryButton>
                   </div>
+                  <StatusMessage
+                    value={activityCancellationMessage}
+                    tone={activityCancellationTone}
+                  />
                   <div
                     className={`grid gap-6 ${
                       activityEditorMode ? "lg:grid-cols-[0.95fr_1.05fr]" : "grid-cols-1"
@@ -1302,13 +1342,19 @@ export function ClubWorkspace() {
                             key={activityItem.id}
                             type="button"
                             onClick={() => selectActivityForUpdate(activityItem)}
+                            disabled={Boolean(activityItem.cancelled_at)}
                             className={`rounded-md border p-4 text-left transition hover:bg-white ${
                               updateActivityId === String(activityItem.id)
                                 ? "border-primary-200 bg-primary-50"
                                 : "border-slate-100 bg-slate-50"
                             }`}
                           >
-                            <h3 className="font-semibold text-slate-900">{activityItem.name}</h3>
+                            <h3 className="font-semibold text-slate-900">
+                              {activityItem.name}
+                              {activityItem.cancelled_at && (
+                                <span className="ml-2 text-sm text-slate-500">已取消</span>
+                              )}
+                            </h3>
                             <p className="mt-1 line-clamp-2 text-sm text-slate-500">
                               {activityItem.description}
                             </p>
@@ -1444,9 +1490,22 @@ export function ClubWorkspace() {
                               value={activityUpdateMessage}
                               tone={activityUpdateTone}
                             />
-                            <PrimaryButton type="submit" loading={isActivityUpdating}>
+                            <PrimaryButton
+                              type="submit"
+                              loading={isActivityUpdating}
+                              disabled={isActivityCancelling}
+                            >
                               提交修改申请
                             </PrimaryButton>
+                            {canCancelClubActivity(selectedUpdateActivity) && (
+                              <DangerButton
+                                type="button"
+                                disabled={isActivityUpdating || isActivityCancelling}
+                                onClick={() => void cancelActivity(selectedUpdateActivity)}
+                              >
+                                {isActivityCancelling ? "取消中..." : "取消活动"}
+                              </DangerButton>
+                            )}
                           </form>
                         ) : (
                           <EmptyState title="请选择社团活动" />

@@ -20,6 +20,7 @@ import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 import { CATEGORY_MAP, MEMBERSHIP_MAP } from "../lib/labels";
+import { countCurrentTermActivities } from "../lib/clubActivityCancellation";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
@@ -499,7 +500,7 @@ export function ClubDetail() {
               <div className="text-right">
                 <p className="text-sm text-slate-500 font-medium">已组织活动</p>
                 <p className="text-base font-semibold text-slate-900">
-                  {club.club_activities?.length || 0} 场 / 学期
+                  {countCurrentTermActivities(club.club_activities ?? [])} 场 / 学期
                 </p>
               </div>
             </div>
@@ -538,6 +539,9 @@ export function ClubDetail() {
                           className="after:absolute after:inset-0"
                         >
                           {act.name}
+                          {act.cancelled_at && (
+                            <span className="ml-2 text-sm font-medium text-slate-500">已取消</span>
+                          )}
                         </Link>
                       </h3>
                       <p className="text-slate-500 text-sm line-clamp-1">{act.description}</p>
@@ -551,7 +555,7 @@ export function ClubDetail() {
                       </div>
                     </div>
                     <div className="relative z-10 flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row">
-                      {canManage && (
+                      {canManage && !act.cancelled_at && (
                         <Link
                           to={`/club/${club.id}/manage?activity=${act.id}`}
                           aria-label={`管理活动：${act.name}`}

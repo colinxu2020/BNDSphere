@@ -33,6 +33,7 @@ class ClubActivity(Base, AcademicTermMixin):
     )
     location: Mapped[str] = mapped_column(Text)
     picture_urls: Mapped[list[str]] = mapped_column(JSON, default=list)
+    cancelled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
     check_ins: Mapped[list[ClubActivityCheckIn]] = relationship(
         back_populates="activity",

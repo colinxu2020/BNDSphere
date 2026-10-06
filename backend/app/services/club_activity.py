@@ -36,6 +36,8 @@ from app.schemas.moderations.moderation_common import (
 from app.services.base import ServiceBase
 from app.services.errors import (
     BadRequestError,
+    ClubActivityAlreadyStartedError,
+    ClubActivityCancelledError,
     ClubActivityNotFoundError,
     ClubNotFoundError,
     DuplicatePendingRequestError,
@@ -108,6 +110,28 @@ class ClubActivityService(
             raise ClubNotFoundError(club_id) from None
         return await self.repository.get_refs(club_id)
 
+    async def cancel_club_activity(
+        self,
+        club_id: int,
+        activity_id: int,
+    ) -> ClubActivity:
+        async with self.transaction():
+            await self._ensure_club_normal(club_id)
+            activity = await self.repository.get_with_lock(activity_id)
+            if activity is None or activity.club_id != club_id:
+                raise ClubActivityNotFoundError(activity_id) from None
+            if activity.cancelled_at is not None:
+                return activity
+            now = datetime.now(UTC)
+            if now >= activity.start_time:
+                raise ClubActivityAlreadyStartedError(activity_id) from None
+            activity.cancelled_at = now
+            await self.repository.db.flush()
+            await self.update_request_repository.supersede_pending_requests_by_activity(
+                activity_id,
+            )
+            return activity
+
     async def create_club_activity(
         self,
         club_id: int,
@@ -142,7 +166,7 @@ class ClubActivityService(
         try:
             async with self.transaction():
                 await self._ensure_club_normal(club_id)
-                activity = await self.get(activity_id)
+                activity = await self.repository.get_with_lock(activity_id)
                 if activity is None:
                     raise ClubActivityNotFoundError(activity_id) from None
                 if activity.club_id != club_id:
@@ -150,6 +174,8 @@ class ClubActivityService(
                         "error.club_activity.wrong_belong",
                         "CLUB_ACTIVITY_WRONG_BELONG",
                     ) from None
+                if activity.cancelled_at is not None:
+                    raise ClubActivityCancelledError(activity_id) from None
 
                 update_fields = requested_update_fields(obj_in)
                 start_time = (
@@ -312,6 +338,17 @@ class ClubActivityUpdateRequestService(
         moderator: User,
     ) -> ClubActivityUpdateRequest:
         async with self.transaction():
+            request = await self.repository.get(request_id)
+            if request is None:
+                raise ResourceNotFoundError(
+                    "error.club_activity_update_request.not_found",
+                    "CLUB_ACTIVITY_UPDATE_REQUEST_NOT_FOUND",
+                ) from None
+            activity = await self.activity_repository.get_with_lock(
+                request.club_activity_id,
+            )
+            if activity is None:
+                raise ClubActivityNotFoundError(request.club_activity_id) from None
             request = await self._get_with_lock(request_id)
             if request is None:
                 raise ResourceNotFoundError(
@@ -324,11 +361,9 @@ class ClubActivityUpdateRequestService(
                     "CLUB_ACTIVITY_UPDATE_REQUEST_MODERATED",
                 ) from None
 
-            activity = await self.activity_repository.get(request.club_activity_id)
-            if activity is None:
-                raise ClubActivityNotFoundError(request.club_activity_id) from None
-
             if moderation.moderation_status == ModerationStatusEnum.approved:
+                if activity.cancelled_at is not None:
+                    raise ClubActivityCancelledError(activity.id) from None
                 update = build_update_payload(request, ClubActivityUpdate)
                 start_time = (
                     update.start_time

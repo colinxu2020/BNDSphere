@@ -15,6 +15,7 @@ from app.schemas.club_activity_check_in import ClubActivityCheckInCreate
 from app.services.base import ServiceBase
 from app.services.errors import (
     BusinessError,
+    ClubActivityCancelledError,
     ClubActivityCheckInInvalidTokenError,
     ClubActivityCheckInNotInProgressError,
     ClubActivityCheckInNotMemberError,
@@ -75,27 +76,28 @@ class ClubActivityCheckInService(
         rather than erroring, so the roster can be resubmitted freely.
         """
         unique_user_ids = list(dict.fromkeys(user_ids))
-
-        await self._ensure_club_normal(club_id)
-        activity = await self._get_club_activity(club_id, activity_id)
-
-        # Filter to genuinely new ids *before* validating membership — an
-        # id that's already checked in must stay a no-op even if that user
-        # has since left the club, otherwise resubmitting the full roster
-        # (the documented idempotent way to add newly-attended members)
-        # would fail on the departed id and block the new ones with it.
-        already_checked_in = await self.repository.get_checked_in_user_ids(
-            activity.id,
-        )
-        new_user_ids = [
-            user_id for user_id in unique_user_ids if user_id not in already_checked_in
-        ]
-        if not new_user_ids:
-            return []
-
-        await self._ensure_active_members(club_id, new_user_ids)
-
         async with self.transaction():
+            await self._ensure_club_normal(club_id)
+            activity = await self._get_club_activity(
+                club_id,
+                activity_id,
+                for_update=True,
+            )
+            self._ensure_not_cancelled(activity)
+
+            # Previously checked-in members remain a no-op even if they have
+            # since left; resubmitting a historical roster is idempotent.
+            already_checked_in = await self.repository.get_checked_in_user_ids(
+                activity.id,
+            )
+            new_user_ids = [
+                user_id
+                for user_id in unique_user_ids
+                if user_id not in already_checked_in
+            ]
+            if not new_user_ids:
+                return []
+            await self._ensure_active_members(club_id, new_user_ids)
             rows = await self.repository.create_many_ignoring_conflicts(
                 activity.id,
                 new_user_ids,
@@ -115,6 +117,7 @@ class ClubActivityCheckInService(
         """
         await self._ensure_club_normal(club_id)
         activity = await self._get_club_activity(club_id, activity_id)
+        self._ensure_not_cancelled(activity)
         self._ensure_activity_in_progress(activity)
         expires_at = activity.end_time
         return create_check_in_token(activity.id, expires_at), expires_at
@@ -130,25 +133,31 @@ class ClubActivityCheckInService(
         second scan by the same user returns the existing row rather than
         erroring.
         """
-        await self._ensure_club_normal(club_id)
-        activity = await self._get_club_activity(club_id, activity_id)
-        self._ensure_activity_in_progress(activity)
+        async with self.transaction():
+            await self._ensure_club_normal(club_id)
+            activity = await self._get_club_activity(
+                club_id,
+                activity_id,
+                for_update=True,
+            )
+            self._ensure_not_cancelled(activity)
+            self._ensure_activity_in_progress(activity)
 
-        try:
-            payload = verify_check_in_token(token)
-        except ValueError:
-            raise ClubActivityCheckInInvalidTokenError from None
-        if payload.get("activity_id") != activity.id:
-            raise ClubActivityCheckInInvalidTokenError from None
+            try:
+                payload = verify_check_in_token(token)
+            except ValueError:
+                raise ClubActivityCheckInInvalidTokenError from None
+            if payload.get("activity_id") != activity.id:
+                raise ClubActivityCheckInInvalidTokenError from None
 
-        await self._ensure_active_members(club_id, [user.id])
+            await self._ensure_active_members(club_id, [user.id])
 
-        return await self._create_check_in(
-            activity.id,
-            user.id,
-            CheckInMethodEnum.qrcode,
-            user.id,
-        )
+            return await self._create_check_in(
+                activity.id,
+                user.id,
+                CheckInMethodEnum.qrcode,
+                user.id,
+            )
 
     async def _create_check_in(
         self,
@@ -177,11 +186,25 @@ class ClubActivityCheckInService(
                 {"club_activity_id": club_activity_id, "user_id": user_id},
             ) from err
 
-    async def _get_club_activity(self, club_id: int, activity_id: int) -> ClubActivity:
-        activity = await self.activity_repository.get(activity_id)
+    async def _get_club_activity(
+        self,
+        club_id: int,
+        activity_id: int,
+        *,
+        for_update: bool = False,
+    ) -> ClubActivity:
+        activity = (
+            await self.activity_repository.get_with_lock(activity_id)
+            if for_update
+            else await self.activity_repository.get(activity_id)
+        )
         if activity is None or activity.club_id != club_id:
             raise ClubActivityNotFoundError(activity_id) from None
         return activity
+
+    def _ensure_not_cancelled(self, activity: ClubActivity) -> None:
+        if activity.cancelled_at is not None:
+            raise ClubActivityCancelledError(activity.id) from None
 
     async def _ensure_club_normal(self, club_id: int) -> None:
         status = await self.club_repository.get_status(club_id)

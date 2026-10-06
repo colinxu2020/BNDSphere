@@ -423,6 +423,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/v1/clubs/{club_id}/activities/{activity_id}/cancel": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Cancel Club Activity
+     * @description Cancel a not-yet-started activity; repeated cancellation is a no-op.
+     */
+    post: operations["cancel_club_activity_api_v1_clubs__club_id__activities__activity_id__cancel_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/v1/clubs/{club_id}/activities/{activity_id}/check-ins": {
     parameters: {
       query?: never;
@@ -1634,8 +1654,7 @@ export interface components {
     };
     /** AdminUserUpdate */
     AdminUserUpdate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Email */
       email?: string | null;
       /** Avatar Uri */
@@ -1881,6 +1900,8 @@ export interface components {
       club_id: number;
       /** Picture Urls */
       picture_urls: string[];
+      /** Cancelled At */
+      cancelled_at: string | null;
       academic_term: components["schemas"]["AcademicTermInfo"];
     };
     /**
@@ -3166,8 +3187,7 @@ export interface components {
     };
     /** UserRegistration */
     UserRegistration: {
-      /** Username */
-      username: string;
+      username: components["schemas"]["Username"];
       /** Password */
       password: string;
       /**
@@ -3190,8 +3210,7 @@ export interface components {
     };
     /** UserUpdateRequestCreate */
     UserUpdateRequestCreate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Avatar Uri */
       avatar_uri?: string | null;
       /** Description */
@@ -3224,6 +3243,7 @@ export interface components {
       description?: string | null;
       grade?: components["schemas"]["UserGradeEnum"] | null;
     };
+    Username: string;
     /** ValidationError */
     ValidationError: {
       /** Location */
@@ -4584,6 +4604,68 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["ClubActivityUpdateRequestInfo"];
+        };
+      };
+      /** @description Unauthorized or Token invalid */
+      401: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.auth.token_invalid",
+           *       "error_code": "AUTH_TOKEN_INVALID"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Permission Denied */
+      403: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          /**
+           * @example {
+           *       "message_key": "error.role.not_allowed",
+           *       "error_code": "ROLE_NOT_ALLOWED"
+           *     }
+           */
+          "application/json": components["schemas"]["ErrorResponseModel"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  cancel_club_activity_api_v1_clubs__club_id__activities__activity_id__cancel_post: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        club_id: number;
+        activity_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["ClubActivityInfo"];
         };
       };
       /** @description Unauthorized or Token invalid */

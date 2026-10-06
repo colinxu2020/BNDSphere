@@ -60,6 +60,22 @@ async def get_club_activity_refs(
 
 
 @router.post(
+    "/{activity_id}/cancel",
+    responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,
+)
+async def cancel_club_activity(
+    club_id: int,
+    activity_id: int,
+    service: ClubActivityServiceDep,
+    _: ClubRoleCheckerRequiresPresidentVice,
+) -> ClubActivityInfo:
+    """Cancel a not-yet-started activity; repeated cancellation is a no-op."""
+    return ClubActivityInfo.model_validate(
+        await service.cancel_club_activity(club_id, activity_id),
+    )
+
+
+@router.post(
     "/create-requests",
     status_code=status.HTTP_201_CREATED,
     responses=TOKEN_INVALID_RESPONSE | PERMISSION_DENIED_RESPONSE,

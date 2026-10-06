@@ -149,6 +149,26 @@ class ClubActivityNotFoundError(ResourceNotFoundError):
         )
 
 
+class ClubActivityAlreadyStartedError(BusinessError):
+    def __init__(self, activity_id: int) -> None:
+        super().__init__(
+            "error.club_activity.already_started",
+            409,
+            "CLUB_ACTIVITY_ALREADY_STARTED",
+            {"club_activity_id": activity_id},
+        )
+
+
+class ClubActivityCancelledError(BusinessError):
+    def __init__(self, activity_id: int) -> None:
+        super().__init__(
+            "error.club_activity.cancelled",
+            409,
+            "CLUB_ACTIVITY_CANCELLED",
+            {"club_activity_id": activity_id},
+        )
+
+
 class ClubActivityCheckInNotMemberError(BusinessPermissionError):
     def __init__(self, user_id: int) -> None:
         super().__init__(

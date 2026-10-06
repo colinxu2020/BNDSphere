@@ -1407,6 +1407,71 @@
         }
       }
     },
+    "/api/v1/clubs/{club_id}/activities/{activity_id}/cancel": {
+      "post": {
+        "tags": ["Club Activities"],
+        "summary": "Cancel Club Activity",
+        "description": "Cancel a not-yet-started activity; repeated cancellation is a no-op.",
+        "operationId": "cancel_club_activity_api_v1_clubs__club_id__activities__activity_id__cancel_post",
+        "security": [{ "OAuth2PasswordBearer": [] }],
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          },
+          {
+            "name": "activity_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Activity Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ClubActivityInfo" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "403": {
+            "description": "Permission Denied",
+            "content": {
+              "application/json": {
+                "example": {
+                  "message_key": "error.role.not_allowed",
+                  "error_code": "ROLE_NOT_ALLOWED"
+                },
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/v1/clubs/{club_id}/activities/{activity_id}/check-ins": {
       "get": {
         "tags": ["Club Activities"],
@@ -6564,8 +6629,7 @@
       "AdminUserUpdate": {
         "properties": {
           "username": {
-            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
-            "title": "Username"
+            "anyOf": [{ "$ref": "#/components/schemas/Username" }, { "type": "null" }]
           },
           "email": {
             "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
@@ -6858,6 +6922,10 @@
             "type": "array",
             "title": "Picture Urls"
           },
+          "cancelled_at": {
+            "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
+            "title": "Cancelled At"
+          },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" }
         },
         "type": "object",
@@ -6870,6 +6938,7 @@
           "end_time",
           "club_id",
           "picture_urls",
+          "cancelled_at",
           "academic_term"
         ],
         "title": "ClubActivityInfo"
@@ -8741,7 +8810,7 @@
       },
       "UserRegistration": {
         "properties": {
-          "username": { "type": "string", "maxLength": 32, "minLength": 1, "title": "Username" },
+          "username": { "$ref": "#/components/schemas/Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" },
           "accepted_privacy_policy": {
             "type": "boolean",
@@ -8774,8 +8843,7 @@
       "UserUpdateRequestCreate": {
         "properties": {
           "username": {
-            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
-            "title": "Username"
+            "anyOf": [{ "$ref": "#/components/schemas/Username" }, { "type": "null" }]
           },
           "avatar_uri": {
             "anyOf": [
@@ -8835,6 +8903,7 @@
         "required": ["id", "moderation_status", "request_at", "user_id"],
         "title": "UserUpdateRequestInfo"
       },
+      "Username": { "type": "string", "maxLength": 32, "minLength": 1 },
       "ValidationError": {
         "properties": {
           "loc": {
