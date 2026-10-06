@@ -6564,8 +6564,7 @@
       "AdminUserUpdate": {
         "properties": {
           "username": {
-            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
-            "title": "Username"
+            "anyOf": [{ "$ref": "#/components/schemas/Username" }, { "type": "null" }]
           },
           "email": {
             "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
@@ -6814,6 +6813,14 @@
       },
       "ClubActivityCreateRequestInfo": {
         "properties": {
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
+          "club_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Name"
+          },
           "name": { "type": "string", "maxLength": 64, "title": "Name" },
           "description": { "type": "string", "maxLength": 400, "title": "Description" },
           "start_time": { "type": "string", "format": "date-time", "title": "Start Time" },
@@ -6968,11 +6975,36 @@
             "title": "Moderate At"
           },
           "requestor_id": { "type": "integer", "title": "Requestor Id" },
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
           "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
-          "club_activity_id": { "type": "integer", "title": "Club Activity Id" }
+          "club_activity_id": { "type": "integer", "title": "Club Activity Id" },
+          "club_activity_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Activity Name"
+          },
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "club_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Name"
+          },
+          "update_fields": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Update Fields"
+          }
         },
         "type": "object",
-        "required": ["id", "moderation_status", "requestor_id", "request_at", "club_activity_id"],
+        "required": [
+          "id",
+          "moderation_status",
+          "requestor_id",
+          "request_at",
+          "club_activity_id",
+          "club_id"
+        ],
         "title": "ClubActivityUpdateRequestInfo"
       },
       "ClubCategoryEnum": {
@@ -7410,8 +7442,21 @@
             "title": "Moderate At"
           },
           "requestor_id": { "type": "integer", "title": "Requestor Id" },
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
           "request_at": { "type": "string", "format": "date-time", "title": "Request At" },
-          "club_id": { "type": "integer", "title": "Club Id" }
+          "club_id": { "type": "integer", "title": "Club Id" },
+          "club_name": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Club Name"
+          },
+          "update_fields": {
+            "items": { "type": "string" },
+            "type": "array",
+            "title": "Update Fields"
+          }
         },
         "type": "object",
         "required": ["id", "moderation_status", "requestor_id", "request_at", "club_id"],
@@ -8741,7 +8786,7 @@
       },
       "UserRegistration": {
         "properties": {
-          "username": { "type": "string", "maxLength": 32, "minLength": 1, "title": "Username" },
+          "username": { "$ref": "#/components/schemas/Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" },
           "accepted_privacy_policy": {
             "type": "boolean",
@@ -8774,8 +8819,7 @@
       "UserUpdateRequestCreate": {
         "properties": {
           "username": {
-            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
-            "title": "Username"
+            "anyOf": [{ "$ref": "#/components/schemas/Username" }, { "type": "null" }]
           },
           "avatar_uri": {
             "anyOf": [
@@ -8802,12 +8846,16 @@
       },
       "UserUpdateRequestInfo": {
         "properties": {
-          "id": { "type": "integer", "title": "Id" },
+          "requestor_username": {
+            "anyOf": [{ "type": "string" }, { "type": "null" }],
+            "title": "Requestor Username"
+          },
           "update_fields": {
             "items": { "type": "string" },
             "type": "array",
             "title": "Update Fields"
           },
+          "id": { "type": "integer", "title": "Id" },
           "moderation_status": { "$ref": "#/components/schemas/ModerationStatusEnum" },
           "moderate_at": {
             "anyOf": [{ "type": "string", "format": "date-time" }, { "type": "null" }],
@@ -8835,6 +8883,7 @@
         "required": ["id", "moderation_status", "request_at", "user_id"],
         "title": "UserUpdateRequestInfo"
       },
+      "Username": { "type": "string", "maxLength": 32, "minLength": 1 },
       "ValidationError": {
         "properties": {
           "loc": {

@@ -22,6 +22,8 @@ class ClubUpdateRequestBase(BaseModel):
 
 class ClubUpdateRequestInfo(RequestInfoBase, ClubUpdateRequestBase):
     club_id: int = Field(...)
+    club_name: str | None = Field(None)
+    update_fields: list[str] = Field(default_factory=list)
 
 
 class ClubUpdateRequestCreatePublic(ClubUpdateRequestBase, UpdateRequestCreateBase):

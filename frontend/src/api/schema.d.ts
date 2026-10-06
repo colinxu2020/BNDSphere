@@ -1634,8 +1634,7 @@ export interface components {
     };
     /** AdminUserUpdate */
     AdminUserUpdate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Email */
       email?: string | null;
       /** Avatar Uri */
@@ -1826,6 +1825,10 @@ export interface components {
     };
     /** ClubActivityCreateRequestInfo */
     ClubActivityCreateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
+      /** Club Name */
+      club_name?: string | null;
       /** Name */
       name: string;
       /** Description */
@@ -1943,6 +1946,8 @@ export interface components {
       moderate_at?: string | null;
       /** Requestor Id */
       requestor_id: number;
+      /** Requestor Username */
+      requestor_username?: string | null;
       /**
        * Request At
        * Format: date-time
@@ -1950,6 +1955,14 @@ export interface components {
       request_at: string;
       /** Club Activity Id */
       club_activity_id: number;
+      /** Club Activity Name */
+      club_activity_name?: string | null;
+      /** Club Id */
+      club_id: number;
+      /** Club Name */
+      club_name?: string | null;
+      /** Update Fields */
+      update_fields?: string[];
     };
     /**
      * ClubCategoryEnum
@@ -2264,6 +2277,8 @@ export interface components {
       moderate_at?: string | null;
       /** Requestor Id */
       requestor_id: number;
+      /** Requestor Username */
+      requestor_username?: string | null;
       /**
        * Request At
        * Format: date-time
@@ -2271,6 +2286,10 @@ export interface components {
       request_at: string;
       /** Club Id */
       club_id: number;
+      /** Club Name */
+      club_name?: string | null;
+      /** Update Fields */
+      update_fields?: string[];
     };
     /** ConfirmUploadRequest */
     ConfirmUploadRequest: {
@@ -3166,8 +3185,7 @@ export interface components {
     };
     /** UserRegistration */
     UserRegistration: {
-      /** Username */
-      username: string;
+      username: components["schemas"]["Username"];
       /** Password */
       password: string;
       /**
@@ -3190,8 +3208,7 @@ export interface components {
     };
     /** UserUpdateRequestCreate */
     UserUpdateRequestCreate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Avatar Uri */
       avatar_uri?: string | null;
       /** Description */
@@ -3202,10 +3219,12 @@ export interface components {
     };
     /** UserUpdateRequestInfo */
     UserUpdateRequestInfo: {
-      /** Id */
-      id: number;
+      /** Requestor Username */
+      requestor_username?: string | null;
       /** Update Fields */
       update_fields?: string[];
+      /** Id */
+      id: number;
       moderation_status: components["schemas"]["ModerationStatusEnum"];
       /** Moderate At */
       moderate_at?: string | null;
@@ -3224,6 +3243,7 @@ export interface components {
       description?: string | null;
       grade?: components["schemas"]["UserGradeEnum"] | null;
     };
+    Username: string;
     /** ValidationError */
     ValidationError: {
       /** Location */

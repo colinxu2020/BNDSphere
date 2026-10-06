@@ -2,6 +2,29 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { moderationDetails } from "./moderationDetails.ts";
 
+test("club logo and activity image clears remain distinct from untouched fields", () => {
+  assert.deepEqual(
+    moderationDetails(
+      ["logo_uri"],
+      [
+        ["summary", "简介", null],
+        ["logo_uri", "Logo", null],
+      ],
+    ),
+    [["Logo", "清空"]],
+  );
+  assert.deepEqual(
+    moderationDetails(
+      ["picture_urls"],
+      [
+        ["name", "名称", null],
+        ["picture_urls", "图片", [].join("\n")],
+      ],
+    ),
+    [["图片", "清空"]],
+  );
+});
+
 test("explicit clears remain visible while untouched fields are omitted", () => {
   assert.deepEqual(
     moderationDetails(
