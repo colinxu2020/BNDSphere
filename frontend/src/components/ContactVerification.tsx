@@ -90,6 +90,10 @@ function ChannelRow({
     try {
       const { data, error } = await api(channel).send(target.trim(), password);
       if (error) {
+        // Provider timeouts can return 503 after the code was delivered.
+        if ("error_code" in error && error.error_code === "VERIFICATION_CHANNEL_UNAVAILABLE") {
+          setCodeSent(true);
+        }
         setTone("error");
         setMessage(error);
       } else {
