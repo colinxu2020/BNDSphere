@@ -70,16 +70,19 @@ class VerificationCodeRepository(
         target: str,
         now: datetime,
     ) -> VerificationCode | None:
-        """Only the latest issuance on this channel can ever be answered.
+        """Only the latest issuance not explicitly rejected can be answered.
 
         Filter validity after selecting it: consuming or expiring a newer
         code must not revive an older one, even for a different target.
+        Definite delivery rejections still spend budget but do not replace
+        the previously delivered code; unknown delivery outcomes do.
         """
         result = await self.db.execute(
             select(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
                 VerificationCode.channel == channel,
+                VerificationCode.delivery_rejected.is_(False),
             )
             .order_by(VerificationCode.created_at.desc(), VerificationCode.id.desc())
             .limit(1)
@@ -94,6 +97,12 @@ class VerificationCodeRepository(
         ):
             return None
         return record
+
+    async def mark_delivery_rejected(self, record_id: int) -> None:
+        record = await self.db.get(VerificationCode, record_id)
+        if record is not None:
+            record.delivery_rejected = True
+            await self.db.flush()
 
     async def budget_reset_at(
         self,

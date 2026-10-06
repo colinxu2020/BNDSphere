@@ -1,22 +1,27 @@
 import re
 import secrets
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from math import ceil
 
 from sqlalchemy.exc import IntegrityError
 
 from app.core import constants
 from app.core.security import hash_verification_code
+from app.models.legal_consent import CURRENT_LEGAL_DOCUMENT_VERSIONS, LegalDocumentEnum
 from app.models.user import User
 from app.models.verification_code import VerificationChannelEnum, VerificationCode
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
+from app.schemas.contact_policy import ContactPolicyStatus
 from app.schemas.verification_code import VerificationCodeCreate, VerificationCodeSent
 from app.services.auth import AuthService
 from app.services.base import ServiceBase
 from app.services.email_sender import EmailSender
 from app.services.errors import (
+    BadRequestError,
+    NotificationChannelUnavailableError,
+    ResourceForbiddenError,
     VerificationCodeInvalidError,
     VerificationSendThrottledError,
     VerificationTargetInvalidError,
@@ -139,6 +144,37 @@ class ContactVerificationService(
 
     # ── send ─────────────────────────────────────────────────────────
 
+    async def contact_policy_status(self, user: User) -> ContactPolicyStatus:
+        version = CURRENT_LEGAL_DOCUMENT_VERSIONS[LegalDocumentEnum.privacy_policy]
+        return ContactPolicyStatus(
+            version=version,
+            accepted=await self.user_repository.has_legal_consent(
+                user.id,
+                LegalDocumentEnum.privacy_policy,
+                version,
+            ),
+        )
+
+    async def accept_contact_policy(
+        self, user: User, version: date
+    ) -> ContactPolicyStatus:
+        current = CURRENT_LEGAL_DOCUMENT_VERSIONS[LegalDocumentEnum.privacy_policy]
+        if version != current:
+            raise BadRequestError(
+                "error.verification.policy_changed", "CONTACT_POLICY_CHANGED"
+            )
+        async with self.transaction():
+            await self.user_repository.accept_legal_document(
+                user.id, LegalDocumentEnum.privacy_policy, current
+            )
+        return ContactPolicyStatus(version=current, accepted=True)
+
+    async def _ensure_contact_policy(self, user: User) -> None:
+        if not (await self.contact_policy_status(user)).accepted:
+            raise ResourceForbiddenError(
+                "error.verification.policy_required", "CONTACT_POLICY_REQUIRED"
+            )
+
     async def send_email_code(
         self,
         user: User,
@@ -156,15 +192,16 @@ class ContactVerificationService(
         pass is unlocked and only decides whether the request is worth the
         hash; the authoritative, locked check still runs inside ``_issue``.
         """
+        await self._ensure_contact_policy(user)
         email = normalize_email(raw_email)
         await self._ensure_send_allowed(VerificationChannelEnum.email, user, email)
         await self.auth_service.reauthenticate(user, password, ip=ip)
         await self._ensure_target_free(VerificationChannelEnum.email, email, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.email, email)
-        await self.email_sender.send_code(
-            email,
-            code,
-            constants.EMAIL_CODE_TTL_MINUTES,
+        code, sent, record_id = await self._issue(
+            user, VerificationChannelEnum.email, email
+        )
+        await self._deliver(
+            user.id, VerificationChannelEnum.email, email, code, record_id
         )
         return sent
 
@@ -177,13 +214,44 @@ class ContactVerificationService(
         ip: str | None,
     ) -> VerificationCodeSent:
         """Send an SMS code with the same ordering: budget first, argon2 second."""
+        await self._ensure_contact_policy(user)
         phone = normalize_phone(raw_phone)
         await self._ensure_send_allowed(VerificationChannelEnum.sms, user, phone)
         await self.auth_service.reauthenticate(user, password, ip=ip)
         await self._ensure_target_free(VerificationChannelEnum.sms, phone, user)
-        code, sent = await self._issue(user, VerificationChannelEnum.sms, phone)
-        await self.sms_sender.send_code(phone, code, constants.SMS_CODE_TTL_MINUTES)
+        code, sent, record_id = await self._issue(
+            user, VerificationChannelEnum.sms, phone
+        )
+        await self._deliver(
+            user.id, VerificationChannelEnum.sms, phone, code, record_id
+        )
         return sent
+
+    async def _deliver(
+        self,
+        user_id: int,
+        channel: VerificationChannelEnum,
+        target: str,
+        code: str,
+        record_id: int,
+    ) -> None:
+        try:
+            if channel is VerificationChannelEnum.email:
+                await self.email_sender.send_code(
+                    target, code, constants.EMAIL_CODE_TTL_MINUTES
+                )
+            else:
+                await self.sms_sender.send_code(
+                    target, code, constants.SMS_CODE_TTL_MINUTES
+                )
+        except NotificationChannelUnavailableError as exc:
+            if exc.definitely_rejected:
+                async with self.transaction():
+                    await self.repository.lock_user_channel(user_id, channel)
+                    await self.repository.mark_delivery_rejected(record_id)
+            # A timeout may have delivered the message. Never revive an older
+            # code on that evidence, or refund any failed send's budget.
+            raise
 
     async def _ensure_send_allowed(
         self,
@@ -211,7 +279,7 @@ class ContactVerificationService(
         user: User,
         channel: VerificationChannelEnum,
         target: str,
-    ) -> tuple[str, VerificationCodeSent]:
+    ) -> tuple[str, VerificationCodeSent, int]:
         """Reserve budget and store one code. Returns it for the sender.
 
         The row is written and committed *before* the message goes out, so a
@@ -232,7 +300,7 @@ class ContactVerificationService(
             await self.repository.lock_user_channel(user.id, channel)
             now = datetime.now(UTC)
             await self._enforce_budgets(user, channel, target, policy, now)
-            await self.repository.create(
+            record = await self.repository.create(
                 VerificationCodeCreate(
                     user_id=user.id,
                     channel=channel,
@@ -241,10 +309,15 @@ class ContactVerificationService(
                     expires_at=now + policy.ttl,
                 ),
             )
+            record_id = record.id
 
-        return code, VerificationCodeSent(
-            expires_in=int(policy.ttl.total_seconds()),
-            resend_after=constants.VERIFICATION_RESEND_INTERVAL_SECONDS,
+        return (
+            code,
+            VerificationCodeSent(
+                expires_in=int(policy.ttl.total_seconds()),
+                resend_after=constants.VERIFICATION_RESEND_INTERVAL_SECONDS,
+            ),
+            record_id,
         )
 
     async def _enforce_budgets(
@@ -293,11 +366,13 @@ class ContactVerificationService(
     # ── confirm ──────────────────────────────────────────────────────
 
     async def confirm_email_code(self, user: User, raw_email: str, code: str) -> User:
+        await self._ensure_contact_policy(user)
         email = normalize_email(raw_email)
         await self._consume(user, VerificationChannelEnum.email, email, code)
         return await self._bind(user, email=email)
 
     async def confirm_phone_code(self, user: User, raw_phone: str, code: str) -> User:
+        await self._ensure_contact_policy(user)
         phone = normalize_phone(raw_phone)
         await self._consume(user, VerificationChannelEnum.sms, phone, code)
         return await self._bind(user, phone=phone)

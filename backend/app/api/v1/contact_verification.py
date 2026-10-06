@@ -3,6 +3,8 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Request, status
 
 from app.api.common_responses import (
+    CONTACT_POLICY_CHANGED_RESPONSE,
+    CONTACT_POLICY_REQUIRED_RESPONSE,
     CONTACT_VERIFICATION_SEND_RESPONSES,
     PASSWORD_REQUIRED_RESPONSE,
     TOKEN_INVALID_RESPONSE,
@@ -11,6 +13,7 @@ from app.api.common_responses import (
 from app.api.dependencies import ContactVerificationServiceDep, get_current_user
 from app.api.rate_limit import client_ip
 from app.models.user import User
+from app.schemas.contact_policy import ContactPolicyAcceptance, ContactPolicyStatus
 from app.schemas.user import UserInfo
 from app.schemas.verification_code import (
     EmailVerificationConfirm,
@@ -23,12 +26,34 @@ from app.schemas.verification_code import (
 router = APIRouter(tags=["Verification"])
 
 
+@router.get("/contact-policy", responses=TOKEN_INVALID_RESPONSE)
+async def contact_policy_status(
+    service: ContactVerificationServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+) -> ContactPolicyStatus:
+    return await service.contact_policy_status(user)
+
+
+@router.post(
+    "/contact-policy",
+    responses=TOKEN_INVALID_RESPONSE | CONTACT_POLICY_CHANGED_RESPONSE,
+)
+async def accept_contact_policy(
+    body: ContactPolicyAcceptance,
+    service: ContactVerificationServiceDep,
+    user: Annotated[User, Depends(get_current_user)],
+) -> ContactPolicyStatus:
+    """Record explicit acceptance of the version shown before contact binding."""
+    return await service.accept_contact_policy(user, body.version)
+
+
 @router.post(
     "/email/send",
     status_code=status.HTTP_202_ACCEPTED,
     responses=TOKEN_INVALID_RESPONSE
     | PASSWORD_REQUIRED_RESPONSE
-    | CONTACT_VERIFICATION_SEND_RESPONSES,
+    | CONTACT_VERIFICATION_SEND_RESPONSES
+    | CONTACT_POLICY_REQUIRED_RESPONSE,
 )
 async def send_email_code(
     body: EmailVerificationSend,
@@ -54,7 +79,9 @@ async def send_email_code(
 
 @router.post(
     "/email/confirm",
-    responses=TOKEN_INVALID_RESPONSE | VERIFICATION_CODE_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE
+    | VERIFICATION_CODE_INVALID_RESPONSE
+    | CONTACT_POLICY_REQUIRED_RESPONSE,
 )
 async def confirm_email_code(
     body: EmailVerificationConfirm,
@@ -72,7 +99,8 @@ async def confirm_email_code(
     status_code=status.HTTP_202_ACCEPTED,
     responses=TOKEN_INVALID_RESPONSE
     | PASSWORD_REQUIRED_RESPONSE
-    | CONTACT_VERIFICATION_SEND_RESPONSES,
+    | CONTACT_VERIFICATION_SEND_RESPONSES
+    | CONTACT_POLICY_REQUIRED_RESPONSE,
 )
 async def send_phone_code(
     body: PhoneVerificationSend,
@@ -95,7 +123,9 @@ async def send_phone_code(
 
 @router.post(
     "/phone/confirm",
-    responses=TOKEN_INVALID_RESPONSE | VERIFICATION_CODE_INVALID_RESPONSE,
+    responses=TOKEN_INVALID_RESPONSE
+    | VERIFICATION_CODE_INVALID_RESPONSE
+    | CONTACT_POLICY_REQUIRED_RESPONSE,
 )
 async def confirm_phone_code(
     body: PhoneVerificationConfirm,

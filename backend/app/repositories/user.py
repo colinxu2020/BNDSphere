@@ -5,6 +5,7 @@ from typing import cast
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy import func, or_, select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from app.models.legal_consent import LegalConsent, LegalDocumentEnum
 from app.models.moderations.moderation_common import ModerationStatusEnum
@@ -18,6 +19,35 @@ from app.schemas.user import AdminUserUpdate, UserCreate
 
 class UserRepository(RepositoryBase[User, UserCreate, AdminUserUpdate]):
     model = User
+
+    async def has_legal_consent(
+        self, user_id: int, document: LegalDocumentEnum, version: date
+    ) -> bool:
+        return (
+            await self.db.scalar(
+                select(LegalConsent.id).where(
+                    LegalConsent.user_id == user_id,
+                    LegalConsent.document == document,
+                    LegalConsent.document_version == version,
+                )
+            )
+            is not None
+        )
+
+    async def accept_legal_document(
+        self, user_id: int, document: LegalDocumentEnum, version: date
+    ) -> None:
+        await self.db.execute(
+            insert(LegalConsent)
+            .values(
+                user_id=user_id,
+                document=document,
+                document_version=version,
+            )
+            .on_conflict_do_nothing(
+                index_elements=["user_id", "document", "document_version"]
+            )
+        )
 
     async def get_by_email(self, email: str) -> User | None:
         result = await self.db.execute(

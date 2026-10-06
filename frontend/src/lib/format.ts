@@ -18,6 +18,8 @@ export function stringifyBackendValue(value: unknown): string {
 }
 
 const ERROR_CODE_MESSAGES: Record<string, string> = {
+  CONTACT_POLICY_REQUIRED: "请先阅读并同意更新后的隐私政策，再绑定联系方式",
+  CONTACT_POLICY_CHANGED: "隐私政策已更新，请刷新后阅读并重新确认",
   VICE_PRESIDENT_LIMIT_REACHED: "每个社团最多任命两位副社长，请先调整现有副社长的身份。",
   ACADEMIC_TERM_NOT_FOUND: "没有找到这个学期",
   ANNOUNCEMENT_INVALID_TIME_RANGE: "公告结束时间不能早于开始时间",
@@ -144,6 +146,8 @@ const MESSAGE_KEY_TEXT: Record<string, string> = {
   "error.resource_file.not_found": "没有找到这个资料文件",
   "error.role.not_allowed": "你没有执行此操作的权限",
   "error.verification.channel_invalid": "暂不支持这个验证渠道",
+  "error.verification.policy_required": "请先阅读并同意更新后的隐私政策，再绑定联系方式",
+  "error.verification.policy_changed": "隐私政策已更新，请刷新后阅读并重新确认",
   "error.verification.channel_unavailable": "验证码发送服务暂时不可用，请稍后再试",
   "error.verification.code_invalid": "验证码不正确或已失效，请重新获取",
   "error.verification.send_throttled": "验证码发送过于频繁，请稍后再试",

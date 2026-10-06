@@ -281,7 +281,8 @@ class NotificationChannelUnavailableError(BusinessError):
     error is a side channel for probing which addresses exist.
     """
 
-    def __init__(self, channel: str) -> None:
+    def __init__(self, channel: str, *, definitely_rejected: bool = False) -> None:
+        self.definitely_rejected = definitely_rejected
         super().__init__(
             "error.verification.channel_unavailable",
             503,

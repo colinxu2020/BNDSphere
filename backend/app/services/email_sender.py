@@ -28,12 +28,42 @@ def _send_blocking(settings: SmtpSettings, to: str, code: str, minutes: int) -> 
     message["To"] = to
     message.set_content(_BODY.format(code=code, minutes=minutes))
 
-    with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
-        if settings.smtp_starttls:
-            smtp.starttls(context=ssl.create_default_context())
-        if settings.smtp_username:
-            smtp.login(settings.smtp_username, settings.smtp_password)
-        smtp.send_message(message)
+    accepted = False
+    delivery_started = False
+    delivery_rejected = False
+    try:
+        with smtplib.SMTP(settings.smtp_host, settings.smtp_port, timeout=15) as smtp:
+            if settings.smtp_starttls:
+                smtp.starttls(context=ssl.create_default_context())
+            if settings.smtp_username:
+                smtp.login(settings.smtp_username, settings.smtp_password)
+            delivery_started = True
+            try:
+                smtp.send_message(message)
+            except (smtplib.SMTPException, OSError) as err:
+                # QUIT can mask this exception while unwinding the context.
+                delivery_rejected = isinstance(
+                    err, (smtplib.SMTPResponseException, smtplib.SMTPRecipientsRefused)
+                )
+                raise
+            accepted = True
+    except (smtplib.SMTPException, OSError) as err:
+        # A failure during QUIT does not undo a successful DATA response.
+        # Transport failures before that response also leave delivery unknown.
+        raise NotificationChannelUnavailableError(
+            "email",
+            definitely_rejected=not accepted
+            and (
+                delivery_rejected
+                or (
+                    not delivery_started
+                    and isinstance(
+                        err,
+                        (smtplib.SMTPResponseException, smtplib.SMTPRecipientsRefused),
+                    )
+                )
+            ),
+        ) from err
 
 
 class EmailSender:
@@ -57,13 +87,13 @@ class EmailSender:
                     code,
                 )
                 return
-            raise NotificationChannelUnavailableError("email")
+            raise NotificationChannelUnavailableError("email", definitely_rejected=True)
 
         try:
             await asyncio.to_thread(_send_blocking, settings, to, code, minutes)
-        except (smtplib.SMTPException, OSError) as err:
+        except NotificationChannelUnavailableError:
             # The address and the relay's complaint are useful in the log and
             # harmful in the response: a caller must not be able to use
             # delivery errors to probe which addresses exist elsewhere.
             logger.exception("SMTP delivery to %s failed", to)
-            raise NotificationChannelUnavailableError("email") from err
+            raise

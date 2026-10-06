@@ -8409,6 +8409,119 @@
         }
       }
     },
+    "/api/v1/verification/contact-policy": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Contact Policy Status",
+        "operationId": "contact_policy_status_api_v1_verification_contact_policy_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactPolicyStatus"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Accept Contact Policy",
+        "description": "Record explicit acceptance of the version shown before contact binding.",
+        "operationId": "accept_contact_policy_api_v1_verification_contact_policy_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ContactPolicyAcceptance"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ContactPolicyStatus"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The privacy policy version shown is no longer current",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.verification.policy_changed",
+                  "error_code": "CONTACT_POLICY_CHANGED"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        },
+        "security": [
+          {
+            "OAuth2PasswordBearer": []
+          }
+        ]
+      }
+    },
     "/api/v1/verification/email/send": {
       "post": {
         "tags": [
@@ -8463,6 +8576,20 @@
                   "message_key": "error.auth.incorrect_user_passwd",
                   "error_code": "INCORRECT_USER_PASSWD",
                   "details": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit acceptance of the current privacy policy is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.verification.policy_required",
+                  "error_code": "CONTACT_POLICY_REQUIRED"
                 }
               }
             }
@@ -8587,6 +8714,20 @@
               }
             }
           },
+          "403": {
+            "description": "Explicit acceptance of the current privacy policy is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.verification.policy_required",
+                  "error_code": "CONTACT_POLICY_REQUIRED"
+                }
+              }
+            }
+          },
           "409": {
             "description": "The address or number already belongs to another account",
             "content": {
@@ -8673,6 +8814,20 @@
                   "message_key": "error.auth.incorrect_user_passwd",
                   "error_code": "INCORRECT_USER_PASSWD",
                   "details": {}
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit acceptance of the current privacy policy is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.verification.policy_required",
+                  "error_code": "CONTACT_POLICY_REQUIRED"
                 }
               }
             }
@@ -8793,6 +8948,20 @@
                 "example": {
                   "message_key": "error.auth.token_invalid",
                   "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Explicit acceptance of the current privacy policy is required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.verification.policy_required",
+                  "error_code": "CONTACT_POLICY_REQUIRED"
                 }
               }
             }
@@ -10998,6 +11167,45 @@
           "url"
         ],
         "title": "ConfirmUploadResponse"
+      },
+      "ContactPolicyAcceptance": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "format": "date",
+            "title": "Version"
+          },
+          "accepted": {
+            "type": "boolean",
+            "const": true,
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "accepted"
+        ],
+        "title": "ContactPolicyAcceptance"
+      },
+      "ContactPolicyStatus": {
+        "properties": {
+          "version": {
+            "type": "string",
+            "format": "date",
+            "title": "Version"
+          },
+          "accepted": {
+            "type": "boolean",
+            "title": "Accepted"
+          }
+        },
+        "type": "object",
+        "required": [
+          "version",
+          "accepted"
+        ],
+        "title": "ContactPolicyStatus"
       },
       "EmailVerificationConfirm": {
         "properties": {

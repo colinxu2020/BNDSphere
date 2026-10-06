@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import UTC, datetime
 from enum import StrEnum
 
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
+from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.database import Base
@@ -49,6 +49,11 @@ class VerificationCode(Base):
     # ``VERIFICATION_CODE_MAX_ATTEMPTS`` the code is burned, which is what
     # keeps those 20 bits out of reach.
     attempts: Mapped[int] = mapped_column(default=0)
+    # Rejected provider requests spend budget but never supersede a delivered
+    # code. Ambiguous transport errors keep this false: delivery may have occurred.
+    delivery_rejected: Mapped[bool] = mapped_column(
+        Boolean, default=False, server_default="false"
+    )
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     consumed_at: Mapped[datetime | None] = mapped_column(
         DateTime(timezone=True),

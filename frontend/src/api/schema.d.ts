@@ -1567,6 +1567,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/verification/contact-policy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Contact Policy Status */
+        get: operations["contact_policy_status_api_v1_verification_contact_policy_get"];
+        put?: never;
+        /**
+         * Accept Contact Policy
+         * @description Record explicit acceptance of the version shown before contact binding.
+         */
+        post: operations["accept_contact_policy_api_v1_verification_contact_policy_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/verification/email/send": {
         parameters: {
             query?: never;
@@ -2386,6 +2407,29 @@ export interface components {
              * Format: uri
              */
             url: string;
+        };
+        /** ContactPolicyAcceptance */
+        ContactPolicyAcceptance: {
+            /**
+             * Version
+             * Format: date
+             */
+            version: string;
+            /**
+             * Accepted
+             * @constant
+             */
+            accepted: true;
+        };
+        /** ContactPolicyStatus */
+        ContactPolicyStatus: {
+            /**
+             * Version
+             * Format: date
+             */
+            version: string;
+            /** Accepted */
+            accepted: boolean;
         };
         /** EmailVerificationConfirm */
         EmailVerificationConfirm: {
@@ -9529,6 +9573,104 @@ export interface operations {
             };
         };
     };
+    contact_policy_status_api_v1_verification_contact_policy_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactPolicyStatus"];
+                };
+            };
+            /** @description Unauthorized or Token invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.auth.token_invalid",
+                     *       "error_code": "AUTH_TOKEN_INVALID"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+        };
+    };
+    accept_contact_policy_api_v1_verification_contact_policy_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ContactPolicyAcceptance"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ContactPolicyStatus"];
+                };
+            };
+            /** @description The privacy policy version shown is no longer current */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.verification.policy_changed",
+                     *       "error_code": "CONTACT_POLICY_CHANGED"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+            /** @description Unauthorized or Token invalid */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.auth.token_invalid",
+                     *       "error_code": "AUTH_TOKEN_INVALID"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     send_email_code_api_v1_verification_email_send_post: {
         parameters: {
             query?: never;
@@ -9577,6 +9719,21 @@ export interface operations {
                      *       "message_key": "error.auth.incorrect_user_passwd",
                      *       "error_code": "INCORRECT_USER_PASSWD",
                      *       "details": {}
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+            /** @description Explicit acceptance of the current privacy policy is required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.verification.policy_required",
+                     *       "error_code": "CONTACT_POLICY_REQUIRED"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponseModel"];
@@ -9693,6 +9850,21 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorResponseModel"];
                 };
             };
+            /** @description Explicit acceptance of the current privacy policy is required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.verification.policy_required",
+                     *       "error_code": "CONTACT_POLICY_REQUIRED"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
             /** @description The address or number already belongs to another account */
             409: {
                 headers: {
@@ -9767,6 +9939,21 @@ export interface operations {
                      *       "message_key": "error.auth.incorrect_user_passwd",
                      *       "error_code": "INCORRECT_USER_PASSWD",
                      *       "details": {}
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+            /** @description Explicit acceptance of the current privacy policy is required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.verification.policy_required",
+                     *       "error_code": "CONTACT_POLICY_REQUIRED"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponseModel"];
@@ -9878,6 +10065,21 @@ export interface operations {
                      * @example {
                      *       "message_key": "error.auth.token_invalid",
                      *       "error_code": "AUTH_TOKEN_INVALID"
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
+            /** @description Explicit acceptance of the current privacy policy is required */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.verification.policy_required",
+                     *       "error_code": "CONTACT_POLICY_REQUIRED"
                      *     }
                      */
                     "application/json": components["schemas"]["ErrorResponseModel"];

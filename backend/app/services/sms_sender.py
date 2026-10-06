@@ -117,7 +117,7 @@ def _raise_for_api_error(body: dict[str, Any], phone: str) -> None:
             error.get("Code"),
             error.get("Message"),
         )
-        raise NotificationChannelUnavailableError("sms")
+        raise NotificationChannelUnavailableError("sms", definitely_rejected=True)
 
     statuses = response.get("SendStatusSet") or []
     for status in statuses:
@@ -128,7 +128,9 @@ def _raise_for_api_error(body: dict[str, Any], phone: str) -> None:
                 status.get("Code"),
                 status.get("Message"),
             )
-            raise NotificationChannelUnavailableError("sms")
+            raise NotificationChannelUnavailableError(
+                "sms", definitely_rejected=bool(status.get("Code"))
+            )
     if not statuses:
         logger.error("Tencent SMS returned no send status for %s", phone)
         raise NotificationChannelUnavailableError("sms")
@@ -149,7 +151,7 @@ class SmsSender:
                     code,
                 )
                 return
-            raise NotificationChannelUnavailableError("sms")
+            raise NotificationChannelUnavailableError("sms", definitely_rejected=True)
 
         await self._post(settings, phone, code, minutes)
 

@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { Check, Mail, Phone } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
@@ -220,16 +221,111 @@ export function ContactVerification({
   user: UserInfo;
   onVerified: (user: UserInfo) => void;
 }) {
+  return <ContactVerificationForm key={user.id} user={user} onVerified={onVerified} />;
+}
+
+function ContactVerificationForm({
+  user,
+  onVerified,
+}: {
+  user: UserInfo;
+  onVerified: (user: UserInfo) => void;
+}) {
+  const [policy, setPolicy] = useState<components["schemas"]["ContactPolicyStatus"] | null>(null);
+  const [accepted, setAccepted] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+  const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    const controller = new AbortController();
+    setPolicy(null);
+    setAccepted(false);
+    setError(null);
+    client
+      .GET("/api/v1/verification/contact-policy", { signal: controller.signal })
+      .then(({ data, error }) => {
+        if (controller.signal.aborted) return;
+        if (error) setError(error);
+        else if (data) setPolicy(data);
+      })
+      .catch((error) => {
+        if (!controller.signal.aborted) setError(error);
+      });
+    return () => controller.abort();
+  }, [user.id, retry]);
+
+  const acceptPolicy = async () => {
+    if (!policy || !accepted || busy) return;
+    setBusy(true);
+    setError(null);
+    try {
+      const { data, error } = await client.POST("/api/v1/verification/contact-policy", {
+        body: { version: policy.version, accepted: true },
+      });
+      if (error) setError(error);
+      else if (data) setPolicy(data);
+    } catch (error) {
+      setError(error);
+    } finally {
+      setBusy(false);
+    }
+  };
   return (
     <div className="bg-white rounded-md border border-slate-100 shadow-sm p-8">
       <h3 className="text-sm font-bold text-slate-800 mb-1 font-display">联系方式验证</h3>
       <p className="text-xs text-slate-500 mb-2">
         绑定邮箱或手机号是可选的，我们只会用它们发送验证码和账号安全通知。
       </p>
-      <div className="divide-y divide-slate-100">
-        <ChannelRow channel="email" user={user} onVerified={onVerified} />
-        <ChannelRow channel="phone" user={user} onVerified={onVerified} />
-      </div>
+      {error != null && <StatusMessage value={error} />}
+      {!policy && error != null && (
+        <button
+          type="button"
+          onClick={() => setRetry((value) => value + 1)}
+          className="text-sm text-primary-600 underline"
+        >
+          重新检查
+        </button>
+      )}
+      {!policy && !error && <p className="text-sm text-slate-500">正在检查隐私政策同意记录...</p>}
+      {policy && !policy.accepted && (
+        <div className="flex flex-col gap-3 py-3">
+          <p className="text-sm text-slate-600">
+            绑定联系方式前，请阅读更新后的隐私政策，其中说明了邮箱、手机号以及邮件和短信服务商的数据处理方式。
+          </p>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={accepted}
+              onChange={(event) => setAccepted(event.target.checked)}
+            />
+            <span>
+              我已阅读并同意{" "}
+              <Link
+                className="text-primary-600 underline"
+                to="/legal/privacy-policy"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                隐私政策（{policy.version}）
+              </Link>
+            </span>
+          </label>
+          <button
+            type="button"
+            disabled={!accepted || busy}
+            onClick={() => void acceptPolicy()}
+            className="self-start rounded-md bg-primary-500 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
+          >
+            {busy ? "保存中..." : "同意并继续"}
+          </button>
+        </div>
+      )}
+      {policy?.accepted && (
+        <div className="divide-y divide-slate-100">
+          <ChannelRow channel="email" user={user} onVerified={onVerified} />
+          <ChannelRow channel="phone" user={user} onVerified={onVerified} />
+        </div>
+      )}
     </div>
   );
 }

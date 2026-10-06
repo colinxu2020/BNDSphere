@@ -111,6 +111,36 @@ VERIFICATION_CODE_INVALID_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     },
 }
 
+CONTACT_POLICY_REQUIRED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    403: {
+        "model": ErrorResponseModel,
+        "description": "Explicit acceptance of the current privacy policy is required",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.policy_required",
+                    "error_code": "CONTACT_POLICY_REQUIRED",
+                }
+            }
+        },
+    },
+}
+
+CONTACT_POLICY_CHANGED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    400: {
+        "model": ErrorResponseModel,
+        "description": "The privacy policy version shown is no longer current",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.verification.policy_changed",
+                    "error_code": "CONTACT_POLICY_CHANGED",
+                }
+            }
+        },
+    },
+}
+
 CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
     400: {
         "model": ErrorResponseModel,

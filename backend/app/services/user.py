@@ -97,7 +97,7 @@ class UserService(
                     error_code="DUPLICATE_USERNAME",
                     details={"username": obj_in.username},
                 ) from None
-            if constraint_name == "uq_users_email":
+            if constraint_name in {"uq_users_email", "uq_users_email_lower"}:
                 raise DuplicateResourceError(
                     message_key="error.user.duplicate_email",
                     error_code="DUPLICATE_EMAIL",
