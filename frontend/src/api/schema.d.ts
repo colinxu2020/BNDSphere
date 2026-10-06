@@ -1654,8 +1654,7 @@ export interface components {
     };
     /** AdminUserUpdate */
     AdminUserUpdate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Email */
       email?: string | null;
       /** Avatar Uri */
@@ -3188,8 +3187,7 @@ export interface components {
     };
     /** UserRegistration */
     UserRegistration: {
-      /** Username */
-      username: string;
+      username: components["schemas"]["Username"];
       /** Password */
       password: string;
       /**
@@ -3212,8 +3210,7 @@ export interface components {
     };
     /** UserUpdateRequestCreate */
     UserUpdateRequestCreate: {
-      /** Username */
-      username?: string | null;
+      username?: components["schemas"]["Username"] | null;
       /** Avatar Uri */
       avatar_uri?: string | null;
       /** Description */
@@ -3246,6 +3243,7 @@ export interface components {
       description?: string | null;
       grade?: components["schemas"]["UserGradeEnum"] | null;
     };
+    Username: string;
     /** ValidationError */
     ValidationError: {
       /** Location */
