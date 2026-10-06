@@ -10,6 +10,7 @@ from app.schemas.club import (
     AdminClubCreate,
     AdminClubUpdate,
     ClubInfo,
+    ClubSummary,
 )
 from app.services.errors import (
     ClubNotFoundError,
@@ -40,7 +41,11 @@ async def create_club(
 ) -> ClubInfo:
     """Create an active, unclaimed club with an optional historical creation time."""
     try:
-        club_created = await service.create(club, status=ClubStatusEnum.normal)
+        club_created = await service.create(
+            club,
+            status=ClubStatusEnum.normal,
+            claimed=False,
+        )
     except DuplicateClubNameError:
         raise DuplicateResourceError(
             message_key="error.club.duplicate_club_name",
@@ -57,9 +62,9 @@ async def list_clubs(
     search: str | None = None,
     category: ClubCategoryEnum | None = None,
     club_status: ClubStatusEnum | None = None,
-) -> Page[ClubInfo]:
+) -> Page[ClubSummary]:
     """Search Clubs. For admin."""
-    return Page[ClubInfo].model_validate(
+    return Page[ClubSummary].model_validate(
         await service.get_multi(search, category, club_status),
     )
 

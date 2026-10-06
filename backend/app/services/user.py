@@ -82,12 +82,25 @@ class UserService(
     async def update(self, db_obj: User, obj_in: AdminUserUpdate) -> User:
         try:
             return await super().update(db_obj, obj_in)
-        except IntegrityError:
-            raise DuplicateResourceError(
-                message_key="error.user.duplicate_email",
-                error_code="DUPLICATE_EMAIL",
-                details={"email": obj_in.email},
-            ) from None
+        except IntegrityError as exc:
+            constraint_name = getattr(
+                getattr(exc.orig, "diag", None),
+                "constraint_name",
+                None,
+            )
+            if constraint_name == "ix_users_username":
+                raise DuplicateResourceError(
+                    message_key="error.user.duplicate_username",
+                    error_code="DUPLICATE_USERNAME",
+                    details={"username": obj_in.username},
+                ) from None
+            if constraint_name == "uq_users_email":
+                raise DuplicateResourceError(
+                    message_key="error.user.duplicate_email",
+                    error_code="DUPLICATE_EMAIL",
+                    details={"email": obj_in.email},
+                ) from None
+            raise
 
 
 class UserUpdateRequestService(
@@ -148,30 +161,42 @@ class UserUpdateRequestService(
         moderation: RequestModeratePublic,
         moderator: User,
     ) -> UserUpdateRequest:
-        async with self.transaction():
-            request = await self._get_with_lock(request_id)
-            if request is None:
-                raise ResourceNotFoundError(
-                    "error.user_update_request.not_found",
-                    "USER_UPDATE_REQUEST_NOT_FOUND",
+        requested_username: str | None = None
+        try:
+            async with self.transaction():
+                request = await self._get_with_lock(request_id)
+                if request is None:
+                    raise ResourceNotFoundError(
+                        "error.user_update_request.not_found",
+                        "USER_UPDATE_REQUEST_NOT_FOUND",
+                    ) from None
+                if request.moderation_status != ModerationStatusEnum.pending:
+                    raise ResourceForbiddenError(
+                        "error.user_update_request.moderated",
+                        "USER_UPDATE_REQUEST_MODERATED",
+                    ) from None
+
+                request_user = await self.user_repository.get(request.user_id)
+                if request_user is None:
+                    raise UserNotFoundError(request.user_id) from None
+
+                if moderation.moderation_status == ModerationStatusEnum.approved:
+                    if "username" in request.update_fields:
+                        requested_username = request.username
+                    await self.user_repository.update(
+                        request_user,
+                        build_update_payload(request, AdminUserUpdate),
+                    )
+
+                return await self.moderate_request(request, moderation, moderator)
+        except IntegrityError:
+            if requested_username is not None:
+                raise DuplicateResourceError(
+                    message_key="error.user.duplicate_username",
+                    error_code="DUPLICATE_USERNAME",
+                    details={"username": requested_username},
                 ) from None
-            if request.moderation_status != ModerationStatusEnum.pending:
-                raise ResourceForbiddenError(
-                    "error.user_update_request.moderated",
-                    "USER_UPDATE_REQUEST_MODERATED",
-                ) from None
-
-            request_user = await self.user_repository.get(request.user_id)
-            if request_user is None:
-                raise UserNotFoundError(request.user_id) from None
-
-            if moderation.moderation_status == ModerationStatusEnum.approved:
-                await self.user_repository.update(
-                    request_user,
-                    build_update_payload(request, AdminUserUpdate),
-                )
-
-            return await self.moderate_request(request, moderation, moderator)
+            raise
 
     async def supersede_pending_requests_by_user(self, user_id: int) -> None:
         try:

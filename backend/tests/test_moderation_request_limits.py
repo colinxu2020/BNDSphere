@@ -31,3 +31,16 @@ def test_user_update_request_rejects_overlong_fields() -> None:
         )
     with pytest.raises(ValidationError):
         UserUpdateRequestCreate(username="x" * (constants.USER_MAX_USERNAME_LENGTH + 1))
+
+
+@pytest.mark.parametrize("username", ["", "   "])
+def test_user_update_request_rejects_a_blank_username(username: str) -> None:
+    with pytest.raises(ValidationError):
+        UserUpdateRequestCreate(username=username)
+
+
+def test_user_update_request_rejects_username_boundaries_like_admin_update() -> None:
+    # Approval replays the stored request through AdminUserUpdate, so both
+    # schemas must agree on what a valid username is.
+    with pytest.raises(ValidationError):
+        UserUpdateRequestCreate(username="  bob  ")

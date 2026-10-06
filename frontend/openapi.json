@@ -35,6 +35,41 @@
         "security": [{ "OAuth2PasswordBearer": [] }]
       }
     },
+    "/api/v1/users/me/clubs/": {
+      "get": {
+        "tags": ["Users"],
+        "summary": "List Current User Clubs",
+        "description": "List the current user's clubs with their role in each (Summary tier).\n\nIncludes pending / member / president / vice_president; excludes left.",
+        "operationId": "list_current_user_clubs_api_v1_users_me_clubs__get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "items": { "$ref": "#/components/schemas/UserClubMembership" },
+                  "type": "array",
+                  "title": "Response List Current User Clubs Api V1 Users Me Clubs  Get"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized or Token invalid",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" },
+                "example": {
+                  "message_key": "error.auth.token_invalid",
+                  "error_code": "AUTH_TOKEN_INVALID"
+                }
+              }
+            }
+          }
+        },
+        "security": [{ "OAuth2PasswordBearer": [] }]
+      }
+    },
     "/api/v1/users/{user_id}": {
       "get": {
         "tags": ["Users"],
@@ -256,72 +291,6 @@
             "description": "Incorrect username or password",
             "content": {
               "application/json": { "example": { "detail": "Incorrect username or password" } }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/v1/clubs/managed/": {
-      "get": {
-        "tags": ["Clubs"],
-        "summary": "List Managed Clubs",
-        "description": "List active and unreviewed clubs managed by the current user.",
-        "operationId": "list_managed_clubs_api_v1_clubs_managed__get",
-        "security": [{ "OAuth2PasswordBearer": [] }],
-        "parameters": [
-          {
-            "name": "page",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "minimum": 1,
-              "description": "Page number",
-              "default": 1,
-              "title": "Page"
-            },
-            "description": "Page number"
-          },
-          {
-            "name": "size",
-            "in": "query",
-            "required": false,
-            "schema": {
-              "type": "integer",
-              "maximum": 100,
-              "minimum": 1,
-              "description": "Page size",
-              "default": 50,
-              "title": "Size"
-            },
-            "description": "Page size"
-          }
-        ],
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
-            }
-          },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                },
-                "schema": { "$ref": "#/components/schemas/ErrorResponseModel" }
-              }
             }
           },
           "422": {
@@ -657,7 +626,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubSummary_" } }
             }
           },
           "422": {
@@ -1246,6 +1215,44 @@
             "content": {
               "application/json": {
                 "schema": { "$ref": "#/components/schemas/Page_ClubActivityInfo_" }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/HTTPValidationError" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/v1/clubs/{club_id}/activities/refs/": {
+      "get": {
+        "tags": ["Club Activities"],
+        "summary": "Get Club Activity Refs",
+        "description": "List activity identities with the same visibility as the full list.",
+        "operationId": "get_club_activity_refs_api_v1_clubs__club_id__activities_refs__get",
+        "parameters": [
+          {
+            "name": "club_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "title": "Club Id" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/ClubActivityRef" },
+                  "title": "Response Get Club Activity Refs Api V1 Clubs  Club Id  Activities Refs  Get"
+                }
               }
             }
           },
@@ -1997,7 +2004,7 @@
           "200": {
             "description": "Successful Response",
             "content": {
-              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubInfo_" } }
+              "application/json": { "schema": { "$ref": "#/components/schemas/Page_ClubSummary_" } }
             }
           },
           "403": {
@@ -6467,7 +6474,7 @@
       "AcademicTermCreate": {
         "properties": {
           "term_name": {
-            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 50, "minLength": 1 }, { "type": "null" }],
             "title": "Term Name"
           },
           "start_date": { "type": "string", "format": "date", "title": "Start Date" },
@@ -6493,7 +6500,7 @@
       "AcademicTermUpdate": {
         "properties": {
           "term_name": {
-            "anyOf": [{ "type": "string", "maxLength": 50 }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 50, "minLength": 1 }, { "type": "null" }],
             "title": "Term Name"
           },
           "start_date": {
@@ -6556,7 +6563,10 @@
       },
       "AdminUserUpdate": {
         "properties": {
-          "username": { "anyOf": [{ "type": "string" }, { "type": "null" }], "title": "Username" },
+          "username": {
+            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
+            "title": "Username"
+          },
           "email": {
             "anyOf": [{ "type": "string", "maxLength": 64, "format": "email" }, { "type": "null" }],
             "title": "Email"
@@ -6893,6 +6903,16 @@
         "required": ["token"],
         "title": "ClubActivityQrCheckInRequest"
       },
+      "ClubActivityRef": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "title": "Name" }
+        },
+        "type": "object",
+        "required": ["id", "name"],
+        "title": "ClubActivityRef",
+        "description": "Minimal activity identity for references and selectors."
+      },
       "ClubActivityUpdateRequestCreatePublic": {
         "properties": {
           "name": {
@@ -7194,7 +7214,8 @@
           "club_activities",
           "general_activity_records"
         ],
-        "title": "ClubInfo"
+        "title": "ClubInfo",
+        "description": "Info 档: 完整形状, 含关联集合; 只由详情类接口返回."
       },
       "ClubMemberAssignableRoleEnum": {
         "type": "string",
@@ -7296,6 +7317,48 @@
         "type": "string",
         "enum": ["unreviewed", "normal", "archived"],
         "title": "ClubStatusEnum"
+      },
+      "ClubSummary": {
+        "properties": {
+          "id": { "type": "integer", "title": "Id" },
+          "name": { "type": "string", "maxLength": 128, "title": "Name" },
+          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
+          "summary": { "type": "string", "maxLength": 50, "title": "Summary" },
+          "description": { "type": "string", "maxLength": 4000, "title": "Description" },
+          "logo_uri": {
+            "anyOf": [
+              { "type": "string", "maxLength": 255, "minLength": 1, "format": "uri" },
+              { "type": "null" }
+            ],
+            "title": "Logo Uri"
+          },
+          "created_at": { "type": "string", "format": "date-time", "title": "Created At" },
+          "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
+          "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" },
+          "president": {
+            "anyOf": [{ "$ref": "#/components/schemas/ClubMemberUserInfo" }, { "type": "null" }]
+          },
+          "vice_presidents": {
+            "items": { "$ref": "#/components/schemas/ClubMemberUserInfo" },
+            "type": "array",
+            "title": "Vice Presidents"
+          }
+        },
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "category",
+          "summary",
+          "description",
+          "created_at",
+          "status",
+          "star_level",
+          "president",
+          "vice_presidents"
+        ],
+        "title": "ClubSummary",
+        "description": "Summary 档: 列表一行所需的字段, 不携带任何集合; 额外携带社长与副社长."
       },
       "ClubUpdate": {
         "properties": {
@@ -7972,22 +8035,6 @@
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubGeneralActivityInfo]"
       },
-      "Page_ClubInfo_": {
-        "properties": {
-          "items": {
-            "items": { "$ref": "#/components/schemas/ClubInfo" },
-            "type": "array",
-            "title": "Items"
-          },
-          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
-          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
-          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
-          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
-        },
-        "type": "object",
-        "required": ["items", "total", "page", "size", "pages"],
-        "title": "Page[ClubInfo]"
-      },
       "Page_ClubMembershipRequestInfo_": {
         "properties": {
           "items": {
@@ -8019,6 +8066,22 @@
         "type": "object",
         "required": ["items", "total", "page", "size", "pages"],
         "title": "Page[ClubRef]"
+      },
+      "Page_ClubSummary_": {
+        "properties": {
+          "items": {
+            "items": { "$ref": "#/components/schemas/ClubSummary" },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": { "type": "integer", "minimum": 0.0, "title": "Total" },
+          "page": { "type": "integer", "minimum": 1.0, "title": "Page" },
+          "size": { "type": "integer", "minimum": 1.0, "title": "Size" },
+          "pages": { "type": "integer", "minimum": 0.0, "title": "Pages" }
+        },
+        "type": "object",
+        "required": ["items", "total", "page", "size", "pages"],
+        "title": "Page[ClubSummary]"
       },
       "Page_ClubUpdateRequestInfo_": {
         "properties": {
@@ -8402,7 +8465,7 @@
             "anyOf": [{ "$ref": "#/components/schemas/UserGradeEnum" }, { "type": "null" }]
           },
           "club_id": { "type": "integer", "title": "Club Id" },
-          "club": { "$ref": "#/components/schemas/StarLevelClubInfo" },
+          "club": { "$ref": "#/components/schemas/ClubSummary" },
           "academic_term": { "$ref": "#/components/schemas/AcademicTermInfo" },
           "audit_status": {
             "anyOf": [{ "$ref": "#/components/schemas/AuditStatusEnum" }, { "type": "null" }]
@@ -8511,25 +8574,6 @@
         },
         "type": "object",
         "title": "StarLevelApplicationUpdate"
-      },
-      "StarLevelClubInfo": {
-        "properties": {
-          "id": { "type": "integer", "title": "Id" },
-          "name": { "type": "string", "title": "Name" },
-          "category": { "$ref": "#/components/schemas/ClubCategoryEnum" },
-          "logo_uri": {
-            "anyOf": [
-              { "type": "string", "maxLength": 2083, "minLength": 1, "format": "uri" },
-              { "type": "null" }
-            ],
-            "title": "Logo Uri"
-          },
-          "status": { "$ref": "#/components/schemas/ClubStatusEnum" },
-          "star_level": { "$ref": "#/components/schemas/ClubStarLevelEnum" }
-        },
-        "type": "object",
-        "required": ["id", "name", "category", "logo_uri", "status", "star_level"],
-        "title": "StarLevelClubInfo"
       },
       "StarRatingBreakdown": {
         "properties": {
@@ -8658,6 +8702,16 @@
         ],
         "title": "UploadScene"
       },
+      "UserClubMembership": {
+        "properties": {
+          "membership": { "$ref": "#/components/schemas/ClubMembershipEnum" },
+          "club": { "$ref": "#/components/schemas/ClubSummary" }
+        },
+        "type": "object",
+        "required": ["membership", "club"],
+        "title": "UserClubMembership",
+        "description": "当前用户在一个社团中的角色, 连同该社团的 Summary."
+      },
       "UserGradeEnum": {
         "type": "string",
         "enum": [
@@ -8711,7 +8765,7 @@
       },
       "UserRegistration": {
         "properties": {
-          "username": { "type": "string", "maxLength": 32, "title": "Username" },
+          "username": { "type": "string", "maxLength": 32, "minLength": 1, "title": "Username" },
           "password": { "type": "string", "minLength": 6, "title": "Password" },
           "accepted_privacy_policy": {
             "type": "boolean",
@@ -8744,7 +8798,7 @@
       "UserUpdateRequestCreate": {
         "properties": {
           "username": {
-            "anyOf": [{ "type": "string", "maxLength": 32 }, { "type": "null" }],
+            "anyOf": [{ "type": "string", "maxLength": 32, "minLength": 1 }, { "type": "null" }],
             "title": "Username"
           },
           "avatar_uri": {

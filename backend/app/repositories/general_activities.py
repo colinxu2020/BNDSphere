@@ -58,6 +58,7 @@ class GeneralActivityRepository(
         stmt = select(self.model).order_by(
             GeneralActivity.starts_at.desc().nullslast(),
             GeneralActivity.created_at.desc(),
+            GeneralActivity.id.desc(),
         )
         if public_only:
             stmt = stmt.options(_PUBLIC_RECORDS_OPTION)
@@ -86,8 +87,21 @@ class ClubGeneralActivityRepository(
 ):
     model = ClubGeneralActivityRecord
 
+    async def get_with_lock(self, id_: int) -> ClubGeneralActivityRecord | None:
+        result = await self.db.execute(
+            select(self.model)
+            .where(self.model.id == id_)
+            .with_for_update()
+            .execution_options(populate_existing=True),
+        )
+        return result.scalars().first()
+
     async def get_by_club(self, club: Club) -> Page[ClubGeneralActivityRecord]:
-        stmt = select(self.model).where(self.model.club == club)
+        stmt = (
+            select(self.model)
+            .where(self.model.club == club)
+            .order_by(self.model.created_at.desc(), self.model.id.desc())
+        )
         return cast("Page[ClubGeneralActivityRecord]", await apaginate(self.db, stmt))
 
     async def find_by_club_and_activity(

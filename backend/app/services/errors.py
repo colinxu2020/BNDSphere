@@ -18,6 +18,16 @@ class BusinessError(Exception):
         super().__init__(error_code)
 
 
+class VicePresidentLimitReachedError(BusinessError):
+    def __init__(self, club_id: int) -> None:
+        super().__init__(
+            "error.club.vice_president_limit_reached",
+            409,
+            "VICE_PRESIDENT_LIMIT_REACHED",
+            {"club_id": club_id},
+        )
+
+
 class AuthenticationError(BusinessError):
     def __init__(
         self,

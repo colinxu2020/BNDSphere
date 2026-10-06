@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { motion } from "motion/react";
 import { Check, Clock, FilePenLine, RefreshCw, X } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
@@ -6,6 +6,7 @@ import type { components } from "../api/schema";
 import { GRADE_MAP, MODERATION_STATUS_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import { moderationDetails } from "../lib/moderationDetails";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 import {
   Badge,
   EmptyState,
@@ -18,6 +19,8 @@ import {
   Surface,
 } from "../components/ui/AppPrimitives";
 import { ForbiddenPage, isForbiddenResponse, PageLoading } from "../components/ui/PageStates";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type UserRequest = components["schemas"]["UserUpdateRequestInfo"];
 type ActivityCreateRequest = components["schemas"]["ClubActivityCreateRequestInfo"];
@@ -74,9 +77,13 @@ function renderRequestDetails(item: ModerationItem) {
         </div>
       )}
       {visibleRows.map(([label, value]) => (
-        <div key={label} className="grid grid-cols-[80px_1fr] gap-3 text-sm">
+        <div key={label} className="grid grid-cols-[80px_minmax(0,1fr)] gap-3 text-sm">
           <span className="font-semibold text-slate-500">{label}</span>
-          <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
+          {label === ("user_id" in item ? "简介" : "描述") ? (
+            <MarkdownContent value={String(value)} />
+          ) : (
+            <span className="whitespace-pre-wrap break-words text-slate-700">{String(value)}</span>
+          )}
         </div>
       ))}
     </div>
@@ -85,80 +92,78 @@ function renderRequestDetails(item: ModerationItem) {
 
 export function Moderation() {
   const [activeQueue, setActiveQueue] = useState<QueueKey>("users");
-  const [items, setItems] = useState<ModerationItem[]>([]);
-  const [activityCreateRequests, setActivityCreateRequests] = useState<ActivityCreateRequest[]>([]);
-  const [activityUpdateRequests, setActivityUpdateRequests] = useState<ActivityUpdateRequest[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isForbidden, setIsForbidden] = useState(false);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
   const [busyId, setBusyId] = useState<number | null>(null);
   const [busyActivityRequest, setBusyActivityRequest] = useState<string | null>(null);
 
+  const checkForbidden = (response?: Response, error?: unknown) => {
+    if (isForbiddenResponse(response, error)) setIsForbidden(true);
+  };
+  const loadUserRequestsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/moderations/users/update-requests", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    checkForbidden(response.response, response.error);
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const loadClubRequestsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/moderations/clubs/update-requests", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    checkForbidden(response.response, response.error);
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const loadActivityCreateRequestsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/moderations/club-activities/create-requests", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    checkForbidden(response.response, response.error);
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const loadActivityUpdateRequestsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/moderations/club-activities/update-requests", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    checkForbidden(response.response, response.error);
+    return getPageResult(response.data, response.error, page);
+  }, []);
+
+  const userRequests = useInfiniteList<UserRequest>(loadUserRequestsPage, activeQueue === "users");
+  const clubRequests = useInfiniteList<ClubUpdateRequest>(
+    loadClubRequestsPage,
+    activeQueue === "clubUpdate",
+  );
+  const activityCreateRequests = useInfiniteList<ActivityCreateRequest>(
+    loadActivityCreateRequestsPage,
+    activeQueue === "activities",
+  );
+  const activityUpdateRequests = useInfiniteList<ActivityUpdateRequest>(
+    loadActivityUpdateRequestsPage,
+    activeQueue === "activities",
+  );
+  const activeList = activeQueue === "users" ? userRequests : clubRequests;
+  const items: ModerationItem[] = activeList.items;
+  const isLoading =
+    activeQueue === "activities"
+      ? activityCreateRequests.isInitialLoading || activityUpdateRequests.isInitialLoading
+      : activeList.isInitialLoading;
   const loadRequests = async () => {
-    setIsLoading(true);
     setIsForbidden(false);
-    setLoadError(null);
-    try {
-      if (activeQueue === "users") {
-        const response = await client.GET("/api/v1/moderations/users/update-requests", {
-          params: { query: { size: 50 } },
-        });
-        setItems(response.error ? [] : response.data?.items || []);
-        if (response.error) {
-          setLoadError(response.error);
-          if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
-        }
-      }
-
-      if (activeQueue === "clubUpdate") {
-        const response = await client.GET("/api/v1/moderations/clubs/update-requests", {
-          params: { query: { size: 50 } },
-        });
-        setItems(response.error ? [] : response.data?.items || []);
-        if (response.error) {
-          setLoadError(response.error);
-          if (isForbiddenResponse(response.response, response.error)) setIsForbidden(true);
-        }
-      }
-
-      if (activeQueue === "activities") {
-        const [createResponse, updateResponse] = await Promise.all([
-          client.GET("/api/v1/moderations/club-activities/create-requests", {
-            params: { query: { size: 50 } },
-          }),
-          client.GET("/api/v1/moderations/club-activities/update-requests", {
-            params: { query: { size: 50 } },
-          }),
-        ]);
-
-        setActivityCreateRequests(createResponse.error ? [] : createResponse.data?.items || []);
-        setActivityUpdateRequests(updateResponse.error ? [] : updateResponse.data?.items || []);
-        const firstError = createResponse.error || updateResponse.error;
-        if (firstError) setLoadError(firstError);
-        if (
-          isForbiddenResponse(createResponse.response, createResponse.error) ||
-          isForbiddenResponse(updateResponse.response, updateResponse.error)
-        ) {
-          setIsForbidden(true);
-        }
-      }
-    } catch (error) {
-      setLoadError(error);
-      setItems([]);
-      setActivityCreateRequests([]);
-      setActivityUpdateRequests([]);
-    } finally {
-      setIsLoading(false);
+    if (activeQueue === "activities") {
+      await Promise.all([activityCreateRequests.reload(), activityUpdateRequests.reload()]);
+    } else {
+      await activeList.reload();
     }
   };
 
   useEffect(() => {
     setMessage(null);
-    loadRequests();
-    // activeQueue is the explicit trigger; loadRequests is recreated from it.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeQueue]);
 
   const setResult = (error: unknown, successMessage: string) => {
@@ -188,7 +193,13 @@ export function Moderation() {
             });
 
       setResult(result.error, moderationStatus === "approved" ? "审核已通过" : "审核已驳回");
-      if (!result.error) loadRequests();
+      if (!result.error) {
+        if (activeQueue === "users") {
+          await userRequests.reload();
+        } else {
+          await clubRequests.reload();
+        }
+      }
     } catch (error) {
       setResult(error, "");
     } finally {
@@ -221,7 +232,10 @@ export function Moderation() {
         result.error,
         moderationStatus === "approved" ? "社团活动申请已通过" : "社团活动申请已驳回",
       );
-      if (!result.error) loadRequests();
+      if (!result.error) {
+        const requestList = kind === "create" ? activityCreateRequests : activityUpdateRequests;
+        await requestList.reload();
+      }
     } catch (error) {
       setResult(error, "");
     } finally {
@@ -251,7 +265,6 @@ export function Moderation() {
       />
 
       {message && <StatusMessage value={message} tone={messageTone} />}
-      {loadError && <StatusMessage value={loadError} />}
 
       <PageTabs<QueueKey>
         tabs={QUEUES}
@@ -270,16 +283,18 @@ export function Moderation() {
               <ActivityRequestList
                 title="活动创建申请"
                 kind="create"
-                items={activityCreateRequests}
+                items={activityCreateRequests.items}
                 busyKey={busyActivityRequest}
                 onModerate={moderateClubActivityRequest}
+                pagination={activityCreateRequests}
               />
               <ActivityRequestList
                 title="活动修改申请"
                 kind="update"
-                items={activityUpdateRequests}
+                items={activityUpdateRequests.items}
                 busyKey={busyActivityRequest}
                 onModerate={moderateClubActivityRequest}
+                pagination={activityUpdateRequests}
               />
             </div>
           )}
@@ -291,6 +306,7 @@ export function Moderation() {
           isLoading={isLoading}
           busyId={busyId}
           onModerate={moderateRequest}
+          pagination={activeList}
         />
       )}
     </motion.div>
@@ -303,12 +319,17 @@ function ModerationRequestList({
   isLoading,
   busyId,
   onModerate,
+  pagination,
 }: {
   title: string;
   items: ModerationItem[];
   isLoading: boolean;
   busyId: number | null;
   onModerate: (requestId: number, moderationStatus: ModerationStatus) => void;
+  pagination: Pick<
+    ReturnType<typeof useInfiniteList<ModerationItem>>,
+    "hasMore" | "isLoadingMore" | "error" | "loadMore"
+  >;
 }) {
   return (
     <Surface>
@@ -359,6 +380,14 @@ function ModerationRequestList({
       ) : (
         <EmptyState title="没有待处理请求" />
       )}
+      {!isLoading && (
+        <InfiniteScrollTrigger
+          hasMore={pagination.hasMore}
+          isLoading={pagination.isLoadingMore}
+          error={pagination.error}
+          onLoadMore={pagination.loadMore}
+        />
+      )}
     </Surface>
   );
 }
@@ -369,6 +398,7 @@ function ActivityRequestList({
   items,
   busyKey,
   onModerate,
+  pagination,
 }: {
   title: string;
   kind: ActivityModerationKind;
@@ -379,6 +409,10 @@ function ActivityRequestList({
     requestId: number,
     moderationStatus: ModerationStatus,
   ) => void;
+  pagination: Pick<
+    ReturnType<typeof useInfiniteList<ActivityCreateRequest | ActivityUpdateRequest>>,
+    "hasMore" | "isLoadingMore" | "error" | "loadMore"
+  >;
 }) {
   return (
     <div className="grid gap-3">
@@ -387,54 +421,62 @@ function ActivityRequestList({
         <Badge tone={items.length ? "yellow" : "slate"}>{items.length} 条待处理</Badge>
       </div>
       {items.length ? (
-        items.map((item) => {
-          const itemBusyKey = `${kind}-${item.id}`;
-          return (
-            <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-4">
-              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                <div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone="yellow">{MODERATION_STATUS_MAP[item.moderation_status]}</Badge>
-                    <span className="text-xs font-medium text-slate-400">
-                      申请 #{item.id} · {getActivityRequestTarget(item)}
-                    </span>
+        <>
+          {items.map((item) => {
+            const itemBusyKey = `${kind}-${item.id}`;
+            return (
+              <div key={item.id} className="rounded-md border border-slate-100 bg-slate-50 p-4">
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge tone="yellow">{MODERATION_STATUS_MAP[item.moderation_status]}</Badge>
+                      <span className="text-xs font-medium text-slate-400">
+                        申请 #{item.id} · {getActivityRequestTarget(item)}
+                      </span>
+                    </div>
+                    <h4 className="mt-2 font-semibold text-slate-900">
+                      {"name" in item && item.name ? item.name : "活动修改申请"}
+                    </h4>
+                    <p className="mt-1 text-xs font-medium text-slate-400">
+                      <Clock size={14} className="mr-1 inline" />
+                      {formatDateTime(item.request_at)}
+                    </p>
                   </div>
-                  <h4 className="mt-2 font-semibold text-slate-900">
-                    {"name" in item && item.name ? item.name : "活动修改申请"}
-                  </h4>
-                  <p className="mt-1 text-xs font-medium text-slate-400">
-                    <Clock size={14} className="mr-1 inline" />
-                    {formatDateTime(item.request_at)}
-                  </p>
+                  <div className="flex gap-2">
+                    <PrimaryButton
+                      type="button"
+                      className="px-4 py-2.5"
+                      loading={busyKey === itemBusyKey}
+                      onClick={() => onModerate(kind, item.id, "approved")}
+                    >
+                      <Check size={16} /> 通过
+                    </PrimaryButton>
+                    <SecondaryButton
+                      type="button"
+                      disabled={busyKey === itemBusyKey}
+                      onClick={() => onModerate(kind, item.id, "rejected")}
+                      className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
+                    >
+                      <X size={16} /> 驳回
+                    </SecondaryButton>
+                  </div>
                 </div>
-                <div className="flex gap-2">
-                  <PrimaryButton
-                    type="button"
-                    className="px-4 py-2.5"
-                    loading={busyKey === itemBusyKey}
-                    onClick={() => onModerate(kind, item.id, "approved")}
-                  >
-                    <Check size={16} /> 通过
-                  </PrimaryButton>
-                  <SecondaryButton
-                    type="button"
-                    disabled={busyKey === itemBusyKey}
-                    onClick={() => onModerate(kind, item.id, "rejected")}
-                    className="border-red-100 bg-red-50 text-red-700 hover:bg-red-100"
-                  >
-                    <X size={16} /> 驳回
-                  </SecondaryButton>
+                <div className="mt-4 rounded-md border border-slate-100 bg-white p-3">
+                  {renderActivityRequestDetails(item)}
                 </div>
               </div>
-              <div className="mt-4 rounded-md border border-slate-100 bg-white p-3">
-                {renderActivityRequestDetails(item)}
-              </div>
-            </div>
-          );
-        })
+            );
+          })}
+        </>
       ) : (
         <EmptyState title="没有待处理申请" />
       )}
+      <InfiniteScrollTrigger
+        hasMore={pagination.hasMore}
+        isLoading={pagination.isLoadingMore}
+        error={pagination.error}
+        onLoadMore={pagination.loadMore}
+      />
     </div>
   );
 }

@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { motion } from "motion/react";
 import {
   Award,
@@ -42,6 +42,8 @@ import {
 import { cn } from "../lib/utils";
 import { FederationClubClaims } from "./FederationClubClaims";
 import { FederationJointActivities } from "./FederationJointActivities";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
@@ -67,10 +69,6 @@ export function Federation() {
   const [clubClaimsRefreshToken, setClubClaimsRefreshToken] = useState(0);
   const [isClubClaimsLoading, setIsClubClaimsLoading] = useState(false);
   const [clubClaimsVisited, setClubClaimsVisited] = useState(false);
-  const [activities, setActivities] = useState<GeneralActivity[]>([]);
-  const [starApplications, setStarApplications] = useState<StarApplication[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [loadError, setLoadError] = useState<unknown>(null);
   const [message, setMessage] = useState<unknown>(null);
   const [messageTone, setMessageTone] = useState<"error" | "success">("error");
 
@@ -99,6 +97,36 @@ export function Federation() {
   const [starPreview, setStarPreview] = useState<StarReviewPreview | null>(null);
   const [isStarPreviewLoading, setIsStarPreviewLoading] = useState(false);
   const [isStarReviewing, setIsStarReviewing] = useState(false);
+
+  const loadActivitiesPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/club-federation/general-activity/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const loadStarApplicationsPage = useCallback(async (page: number, signal: AbortSignal) => {
+    const response = await client.GET("/api/v1/star-level/", {
+      params: { query: { page, size: DEFAULT_PAGE_SIZE } },
+      signal,
+    });
+    return getPageResult(response.data, response.error, page);
+  }, []);
+  const activityList = useInfiniteList<GeneralActivity>(loadActivitiesPage);
+  const starList = useInfiniteList<StarApplication>(loadStarApplicationsPage);
+  const activities = activityList.items;
+  const starApplications = useMemo(
+    () =>
+      starList.items
+        .filter(
+          (application) =>
+            application.academic_term.is_current && application.audit_status !== "approved",
+        )
+        .sort(sortStarApplications),
+    [starList.items],
+  );
+  const isLoading =
+    activeTab === "starLevel" ? starList.isInitialLoading : activityList.isInitialLoading;
 
   const selectedActivity = useMemo(
     () => activities.find((activity) => activity.id === selectedActivityId),
@@ -134,45 +162,8 @@ export function Federation() {
   );
 
   const loadWorkspace = async () => {
-    setIsLoading(true);
-    setLoadError(null);
-    try {
-      const [activityResponse, starResponse] = await Promise.all([
-        // 社联审核需要看到 pending 记录, 走社联专用端点 (公开端点只回显已审核记录).
-        client.GET("/api/v1/club-federation/general-activity/", {
-          params: { query: { size: 50 } },
-        }),
-        client.GET("/api/v1/star-level/", {
-          params: { query: { size: 50 } },
-        }),
-      ]);
-
-      setActivities(activityResponse.error ? [] : activityResponse.data?.items || []);
-      setStarApplications(
-        starResponse.error
-          ? []
-          : (starResponse.data?.items || [])
-              .filter(
-                (application) =>
-                  application.academic_term.is_current && application.audit_status !== "approved",
-              )
-              .sort(sortStarApplications),
-      );
-
-      const firstError = activityResponse.error || starResponse.error;
-      if (firstError) setLoadError(firstError);
-    } catch (error) {
-      setLoadError(error);
-      setActivities([]);
-      setStarApplications([]);
-    } finally {
-      setIsLoading(false);
-    }
+    await Promise.all([activityList.reload(), starList.reload()]);
   };
-
-  useEffect(() => {
-    loadWorkspace();
-  }, []);
 
   useEffect(() => {
     if (!selectedStarApplication) {
@@ -480,10 +471,6 @@ export function Federation() {
       {activeTab !== "jointActivities" && activeTab !== "clubClaims" && message && (
         <StatusMessage value={message} tone={messageTone} />
       )}
-      {activeTab !== "jointActivities" && activeTab !== "clubClaims" && loadError && (
-        <StatusMessage value={loadError} />
-      )}
-
       <Surface className={activeTab === "activities" ? undefined : "hidden"}>
         <SectionTitle icon={<ShieldCheck size={20} />} title="审核社团大型活动记录" />
         <div className={cn("grid gap-6", selectedRecord && "lg:grid-cols-[1fr_360px]")}>
@@ -518,8 +505,16 @@ export function Federation() {
                   </p>
                 </button>
               ))
-            ) : (
+            ) : !activityList.hasMore ? (
               <EmptyState title="暂无社团综评记录" />
+            ) : null}
+            {!isLoading && (
+              <InfiniteScrollTrigger
+                hasMore={activityList.hasMore}
+                isLoading={activityList.isLoadingMore}
+                error={activityList.error}
+                onLoadMore={activityList.loadMore}
+              />
             )}
           </div>
 
@@ -545,48 +540,59 @@ export function Federation() {
                     <X size={16} /> 收起
                   </SecondaryButton>
                 </div>
-                <Field label="审核状态">
-                  <select
-                    className={selectClassName}
-                    value={recordStatus}
-                    onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
-                  >
-                    {AUDIT_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <Field label="最终分值">
-                  <input
-                    className={inputClassName}
-                    type="number"
-                    value={recordScore}
-                    onChange={(event) => setRecordScore(event.target.value)}
-                  />
-                </Field>
-                {selectedRecord.proof_files.length > 0 && (
-                  <div className="rounded-md bg-slate-50 p-3">
-                    <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
-                    <div className="grid gap-1">
-                      {selectedRecord.proof_files.map((file, index) => (
-                        <a
-                          key={file}
-                          href={file}
-                          target="_blank"
-                          rel="noreferrer"
-                          className="truncate text-sm font-medium text-primary-600 hover:text-primary-700"
-                        >
-                          材料 {index + 1}
-                        </a>
+                {/* A reviewed record is final — the server refuses a second
+                    review — so it is shown for reference, not as a form. */}
+                <fieldset
+                  disabled={selectedRecord.audit_status !== "pending"}
+                  className="grid gap-4 disabled:opacity-60"
+                >
+                  <Field label="审核状态">
+                    <select
+                      className={selectClassName}
+                      value={recordStatus}
+                      onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
+                    >
+                      {AUDIT_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
                       ))}
+                    </select>
+                  </Field>
+                  <Field label="最终分值">
+                    <input
+                      className={inputClassName}
+                      type="number"
+                      value={recordScore}
+                      onChange={(event) => setRecordScore(event.target.value)}
+                    />
+                  </Field>
+                  {selectedRecord.proof_files.length > 0 && (
+                    <div className="rounded-md bg-slate-50 p-3">
+                      <p className="mb-2 text-sm font-semibold text-slate-700">证明材料</p>
+                      <div className="grid gap-1">
+                        {selectedRecord.proof_files.map((file, index) => (
+                          <a
+                            key={file}
+                            href={file}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="truncate text-sm font-medium text-primary-600 hover:text-primary-700"
+                          >
+                            材料 {index + 1}
+                          </a>
+                        ))}
+                      </div>
                     </div>
-                  </div>
+                  )}
+                </fieldset>
+                {selectedRecord.audit_status === "pending" ? (
+                  <PrimaryButton type="submit" loading={isRecordUpdating}>
+                    <Save size={18} /> 更新记录
+                  </PrimaryButton>
+                ) : (
+                  <p className="text-sm text-slate-500">该记录已审核，不能再次修改。</p>
                 )}
-                <PrimaryButton type="submit" loading={isRecordUpdating}>
-                  <Save size={18} /> 更新记录
-                </PrimaryButton>
               </div>
             </form>
           )}
@@ -639,6 +645,12 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无星级评价表" />
             )}
+            <InfiniteScrollTrigger
+              hasMore={starList.hasMore}
+              isLoading={starList.isLoadingMore}
+              error={starList.error}
+              onLoadMore={starList.loadMore}
+            />
           </div>
 
           {selectedStarApplication && (
@@ -784,6 +796,12 @@ export function Federation() {
             ) : (
               <EmptyState title="暂无大型活动" />
             )}
+            <InfiniteScrollTrigger
+              hasMore={activityList.hasMore}
+              isLoading={activityList.isLoadingMore}
+              error={activityList.error}
+              onLoadMore={activityList.loadMore}
+            />
           </div>
 
           {activityEditorMode && (

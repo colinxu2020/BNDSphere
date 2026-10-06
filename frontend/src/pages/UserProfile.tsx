@@ -6,6 +6,7 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { formatDate } from "../lib/format";
 import { EmptyState, PageHeader, StatusMessage, Surface } from "../components/ui/AppPrimitives";
+import { MarkdownContent } from "../components/ui/MarkdownContent";
 
 type PublicUserInfo = components["schemas"]["PublicUserInfo"];
 
@@ -89,9 +90,7 @@ export function UserProfile() {
 
             <div className="mt-8 p-5 bg-slate-50 rounded-md border border-slate-100">
               <h3 className="text-sm font-bold text-slate-800 mb-2 font-display">个人简介</h3>
-              <p className="text-slate-600 leading-relaxed">
-                {user.description || "暂无个人简介。"}
-              </p>
+              <MarkdownContent value={user.description || "暂无个人简介。"} />
             </div>
           </div>
         </Surface>

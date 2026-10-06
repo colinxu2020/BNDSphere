@@ -22,7 +22,10 @@ class AcademicTermRepository(
         )
 
     async def get_multi(self) -> Page[AcademicTerm]:
-        stmt = select(AcademicTerm).order_by(AcademicTerm.start_date.desc())
+        stmt = select(AcademicTerm).order_by(
+            AcademicTerm.start_date.desc(),
+            AcademicTerm.id.desc(),
+        )
         return cast("Page[AcademicTerm]", await apaginate(self.db, stmt))
 
     async def set_current(self, term: AcademicTerm) -> AcademicTerm:

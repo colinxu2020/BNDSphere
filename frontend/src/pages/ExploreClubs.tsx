@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useCallback, useState } from "react";
 import { motion } from "motion/react";
 import { Plus, Search, Filter, Hash, Sparkles } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
@@ -6,10 +6,13 @@ import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
 import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
-import { PageHeader, StatusMessage } from "../components/ui/AppPrimitives";
+import { ClubPresident } from "../components/ui/ClubPresident";
+import { PageHeader } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
+import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
+import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
-type ClubInfo = components["schemas"]["ClubInfo"];
+type ClubSummary = components["schemas"]["ClubSummary"];
 type Category = components["schemas"]["ClubCategoryEnum"];
 
 const CATEGORIES: { label: string; value: Category | "all" }[] = [
@@ -18,45 +21,33 @@ const CATEGORIES: { label: string; value: Category | "all" }[] = [
 ];
 
 export function ExploreClubs() {
-  const [clubs, setClubs] = useState<ClubInfo[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [activeCategory, setActiveCategory] = useState<Category | "all">("all");
-  const [error, setError] = useState<unknown>(null);
-
-  useEffect(() => {
-    const fetchClubs = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const { data, error } = await client.GET("/api/v1/clubs/", {
-          params: {
-            query: {
-              size: 50,
-              search: search || undefined,
-              category: activeCategory !== "all" ? activeCategory : undefined,
-            },
+  const loadClubsPage = useCallback(
+    async (page: number, signal: AbortSignal) => {
+      const { data, error } = await client.GET("/api/v1/clubs/", {
+        params: {
+          query: {
+            page,
+            size: DEFAULT_PAGE_SIZE,
+            search: search || undefined,
+            category: activeCategory !== "all" ? activeCategory : undefined,
           },
-        });
-
-        if (error) {
-          setError(error);
-          setClubs([]);
-        } else if (data?.items) {
-          setClubs(data.items);
-        } else {
-          setClubs([]);
-        }
-      } catch (e) {
-        setError(e);
-        setClubs([]);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchClubs();
-  }, [search, activeCategory]);
+        },
+        signal,
+      });
+      return getPageResult(data, error, page);
+    },
+    [search, activeCategory],
+  );
+  const {
+    items: clubs,
+    hasMore,
+    isInitialLoading,
+    isLoadingMore,
+    error,
+    loadMore,
+  } = useInfiniteList<ClubSummary>(loadClubsPage);
 
   return (
     <motion.div
@@ -112,9 +103,7 @@ export function ExploreClubs() {
         </div>
       </div>
 
-      {error && <StatusMessage value={error} />}
-
-      {isLoading ? (
+      {isInitialLoading ? (
         <PageLoading compact />
       ) : clubs.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -123,7 +112,7 @@ export function ExploreClubs() {
               key={club.id}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: idx * 0.05, duration: 0.3 }}
+              transition={{ delay: Math.min(idx, DEFAULT_PAGE_SIZE) * 0.05, duration: 0.3 }}
             >
               <Link
                 to={`/club/${club.id}`}
@@ -140,7 +129,7 @@ export function ExploreClubs() {
                     <Hash className="text-slate-400 stroke-[1.5]" size={28} />
                   )}
                 </div>
-                <div className="flex flex-col">
+                <div className="flex min-w-0 flex-col">
                   <div className="flex gap-2 items-center mb-1">
                     <span className="text-[10px] font-bold tracking-wider uppercase text-primary-600 bg-primary-50 px-2.5 py-0.5 rounded-md">
                       {CATEGORY_MAP[club.category] || club.category}
@@ -155,6 +144,9 @@ export function ExploreClubs() {
                     {club.name}
                   </h3>
                   <p className="text-slate-500 text-sm mt-1.5 line-clamp-2">{club.summary}</p>
+                  <div className="mt-3">
+                    <ClubPresident president={club.president} />
+                  </div>
                 </div>
               </Link>
             </motion.div>
@@ -179,6 +171,14 @@ export function ExploreClubs() {
             清除筛选条件
           </button>
         </div>
+      )}
+      {!isInitialLoading && (
+        <InfiniteScrollTrigger
+          hasMore={hasMore}
+          isLoading={isLoadingMore}
+          error={error}
+          onLoadMore={loadMore}
+        />
       )}
     </motion.div>
   );
