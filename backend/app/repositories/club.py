@@ -90,7 +90,7 @@ class ClubRepository(RepositoryBase[Club, ClubCreate, ClubUpdate]):
     ) -> Page[Club]:
         if public_only and (search is None or not search.strip()):
             stmt = select(Club).order_by(
-                (Club.description != "").desc(),
+                Club.claimed.desc(),
                 Club.star_level.desc(),
                 Club.id.asc(),
             )
