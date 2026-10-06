@@ -4,7 +4,6 @@ import { canCancelClubActivity, countCurrentTermActivities } from "./clubActivit
 
 test("uncancelled activities remain reachable regardless of the device clock", () => {
   assert.equal(canCancelClubActivity({ cancelled_at: null }), true);
-  assert.equal(canCancelClubActivity({ cancelled_at: null }), true);
   assert.equal(canCancelClubActivity({ cancelled_at: "2026-09-28T12:00:00Z" }), false);
 });
 
