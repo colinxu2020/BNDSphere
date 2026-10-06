@@ -1825,6 +1825,10 @@ export interface components {
     };
     /** ClubActivityCreateRequestInfo */
     ClubActivityCreateRequestInfo: {
+      /** Requestor Username */
+      requestor_username?: string | null;
+      /** Club Name */
+      club_name?: string | null;
       /** Name */
       name: string;
       /** Description */
@@ -1848,8 +1852,6 @@ export interface components {
       moderate_at?: string | null;
       /** Requestor Id */
       requestor_id: number;
-      /** Requestor Username */
-      requestor_username?: string | null;
       /**
        * Request At
        * Format: date-time
@@ -1857,8 +1859,6 @@ export interface components {
       request_at: string;
       /** Club Id */
       club_id: number;
-      /** Club Name */
-      club_name?: string | null;
     };
     /** ClubActivityInfo */
     ClubActivityInfo: {
@@ -3219,10 +3219,12 @@ export interface components {
     };
     /** UserUpdateRequestInfo */
     UserUpdateRequestInfo: {
-      /** Id */
-      id: number;
+      /** Requestor Username */
+      requestor_username?: string | null;
       /** Update Fields */
       update_fields?: string[];
+      /** Id */
+      id: number;
       moderation_status: components["schemas"]["ModerationStatusEnum"];
       /** Moderate At */
       moderate_at?: string | null;
@@ -3233,8 +3235,6 @@ export interface components {
       request_at: string;
       /** User Id */
       user_id: number;
-      /** Requestor Username */
-      requestor_username?: string | null;
       /** Username */
       username?: string | null;
       /** Avatar Uri */
