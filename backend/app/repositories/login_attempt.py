@@ -39,41 +39,47 @@ class LoginAttemptRepository(
             ),
         )
 
-    async def count_failures_since(self, username: str, since: datetime) -> int:
-        result = await self.db.execute(
+    async def count_since(
+        self, username: str, since: datetime, *, failures_only: bool = True
+    ) -> int:
+        query = (
             select(func.count())
             .select_from(LoginAttempt)
             .where(
                 LoginAttempt.username == username,
-                LoginAttempt.successful.is_(False),
                 LoginAttempt.created_at >= since,
-            ),
+            )
+        )
+        if failures_only:
+            query = query.where(LoginAttempt.successful.is_(False))
+        result = await self.db.execute(
+            query,
         )
         return int(result.scalar_one())
 
-    async def failure_expiry_boundary(
+    async def expiry_boundary(
         self,
         username: str,
         since: datetime,
         rank: int,
+        *,
+        failures_only: bool = True,
     ) -> datetime | None:
-        """Creation time of the ``rank``-th oldest in-window failure (0-based).
+        """Creation time of the ``rank``-th oldest in-window attempt (0-based).
 
-        The lockout lifts once the in-window failure count drops below the
+        The lockout lifts once the in-window attempt count drops below the
         threshold; that happens when the ``count - threshold + 1``-th oldest
-        failure ages out, i.e. the entry at 0-based offset
+        attempt ages out, i.e. the entry at 0-based offset
         ``count - threshold``. Returns ``None`` when fewer rows exist.
         """
+        query = select(LoginAttempt.created_at).where(
+            LoginAttempt.username == username,
+            LoginAttempt.created_at >= since,
+        )
+        if failures_only:
+            query = query.where(LoginAttempt.successful.is_(False))
         result = await self.db.execute(
-            select(LoginAttempt.created_at)
-            .where(
-                LoginAttempt.username == username,
-                LoginAttempt.successful.is_(False),
-                LoginAttempt.created_at >= since,
-            )
-            .order_by(LoginAttempt.created_at.asc())
-            .offset(rank)
-            .limit(1),
+            query.order_by(LoginAttempt.created_at.asc()).offset(rank).limit(1),
         )
         return result.scalar_one_or_none()
 

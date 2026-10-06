@@ -20,7 +20,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.dependencies import get_contact_verification_service
 from app.core import constants
 from app.main import app
-from app.models import User, VerificationCode
+from app.models import LoginAttempt, User, VerificationCode
 from app.models.legal_consent import (
     CURRENT_LEGAL_DOCUMENT_VERSIONS,
     LegalConsent,
@@ -107,6 +107,169 @@ async def _clear_cooldown(db_session: AsyncSession, username: str) -> None:
         .values(created_at=datetime.now(UTC) - timedelta(hours=2)),
     )
     await db_session.flush()
+
+
+class TestContactReauthenticationBudget:
+    configured_users: ClassVar[dict[str, ConfiguredUser]]
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {"username": "reauth_binder", "password": PASSWORD},
+        {
+            "username": "reauth_owner",
+            "password": PASSWORD,
+            "email": "occupied@example.com",
+            "phone": "+8613800138000",
+        },
+    ]
+
+    @pytest.mark.parametrize("channel", ["email", "phone"])
+    async def test_owned_target_spends_password_budget_before_hashing(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,
+        monkeypatch: pytest.MonkeyPatch,
+        channel: str,
+    ) -> None:
+        from app.services import auth
+
+        hashes = 0
+        original = auth.verify_password
+
+        def count_hashes(password: str, hashed_password: str) -> bool:
+            nonlocal hashes
+            hashes += 1
+            return original(password, hashed_password)
+
+        monkeypatch.setattr(auth, "verify_password", count_hashes)
+        headers = self.configured_users["reauth_binder"]["headers"]
+        targets = {"email": "occupied@example.com", "phone": "+8613800138000"}
+        for _ in range(constants.LOGIN_LOCKOUT_THRESHOLD):
+            response = await client.post(
+                f"/verification/{channel}/send",
+                headers=headers,
+                json={channel: targets[channel], "password": PASSWORD},
+            )
+            assert response.status_code == 409
+
+        # A successful ordinary login still works, but cannot reset this budget.
+        auth_service = AuthService(
+            UserRepository(db_session), LoginAttemptRepository(db_session)
+        )
+        assert await auth_service.authenticate("reauth_binder", PASSWORD, ip=None)
+        other = "phone" if channel == "email" else "email"
+        response = await client.post(
+            f"/verification/{other}/send",
+            headers=headers,
+            json={other: targets[other], "password": PASSWORD},
+        )
+        assert response.status_code == 429
+        assert response.json()["error_code"] == "LOGIN_THROTTLED"
+        assert 3500 < int(response.headers["Retry-After"]) <= 3600
+        assert hashes == constants.LOGIN_LOCKOUT_THRESHOLD + 1
+        attempts = (
+            await db_session.scalars(
+                select(LoginAttempt).where(
+                    LoginAttempt.username == "reauth_binder",
+                    LoginAttempt.created_at >= datetime.now(UTC) - timedelta(hours=1),
+                )
+            )
+        ).all()
+        assert len(attempts) == constants.LOGIN_LOCKOUT_THRESHOLD + 1
+        assert all(attempt.successful for attempt in attempts)
+        assert not sender.sent
+
+        # Let those attempts expire so the other parameter starts with a fresh window.
+        await db_session.execute(
+            update(LoginAttempt)
+            .where(LoginAttempt.username == "reauth_binder")
+            .values(created_at=datetime.now(UTC) - timedelta(hours=2))
+        )
+        await db_session.commit()
+
+
+class TestContactConfirmationAtomicity:
+    configured_users: ClassVar[dict[str, ConfiguredUser]]
+    USER_SPECS: ClassVar[list[dict[str, str]]] = [
+        {
+            "username": "atomic_binder",
+            "password": PASSWORD,
+            "email": "original@example.com",
+            "phone": "+8613900139000",
+        },
+        {"username": "atomic_owner", "password": PASSWORD},
+    ]
+
+    @pytest.mark.parametrize("channel", ["email", "phone"])
+    async def test_binding_conflict_preserves_code_and_wrong_guess_count(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,
+        channel: str,
+    ) -> None:
+        headers = self.configured_users["atomic_binder"]["headers"]
+        target = "atomic@example.com" if channel == "email" else "+8613800138000"
+        original = "original@example.com" if channel == "email" else "+8613900139000"
+        response = await client.post(
+            f"/verification/{channel}/send",
+            headers=headers,
+            json={channel: target, "password": PASSWORD},
+        )
+        assert response.status_code == 202
+        code = sender.last_code
+        wrong = "000000" if code != "000000" else "111111"
+        response = await client.post(
+            f"/verification/{channel}/confirm",
+            headers=headers,
+            json={channel: target, "code": wrong},
+        )
+        assert response.status_code == 400
+
+        # Another account takes the target after issuance, exercising the real
+        # database uniqueness constraint rather than a mocked binding failure.
+        await db_session.execute(
+            update(User)
+            .where(User.username == "atomic_owner")
+            .values({channel: target})
+        )
+        await db_session.commit()
+        response = await client.post(
+            f"/verification/{channel}/confirm",
+            headers=headers,
+            json={channel: target, "code": code},
+        )
+        assert response.status_code == 409
+        record = (
+            await db_session.scalars(
+                select(VerificationCode).where(VerificationCode.target == target)
+            )
+        ).one()
+        assert record.consumed_at is None
+        assert record.attempts == 1
+        assert (
+            await db_session.scalar(
+                select(getattr(User, channel)).where(User.username == "atomic_binder")
+            )
+            == original
+        )
+        await db_session.execute(
+            update(User).where(User.username == "atomic_owner").values({channel: None})
+        )
+        await db_session.commit()
+        response = await client.post(
+            f"/verification/{channel}/confirm",
+            headers=headers,
+            json={channel: target, "code": code},
+        )
+        assert response.status_code == 200
+        assert response.json()[channel] == target
+        assert response.json()[f"{channel}_verified_at"] is not None
+        response = await client.post(
+            f"/verification/{channel}/confirm",
+            headers=headers,
+            json={channel: target, "code": code},
+        )
+        assert response.status_code == 400
 
 
 class TestEmailVerification:

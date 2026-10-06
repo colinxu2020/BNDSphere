@@ -1,8 +1,9 @@
 from urllib.parse import urlsplit
 
-from fastapi import HTTPException, Request
+from fastapi import Request
 
 from app.core.settings import web_settings
+from app.services.errors import UntrustedOriginError
 
 
 def ensure_trusted_origin(request: Request) -> None:
@@ -23,7 +24,7 @@ def ensure_trusted_origin(request: Request) -> None:
     origin = request.headers.get("origin")
     if origin is not None:
         if origin in {"null", "*"} or (not wildcard and origin not in trusted):
-            raise HTTPException(status_code=403, detail="Untrusted request origin")
+            raise UntrustedOriginError
         return
     referer = request.headers.get("referer")
     if referer is not None:
@@ -33,8 +34,8 @@ def ensure_trusted_origin(request: Request) -> None:
         except ValueError:
             referer_origin = ""
         if not wildcard and referer_origin not in trusted:
-            raise HTTPException(status_code=403, detail="Untrusted request origin")
+            raise UntrustedOriginError
         return
     if request.headers.get("sec-fetch-site") in {"cross-site", "same-site"}:
-        raise HTTPException(status_code=403, detail="Untrusted request origin")
+        raise UntrustedOriginError
     # Non-browser API clients may have neither origin header nor Fetch Metadata.

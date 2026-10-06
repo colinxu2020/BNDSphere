@@ -3765,6 +3765,22 @@ export interface operations {
                     "application/json": unknown;
                 };
             };
+            /** @description Untrusted browser request origin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.auth.untrusted_origin",
+                     *       "error_code": "UNTRUSTED_ORIGIN",
+                     *       "details": {}
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -3791,6 +3807,22 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Untrusted browser request origin */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    /**
+                     * @example {
+                     *       "message_key": "error.auth.untrusted_origin",
+                     *       "error_code": "UNTRUSTED_ORIGIN",
+                     *       "details": {}
+                     *     }
+                     */
+                    "application/json": components["schemas"]["ErrorResponseModel"];
+                };
             };
         };
     };

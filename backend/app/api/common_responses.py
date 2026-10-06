@@ -47,6 +47,23 @@ PERMISSION_DENIED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     },
 }
 
+UNTRUSTED_ORIGIN_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
+    403: {
+        "model": ErrorResponseModel,
+        "description": "Untrusted browser request origin",
+        "content": {
+            "application/json": {
+                "example": {
+                    "message_key": "error.auth.untrusted_origin",
+                    "error_code": "UNTRUSTED_ORIGIN",
+                    "details": {},
+                },
+            },
+        },
+    },
+}
+
+
 RESOURCE_NOT_FOUND_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
     404: {
         "model": ErrorResponseModel,

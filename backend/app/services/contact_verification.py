@@ -369,13 +369,13 @@ class ContactVerificationService(
         await self._ensure_contact_policy(user)
         email = normalize_email(raw_email)
         await self._consume(user, VerificationChannelEnum.email, email, code)
-        return await self._bind(user, email=email)
+        return user
 
     async def confirm_phone_code(self, user: User, raw_phone: str, code: str) -> User:
         await self._ensure_contact_policy(user)
         phone = normalize_phone(raw_phone)
         await self._consume(user, VerificationChannelEnum.sms, phone, code)
-        return await self._bind(user, phone=phone)
+        return user
 
     async def _consume(
         self,
@@ -401,6 +401,17 @@ class ContactVerificationService(
                 )
                 if accepted:
                     await self.repository.mark_consumed(record, now)
+                    # Binding joins this transaction: a failed write must not
+                    # consume the code, while rejected guesses still commit.
+                    await self._bind(
+                        user,
+                        email=target
+                        if channel is VerificationChannelEnum.email
+                        else None,
+                        phone=target
+                        if channel is VerificationChannelEnum.sms
+                        else None,
+                    )
                 else:
                     await self.repository.record_attempt(record)
 

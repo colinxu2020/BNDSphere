@@ -44,6 +44,8 @@ class TestSessionCookie:
         [
             {"Origin": "https://attacker.example"},
             {"Origin": "null"},
+            {"Referer": "https://attacker.example/settings"},
+            {"Referer": "http://[invalid"},
             {"Sec-Fetch-Site": "cross-site"},
             {"Sec-Fetch-Site": "same-site"},
         ],
@@ -70,6 +72,11 @@ class TestSessionCookie:
             },
         )
         assert response.status_code == 403
+        assert response.json() == {
+            "message_key": "error.auth.untrusted_origin",
+            "error_code": "UNTRUSTED_ORIGIN",
+            "details": {},
+        }
         assert "set-cookie" not in response.headers
         # Origin rejection happens before challenge consumption.
         response = await client.post(

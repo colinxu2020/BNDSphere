@@ -113,6 +113,11 @@ class BusinessPermissionError(BusinessError):
         super().__init__(message_key, 403, error_code, details)
 
 
+class UntrustedOriginError(BusinessPermissionError):
+    def __init__(self) -> None:
+        super().__init__("error.auth.untrusted_origin", "UNTRUSTED_ORIGIN")
+
+
 class StarLevelApplicationUpdateDeniedError(BusinessPermissionError):
     def __init__(self, star_level_id: int) -> None:
         super().__init__(

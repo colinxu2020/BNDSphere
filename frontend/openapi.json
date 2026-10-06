@@ -388,6 +388,21 @@
               }
             }
           },
+          "403": {
+            "description": "Untrusted browser request origin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.auth.untrusted_origin",
+                  "error_code": "UNTRUSTED_ORIGIN",
+                  "details": {}
+                }
+              }
+            }
+          },
           "422": {
             "description": "Validation Error",
             "content": {
@@ -412,6 +427,21 @@
         "responses": {
           "204": {
             "description": "Successful Response"
+          },
+          "403": {
+            "description": "Untrusted browser request origin",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponseModel"
+                },
+                "example": {
+                  "message_key": "error.auth.untrusted_origin",
+                  "error_code": "UNTRUSTED_ORIGIN",
+                  "details": {}
+                }
+              }
+            }
           }
         },
         "security": [

@@ -3,7 +3,10 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.security import OAuth2PasswordRequestForm
 
-from app.api.common_responses import ALTCHA_VERIFICATION_FAILED_RESPONSE
+from app.api.common_responses import (
+    ALTCHA_VERIFICATION_FAILED_RESPONSE,
+    UNTRUSTED_ORIGIN_RESPONSE,
+)
 from app.api.dependencies import (
     AltchaServiceDep,
     AuthServiceDep,
@@ -107,6 +110,7 @@ async def register(
     response_model=Token,
     dependencies=[Depends(login_rate_limit)],
     responses=ALTCHA_VERIFICATION_FAILED_RESPONSE
+    | UNTRUSTED_ORIGIN_RESPONSE
     | {
         401: {
             "description": "Incorrect username or password",
@@ -159,7 +163,11 @@ async def login(
     )
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    responses=UNTRUSTED_ORIGIN_RESPONSE,
+)
 async def logout(
     response: Response,
     session_service: UserSessionServiceDep,
