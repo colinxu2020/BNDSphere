@@ -7,7 +7,8 @@ type GeneralActivity = Pick<
 type ClubActivity = Pick<
   components["schemas"]["ClubActivityInfo"],
   "id" | "name" | "description" | "start_time"
->;
+> &
+  Partial<Pick<components["schemas"]["ClubActivityInfo"], "cancelled_at">>;
 type CalendarActivity = {
   key: string;
   id: number;
@@ -29,13 +30,15 @@ export function buildMonthCalendar(
       description: activity.description,
       startsAt: activity.starts_at || activity.created_at,
     })),
-    ...clubActivities.map((activity) => ({
-      key: `club-${activity.id}`,
-      id: activity.id,
-      name: activity.name,
-      description: activity.description,
-      startsAt: activity.start_time,
-    })),
+    ...clubActivities
+      .filter((activity) => !activity.cancelled_at)
+      .map((activity) => ({
+        key: `club-${activity.id}`,
+        id: activity.id,
+        name: activity.name,
+        description: activity.description,
+        startsAt: activity.start_time,
+      })),
   ];
   const year = today.getFullYear();
   const month = today.getMonth();

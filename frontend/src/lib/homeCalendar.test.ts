@@ -4,6 +4,33 @@ import { buildMonthCalendar } from "./homeCalendar.ts";
 
 const today = new Date(2026, 9, 10);
 
+test("cancelled club activities leave no scheduled calendar dot or tooltip", () => {
+  const calendar = buildMonthCalendar(
+    [],
+    [
+      {
+        id: 1,
+        name: "Cancelled",
+        description: "",
+        start_time: "2026-10-15T09:00:00",
+        cancelled_at: "2026-10-01",
+      },
+      {
+        id: 2,
+        name: "Scheduled",
+        description: "",
+        start_time: "2026-10-15T15:00:00",
+        cancelled_at: null,
+      },
+    ],
+    today,
+  );
+  assert.deepEqual(
+    calendar.days.flatMap((day) => day.activities).map((activity) => activity.name),
+    ["Scheduled"],
+  );
+});
+
 test("general and club activities on the same day retain distinct identities", () => {
   const calendar = buildMonthCalendar(
     [

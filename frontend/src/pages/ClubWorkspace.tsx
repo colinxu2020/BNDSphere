@@ -37,7 +37,7 @@ import {
   toNumberOrZero,
 } from "../lib/format";
 import { formatWorkspaceLoadErrors } from "../lib/workspaceErrors";
-import { canCancelClubActivity } from "../lib/clubActivityCancellation";
+import { canCancelClubActivity, countCurrentTermActivities } from "../lib/clubActivityCancellation";
 import {
   Badge,
   DangerButton,
@@ -434,9 +434,7 @@ export function ClubWorkspace() {
   const activeMembers = (club?.members || [])
     .filter((member) => ["member", "president", "vice_president"].includes(member.membership))
     .sort((left, right) => membershipOrder(left.membership) - membershipOrder(right.membership));
-  const currentTermActivityCount = activities.filter(
-    (activityItem) => activityItem.academic_term.is_current && !activityItem.cancelled_at,
-  ).length;
+  const currentTermActivityCount = countCurrentTermActivities(activities);
 
   const selectActivityForUpdate = (activityItem: ClubActivity) => {
     if (activityItem.cancelled_at) return;

@@ -1,23 +1,20 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { canCancelClubActivity } from "./clubActivityCancellation.ts";
+import { canCancelClubActivity, countCurrentTermActivities } from "./clubActivityCancellation.ts";
 
-const now = new Date("2026-09-29T12:00:00Z");
+test("uncancelled activities remain reachable regardless of the device clock", () => {
+  assert.equal(canCancelClubActivity({ cancelled_at: null }), true);
+  assert.equal(canCancelClubActivity({ cancelled_at: null }), true);
+  assert.equal(canCancelClubActivity({ cancelled_at: "2026-09-28T12:00:00Z" }), false);
+});
 
-test("only an upcoming uncancelled activity can be cancelled", () => {
+test("public and workspace totals exclude cancelled and other-term activities", () => {
   assert.equal(
-    canCancelClubActivity({ start_time: "2026-09-30T12:00:00Z", cancelled_at: null }, now),
-    true,
-  );
-  assert.equal(
-    canCancelClubActivity({ start_time: "2026-09-29T12:00:00Z", cancelled_at: null }, now),
-    false,
-  );
-  assert.equal(
-    canCancelClubActivity(
-      { start_time: "2026-09-30T12:00:00Z", cancelled_at: "2026-09-28T12:00:00Z" },
-      now,
-    ),
-    false,
+    countCurrentTermActivities([
+      { cancelled_at: null, academic_term: { is_current: true } },
+      { cancelled_at: "2026-10-01", academic_term: { is_current: true } },
+      { cancelled_at: null, academic_term: { is_current: false } },
+    ]),
+    1,
   );
 });

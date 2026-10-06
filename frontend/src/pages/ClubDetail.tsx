@@ -20,6 +20,7 @@ import type { components } from "../api/schema";
 import { StatusMessage } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
 import { CATEGORY_MAP, MEMBERSHIP_MAP } from "../lib/labels";
+import { countCurrentTermActivities } from "../lib/clubActivityCancellation";
 
 type ClubInfo = components["schemas"]["ClubInfo"];
 type UserInfo = components["schemas"]["UserInfo"];
@@ -499,7 +500,7 @@ export function ClubDetail() {
               <div className="text-right">
                 <p className="text-sm text-slate-500 font-medium">已组织活动</p>
                 <p className="text-base font-semibold text-slate-900">
-                  {club.club_activities?.length || 0} 场 / 学期
+                  {countCurrentTermActivities(club.club_activities ?? [])} 场 / 学期
                 </p>
               </div>
             </div>
