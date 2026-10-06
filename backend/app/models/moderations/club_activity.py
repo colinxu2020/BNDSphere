@@ -68,6 +68,20 @@ class ClubActivityUpdateRequest(Base, ModerationMixin, RequestorMixin):
         .scalar_subquery(),
     )
 
+    club_id: Mapped[int] = column_property(
+        select(ClubActivity.club_id)
+        .where(ClubActivity.id == club_activity_id)
+        .correlate_except(ClubActivity)
+        .scalar_subquery(),
+    )
+    club_name: Mapped[str | None] = column_property(
+        select(Club.name)
+        .join(ClubActivity, ClubActivity.club_id == Club.id)
+        .where(ClubActivity.id == club_activity_id)
+        .correlate_except(Club, ClubActivity)
+        .scalar_subquery(),
+    )
+
     name: Mapped[str | None] = mapped_column(
         String(constants.ACTIVITY_MAX_NAME_LENGTH),
         default=None,

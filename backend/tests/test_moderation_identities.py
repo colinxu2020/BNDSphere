@@ -108,6 +108,9 @@ class TestModerationIdentities:
             assert item["username"] == "Proposed username"
         elif queue == "club-activities/update-requests":
             assert item.get("club_activity_name") == "Current activity"
+            assert item["club_name"] == "Current club"
+            assert isinstance(item["club_id"], int)
+            assert item["update_fields"] == ["name"]
             assert item["name"] == "Proposed activity"
         else:
             assert item.get("club_name") == "Current club"

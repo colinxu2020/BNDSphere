@@ -62,7 +62,7 @@ function renderRequestDetails(item: ModerationItem) {
     rows.push(["logo_uri", "Logo", item.logo_uri]);
   }
 
-  const visibleRows = moderationDetails("user_id" in item ? item.update_fields : undefined, rows);
+  const visibleRows = moderationDetails(item.update_fields, rows);
   return (
     <div className="grid gap-2">
       {"requestor_id" in item && (
@@ -494,18 +494,18 @@ function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpda
   if ("club_id" in item) rows.push(["社团", identityLabel(item.club_name, item.club_id)]);
   if ("club_activity_id" in item)
     rows.push(["原活动", identityLabel(item.club_activity_name, item.club_activity_id)]);
-  if ("name" in item) rows.push(["名称", item.name]);
-  if ("description" in item) rows.push(["描述", item.description]);
-  if ("start_time" in item) {
-    rows.push(["开始时间", item.start_time ? formatDateTime(item.start_time) : null]);
-  }
-  if ("end_time" in item) {
-    rows.push(["结束时间", item.end_time ? formatDateTime(item.end_time) : null]);
-  }
-  if ("location" in item) rows.push(["地点", item.location]);
-  if ("picture_urls" in item) rows.push(["图片", item.picture_urls?.join("\n")]);
-
-  const visibleRows = rows.filter(([, value]) => value != null && value !== "");
+  const changes: [string, string, unknown][] = [
+    ["name", "名称", item.name],
+    ["description", "描述", item.description],
+    ["start_time", "开始时间", item.start_time ? formatDateTime(item.start_time) : null],
+    ["end_time", "结束时间", item.end_time ? formatDateTime(item.end_time) : null],
+    ["location", "地点", item.location],
+  ];
+  if ("picture_urls" in item) changes.push(["picture_urls", "图片", item.picture_urls?.join("\n")]);
+  const visibleRows = [
+    ...rows,
+    ...moderationDetails("update_fields" in item ? item.update_fields : undefined, changes),
+  ];
   return (
     <div className="grid gap-2">
       {visibleRows.map(([label, value]) => (
@@ -519,6 +519,8 @@ function renderActivityRequestDetails(item: ActivityCreateRequest | ActivityUpda
 }
 
 function getActivityRequestTarget(item: ActivityCreateRequest | ActivityUpdateRequest) {
-  if ("club_id" in item) return `社团 ${identityLabel(item.club_name, item.club_id)}`;
-  return `原活动 ${identityLabel(item.club_activity_name, item.club_activity_id)}`;
+  const clubLabel = `社团 ${identityLabel(item.club_name, item.club_id)}`;
+  if ("club_activity_id" in item)
+    return `${clubLabel} · 原活动 ${identityLabel(item.club_activity_name, item.club_activity_id)}`;
+  return clubLabel;
 }

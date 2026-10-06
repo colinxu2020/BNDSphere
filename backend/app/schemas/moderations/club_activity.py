@@ -65,6 +65,9 @@ class ClubActivityUpdateRequestBase(BaseModel):
 class ClubActivityUpdateRequestInfo(RequestInfoBase, ClubActivityUpdateRequestBase):
     club_activity_id: int = Field(...)
     club_activity_name: str | None = Field(None)
+    club_id: int = Field(...)
+    club_name: str | None = Field(None)
+    update_fields: list[str] = Field(default_factory=list)
 
 
 class ClubActivityUpdateRequestCreatePublic(
