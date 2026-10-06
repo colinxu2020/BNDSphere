@@ -5,7 +5,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, Index, String, Text, func
+from sqlalchemy import DateTime, Index, String, Text, false, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core import constants
@@ -64,6 +64,7 @@ class Club(Base):
     )
     summary: Mapped[str] = mapped_column(Text)
     description: Mapped[str] = mapped_column(Text)
+    claimed: Mapped[bool] = mapped_column(default=False, server_default=false())
     logo_uri: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
