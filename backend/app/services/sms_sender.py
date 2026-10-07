@@ -4,6 +4,7 @@ import json
 import logging
 import time
 from datetime import UTC, datetime
+from http import HTTPStatus
 from typing import Any, Final
 
 import httpx
@@ -203,6 +204,16 @@ class SmsSender:
                 )
             response.raise_for_status()
             body = response.json()
+        except httpx.HTTPStatusError as err:
+            logger.exception("Tencent SMS request failed for %s", phone)
+            # Client/authentication rejections never accepted the send. A
+            # request timeout (408), like server or transport failures, leaves
+            # delivery uncertain and must not restore an older code.
+            raise NotificationChannelUnavailableError(
+                "sms",
+                definitely_rejected=err.response.is_client_error
+                and err.response.status_code != HTTPStatus.REQUEST_TIMEOUT,
+            ) from err
         except (httpx.HTTPError, ValueError) as err:
             logger.exception("Tencent SMS request failed for %s", phone)
             raise NotificationChannelUnavailableError("sms") from err

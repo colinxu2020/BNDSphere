@@ -6,6 +6,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
+import httpx
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -37,7 +38,7 @@ from app.services.errors import (
     VerificationCodeInvalidError,
     VerificationSendThrottledError,
 )
-from app.services.sms_sender import _raise_for_api_error
+from app.services.sms_sender import SmsSender, _raise_for_api_error
 from app.services.user import UserService
 from tests.conftest import SUPERUSER_TEST_DB_URL
 
@@ -382,6 +383,77 @@ def test_sms_only_explicit_provider_rejections_restore_previous_issuance(
     with pytest.raises(NotificationChannelUnavailableError) as error:
         _raise_for_api_error({"Response": response}, "+8613800138000")
     assert error.value.definitely_rejected is rejected
+
+
+@pytest.mark.parametrize(
+    "status,rejected",
+    [
+        (400, True),
+        (401, True),
+        (403, True),
+        (429, True),
+        (408, False),
+        (500, False),
+        (503, False),
+    ],
+)
+async def test_sms_http_failure_preserves_previous_code_only_for_definite_rejection(
+    db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
+    status: int,
+    rejected: bool,
+) -> None:
+    from app.core.settings import SmsSettings
+
+    settings = SmsSettings(
+        tencent_sms_secret_id="test-id",
+        tencent_sms_secret_key="test-key",
+        tencent_sms_sdk_app_id="test-app",
+        tencent_sms_sign_name="test-sign",
+        tencent_sms_template_id="test-template",
+    )
+    monkeypatch.setattr("app.services.sms_sender.sms_settings", lambda: settings)
+    real_client = httpx.AsyncClient
+    transport = httpx.MockTransport(
+        lambda request: httpx.Response(status, request=request)
+    )
+    monkeypatch.setattr(
+        "app.services.sms_sender.httpx.AsyncClient",
+        lambda **kwargs: real_client(transport=transport, **kwargs),
+    )
+    now = datetime.now(UTC)
+    user = User(username=uuid4().hex, hashed_password="unused")
+    db_session.add(user)
+    await db_session.flush()
+    phone = "+8613800138000"
+    old = VerificationCode(
+        user_id=user.id,
+        channel=Channel.sms,
+        target=phone,
+        code_hash=hash_verification_code("123456"),
+        created_at=now - timedelta(seconds=61),
+        expires_at=now + timedelta(minutes=10),
+    )
+    db_session.add(old)
+    await db_session.commit()
+    verifier = service(db_session)
+    verifier.sms_sender = SmsSender()
+    code, _, record_id = await verifier._issue(user, Channel.sms, phone)
+    with pytest.raises(NotificationChannelUnavailableError) as error:
+        await verifier._deliver(user.id, Channel.sms, phone, code, record_id)
+    assert error.value.definitely_rejected is rejected
+    assert (
+        await db_session.get(VerificationCode, record_id)
+    ).delivery_rejected is rejected
+    assert (
+        await verifier.repository.count_for_user_since(
+            user.id, Channel.sms, now - timedelta(hours=1)
+        )
+        == 2
+    )
+    active = await verifier.repository.get_active(user.id, Channel.sms, phone, now)
+    assert active is not None
+    assert active.id == (old.id if rejected else record_id)
 
 
 @pytest.mark.parametrize("channel", [Channel.email, Channel.sms])

@@ -1,17 +1,21 @@
 """Cookie-backed sessions: issuing, authenticating, and revoking them."""
 
+import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar
+from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import delete, func, select
+from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession, async_sessionmaker
 
 from app.core.constants import SESSION_COOKIE_NAME
 from app.core.security import generate_session_token, hash_session_token
 from app.core.settings import web_settings
 from app.models import User, UserSession
+from app.repositories.user_session import UserSessionRepository
+from app.services.user_session import UserSessionService
 from tests.test_auth import ConfiguredUser, create_altcha_payload
 
 PASSWORD = "correct-horse-battery"  # noqa: S105
@@ -28,6 +32,99 @@ async def _login(client: AsyncClient, username: str) -> str:
     )
     assert resp.status_code == 200
     return str(resp.json()["access_token"])
+
+
+@pytest.mark.parametrize("concurrent", [False, True])
+async def test_session_issuance_bounds_rows_without_revoking_other_accounts(
+    db_engine: AsyncEngine,
+    monkeypatch: pytest.MonkeyPatch,
+    concurrent: bool,
+) -> None:
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    now = datetime.now(UTC)
+    old_tokens = [generate_session_token() for _ in range(10)]
+    expired_token = generate_session_token()
+    other_token = generate_session_token()
+    async with sessions() as db:
+        users = [User(username=uuid4().hex, hashed_password="unused") for _ in range(2)]
+        db.add_all(users)
+        await db.flush()
+        user_id, other_id = [user.id for user in users]
+        db.add_all(
+            [
+                UserSession(
+                    user_id=user_id,
+                    token_hash=hash_session_token(token),
+                    created_at=now - timedelta(minutes=20 - index),
+                    expires_at=now + timedelta(days=1),
+                )
+                for index, token in enumerate(old_tokens)
+            ]
+        )
+        db.add(
+            UserSession(
+                user_id=user_id,
+                token_hash=hash_session_token(expired_token),
+                created_at=now,
+                expires_at=now - timedelta(seconds=1),
+            )
+        )
+        db.add(
+            UserSession(
+                user_id=other_id,
+                token_hash=hash_session_token(other_token),
+                expires_at=now + timedelta(days=1),
+            )
+        )
+        await db.commit()
+
+    # Widen the real insert path so competing requests overlap after trimming.
+    create = UserSessionRepository.create
+
+    async def slow_create(self, *args, **kwargs):
+        await asyncio.sleep(0.05)
+        return await create(self, *args, **kwargs)
+
+    monkeypatch.setattr(UserSessionRepository, "create", slow_create)
+
+    async def issue() -> str:
+        async with sessions() as db:
+            user = await db.get(User, user_id)
+            assert user is not None
+            return await UserSessionService(UserSessionRepository(db)).issue(user)
+
+    try:
+        tokens = await asyncio.wait_for(
+            asyncio.gather(*(issue() for _ in range(2 if concurrent else 1))),
+            timeout=10,
+        )
+        async with sessions() as db:
+            service = UserSessionService(UserSessionRepository(db))
+            assert (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(UserSession)
+                    .where(UserSession.user_id == user_id)
+                )
+                == 10
+            )
+            assert await service.resolve(old_tokens[0]) is None
+            assert await service.resolve(old_tokens[-1]) is not None
+            assert await service.resolve(other_token) is not None
+            assert (
+                await db.scalar(
+                    select(UserSession.id).where(
+                        UserSession.token_hash == hash_session_token(expired_token)
+                    )
+                )
+                is None
+            )
+            for token in tokens:
+                assert await service.resolve(token) is not None
+    finally:
+        async with sessions() as db:
+            await db.execute(delete(User).where(User.id.in_([user_id, other_id])))
+            await db.commit()
 
 
 class TestSessionCookie:
@@ -208,6 +305,7 @@ class TestLogout:
         setup_class_users: None,
     ) -> None:
         token = await _login(client, "logout_user")
+        client.cookies.clear()
         response = await client.post(
             "/auth/logout",
             headers={
@@ -216,6 +314,45 @@ class TestLogout:
             },
         )
         assert response.status_code == 204
+
+    @pytest.mark.parametrize("foreign", [False, True])
+    async def test_logout_with_both_credentials_checks_origin_and_revokes_both(
+        self,
+        client: AsyncClient,
+        setup_class_users: None,
+        monkeypatch: pytest.MonkeyPatch,
+        foreign: bool,
+    ) -> None:
+        monkeypatch.setattr(web_settings(), "cors_origin", "https://school.example.com")
+        bearer = await _login(client, "logout_user")
+        cookie = await _login(client, "logout_user")
+        response = await client.post(
+            "/auth/logout",
+            headers={
+                "Authorization": f"Bearer {bearer}",
+                "Origin": "https://attacker.example"
+                if foreign
+                else "https://school.example.com",
+            },
+        )
+        assert response.status_code == (403 if foreign else 204)
+        if foreign:
+            assert "set-cookie" not in response.headers
+        for token in (bearer, cookie):
+            assert (
+                await client.get(
+                    "/users/me", headers={"Authorization": f"Bearer {token}"}
+                )
+            ).status_code == (200 if foreign else 401)
+        if foreign:
+            response = await client.post(
+                "/auth/logout",
+                headers={
+                    "Authorization": f"Bearer {bearer}",
+                    "Origin": "https://school.example.com",
+                },
+            )
+            assert response.status_code == 204
 
     async def test_logout_revokes_the_session(
         self,

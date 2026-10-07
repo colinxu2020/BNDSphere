@@ -12,6 +12,22 @@ class UserSessionRepository(
 ):
     model = UserSession
 
+    async def retain_newest_for_user(
+        self, user_id: int, now: datetime, keep: int
+    ) -> None:
+        """Prune expired and excess sessions while the caller holds the user lock."""
+        retained = (
+            select(UserSession.id)
+            .where(UserSession.user_id == user_id, UserSession.expires_at > now)
+            .order_by(UserSession.created_at.desc(), UserSession.id.desc())
+            .limit(keep)
+        )
+        await self.db.execute(
+            delete(UserSession).where(
+                UserSession.user_id == user_id, UserSession.id.not_in(retained)
+            )
+        )
+
     async def get_active_by_token_hash(
         self,
         token_hash: str,

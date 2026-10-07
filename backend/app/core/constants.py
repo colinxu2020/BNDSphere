@@ -78,6 +78,7 @@ LOGIN_ATTEMPT_RETENTION_DAYS: Final[int] = 90
 # effect on the next request instead of whenever a signed token would have
 # expired on its own.
 SESSION_LIFETIME_DAYS: Final[int] = 7
+SESSION_MAX_PER_USER: Final[int] = 10
 SESSION_COOKIE_NAME: Final[str] = "bnd_session"
 
 # ── Contact verification (email address / phone number) ──────────────────

@@ -1,9 +1,10 @@
 from datetime import UTC, datetime, timedelta
 
-from app.core.constants import SESSION_LIFETIME_DAYS
+from app.core.constants import SESSION_LIFETIME_DAYS, SESSION_MAX_PER_USER
 from app.core.security import generate_session_token, hash_session_token
 from app.models.user import User
 from app.models.user_session import UserSession
+from app.repositories.user import UserRepository
 from app.repositories.user_session import UserSessionRepository
 from app.schemas.user_session import UserSessionCreate
 from app.services.base import ServiceBase
@@ -19,15 +20,21 @@ class UserSessionService(
 
         The raw token is returned once and never stored; only its hash is
         persisted, so it cannot be recovered from the database afterwards.
+        Keep at most ten live sessions per account, retiring the oldest when
+        issuing another. The user row lock serializes pruning and insertion.
         """
         token = generate_session_token()
         async with self.transaction():
+            await UserRepository(self.repository.db).get_with_lock(user.id)
+            now = datetime.now(UTC)
+            await self.repository.retain_newest_for_user(
+                user.id, now, SESSION_MAX_PER_USER - 1
+            )
             await self.repository.create(
                 UserSessionCreate(
                     user_id=user.id,
                     token_hash=hash_session_token(token),
-                    expires_at=datetime.now(UTC)
-                    + timedelta(days=SESSION_LIFETIME_DAYS),
+                    expires_at=now + timedelta(days=SESSION_LIFETIME_DAYS),
                 ),
             )
         return token

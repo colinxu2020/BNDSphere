@@ -180,8 +180,6 @@ async def logout(
     already expired or been revoked still wants the cookie gone, and making
     them authenticate first would turn signing out into an error.
     """
-    if token:
-        await session_service.revoke(token)
     # ``session_token`` prefers the bearer header, so a request carrying both
     # credentials (a Swagger call in a browser that is logged into the SPA)
     # would revoke only the bearer. Revoke a distinct cookie session too —
@@ -189,8 +187,15 @@ async def logout(
     # session valid would let a copied cookie token keep working after the
     # user appears logged out.
     cookie = request.cookies.get(session_cookie_name())
-    if cookie and cookie != token:
-        await session_service.revoke(cookie)
+    if cookie:
+        # Bearer precedence bypasses cookie-origin validation in session_token.
+        # Logout also acts on the cookie, so validate before revoking either.
+        ensure_trusted_origin(request)
+    async with session_service.transaction():
+        if token:
+            await session_service.revoke(token)
+        if cookie and cookie != token:
+            await session_service.revoke(cookie)
     # The attributes must match the ones the cookie was set with, or the
     # browser treats this as a different cookie and leaves the original.
     response.delete_cookie(
