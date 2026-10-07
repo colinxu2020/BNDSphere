@@ -9,6 +9,10 @@ export const AUTH_STATE_CHANGED_EVENT = "bnd-auth-state-changed";
 // not a credential — forging it gets you a 401 from the next request, nothing
 // more.
 const AUTH_FLAG_KEY = "bnd_authed";
+const LEGACY_TOKEN_KEY = "bnd_token";
+
+// Remove the old script-readable JWT when upgrading to cookie sessions.
+localStorage.removeItem(LEGACY_TOKEN_KEY);
 
 export function isAuthenticated() {
   return localStorage.getItem(AUTH_FLAG_KEY) === "1";
@@ -20,6 +24,7 @@ export function markAuthenticated() {
 }
 
 export function clearAuthState() {
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
   if (!localStorage.getItem(AUTH_FLAG_KEY)) return;
 
   localStorage.removeItem(AUTH_FLAG_KEY);
@@ -34,6 +39,7 @@ export const client = createClient<paths>({
 });
 
 export async function logout(): Promise<boolean> {
+  localStorage.removeItem(LEGACY_TOKEN_KEY);
   // Keep the UI and HttpOnly cookie in agreement. Failure leaves the session
   // available for a retry; callers display it instead of claiming sign-out.
   try {

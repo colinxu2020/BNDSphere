@@ -30,7 +30,7 @@ from app.services.errors import (
 from app.services.sms_sender import SmsSender
 
 # Mainland China mobile numbers: 11 digits, leading 1, second digit 3-9.
-_CN_MOBILE = re.compile(r"^1[3-9]\d{9}$")
+_CN_MOBILE = re.compile(r"^1[3-9][0-9]{9}$")
 _PHONE_NOISE = re.compile(r"[\s\-()]")
 
 

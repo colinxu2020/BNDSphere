@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-const storage = new Map<string, string>();
+const storage = new Map<string, string>([
+  ["bnd_token", "legacy-jwt-fixture"],
+  ["bnd_authed", "1"],
+  ["unrelated-preference", "keep"],
+]);
 const browser = Object.assign(new EventTarget(), {
   location: { origin: "https://forum.example.com" },
 });
@@ -16,8 +20,28 @@ Object.defineProperty(globalThis, "localStorage", {
 });
 let respond: () => Response = () => new Response(null, { status: 204 });
 globalThis.fetch = async () => respond();
-const { client, isAuthenticated, logout, markAuthenticated, AUTH_STATE_CHANGED_EVENT } =
-  await import("../api/client.ts");
+const {
+  client,
+  clearAuthState,
+  isAuthenticated,
+  logout,
+  markAuthenticated,
+  AUTH_STATE_CHANGED_EVENT,
+} = await import("../api/client.ts");
+
+test("client initialization removes the legacy credential without clearing the session hint", () => {
+  assert.equal(storage.has("bnd_token"), false);
+  assert.equal(isAuthenticated(), true);
+  assert.equal(storage.get("unrelated-preference"), "keep");
+});
+
+test("auth cleanup removes legacy credentials even without a session hint", () => {
+  storage.delete("bnd_authed");
+  storage.set("bnd_token", "legacy-jwt-fixture");
+  clearAuthState();
+  assert.equal(storage.has("bnd_token"), false);
+  assert.equal(isAuthenticated(), false);
+});
 
 test("wrong reauthentication password preserves the current session hint", async () => {
   markAuthenticated();
@@ -43,15 +67,21 @@ test("invalid session clears the hint and notifies the current tab", async () =>
 
 test("failed logout preserves state for retry; only 204 completes sign-out", async () => {
   markAuthenticated();
+  storage.set("bnd_token", "legacy-jwt-fixture");
   respond = () => Response.json({ detail: "unavailable" }, { status: 503 });
   assert.equal(await logout(), false);
+  assert.equal(storage.has("bnd_token"), false);
   assert.equal(isAuthenticated(), true);
+  storage.set("bnd_token", "legacy-jwt-fixture");
   respond = () => {
     throw new TypeError("network unavailable");
   };
   assert.equal(await logout(), false);
+  assert.equal(storage.has("bnd_token"), false);
   assert.equal(isAuthenticated(), true);
+  storage.set("bnd_token", "legacy-jwt-fixture");
   respond = () => new Response(null, { status: 204 });
   assert.equal(await logout(), true);
+  assert.equal(storage.has("bnd_token"), false);
   assert.equal(isAuthenticated(), false);
 });

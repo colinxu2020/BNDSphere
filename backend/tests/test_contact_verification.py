@@ -606,6 +606,34 @@ class TestPhoneVerification:
         {"username": "phone_binder", "password": PASSWORD}
     ]
 
+    async def test_unicode_digits_are_rejected_before_spending_budgets(
+        self,
+        client: AsyncClient,
+        db_session: AsyncSession,
+        sender: RecordingSender,
+    ) -> None:
+        before = len(sender.sent)
+        attempts = select(LoginAttempt.id).where(
+            LoginAttempt.username == "phone_binder"
+        )
+        codes = select(VerificationCode.id)
+        attempts_before = (await db_session.scalars(attempts)).all()
+        codes_before = (await db_session.scalars(codes)).all()
+        for action, credentials in (
+            ("send", {"password": PASSWORD}),
+            ("confirm", {"code": "123456"}),
+        ):
+            response = await client.post(
+                f"/verification/phone/{action}",
+                headers=self.configured_users["phone_binder"]["headers"],
+                json={"phone": "13９００１３８０００", **credentials},
+            )
+            assert response.status_code == 400
+            assert response.json()["error_code"] == "VERIFICATION_TARGET_INVALID"
+        assert len(sender.sent) == before
+        assert (await db_session.scalars(attempts)).all() == attempts_before
+        assert (await db_session.scalars(codes)).all() == codes_before
+
     async def test_number_is_normalized_before_it_is_stored(
         self,
         client: AsyncClient,
@@ -701,6 +729,13 @@ class TestPhoneNormalization:
                 continue
             msg = f"{raw!r} should not have been accepted"
             raise AssertionError(msg)
+
+    @pytest.mark.parametrize(
+        "raw", ["13９００１３８０００", "+8613٩٠٠١٣٨٠٠٠", "13९००१३८०००"]
+    )
+    def test_non_ascii_digits_are_rejected(self, raw: str) -> None:
+        with pytest.raises(VerificationTargetInvalidError):
+            normalize_phone(raw)
 
 
 class TestTencentSignature:
