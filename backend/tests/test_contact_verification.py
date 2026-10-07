@@ -314,13 +314,29 @@ class TestEmailVerification:
 
     async def test_code_is_not_stored_in_the_clear(
         self,
+        client: AsyncClient,
         db_session: AsyncSession,
         sender: RecordingSender,
         setup_class_users: None,
     ) -> None:
+        headers = self.configured_users["email_binder"]["headers"]
+        await _clear_cooldown(db_session, "email_binder")
+        resp = await client.post(
+            "/verification/email/send",
+            json={"email": "hashed@example.com", "password": PASSWORD},
+            headers=headers,
+        )
+        assert resp.status_code == 202
         code = sender.last_code
         rows = (await db_session.execute(select(VerificationCode.code_hash))).scalars()
         assert code not in list(rows)
+        # Consume the code so the replay test still sees a used one.
+        resp = await client.post(
+            "/verification/email/confirm",
+            json={"email": "hashed@example.com", "code": code},
+            headers=headers,
+        )
+        assert resp.status_code == 200
 
     async def test_replaying_a_used_code_fails(
         self,
