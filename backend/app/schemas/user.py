@@ -54,6 +54,13 @@ class UserInfo(UserBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     email: EmailStr | None = Field(..., max_length=constants.USER_MAX_EMAIL_LENGTH)
+    # Timestamps rather than booleans: an admin can write ``email`` straight
+    # onto the account, and "set but never confirmed" has to stay tellable
+    # apart from "confirmed". Only ever returned to the account's own owner —
+    # ``PublicUserInfo`` carries neither field.
+    email_verified_at: datetime | None = Field(None)
+    phone: str | None = Field(None, max_length=16)
+    phone_verified_at: datetime | None = Field(None)
     avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)
     role: RoleEnum
@@ -74,7 +81,10 @@ class AdminUserUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     username: Username | None = None
-    email: EmailStr | None = Field(None, max_length=constants.USER_MAX_EMAIL_LENGTH)
+    email: Annotated[EmailStr, AfterValidator(str.lower)] | None = Field(
+        None,
+        max_length=constants.USER_MAX_EMAIL_LENGTH,
+    )
     avatar_uri: AvatarUri = Field(None, max_length=255)
     description: str | None = Field(
         None,

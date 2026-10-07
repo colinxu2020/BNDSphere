@@ -1,9 +1,12 @@
-from datetime import UTC, datetime, timedelta
+import hashlib
+import secrets
+from datetime import datetime
 from typing import Any
 
 import jwt
 from passlib.context import CryptContext
 
+from .constants import SESSION_COOKIE_NAME
 from .settings import web_settings
 
 settings = web_settings()
@@ -18,18 +21,49 @@ def get_password_hash(password: str) -> str:
     return pwd_context.hash(password)
 
 
-def create_access_token(data: dict[str, Any]) -> str:
-    expire = datetime.now(UTC) + timedelta(days=7)
-    return jwt.encode(data | {"exp": expire}, settings.secret_key, algorithm="HS256")
+def generate_session_token() -> str:
+    """Mint the opaque token a client presents to prove it holds a session."""
+    return secrets.token_urlsafe(32)
 
 
-def verify_access_token(token: str) -> dict[str, Any]:
-    try:
-        return jwt.decode(token, settings.secret_key, algorithms=["HS256"])
-    except jwt.ExpiredSignatureError as err:
-        raise ValueError("Token has expired") from err
-    except jwt.InvalidTokenError as err:
-        raise ValueError("Invalid token") from err
+def hash_session_token(token: str) -> str:
+    """Hash a session token for storage.
+
+    Plain SHA-256 rather than a password KDF: the token is 256 bits of CSPRNG
+    output, so there is no low-entropy guess to slow down, and this runs on
+    every authenticated request. Hashing at all is what stops a dump of
+    ``user_sessions`` from being replayed as a set of live logins.
+    """
+    return hashlib.sha256(token.encode()).hexdigest()
+
+
+def session_cookie_name() -> str:
+    """Name of the cookie carrying the session token.
+
+    Production prefixes it with ``__Host-``: browsers only accept such a
+    cookie when it is ``Secure``, ``Path=/``, and set without a ``Domain``
+    attribute, so a sibling or compromised child domain cannot shadow it with
+    a same-named cookie of its own (cookie tossing). Debug keeps the plain
+    name, because local development runs over plain HTTP where a ``Secure``
+    cookie would never be stored.
+    """
+    if web_settings().debug:
+        return SESSION_COOKIE_NAME
+    return f"__Host-{SESSION_COOKIE_NAME}"
+
+
+def hash_verification_code(code: str) -> str:
+    """Hash a one-time verification code for storage.
+
+    Same SHA-256 as ``hash_session_token`` but a different bargain: a
+    six-digit code is only ~20 bits, so anyone holding the table can recover
+    it by exhaustion in microseconds. This is not the defence — the minutes-
+    long expiry and the attempt cap are. Hashing is here so a leaked backup
+    or a log line does not hand over codes that are still live, and it is
+    kept as a separate function from the session one so neither docstring has
+    to claim a guarantee the other's callers do not get.
+    """
+    return hashlib.sha256(code.encode()).hexdigest()
 
 
 _CHECK_IN_TOKEN_TYPE = "club_activity_check_in"  # noqa: S105 -- not a password

@@ -61,8 +61,11 @@ async def test_admin_update_reports_a_username_constraint_collision() -> None:
     assert exc_info.value.details == {"username": "already-taken"}
 
 
-async def test_admin_update_reports_an_email_constraint_collision() -> None:
-    repository = ConflictingUserRepository("uq_users_email")
+@pytest.mark.parametrize("constraint", ["uq_users_email", "uq_users_email_lower"])
+async def test_admin_update_reports_an_email_constraint_collision(
+    constraint: str,
+) -> None:
+    repository = ConflictingUserRepository(constraint)
     service = UserService(cast("UserRepository", repository))
     user = User(id=4, username="old-name", hashed_password="unused")  # noqa: S106
 

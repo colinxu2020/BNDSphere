@@ -80,6 +80,9 @@ class UserService(
 
     @override
     async def update(self, db_obj: User, obj_in: AdminUserUpdate) -> User:
+        previous_email = db_obj.email.lower() if db_obj.email else None
+        if "email" in obj_in.model_fields_set and obj_in.email != previous_email:
+            db_obj.email_verified_at = None
         try:
             return await super().update(db_obj, obj_in)
         except IntegrityError as exc:
@@ -94,7 +97,7 @@ class UserService(
                     error_code="DUPLICATE_USERNAME",
                     details={"username": obj_in.username},
                 ) from None
-            if constraint_name == "uq_users_email":
+            if constraint_name in {"uq_users_email", "uq_users_email_lower"}:
                 raise DuplicateResourceError(
                     message_key="error.user.duplicate_email",
                     error_code="DUPLICATE_EMAIL",

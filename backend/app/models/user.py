@@ -3,7 +3,7 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, ForeignKey, String, Text, func
+from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
 
 from app.core.database import Base
@@ -73,6 +73,28 @@ class User(Base):
         unique=True,
         default=None,
     )
+    # Set only by ``ContactVerificationService`` after the address answered a
+    # code. An admin can still write ``email`` directly, which deliberately
+    # leaves this NULL: an address someone else typed in is not confirmed.
+    email_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
+    # E.164, mainland China only today (``+86`` + 11 digits). Unique because
+    # it is a recovery and second-factor channel: two accounts sharing one
+    # number would make "the number owner" ambiguous at exactly the moment
+    # that has to be unambiguous. Unverified numbers are never stored here —
+    # the pending value lives on the ``verification_codes`` row until the code
+    # is answered — so there is no separate phone_verified flag.
+    phone: Mapped[str | None] = mapped_column(
+        String(16),
+        unique=True,
+        default=None,
+    )
+    phone_verified_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True),
+        default=None,
+    )
     hashed_password: Mapped[str] = mapped_column(String(255))
     avatar_uri: Mapped[HttpUrl | None] = mapped_column(HttpUrlType, default=None)
     description: Mapped[str] = mapped_column(Text, default="这位用户还没有设置简介")
@@ -94,6 +116,8 @@ class User(Base):
         back_populates="user",
         passive_deletes=True,
     )
+
+    __table_args__ = (Index("uq_users_email_lower", func.lower(email), unique=True),)
 
 
 class AuditMixin:

@@ -121,6 +121,63 @@ touch "$PD/docker-compose.yml" "$PD/.env"
 COMPOSE_PROJECT_DIR=$PD; export COMPOSE_PROJECT_DIR
 COMPOSE_PROJECT_NAME=bndsphere; export COMPOSE_PROJECT_NAME
 
+# Provision only absent optional secrets, with private permissions and the
+# backend uid. Stub chown so this pure check does not need host privileges.
+_prepare_optional() (
+    chown() { printf '%s\n' "$1" >> "$PD/ownership-check"; }
+    ensure_optional_secrets
+)
+printf 'operator-credential' > "$PD/secrets/smtp_password.txt"
+chmod 600 "$PD/secrets/smtp_password.txt"
+assert_ok "optional credentials are provisioned" _prepare_optional
+assert_eq "operator-credential" "$(cat "$PD/secrets/smtp_password.txt")" \
+    "existing SMTP credentials are preserved"
+for _name in tencent_sms_secret_id tencent_sms_secret_key; do
+    assert_ok "$_name placeholder exists" test -f "$PD/secrets/${_name}.txt"
+    assert_ok "$_name placeholder is empty" test ! -s "$PD/secrets/${_name}.txt"
+    # POSIX ls works on both the deploy host and macOS.
+    assert_eq "-rw-------" "$(ls -l "$PD/secrets/${_name}.txt" | cut -c 1-10)" \
+        "$_name placeholder has mode 600"
+done
+assert_ok "optional provisioning is idempotent" _prepare_optional
+assert_eq "" "$(find "$PD/secrets" -name '.optional.*')" \
+    "optional provisioning leaves no temporary files"
+if [ "$(id -u)" != 1000 ]; then
+    assert_eq "1000:1000
+1000:1000" "$(cat "$PD/ownership-check")" \
+        "only new placeholder files receive backend ownership"
+fi
+_optional_failure_dir=$(mktemp -d)
+_optional_ownership_fails() (
+    COMPOSE_PROJECT_DIR=$_optional_failure_dir
+    mkdir -p "$COMPOSE_PROJECT_DIR/secrets"
+    id() { printf '1001\n'; }
+    chown() { return 1; }
+    sudo() { return 1; }
+    ensure_optional_secrets
+)
+assert_fail "optional provisioning refuses unreadable ownership" _optional_ownership_fails
+assert_eq "" "$(ls -A "$_optional_failure_dir/secrets")" \
+    "failed provisioning leaves no unreadable placeholder or temporary file"
+_optional_protected_hardlinks() (
+    COMPOSE_PROJECT_DIR=$_optional_failure_dir
+    id() { printf '1001\n'; }
+    chown() { return 0; }
+    ln() { return 1; }
+    sudo() {
+        [ "$1" = -n ] || return 1
+        shift
+        [ "$1" = ln ] || return 1
+        printf 'privileged link\n' >> "$COMPOSE_PROJECT_DIR/link-check"
+        command "$@"
+    }
+    ensure_optional_secrets
+)
+assert_ok "optional provisioning handles protected hardlinks" _optional_protected_hardlinks
+assert_eq "3" "$(wc -l < "$_optional_failure_dir/link-check" | tr -d ' ')" \
+    "all new secrets use the privileged non-overwriting link fallback"
+rm -rf "$_optional_failure_dir"
+
 # ── the version record ───────────────────────────────────────────────
 write_pins v1.5.0 "bndsphere-backend:v1.5.0" "bndsphere-caddy:v1.5.0"
 assert_eq "v1.5.0" "$(pin_get "$(versions_env)" APP_VERSION)" \

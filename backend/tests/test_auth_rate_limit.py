@@ -1,11 +1,17 @@
 import asyncio
 from datetime import UTC, datetime, timedelta
 from typing import ClassVar
+from uuid import uuid4
 
 import pytest
 from httpx import AsyncClient
-from sqlalchemy import BigInteger, cast, func, select
-from sqlalchemy.ext.asyncio import AsyncConnection, AsyncEngine, AsyncSession
+from sqlalchemy import BigInteger, cast, delete, func, select, update
+from sqlalchemy.ext.asyncio import (
+    AsyncConnection,
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+)
 
 from app.api import rate_limit as api_rate_limit
 from app.core import rate_limit as rate_limit_module
@@ -18,11 +24,13 @@ from app.core.constants import (
     USER_MAX_USERNAME_LENGTH,
 )
 from app.core.rate_limit import InMemoryRateLimiter, RateLimitRule
+from app.core.security import get_password_hash
 from app.core.settings import web_settings
-from app.models import LoginAttempt
+from app.models import LoginAttempt, User
 from app.repositories.login_attempt import LoginAttemptRepository, _advisory_key
 from app.repositories.user import UserRepository
 from app.services.auth import AuthService
+from app.services.errors import LoginThrottledError
 from tests.test_auth import create_altcha_payload
 
 
@@ -33,6 +41,83 @@ async def _try_advisory_lock(conn: AsyncConnection, username: str) -> bool:
         ),
     )
     return bool(result.scalar_one())
+
+
+async def test_reauthentication_budget_expires_without_success_reset(
+    db_session: AsyncSession,
+) -> None:
+    username = uuid4().hex
+    db_session.add(
+        User(username=username, hashed_password=get_password_hash("password"))
+    )
+    now = datetime.now(UTC)
+    for index, age in enumerate([50, 40, 30] + [1] * 9):
+        db_session.add(
+            LoginAttempt(
+                username=username,
+                successful=index != 1,
+                created_at=now - timedelta(minutes=age),
+            )
+        )
+    await db_session.commit()
+    auth = AuthService(UserRepository(db_session), LoginAttemptRepository(db_session))
+    with pytest.raises(LoginThrottledError) as error:
+        await auth.authenticate(username, "password", ip=None, reauthentication=True)
+    # Twelve attempts require three expirations: the third oldest is 30 minutes old.
+    assert 1790 < int(error.value.headers["Retry-After"]) <= 1800
+    await db_session.execute(
+        update(LoginAttempt)
+        .where(
+            LoginAttempt.username == username,
+            LoginAttempt.created_at < now - timedelta(minutes=2),
+        )
+        .values(created_at=now - timedelta(hours=2))
+    )
+    await db_session.commit()
+    assert await auth.authenticate(username, "password", ip=None, reauthentication=True)
+    with pytest.raises(LoginThrottledError):
+        await auth.authenticate(username, "password", ip=None, reauthentication=True)
+
+
+async def test_concurrent_successful_reauthentication_cannot_overspend(
+    db_engine: AsyncEngine,
+) -> None:
+    sessions = async_sessionmaker(db_engine, expire_on_commit=False)
+    username = uuid4().hex
+    async with sessions() as db:
+        db.add(User(username=username, hashed_password=get_password_hash("password")))
+        db.add_all([LoginAttempt(username=username, successful=True) for _ in range(9)])
+        await db.commit()
+
+    async def authenticate() -> User | None:
+        async with sessions() as db:
+            return await AuthService(
+                UserRepository(db), LoginAttemptRepository(db)
+            ).authenticate(username, "password", ip=None, reauthentication=True)
+
+    try:
+        results = await asyncio.wait_for(
+            asyncio.gather(authenticate(), authenticate(), return_exceptions=True),
+            timeout=10,
+        )
+        assert sum(isinstance(result, User) for result in results) == 1
+        assert sum(isinstance(result, LoginThrottledError) for result in results) == 1
+        async with sessions() as db:
+            assert (
+                await db.scalar(
+                    select(func.count())
+                    .select_from(LoginAttempt)
+                    .where(LoginAttempt.username == username)
+                )
+                == 10
+            )
+    finally:
+        async with sessions() as db:
+            await db.execute(
+                delete(LoginAttempt).where(LoginAttempt.username == username)
+            )
+            await db.execute(delete(User).where(User.username == username))
+            await db.commit()
 
 
 class TestInMemoryRateLimiter:
