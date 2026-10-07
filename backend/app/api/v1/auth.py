@@ -169,6 +169,7 @@ async def login(
     responses=UNTRUSTED_ORIGIN_RESPONSE,
 )
 async def logout(
+    request: Request,
     response: Response,
     session_service: UserSessionServiceDep,
     token: Annotated[str | None, Depends(session_token)],
@@ -181,6 +182,15 @@ async def logout(
     """
     if token:
         await session_service.revoke(token)
+    # ``session_token`` prefers the bearer header, so a request carrying both
+    # credentials (a Swagger call in a browser that is logged into the SPA)
+    # would revoke only the bearer. Revoke a distinct cookie session too —
+    # the cookie is deleted below either way, and leaving its server-side
+    # session valid would let a copied cookie token keep working after the
+    # user appears logged out.
+    cookie = request.cookies.get(session_cookie_name())
+    if cookie and cookie != token:
+        await session_service.revoke(cookie)
     # The attributes must match the ones the cookie was set with, or the
     # browser treats this as a different cookie and leaves the original.
     response.delete_cookie(
