@@ -49,20 +49,12 @@ def _send_blocking(settings: SmtpSettings, to: str, code: str, minutes: int) -> 
             accepted = True
     except (smtplib.SMTPException, OSError) as err:
         # A failure during QUIT does not undo a successful DATA response.
-        # Transport failures before that response also leave delivery unknown.
+        # Anything raised before send_message — connect, STARTTLS, or auth —
+        # means the relay never saw the payload, so rejection is certain.
         raise NotificationChannelUnavailableError(
             "email",
             definitely_rejected=not accepted
-            and (
-                delivery_rejected
-                or (
-                    not delivery_started
-                    and isinstance(
-                        err,
-                        (smtplib.SMTPResponseException, smtplib.SMTPRecipientsRefused),
-                    )
-                )
-            ),
+            and (delivery_rejected or not delivery_started),
         ) from err
 
 
