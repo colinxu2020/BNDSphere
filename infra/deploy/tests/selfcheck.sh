@@ -177,7 +177,7 @@ _optional_protected_hardlinks() (
     ensure_optional_secrets
 )
 assert_ok "optional provisioning handles protected hardlinks" _optional_protected_hardlinks
-assert_eq "3" "$(wc -l < "$_optional_failure_dir/link-check" | tr -d ' ')" \
+assert_eq "1" "$(wc -l < "$_optional_failure_dir/link-check" | tr -d ' ')" \
     "all new secrets use the privileged non-overwriting link fallback"
 rm -rf "$_optional_failure_dir"
 

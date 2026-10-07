@@ -34,6 +34,10 @@ def upgrade() -> None:
     op.drop_column("users", "phone_verified_at", schema="app")
     op.drop_column("users", "phone", schema="app")
 
+    # Remove SMS rows while the channel value is still available: with the
+    # discriminator gone they would be read as email records, letting a
+    # recent SMS throttle email sends or supersede a live email code.
+    op.execute("DELETE FROM app.verification_codes WHERE channel = 'sms'")
     op.drop_index(
         "ix_verification_codes_user_id_channel_created_at",
         table_name="verification_codes",
@@ -63,12 +67,15 @@ def downgrade() -> None:
         table_name="verification_codes",
         schema="app",
     )
+    # The type was dropped on upgrade with no remaining users; recreate it
+    # before the column that depends on it.
+    verification_channel_enum.create(op.get_bind(), checkfirst=True)
     op.add_column(
         "verification_codes",
         sa.Column("channel", verification_channel_enum, nullable=True),
         schema="app",
     )
-    # Every surviving row is an email code; SMS rows are not recoverable.
+    # Only email rows survive the upgrade; SMS rows are not recoverable.
     op.execute("UPDATE app.verification_codes SET channel = 'email'")
     op.alter_column("verification_codes", "channel", nullable=False, schema="app")
     op.create_index(
