@@ -6,7 +6,6 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import AsyncMock, MagicMock
 from uuid import uuid4
 
-import httpx
 import pytest
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
@@ -20,17 +19,12 @@ from app.core import constants
 from app.core.security import get_password_hash, hash_verification_code
 from app.core.settings import SmtpSettings, web_settings
 from app.models import User, VerificationCode
-from app.models.verification_code import VerificationChannelEnum as Channel
 from app.repositories.login_attempt import LoginAttemptRepository
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
 from app.schemas.user import AdminUserUpdate
 from app.services.auth import AuthService
-from app.services.contact_verification import (
-    _POLICIES,
-    ContactVerificationService,
-    _ChannelPolicy,
-)
+from app.services.contact_verification import ContactVerificationService
 from app.services.email_sender import _send_blocking
 from app.services.errors import (
     DuplicateResourceError,
@@ -38,7 +32,6 @@ from app.services.errors import (
     VerificationCodeInvalidError,
     VerificationSendThrottledError,
 )
-from app.services.sms_sender import SmsSender, _raise_for_api_error
 from app.services.user import UserService
 from tests.conftest import SUPERUSER_TEST_DB_URL
 
@@ -72,7 +65,9 @@ def test_login_accepts_explicitly_configured_origin(
 
 async def test_lowered_budget_waits_until_enough_sends_expire(
     db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
 ) -> None:
+    monkeypatch.setattr(constants, "EMAIL_SEND_MAX_PER_ACCOUNT_PER_HOUR", 2)
     now = datetime.now(UTC)
     user = User(username=uuid4().hex, hashed_password="unused")
     db_session.add(user)
@@ -81,7 +76,6 @@ async def test_lowered_budget_waits_until_enough_sends_expire(
         db_session.add(
             VerificationCode(
                 user_id=user.id,
-                channel=Channel.email,
                 target="lowered@example.com",
                 code_hash=hash_verification_code("123456"),
                 created_at=now - timedelta(minutes=age),
@@ -89,11 +83,8 @@ async def test_lowered_budget_waits_until_enough_sends_expire(
             )
         )
     await db_session.commit()
-    policy = _ChannelPolicy(timedelta(minutes=10), 2, 100, None)
     with pytest.raises(VerificationSendThrottledError) as error:
-        await service(db_session)._enforce_budgets(
-            user, Channel.email, "lowered@example.com", policy, now
-        )
+        await service(db_session)._enforce_budgets(user, "lowered@example.com", now)
     assert error.value.headers["Retry-After"] == "1800"
 
 
@@ -110,7 +101,6 @@ async def test_older_codes_never_revive(
     await db_session.flush()
     old = VerificationCode(
         user_id=user.id,
-        channel=Channel.email,
         target="old@example.com",
         code_hash=hash_verification_code("123456"),
         created_at=now,
@@ -121,7 +111,6 @@ async def test_older_codes_never_revive(
     # Equal timestamps exercise deterministic id ordering as well.
     newest = VerificationCode(
         user_id=user.id,
-        channel=Channel.email,
         target="new@example.com" if newest_state == "other_target" else old.target,
         code_hash=hash_verification_code("654321"),
         created_at=now,
@@ -136,26 +125,23 @@ async def test_older_codes_never_revive(
     db_session.add(newest)
     await db_session.commit()
     with pytest.raises(VerificationCodeInvalidError):
-        await service(db_session)._consume(
-            user, Channel.email, "old@example.com", "123456"
-        )
+        await service(db_session)._consume(user, "old@example.com", "123456")
 
 
-@pytest.mark.parametrize("scope", ["account", "target", "global"])
+@pytest.mark.parametrize("scope", ["account", "target"])
 async def test_retry_after_tracks_real_window_expiry(
     db_session: AsyncSession,
+    monkeypatch: pytest.MonkeyPatch,
     scope: str,
 ) -> None:
     now = datetime.now(UTC)
     user = User(username=uuid4().hex, hashed_password="unused")
     db_session.add(user)
     await db_session.flush()
-    channel = Channel.sms if scope == "global" else Channel.email
     age = timedelta(minutes=20) if scope == "account" else timedelta(hours=2)
     db_session.add(
         VerificationCode(
             user_id=user.id,
-            channel=channel,
             target="budget@example.com",
             code_hash=hash_verification_code("123456"),
             created_at=now - age,
@@ -163,53 +149,30 @@ async def test_retry_after_tracks_real_window_expiry(
         )
     )
     await db_session.commit()
-    policy = _ChannelPolicy(
-        ttl=timedelta(minutes=10),
-        per_account_hourly=1 if scope == "account" else 100,
-        per_target_daily=1 if scope == "target" else 100,
-        global_daily=1 if scope == "global" else None,
-    )
+    if scope == "account":
+        monkeypatch.setattr(constants, "EMAIL_SEND_MAX_PER_ACCOUNT_PER_HOUR", 1)
+    else:
+        monkeypatch.setattr(constants, "EMAIL_SEND_MAX_PER_TARGET_PER_DAY", 1)
     with pytest.raises(VerificationSendThrottledError) as error:
-        await service(db_session)._enforce_budgets(
-            user, channel, "budget@example.com", policy, now
-        )
+        await service(db_session)._enforce_budgets(user, "budget@example.com", now)
     window = timedelta(hours=1) if scope == "account" else timedelta(days=1)
     assert error.value.headers["Retry-After"] == str(
         int((window - age).total_seconds())
     )
 
 
-@pytest.mark.parametrize("scope", ["email_target", "sms_target", "sms_global"])
 async def test_concurrent_accounts_cannot_overspend(
     db_engine: AsyncEngine,
     monkeypatch: pytest.MonkeyPatch,
-    scope: str,
 ) -> None:
     sessions = async_sessionmaker(db_engine, expire_on_commit=False)
-    channel = Channel.email if scope == "email_target" else Channel.sms
     async with sessions() as seed:
         users = [User(username=uuid4().hex, hashed_password="unused") for _ in range(2)]
         seed.add_all(users)
         await seed.commit()
         user_ids = [user.id for user in users]
-        count = await seed.scalar(
-            select(func.count())
-            .select_from(VerificationCode)
-            .where(
-                VerificationCode.channel == channel,
-                VerificationCode.created_at > datetime.now(UTC) - timedelta(days=1),
-            )
-        )
-    monkeypatch.setitem(
-        _POLICIES,
-        channel,
-        _ChannelPolicy(
-            ttl=timedelta(minutes=10),
-            per_account_hourly=100,
-            per_target_daily=100 if scope == "sms_global" else 1,
-            global_daily=int(count or 0) + 1 if scope == "sms_global" else None,
-        ),
-    )
+    monkeypatch.setattr(constants, "EMAIL_SEND_MAX_PER_ACCOUNT_PER_HOUR", 100)
+    monkeypatch.setattr(constants, "EMAIL_SEND_MAX_PER_TARGET_PER_DAY", 1)
     original = ContactVerificationService._enforce_budgets
 
     async def widened_check(self, *args):
@@ -220,20 +183,16 @@ async def test_concurrent_accounts_cannot_overspend(
     monkeypatch.setattr(ContactVerificationService, "_enforce_budgets", widened_check)
     target = uuid4().hex
 
-    async def issue(user_id: int, index: int):
+    async def issue(user_id: int):
         async with sessions() as db:
             user = await db.get(User, user_id)
             assert user is not None
-            return await service(db)._issue(
-                user,
-                channel,
-                f"{target}-{index}" if scope == "sms_global" else target,
-            )
+            return await service(db)._issue(user, target)
 
     try:
         results = await asyncio.wait_for(
             asyncio.gather(
-                *(issue(user_id, index) for index, user_id in enumerate(user_ids)),
+                *(issue(user_id) for user_id in user_ids),
                 return_exceptions=True,
             ),
             timeout=10,
@@ -368,99 +327,9 @@ def test_smtp_only_explicit_pre_acceptance_failures_are_rejections(
     assert error.value.definitely_rejected is (stage == "refused")
 
 
-@pytest.mark.parametrize(
-    "response,rejected",
-    [
-        ({"Error": {"Code": "AuthFailure", "Message": "refused"}}, True),
-        ({"SendStatusSet": [{"Code": "FailedOperation", "Message": "refused"}]}, True),
-        ({}, False),
-        ({"SendStatusSet": [{}]}, False),
-    ],
-)
-def test_sms_only_explicit_provider_rejections_restore_previous_issuance(
-    response: dict, rejected: bool
-) -> None:
-    with pytest.raises(NotificationChannelUnavailableError) as error:
-        _raise_for_api_error({"Response": response}, "+8613800138000")
-    assert error.value.definitely_rejected is rejected
-
-
-@pytest.mark.parametrize(
-    "status,rejected",
-    [
-        (400, True),
-        (401, True),
-        (403, True),
-        (429, True),
-        (408, False),
-        (500, False),
-        (503, False),
-    ],
-)
-async def test_sms_http_failure_preserves_previous_code_only_for_definite_rejection(
-    db_session: AsyncSession,
-    monkeypatch: pytest.MonkeyPatch,
-    status: int,
-    rejected: bool,
-) -> None:
-    from app.core.settings import SmsSettings
-
-    settings = SmsSettings(
-        tencent_sms_secret_id="test-id",
-        tencent_sms_secret_key="test-key",
-        tencent_sms_sdk_app_id="test-app",
-        tencent_sms_sign_name="test-sign",
-        tencent_sms_template_id="test-template",
-    )
-    monkeypatch.setattr("app.services.sms_sender.sms_settings", lambda: settings)
-    real_client = httpx.AsyncClient
-    transport = httpx.MockTransport(
-        lambda request: httpx.Response(status, request=request)
-    )
-    monkeypatch.setattr(
-        "app.services.sms_sender.httpx.AsyncClient",
-        lambda **kwargs: real_client(transport=transport, **kwargs),
-    )
-    now = datetime.now(UTC)
-    user = User(username=uuid4().hex, hashed_password="unused")
-    db_session.add(user)
-    await db_session.flush()
-    phone = "+8613800138000"
-    old = VerificationCode(
-        user_id=user.id,
-        channel=Channel.sms,
-        target=phone,
-        code_hash=hash_verification_code("123456"),
-        created_at=now - timedelta(seconds=61),
-        expires_at=now + timedelta(minutes=10),
-    )
-    db_session.add(old)
-    await db_session.commit()
-    verifier = service(db_session)
-    verifier.sms_sender = SmsSender()
-    code, _, record_id = await verifier._issue(user, Channel.sms, phone)
-    with pytest.raises(NotificationChannelUnavailableError) as error:
-        await verifier._deliver(user.id, Channel.sms, phone, code, record_id)
-    assert error.value.definitely_rejected is rejected
-    assert (
-        await db_session.get(VerificationCode, record_id)
-    ).delivery_rejected is rejected
-    assert (
-        await verifier.repository.count_for_user_since(
-            user.id, Channel.sms, now - timedelta(hours=1)
-        )
-        == 2
-    )
-    active = await verifier.repository.get_active(user.id, Channel.sms, phone, now)
-    assert active is not None
-    assert active.id == (old.id if rejected else record_id)
-
-
-@pytest.mark.parametrize("channel", [Channel.email, Channel.sms])
 @pytest.mark.parametrize("rejected", [True, False])
 async def test_failed_resend_preserves_budget_and_only_restores_on_rejection(
     db_session: AsyncSession,
-    channel: Channel,
     rejected: bool,
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -471,12 +340,9 @@ async def test_failed_resend_preserves_budget_and_only_restores_on_rejection(
     user = User(username=uuid4().hex, hashed_password="unused")
     db_session.add(user)
     await db_session.flush()
-    target = (
-        f"{uuid4().hex}@example.com" if channel == Channel.email else "+8613800138000"
-    )
+    target = f"{uuid4().hex}@example.com"
     old = VerificationCode(
         user_id=user.id,
-        channel=channel,
         target=target,
         code_hash=hash_verification_code("123456"),
         created_at=now - timedelta(seconds=61),
@@ -485,18 +351,15 @@ async def test_failed_resend_preserves_budget_and_only_restores_on_rejection(
     db_session.add(old)
     await db_session.commit()
     verifier = service(db_session)
-    code, _, record_id = await verifier._issue(user, channel, target)
-    sender = verifier.email_sender if channel == Channel.email else verifier.sms_sender
-    sender.send_code = AsyncMock(
-        side_effect=NotificationChannelUnavailableError(
-            channel.value, definitely_rejected=rejected
-        )
+    code, _, record_id = await verifier._issue(user, target)
+    verifier.email_sender.send_code = AsyncMock(
+        side_effect=NotificationChannelUnavailableError(definitely_rejected=rejected)
     )
     with pytest.raises(NotificationChannelUnavailableError):
-        await verifier._deliver(user.id, channel, target, code, record_id)
+        await verifier._deliver(user.id, target, code, record_id)
     assert (
         await verifier.repository.count_for_user_since(
-            user.id, channel, now - timedelta(hours=1)
+            user.id, now - timedelta(hours=1)
         )
         == 2
     )
@@ -504,15 +367,15 @@ async def test_failed_resend_preserves_budget_and_only_restores_on_rejection(
         await db_session.get(VerificationCode, record_id)
     ).delivery_rejected is rejected
     with pytest.raises(VerificationSendThrottledError):
-        await verifier._ensure_send_allowed(channel, user, target)
+        await verifier._enforce_budgets(user, target, datetime.now(UTC))
     if rejected:
         with pytest.raises(VerificationCodeInvalidError):
-            await verifier._consume(user, channel, target, code)
-        await verifier._consume(user, channel, target, "123456")
+            await verifier._consume(user, target, code)
+        await verifier._consume(user, target, "123456")
     else:
         with pytest.raises(VerificationCodeInvalidError):
-            await verifier._consume(user, channel, target, "123456")
-        await verifier._consume(user, channel, target, code)
+            await verifier._consume(user, target, "123456")
+        await verifier._consume(user, target, code)
 
 
 @pytest.mark.parametrize("state", ["used", "expired", "exhausted"])
@@ -528,7 +391,6 @@ async def test_rejected_resend_does_not_revive_an_older_invalidated_code(
         db_session.add(
             VerificationCode(
                 user_id=user.id,
-                channel=Channel.email,
                 target="old@example.com",
                 code_hash=hash_verification_code(code),
                 created_at=now + timedelta(seconds=number),
@@ -544,9 +406,7 @@ async def test_rejected_resend_does_not_revive_an_older_invalidated_code(
         )
     await db_session.commit()
     with pytest.raises(VerificationCodeInvalidError):
-        await service(db_session)._consume(
-            user, Channel.email, "old@example.com", "123456"
-        )
+        await service(db_session)._consume(user, "old@example.com", "123456")
 
 
 async def test_admin_email_update_translates_real_case_insensitive_collision(

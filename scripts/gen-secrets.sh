@@ -56,9 +56,9 @@ for name in "${!SECRETS[@]}"; do
   echo "[gen-secrets] wrote ${file}"
 done
 
-# Credentials this script cannot invent: an SMTP password and Tencent Cloud API
-# keys come from the provider, so a random value would be worse than none. They
-# are created empty purely so the compose `secrets:` bind mounts resolve — an
+# Credentials this script cannot invent: an SMTP password comes from the
+# provider, so a random value would be worse than none. It is created empty
+# purely so the compose `secrets:` bind mounts resolve — an
 # empty value leaves the channel unconfigured, which the backend reports as
 # unavailable rather than silently swallowing messages.
 #
@@ -66,8 +66,6 @@ done
 # overwriting a real credential the operator pasted in.
 PLACEHOLDER_SECRETS=(
   smtp_password
-  tencent_sms_secret_id
-  tencent_sms_secret_key
 )
 
 for name in "${PLACEHOLDER_SECRETS[@]}"; do

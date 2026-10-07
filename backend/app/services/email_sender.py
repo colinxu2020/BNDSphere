@@ -52,7 +52,6 @@ def _send_blocking(settings: SmtpSettings, to: str, code: str, minutes: int) -> 
         # Anything raised before send_message — connect, STARTTLS, or auth —
         # means the relay never saw the payload, so rejection is certain.
         raise NotificationChannelUnavailableError(
-            "email",
             definitely_rejected=not accepted
             and (delivery_rejected or not delivery_started),
         ) from err
@@ -79,7 +78,7 @@ class EmailSender:
                     code,
                 )
                 return
-            raise NotificationChannelUnavailableError("email", definitely_rejected=True)
+            raise NotificationChannelUnavailableError(definitely_rejected=True)
 
         try:
             await asyncio.to_thread(_send_blocking, settings, to, code, minutes)

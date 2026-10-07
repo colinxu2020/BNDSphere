@@ -59,8 +59,6 @@ class UserInfo(UserBase, IdMixin):
     # apart from "confirmed". Only ever returned to the account's own owner —
     # ``PublicUserInfo`` carries neither field.
     email_verified_at: datetime | None = Field(None)
-    phone: str | None = Field(None, max_length=16)
-    phone_verified_at: datetime | None = Field(None)
     avatar_uri: HttpUrl | None = Field(..., max_length=255)
     description: str = Field(..., max_length=constants.USER_MAX_DESCRIPTION_LENGTH)
     role: RoleEnum

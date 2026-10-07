@@ -159,18 +159,6 @@ CONTACT_POLICY_CHANGED_RESPONSE: Final[dict[int | str, dict[str, Any]]] = {
 }
 
 CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
-    400: {
-        "model": ErrorResponseModel,
-        "description": "The address or number is not one this deployment can reach",
-        "content": {
-            "application/json": {
-                "example": {
-                    "message_key": "error.verification.target_invalid",
-                    "error_code": "VERIFICATION_TARGET_INVALID",
-                },
-            },
-        },
-    },
     409: VERIFICATION_CODE_INVALID_RESPONSE[409],
     429: {
         "model": ErrorResponseModel,
@@ -187,7 +175,7 @@ CONTACT_VERIFICATION_SEND_RESPONSES: Final[dict[int | str, dict[str, Any]]] = {
     },
     503: {
         "model": ErrorResponseModel,
-        "description": "The email or SMS provider could not be reached",
+        "description": "The email provider could not be reached",
         "content": {
             "application/json": {
                 "example": {

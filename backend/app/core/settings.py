@@ -103,34 +103,6 @@ class SmtpSettings(_AppBaseSettings):
         return self.smtp_from or self.smtp_username
 
 
-class SmsSettings(_AppBaseSettings):
-    """Tencent Cloud SMS credentials and the template to send.
-
-    Blank by default for the same reason as ``SmtpSettings``: phone
-    verification is opt-in per deployment, and an unconfigured one must fail
-    loudly rather than pretend.
-    """
-
-    tencent_sms_secret_id: str = ""
-    tencent_sms_secret_key: str = ""
-    tencent_sms_sdk_app_id: str = ""
-    # The signature (签名) and template (模板) both have to be registered and
-    # approved in the Tencent console before they will send.
-    tencent_sms_sign_name: str = ""
-    tencent_sms_template_id: str = ""
-    tencent_sms_region: str = "ap-guangzhou"
-
-    @property
-    def configured(self) -> bool:
-        return bool(
-            self.tencent_sms_secret_id
-            and self.tencent_sms_secret_key
-            and self.tencent_sms_sdk_app_id
-            and self.tencent_sms_sign_name
-            and self.tencent_sms_template_id,
-        )
-
-
 @cache
 def db_settings() -> DatabaseSettings:
     return DatabaseSettings()  # type: ignore[call-arg]
@@ -149,8 +121,3 @@ def oss_settings() -> OSSSettings:
 @cache
 def smtp_settings() -> SmtpSettings:
     return SmtpSettings()
-
-
-@cache
-def sms_settings() -> SmsSettings:
-    return SmsSettings()

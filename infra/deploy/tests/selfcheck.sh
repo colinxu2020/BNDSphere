@@ -132,20 +132,23 @@ chmod 600 "$PD/secrets/smtp_password.txt"
 assert_ok "optional credentials are provisioned" _prepare_optional
 assert_eq "operator-credential" "$(cat "$PD/secrets/smtp_password.txt")" \
     "existing SMTP credentials are preserved"
-for _name in tencent_sms_secret_id tencent_sms_secret_key; do
-    assert_ok "$_name placeholder exists" test -f "$PD/secrets/${_name}.txt"
-    assert_ok "$_name placeholder is empty" test ! -s "$PD/secrets/${_name}.txt"
-    # POSIX ls works on both the deploy host and macOS.
-    assert_eq "-rw-------" "$(ls -l "$PD/secrets/${_name}.txt" | cut -c 1-10)" \
-        "$_name placeholder has mode 600"
-done
+# With the only optional secret already present, nothing is created and the
+# chown stub never fires.
+assert_eq "" "$(cat "$PD/ownership-check" 2>/dev/null)" \
+    "no new placeholder receives backend ownership"
+rm "$PD/secrets/smtp_password.txt"
 assert_ok "optional provisioning is idempotent" _prepare_optional
+_name=smtp_password
+assert_ok "$_name placeholder exists" test -f "$PD/secrets/${_name}.txt"
+assert_ok "$_name placeholder is empty" test ! -s "$PD/secrets/${_name}.txt"
+# POSIX ls works on both the deploy host and macOS.
+assert_eq "-rw-------" "$(ls -l "$PD/secrets/${_name}.txt" | cut -c 1-10)" \
+    "$_name placeholder has mode 600"
 assert_eq "" "$(find "$PD/secrets" -name '.optional.*')" \
     "optional provisioning leaves no temporary files"
 if [ "$(id -u)" != 1000 ]; then
-    assert_eq "1000:1000
-1000:1000" "$(cat "$PD/ownership-check")" \
-        "only new placeholder files receive backend ownership"
+    assert_eq "1000:1000" "$(tail -1 "$PD/ownership-check")" \
+        "new placeholder files receive backend ownership"
 fi
 _optional_failure_dir=$(mktemp -d)
 _optional_ownership_fails() (
