@@ -4,12 +4,10 @@ from typing import Annotated
 from pydantic import BaseModel, EmailStr, Field
 
 from app.core import constants
-from app.models.verification_code import VerificationChannelEnum
 
 
 class VerificationCodeCreate(BaseModel):
     user_id: int
-    channel: VerificationChannelEnum
     target: str
     code_hash: str
     expires_at: datetime
@@ -41,21 +39,6 @@ class EmailVerificationSend(EmailVerificationTarget):
 
 
 class EmailVerificationConfirm(EmailVerificationTarget):
-    code: VerificationCodeDigits
-
-
-class PhoneVerificationTarget(BaseModel):
-    # Validated and normalized to E.164 by ``normalize_phone``; kept a plain
-    # string here so the user sees one domain-specific error message instead
-    # of a pydantic pattern dump.
-    phone: str = Field(..., max_length=constants.USER_MAX_PHONE_INPUT_LENGTH)
-
-
-class PhoneVerificationSend(PhoneVerificationTarget):
-    password: CurrentPassword
-
-
-class PhoneVerificationConfirm(PhoneVerificationTarget):
     code: VerificationCodeDigits
 
 

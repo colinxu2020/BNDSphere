@@ -3,7 +3,7 @@ from hashlib import blake2b
 
 from sqlalchemy import BigInteger, cast, delete, func, select
 
-from app.models.verification_code import VerificationChannelEnum, VerificationCode
+from app.models.verification_code import VerificationCode
 from app.repositories.base import RepositoryBase
 from app.schemas.verification_code import VerificationCodeCreate
 
@@ -11,7 +11,7 @@ from app.schemas.verification_code import VerificationCodeCreate
 def _advisory_key(namespace: str, value: str) -> int:
     """Map a string to the signed 64-bit key ``pg_advisory_xact_lock`` wants.
 
-    Namespaced so a phone number and an account id cannot collide into the
+    Namespaced so a target address and an account id cannot collide into the
     same lock. A collision between two unrelated values only serializes them,
     which is harmless, so a short non-cryptographic digest is enough.
     """
@@ -24,41 +24,29 @@ class VerificationCodeRepository(
 ):
     model = VerificationCode
 
-    async def lock_send_budget(
-        self,
-        channel: VerificationChannelEnum,
-        target: str,
-        *,
-        global_budget: bool,
-    ) -> None:
-        # All sends take locks in this order: global, target, account. Confirm
-        # only takes the account lock and never waits for a budget lock.
-        keys = []
-        if global_budget:
-            keys.append(_advisory_key("verification-global", channel.value))
-        keys.append(_advisory_key(f"verification-target-{channel.value}", target))
-        for key in keys:
-            await self.db.execute(
-                select(func.pg_advisory_xact_lock(cast(key, BigInteger))),
-            )
+    async def lock_send_budget(self, target: str) -> None:
+        # All sends take the target lock first; confirm only takes the
+        # account lock and never waits for a budget lock.
+        await self.db.execute(
+            select(
+                func.pg_advisory_xact_lock(
+                    cast(_advisory_key("verification-target", target), BigInteger)
+                ),
+            ),
+        )
 
-    async def lock_user_channel(
-        self,
-        user_id: int,
-        channel: VerificationChannelEnum,
-    ) -> None:
-        """Serialize send-budget check and insert for one account+channel.
+    async def lock_user(self, user_id: int) -> None:
+        """Serialize send-budget check and insert for one account.
 
         The budgets are read and the new row inserted as separate statements,
         so without this two concurrent "resend" clicks both read the
-        pre-insert count and both send. For SMS that is a duplicate charge;
-        held open, it is an unbounded one. The lock is released when the
+        pre-insert count and both send. The lock is released when the
         transaction ends.
         """
         await self.db.execute(
             select(
                 func.pg_advisory_xact_lock(
-                    cast(_advisory_key(channel.value, str(user_id)), BigInteger),
+                    cast(_advisory_key("verification-user", str(user_id)), BigInteger),
                 ),
             ),
         )
@@ -66,7 +54,6 @@ class VerificationCodeRepository(
     async def get_active(
         self,
         user_id: int,
-        channel: VerificationChannelEnum,
         target: str,
         now: datetime,
     ) -> VerificationCode | None:
@@ -81,7 +68,6 @@ class VerificationCodeRepository(
             select(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
-                VerificationCode.channel == channel,
                 VerificationCode.delivery_rejected.is_(False),
             )
             .order_by(VerificationCode.created_at.desc(), VerificationCode.id.desc())
@@ -106,7 +92,6 @@ class VerificationCodeRepository(
 
     async def budget_reset_at(
         self,
-        channel: VerificationChannelEnum,
         since: datetime,
         limit: int,
         *,
@@ -119,7 +104,6 @@ class VerificationCodeRepository(
         window over budget. No row means the window still has capacity.
         """
         statement = select(VerificationCode.created_at).where(
-            VerificationCode.channel == channel,
             VerificationCode.created_at > since,
         )
         if user_id is not None:
@@ -136,9 +120,8 @@ class VerificationCodeRepository(
     async def last_sent_at(
         self,
         user_id: int,
-        channel: VerificationChannelEnum,
     ) -> datetime | None:
-        """When this account last had a code sent on this channel.
+        """When this account last had a code sent.
 
         Keyed on the account, not the target, so switching the address being
         verified does not reset the resend cooldown.
@@ -146,7 +129,6 @@ class VerificationCodeRepository(
         result = await self.db.execute(
             select(func.max(VerificationCode.created_at)).where(
                 VerificationCode.user_id == user_id,
-                VerificationCode.channel == channel,
             ),
         )
         return result.scalar_one_or_none()
@@ -154,7 +136,6 @@ class VerificationCodeRepository(
     async def count_for_user_since(
         self,
         user_id: int,
-        channel: VerificationChannelEnum,
         since: datetime,
     ) -> int:
         result = await self.db.execute(
@@ -162,7 +143,6 @@ class VerificationCodeRepository(
             .select_from(VerificationCode)
             .where(
                 VerificationCode.user_id == user_id,
-                VerificationCode.channel == channel,
                 VerificationCode.created_at >= since,
             ),
         )
@@ -170,37 +150,19 @@ class VerificationCodeRepository(
 
     async def count_for_target_since(
         self,
-        channel: VerificationChannelEnum,
         target: str,
         since: datetime,
     ) -> int:
-        """Count sends to one address/number, across every account.
+        """Count sends to one address, across every account.
 
         Per-account budgets alone would let someone register a handful of
-        accounts and point them all at the same phone number.
+        accounts and point them all at the same address.
         """
         result = await self.db.execute(
             select(func.count())
             .select_from(VerificationCode)
             .where(
-                VerificationCode.channel == channel,
                 VerificationCode.target == target,
-                VerificationCode.created_at >= since,
-            ),
-        )
-        return int(result.scalar_one())
-
-    async def count_for_channel_since(
-        self,
-        channel: VerificationChannelEnum,
-        since: datetime,
-    ) -> int:
-        """Every send on this channel, deployment-wide — the spend ceiling."""
-        result = await self.db.execute(
-            select(func.count())
-            .select_from(VerificationCode)
-            .where(
-                VerificationCode.channel == channel,
                 VerificationCode.created_at >= since,
             ),
         )

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Check, Mail, Phone } from "@/src/components/ui/Icons";
+import { Check, Mail } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { StatusMessage } from "./ui/AppPrimitives";
@@ -12,60 +12,9 @@ const FIELD_CLASS =
   "focus:ring-primary-500/20 focus:border-primary-500 outline-none transition-all " +
   "font-medium text-slate-900 disabled:opacity-60";
 
-const CHANNELS = {
-  email: {
-    label: "电子邮箱",
-    icon: Mail,
-    inputType: "email",
-    placeholder: "you@example.com",
-    hint: "绑定后可用于安全通知和后续的账号找回。",
-  },
-  phone: {
-    label: "手机号码",
-    icon: Phone,
-    inputType: "tel",
-    placeholder: "13800138000",
-    hint: "仅支持中国内地手机号，绑定后可用于账号找回和两步验证。",
-  },
-} as const;
-
-type Channel = keyof typeof CHANNELS;
-
-/** The one place that knows a channel's two endpoints differ only by field name. */
-function api(channel: Channel) {
-  return {
-    send: (target: string, password: string) =>
-      channel === "email"
-        ? client.POST("/api/v1/verification/email/send", {
-            body: { email: target, password },
-          })
-        : client.POST("/api/v1/verification/phone/send", {
-            body: { phone: target, password },
-          }),
-    confirm: (target: string, code: string) =>
-      channel === "email"
-        ? client.POST("/api/v1/verification/email/confirm", {
-            body: { email: target, code },
-          })
-        : client.POST("/api/v1/verification/phone/confirm", {
-            body: { phone: target, code },
-          }),
-  };
-}
-
-function ChannelRow({
-  channel,
-  user,
-  onVerified,
-}: {
-  channel: Channel;
-  user: UserInfo;
-  onVerified: (user: UserInfo) => void;
-}) {
-  const config = CHANNELS[channel];
-  const Icon = config.icon;
-  const current = channel === "email" ? user.email : user.phone;
-  const verifiedAt = channel === "email" ? user.email_verified_at : user.phone_verified_at;
+function EmailRow({ user, onVerified }: { user: UserInfo; onVerified: (user: UserInfo) => void }) {
+  const current = user.email;
+  const verifiedAt = user.email_verified_at;
 
   const [target, setTarget] = useState(current || "");
   const [password, setPassword] = useState("");
@@ -88,7 +37,9 @@ function ChannelRow({
     setBusy(true);
     setMessage(null);
     try {
-      const { data, error } = await api(channel).send(target.trim(), password);
+      const { data, error } = await client.POST("/api/v1/verification/email/send", {
+        body: { email: target.trim(), password },
+      });
       if (error) {
         // Provider timeouts can return 503 after the code was delivered.
         if ("error_code" in error && error.error_code === "VERIFICATION_CHANNEL_UNAVAILABLE") {
@@ -119,7 +70,9 @@ function ChannelRow({
     setBusy(true);
     setMessage(null);
     try {
-      const { data, error } = await api(channel).confirm(target.trim(), code.trim());
+      const { data, error } = await client.POST("/api/v1/verification/email/confirm", {
+        body: { email: target.trim(), code: code.trim() },
+      });
       if (error) {
         setTone("error");
         setMessage(error);
@@ -129,7 +82,7 @@ function ChannelRow({
         setCodeSent(false);
         setCooldown(0);
         setTone("success");
-        setMessage(`${config.label}绑定成功。`);
+        setMessage("电子邮箱绑定成功。");
         onVerified(data);
       }
     } catch (err) {
@@ -143,8 +96,8 @@ function ChannelRow({
   return (
     <div className="flex flex-col gap-3 py-5 first:pt-0 last:pb-0">
       <div className="flex items-center gap-2">
-        <Icon size={16} className="text-slate-400" />
-        <span className="text-sm font-bold text-slate-800">{config.label}</span>
+        <Mail size={16} className="text-slate-400" />
+        <span className="text-sm font-bold text-slate-800">电子邮箱</span>
         {verifiedAt ? (
           <span className="flex items-center gap-1 px-2 py-0.5 bg-emerald-50 text-emerald-700 text-xs font-bold rounded-md border border-emerald-100">
             <Check size={12} /> 已验证
@@ -158,7 +111,7 @@ function ChannelRow({
         )}
       </div>
 
-      <p className="text-xs text-slate-500">{config.hint}</p>
+      <p className="text-xs text-slate-500">绑定后可用于安全通知和后续的账号找回。</p>
 
       {/* The server refuses a send without it: a bound address is where
           password resets land, so a session left open must not be enough to
@@ -174,9 +127,9 @@ function ChannelRow({
 
       <div className="flex gap-2">
         <input
-          type={config.inputType}
+          type="email"
           value={target}
-          placeholder={config.placeholder}
+          placeholder="you@example.com"
           onChange={(e) => setTarget(e.target.value)}
           className={FIELD_CLASS}
         />
@@ -278,7 +231,7 @@ function ContactVerificationForm({
     <div className="bg-white rounded-md border border-slate-100 shadow-sm p-8">
       <h3 className="text-sm font-bold text-slate-800 mb-1 font-display">联系方式验证</h3>
       <p className="text-xs text-slate-500 mb-2">
-        绑定邮箱或手机号是可选的，我们只会用它们发送验证码和账号安全通知。
+        绑定邮箱是可选的，我们只会用它发送验证码和账号安全通知。
       </p>
       {error != null && <StatusMessage value={error} />}
       {!policy && error != null && (
@@ -294,7 +247,7 @@ function ContactVerificationForm({
       {policy && !policy.accepted && (
         <div className="flex flex-col gap-3 py-3">
           <p className="text-sm text-slate-600">
-            绑定联系方式前，请阅读更新后的隐私政策，其中说明了邮箱、手机号以及邮件和短信服务商的数据处理方式。
+            绑定邮箱前，请阅读更新后的隐私政策，其中说明了邮箱以及邮件服务商的数据处理方式。
           </p>
           <label className="flex items-center gap-2 text-sm">
             <input
@@ -326,8 +279,7 @@ function ContactVerificationForm({
       )}
       {policy?.accepted && (
         <div className="divide-y divide-slate-100">
-          <ChannelRow channel="email" user={user} onVerified={onVerified} />
-          <ChannelRow channel="phone" user={user} onVerified={onVerified} />
+          <EmailRow user={user} onVerified={onVerified} />
         </div>
       )}
     </div>

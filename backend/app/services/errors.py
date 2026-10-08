@@ -286,13 +286,12 @@ class NotificationChannelUnavailableError(BusinessError):
     error is a side channel for probing which addresses exist.
     """
 
-    def __init__(self, channel: str, *, definitely_rejected: bool = False) -> None:
+    def __init__(self, *, definitely_rejected: bool = False) -> None:
         self.definitely_rejected = definitely_rejected
         super().__init__(
             "error.verification.channel_unavailable",
             503,
             "VERIFICATION_CHANNEL_UNAVAILABLE",
-            {"channel": channel},
         )
 
 
@@ -310,21 +309,11 @@ class VerificationCodeInvalidError(BadRequestError):
         )
 
 
-class VerificationTargetInvalidError(BadRequestError):
-    def __init__(self, channel: str) -> None:
-        super().__init__(
-            "error.verification.target_invalid",
-            "VERIFICATION_TARGET_INVALID",
-            {"channel": channel},
-        )
-
-
 class VerificationTargetTakenError(DuplicateResourceError):
-    def __init__(self, channel: str) -> None:
+    def __init__(self) -> None:
         super().__init__(
             "error.verification.target_taken",
             "VERIFICATION_TARGET_TAKEN",
-            {"channel": channel},
         )
 
 

@@ -1,12 +1,9 @@
-"""Binding a verified email address or phone number to an account.
+"""Binding a verified email address to an account.
 
-The senders are replaced throughout: these tests assert the code *logic* —
-budgets, attempt caps, normalization — not that an SMTP relay or Tencent
-Cloud can be reached. ``TestTencentSignature`` is the exception and covers
-the one piece of the SMS path that can be checked without a network.
+The sender is replaced throughout: these tests assert the code *logic* —
+budgets, attempt caps, normalization — not that an SMTP relay can be reached.
 """
 
-import hashlib
 from collections.abc import AsyncGenerator
 from datetime import UTC, date, datetime, timedelta
 from typing import ClassVar
@@ -30,12 +27,7 @@ from app.repositories.login_attempt import LoginAttemptRepository
 from app.repositories.user import UserRepository
 from app.repositories.verification_code import VerificationCodeRepository
 from app.services.auth import AuthService
-from app.services.contact_verification import (
-    ContactVerificationService,
-    normalize_phone,
-)
-from app.services.errors import VerificationTargetInvalidError
-from app.services.sms_sender import build_authorization, canonical_request
+from app.services.contact_verification import ContactVerificationService
 from tests.test_auth import ConfiguredUser
 
 # Every binding send re-checks this, so the seeded accounts need a password
@@ -44,7 +36,7 @@ PASSWORD = "contact-binder-pw"  # noqa: S105 -- a fixture credential
 
 
 class RecordingSender:
-    """Stands in for both senders and keeps what it was handed."""
+    """Stands in for the email sender and keeps what it was handed."""
 
     def __init__(self) -> None:
         self.sent: list[tuple[str, str, int]] = []
@@ -61,7 +53,7 @@ class RecordingSender:
 async def sender(
     db_session: AsyncSession, setup_class_users: None
 ) -> AsyncGenerator[RecordingSender]:
-    """Swap both channels for a recorder, and hand it to the test."""
+    """Swap the sender for a recorder, and hand it to the test."""
     recorder = RecordingSender()
     for user_id in (await db_session.scalars(select(User.id))).all():
         await UserRepository(db_session).accept_legal_document(
@@ -79,7 +71,6 @@ async def sender(
                 LoginAttemptRepository(db_session),
             ),
             email_sender=recorder,  # type: ignore[arg-type]
-            sms_sender=recorder,  # type: ignore[arg-type]
         )
 
     app.dependency_overrides[get_contact_verification_service] = _override
@@ -117,18 +108,15 @@ class TestContactReauthenticationBudget:
             "username": "reauth_owner",
             "password": PASSWORD,
             "email": "occupied@example.com",
-            "phone": "+8613800138000",
         },
     ]
 
-    @pytest.mark.parametrize("channel", ["email", "phone"])
     async def test_owned_target_spends_password_budget_before_hashing(
         self,
         client: AsyncClient,
         db_session: AsyncSession,
         sender: RecordingSender,
         monkeypatch: pytest.MonkeyPatch,
-        channel: str,
     ) -> None:
         from app.services import auth
 
@@ -142,12 +130,12 @@ class TestContactReauthenticationBudget:
 
         monkeypatch.setattr(auth, "verify_password", count_hashes)
         headers = self.configured_users["reauth_binder"]["headers"]
-        targets = {"email": "occupied@example.com", "phone": "+8613800138000"}
+        target = "occupied@example.com"
         for _ in range(constants.LOGIN_LOCKOUT_THRESHOLD):
             response = await client.post(
-                f"/verification/{channel}/send",
+                "/verification/email/send",
                 headers=headers,
-                json={channel: targets[channel], "password": PASSWORD},
+                json={"email": target, "password": PASSWORD},
             )
             assert response.status_code == 409
 
@@ -156,11 +144,10 @@ class TestContactReauthenticationBudget:
             UserRepository(db_session), LoginAttemptRepository(db_session)
         )
         assert await auth_service.authenticate("reauth_binder", PASSWORD, ip=None)
-        other = "phone" if channel == "email" else "email"
         response = await client.post(
-            f"/verification/{other}/send",
+            "/verification/email/send",
             headers=headers,
-            json={other: targets[other], "password": PASSWORD},
+            json={"email": "free@example.com", "password": PASSWORD},
         )
         assert response.status_code == 429
         assert response.json()["error_code"] == "LOGIN_THROTTLED"
@@ -178,14 +165,6 @@ class TestContactReauthenticationBudget:
         assert all(attempt.successful for attempt in attempts)
         assert not sender.sent
 
-        # Let those attempts expire so the other parameter starts with a fresh window.
-        await db_session.execute(
-            update(LoginAttempt)
-            .where(LoginAttempt.username == "reauth_binder")
-            .values(created_at=datetime.now(UTC) - timedelta(hours=2))
-        )
-        await db_session.commit()
-
 
 class TestContactConfirmationAtomicity:
     configured_users: ClassVar[dict[str, ConfiguredUser]]
@@ -194,49 +173,44 @@ class TestContactConfirmationAtomicity:
             "username": "atomic_binder",
             "password": PASSWORD,
             "email": "original@example.com",
-            "phone": "+8613900139000",
         },
         {"username": "atomic_owner", "password": PASSWORD},
     ]
 
-    @pytest.mark.parametrize("channel", ["email", "phone"])
     async def test_binding_conflict_preserves_code_and_wrong_guess_count(
         self,
         client: AsyncClient,
         db_session: AsyncSession,
         sender: RecordingSender,
-        channel: str,
     ) -> None:
         headers = self.configured_users["atomic_binder"]["headers"]
-        target = "atomic@example.com" if channel == "email" else "+8613800138000"
-        original = "original@example.com" if channel == "email" else "+8613900139000"
+        target = "atomic@example.com"
+        original = "original@example.com"
         response = await client.post(
-            f"/verification/{channel}/send",
+            "/verification/email/send",
             headers=headers,
-            json={channel: target, "password": PASSWORD},
+            json={"email": target, "password": PASSWORD},
         )
         assert response.status_code == 202
         code = sender.last_code
         wrong = "000000" if code != "000000" else "111111"
         response = await client.post(
-            f"/verification/{channel}/confirm",
+            "/verification/email/confirm",
             headers=headers,
-            json={channel: target, "code": wrong},
+            json={"email": target, "code": wrong},
         )
         assert response.status_code == 400
 
         # Another account takes the target after issuance, exercising the real
         # database uniqueness constraint rather than a mocked binding failure.
         await db_session.execute(
-            update(User)
-            .where(User.username == "atomic_owner")
-            .values({channel: target})
+            update(User).where(User.username == "atomic_owner").values(email=target)
         )
         await db_session.commit()
         response = await client.post(
-            f"/verification/{channel}/confirm",
+            "/verification/email/confirm",
             headers=headers,
-            json={channel: target, "code": code},
+            json={"email": target, "code": code},
         )
         assert response.status_code == 409
         record = (
@@ -248,26 +222,26 @@ class TestContactConfirmationAtomicity:
         assert record.attempts == 1
         assert (
             await db_session.scalar(
-                select(getattr(User, channel)).where(User.username == "atomic_binder")
+                select(User.email).where(User.username == "atomic_binder")
             )
             == original
         )
         await db_session.execute(
-            update(User).where(User.username == "atomic_owner").values({channel: None})
+            update(User).where(User.username == "atomic_owner").values(email=None)
         )
         await db_session.commit()
         response = await client.post(
-            f"/verification/{channel}/confirm",
+            "/verification/email/confirm",
             headers=headers,
-            json={channel: target, "code": code},
+            json={"email": target, "code": code},
         )
         assert response.status_code == 200
-        assert response.json()[channel] == target
-        assert response.json()[f"{channel}_verified_at"] is not None
+        assert response.json()["email"] == target
+        assert response.json()["email_verified_at"] is not None
         response = await client.post(
-            f"/verification/{channel}/confirm",
+            "/verification/email/confirm",
             headers=headers,
-            json={channel: target, "code": code},
+            json={"email": target, "code": code},
         )
         assert response.status_code == 400
 
@@ -461,9 +435,7 @@ class TestContactPolicyRenewal:
             patch.setattr(AuthService, "reauthenticate", unexpected_password_check)
             for route, body in [
                 ("email/send", {"email": "legacy@example.com", "password": PASSWORD}),
-                ("phone/send", {"phone": "13800138000", "password": PASSWORD}),
                 ("email/confirm", {"email": "legacy@example.com", "code": "123456"}),
-                ("phone/confirm", {"phone": "13800138000", "code": "123456"}),
             ]:
                 response = await client.post(
                     f"/verification/{route}", json=body, headers=headers
@@ -597,199 +569,3 @@ class TestWrongCodes:
         )
         assert resp.status_code == 400
         assert resp.json()["error_code"] == "VERIFICATION_CODE_INVALID"
-
-
-class TestPhoneVerification:
-    configured_users: ClassVar[dict[str, ConfiguredUser]]
-
-    USER_SPECS: ClassVar[list[dict[str, str]]] = [
-        {"username": "phone_binder", "password": PASSWORD}
-    ]
-
-    async def test_unicode_digits_are_rejected_before_spending_budgets(
-        self,
-        client: AsyncClient,
-        db_session: AsyncSession,
-        sender: RecordingSender,
-    ) -> None:
-        before = len(sender.sent)
-        attempts = select(LoginAttempt.id).where(
-            LoginAttempt.username == "phone_binder"
-        )
-        codes = select(VerificationCode.id)
-        attempts_before = (await db_session.scalars(attempts)).all()
-        codes_before = (await db_session.scalars(codes)).all()
-        for action, credentials in (
-            ("send", {"password": PASSWORD}),
-            ("confirm", {"code": "123456"}),
-        ):
-            response = await client.post(
-                f"/verification/phone/{action}",
-                headers=self.configured_users["phone_binder"]["headers"],
-                json={"phone": "13９００１３８０００", **credentials},
-            )
-            assert response.status_code == 400
-            assert response.json()["error_code"] == "VERIFICATION_TARGET_INVALID"
-        assert len(sender.sent) == before
-        assert (await db_session.scalars(attempts)).all() == attempts_before
-        assert (await db_session.scalars(codes)).all() == codes_before
-
-    async def test_number_is_normalized_before_it_is_stored(
-        self,
-        client: AsyncClient,
-        sender: RecordingSender,
-        setup_class_users: None,
-    ) -> None:
-        headers = self.configured_users["phone_binder"]["headers"]
-        resp = await client.post(
-            "/verification/phone/send",
-            json={"phone": "+86 138 0013 8000", "password": PASSWORD},
-            headers=headers,
-        )
-        assert resp.status_code == 202
-        target, code, minutes = sender.sent[-1]
-        assert target == "+8613800138000"
-        assert minutes == constants.SMS_CODE_TTL_MINUTES
-
-        # Confirmed with a different spelling of the same number: if these
-        # normalized differently, the budgets would be per-spelling too.
-        resp = await client.post(
-            "/verification/phone/confirm",
-            json={"phone": "13800138000", "code": code},
-            headers=headers,
-        )
-        assert resp.status_code == 200
-        assert resp.json()["phone"] == "+8613800138000"
-        assert resp.json()["phone_verified_at"] is not None
-
-    async def test_a_number_that_is_not_a_mainland_mobile_is_refused(
-        self,
-        client: AsyncClient,
-        db_session: AsyncSession,
-        sender: RecordingSender,
-        setup_class_users: None,
-    ) -> None:
-        await _clear_cooldown(db_session, "phone_binder")
-        before = len(sender.sent)
-        resp = await client.post(
-            "/verification/phone/send",
-            json={"phone": "+1 202 555 0143", "password": PASSWORD},
-            headers=self.configured_users["phone_binder"]["headers"],
-        )
-        assert resp.status_code == 400
-        assert resp.json()["error_code"] == "VERIFICATION_TARGET_INVALID"
-        assert len(sender.sent) == before
-
-    async def test_a_stolen_session_cannot_repoint_the_number(
-        self,
-        client: AsyncClient,
-        db_session: AsyncSession,
-        sender: RecordingSender,
-        setup_class_users: None,
-    ) -> None:
-        # The whole reason the send step asks for a password: a bound number
-        # is where password resets are delivered, so a session someone walked
-        # away from must not be enough to move it to an attacker's handset.
-        await _clear_cooldown(db_session, "phone_binder")
-        before = len(sender.sent)
-        resp = await client.post(
-            "/verification/phone/send",
-            json={"phone": "13900139000", "password": "not-the-password"},
-            headers=self.configured_users["phone_binder"]["headers"],
-        )
-        assert resp.status_code == 401
-        assert resp.json()["error_code"] == "INCORRECT_USER_PASSWD"
-        assert len(sender.sent) == before
-
-        bound = await db_session.scalar(
-            select(User.phone).where(User.username == "phone_binder"),
-        )
-        assert bound == "+8613800138000"
-
-
-class TestPhoneNormalization:
-    """Pure function, no database: every spelling collapses to one key."""
-
-    def test_accepted_spellings_agree(self) -> None:
-        for raw in (
-            "13800138000",
-            "+8613800138000",
-            "8613800138000",
-            "+86 138 0013 8000",
-            "138-0013-8000",
-            " (138) 0013 8000 ",
-        ):
-            assert normalize_phone(raw) == "+8613800138000"
-
-    def test_rejected(self) -> None:
-        for raw in ("12800138000", "1380013800", "138001380000", "abc", ""):
-            try:
-                normalize_phone(raw)
-            except VerificationTargetInvalidError:
-                continue
-            msg = f"{raw!r} should not have been accepted"
-            raise AssertionError(msg)
-
-    @pytest.mark.parametrize(
-        "raw", ["13９００１３８０００", "+8613٩٠٠١٣٨٠٠٠", "13९००१३८०००"]
-    )
-    def test_non_ascii_digits_are_rejected(self, raw: str) -> None:
-        with pytest.raises(VerificationTargetInvalidError):
-            normalize_phone(raw)
-
-
-class TestTencentSignature:
-    """TC3-HMAC-SHA256, checked where a published answer exists.
-
-    Tencent's Signature v3 documentation works a full example but masks the
-    SecretId, so the finished signature cannot be reproduced. What it does
-    publish is the SHA-256 of the canonical request — which is the part of
-    the scheme with the fiddly assembly rules, and the part this codebase
-    could plausibly get wrong. That is checked against their value below.
-    The HMAC chain on top of it is only regression-pinned.
-    """
-
-    # https://www.tencentcloud.com/document/product/598/32226 — DescribeInstances
-    DOC_BODY = (
-        '{"Limit": 1, "Filters": [{"Values": ["unnamed"], "Name": "instance-name"}]}'
-    )
-    DOC_PAYLOAD_SHA = "99d58dfbc6745f6747f36bfca17dee5e6881dc0428a0a36f96199342bc5b4907"
-    DOC_CANONICAL_SHA = (
-        "2815843035062fffda5fd6f2a44ea8a34818b0dc46f024b8b3786976a3adda7a"
-    )
-
-    SMS_PAYLOAD = '{"PhoneNumberSet":["+8613800138000"],"SmsSdkAppId":"1400000000"}'
-
-    def test_canonical_request_matches_tencents_worked_example(self) -> None:
-        body_sha = hashlib.sha256(self.DOC_BODY.encode()).hexdigest()
-        assert body_sha == self.DOC_PAYLOAD_SHA
-        built = canonical_request(
-            {
-                "content-type": "application/json; charset=utf-8",
-                "host": "cvm.tencentcloudapi.com",
-            },
-            self.DOC_BODY,
-        )
-        assert hashlib.sha256(built.encode()).hexdigest() == self.DOC_CANONICAL_SHA
-
-    def test_signature_is_stable(self) -> None:
-        # Regression pin over the validated canonical request: the credential
-        # scope, signed-header list and HMAC chain cannot drift unnoticed.
-        auth = build_authorization("AKIDEXAMPLE", "SECRETEXAMPLE", self.SMS_PAYLOAD, 0)
-        assert auth == (
-            "TC3-HMAC-SHA256 Credential=AKIDEXAMPLE/1970-01-01/sms/tc3_request, "
-            "SignedHeaders=content-type;host;x-tc-action, "
-            "Signature=f24cfb10060cf923148949473eea747cd82d0bc77331b07cca7c275955be19f8"
-        )
-
-    def test_payload_is_covered_by_the_signature(self) -> None:
-        # Changing one byte of the body must change the signature, or the
-        # message content is not actually authenticated.
-        a = build_authorization("id", "key", self.SMS_PAYLOAD, 1_700_000_000)
-        b = build_authorization("id", "key", self.SMS_PAYLOAD + " ", 1_700_000_000)
-        assert a != b
-
-    def test_timestamp_is_covered_by_the_signature(self) -> None:
-        a = build_authorization("id", "key", self.SMS_PAYLOAD, 1_700_000_000)
-        b = build_authorization("id", "key", self.SMS_PAYLOAD, 1_700_000_001)
-        assert a != b

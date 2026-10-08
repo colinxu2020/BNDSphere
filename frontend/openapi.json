@@ -8581,20 +8581,6 @@
               }
             }
           },
-          "400": {
-            "description": "The address or number is not one this deployment can reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.target_invalid",
-                  "error_code": "VERIFICATION_TARGET_INVALID"
-                }
-              }
-            }
-          },
           "401": {
             "description": "Session missing or password incorrect",
             "content": {
@@ -8666,7 +8652,7 @@
             }
           },
           "503": {
-            "description": "The email or SMS provider could not be reached",
+            "description": "The email provider could not be reached",
             "content": {
               "application/json": {
                 "schema": {
@@ -8700,244 +8686,6 @@
             "application/json": {
               "schema": {
                 "$ref": "#/components/schemas/EmailVerificationConfirm"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/UserInfo"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The code is wrong, expired, already used, or out of attempts — deliberately not distinguished.",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.code_invalid",
-                  "error_code": "VERIFICATION_CODE_INVALID"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Unauthorized or Token invalid",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.auth.token_invalid",
-                  "error_code": "AUTH_TOKEN_INVALID"
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Explicit acceptance of the current privacy policy is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.policy_required",
-                  "error_code": "CONTACT_POLICY_REQUIRED"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The address or number already belongs to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.target_taken",
-                  "error_code": "VERIFICATION_TARGET_TAKEN"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/verification/phone/send": {
-      "post": {
-        "tags": [
-          "Verification"
-        ],
-        "summary": "Send Phone Code",
-        "description": "Send a verification code by SMS for the current account.\n\nPassword-gated for the same reason as the email route, and more so: a\nnumber is both the reset channel and the SMS second factor.",
-        "operationId": "send_phone_code_api_v1_verification_phone_send_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PhoneVerificationSend"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "202": {
-            "description": "Successful Response",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/VerificationCodeSent"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "The address or number is not one this deployment can reach",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.target_invalid",
-                  "error_code": "VERIFICATION_TARGET_INVALID"
-                }
-              }
-            }
-          },
-          "401": {
-            "description": "Session missing or password incorrect",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.auth.incorrect_user_passwd",
-                  "error_code": "INCORRECT_USER_PASSWD",
-                  "details": {}
-                }
-              }
-            }
-          },
-          "403": {
-            "description": "Explicit acceptance of the current privacy policy is required",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.policy_required",
-                  "error_code": "CONTACT_POLICY_REQUIRED"
-                }
-              }
-            }
-          },
-          "409": {
-            "description": "The address or number already belongs to another account",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.target_taken",
-                  "error_code": "VERIFICATION_TARGET_TAKEN"
-                }
-              }
-            }
-          },
-          "422": {
-            "description": "Validation Error",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HTTPValidationError"
-                }
-              }
-            }
-          },
-          "429": {
-            "description": "A send budget was hit; retry after the given delay",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.send_throttled",
-                  "error_code": "VERIFICATION_SEND_THROTTLED",
-                  "details": {
-                    "retry_after": 60
-                  }
-                }
-              }
-            }
-          },
-          "503": {
-            "description": "The email or SMS provider could not be reached",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ErrorResponseModel"
-                },
-                "example": {
-                  "message_key": "error.verification.channel_unavailable",
-                  "error_code": "VERIFICATION_CHANNEL_UNAVAILABLE"
-                }
-              }
-            }
-          }
-        },
-        "security": [
-          {
-            "OAuth2PasswordBearer": []
-          }
-        ]
-      }
-    },
-    "/api/v1/verification/phone/confirm": {
-      "post": {
-        "tags": [
-          "Verification"
-        ],
-        "summary": "Confirm Phone Code",
-        "description": "Answer an SMS code and bind the number to the current account.",
-        "operationId": "confirm_phone_code_api_v1_verification_phone_confirm_post",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/PhoneVerificationConfirm"
               }
             }
           },
@@ -13126,47 +12874,6 @@
         ],
         "title": "PendingDeletionRetryResult"
       },
-      "PhoneVerificationConfirm": {
-        "properties": {
-          "phone": {
-            "type": "string",
-            "maxLength": 24,
-            "title": "Phone"
-          },
-          "code": {
-            "type": "string",
-            "maxLength": 6,
-            "minLength": 6,
-            "title": "Code"
-          }
-        },
-        "type": "object",
-        "required": [
-          "phone",
-          "code"
-        ],
-        "title": "PhoneVerificationConfirm"
-      },
-      "PhoneVerificationSend": {
-        "properties": {
-          "phone": {
-            "type": "string",
-            "maxLength": 24,
-            "title": "Phone"
-          },
-          "password": {
-            "type": "string",
-            "minLength": 1,
-            "title": "Password"
-          }
-        },
-        "type": "object",
-        "required": [
-          "phone",
-          "password"
-        ],
-        "title": "PhoneVerificationSend"
-      },
       "PublicUserInfo": {
         "properties": {
           "id": {
@@ -14123,30 +13830,6 @@
               }
             ],
             "title": "Email Verified At"
-          },
-          "phone": {
-            "anyOf": [
-              {
-                "type": "string",
-                "maxLength": 16
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone"
-          },
-          "phone_verified_at": {
-            "anyOf": [
-              {
-                "type": "string",
-                "format": "date-time"
-              },
-              {
-                "type": "null"
-              }
-            ],
-            "title": "Phone Verified At"
           },
           "avatar_uri": {
             "anyOf": [

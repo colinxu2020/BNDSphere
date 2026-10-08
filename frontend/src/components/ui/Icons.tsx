@@ -35,7 +35,6 @@ export {
   IconDeviceDesktop as Monitor,
   IconDownload as Download,
   IconFolder as Folder,
-  IconPhone as Phone,
   IconPlus as Plus,
   IconQrcode as QrCode,
   IconRefresh as RefreshCw,

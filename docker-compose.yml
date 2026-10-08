@@ -79,12 +79,6 @@ services:
       - SMTP_USERNAME=${SMTP_USERNAME:-}
       - SMTP_FROM=${SMTP_FROM:-}
       - SMTP_STARTTLS=${SMTP_STARTTLS:-true}
-      # Tencent Cloud SMS. The two credentials are Docker secrets; these four
-      # identify the app, signature and template and are not secret.
-      - TENCENT_SMS_SDK_APP_ID=${TENCENT_SMS_SDK_APP_ID:-}
-      - TENCENT_SMS_SIGN_NAME=${TENCENT_SMS_SIGN_NAME:-}
-      - TENCENT_SMS_TEMPLATE_ID=${TENCENT_SMS_TEMPLATE_ID:-}
-      - TENCENT_SMS_REGION=${TENCENT_SMS_REGION:-ap-guangzhou}
     restart: unless-stopped
     depends_on:
       postgres:
@@ -106,8 +100,6 @@ services:
       - oss_access_key_id
       - oss_access_key
       - smtp_password
-      - tencent_sms_secret_id
-      - tencent_sms_secret_key
     tmpfs:
       - /tmp:noexec,nosuid,nodev
 
@@ -187,7 +179,3 @@ secrets:
     file: ./secrets/oss_access_key.txt
   smtp_password:
     file: ./secrets/smtp_password.txt
-  tencent_sms_secret_id:
-    file: ./secrets/tencent_sms_secret_id.txt
-  tencent_sms_secret_key:
-    file: ./secrets/tencent_sms_secret_key.txt

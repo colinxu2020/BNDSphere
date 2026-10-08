@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import UTC, datetime
-from enum import StrEnum
 
 from sqlalchemy import Boolean, DateTime, ForeignKey, Index, String, Text, func
 from sqlalchemy.orm import Mapped, mapped_column
@@ -9,19 +8,13 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 
 
-class VerificationChannelEnum(StrEnum):
-    email = "email"
-    sms = "sms"
-
-
 class VerificationCode(Base):
-    """One one-time code sent to an email address or a phone number.
+    """One one-time code sent to an email address.
 
     Unlike ``user_sessions``, a consumed code is *kept* rather than deleted:
     the send budgets in ``VerificationCodeRepository`` count how many codes
-    went out to an account, to a target and — for SMS, which costs money —
-    across the whole deployment. Deleting on use would reset those counters
-    and hand an attacker a free refill every time they completed one
+    went out to an account and to a target. Deleting on use would reset those
+    counters and hand an attacker a free refill every time they completed one
     verification. ``consumed_at`` is what stops a code being replayed;
     retention pruning is what stops the table growing.
 
@@ -35,10 +28,9 @@ class VerificationCode(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
     )
-    channel: Mapped[VerificationChannelEnum] = mapped_column()
-    # Normalized destination: a lowercased email address, or an E.164 phone
-    # number. Normalization happens before the row is written so the send
-    # budgets cannot be dodged by re-casing an address or dropping a "+86".
+    # Normalized destination: a lowercased email address. Normalization
+    # happens before the row is written so the send budgets cannot be dodged
+    # by re-casing an address.
     target: Mapped[str] = mapped_column(Text)
     # SHA-256 of the six-digit code. Six digits is only ~20 bits, so this is
     # not a serious brute-force barrier against an attacker holding the table
@@ -69,17 +61,15 @@ class VerificationCode(Base):
     )
 
     __table_args__ = (
-        # Latest live code for an account on one channel, and the per-account
-        # send budget.
+        # Latest live code for an account, and the per-account send budget.
         Index(
-            "ix_verification_codes_user_id_channel_created_at",
+            "ix_verification_codes_user_id_created_at",
             "user_id",
-            "channel",
             "created_at",
         ),
-        # Per-target send budget: one phone number cannot be used to bill the
-        # deployment through a series of throwaway accounts.
+        # Per-target send budget: one address cannot be bombed through a
+        # series of throwaway accounts.
         Index("ix_verification_codes_target_created_at", "target", "created_at"),
-        # Deployment-wide daily SMS budget, and the retention sweep.
-        Index("ix_verification_codes_channel_created_at", "channel", "created_at"),
+        # The retention sweep deletes by created_at alone.
+        Index("ix_verification_codes_created_at", "created_at"),
     )

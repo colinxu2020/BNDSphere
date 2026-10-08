@@ -240,7 +240,7 @@ ensure_optional_secrets() {
     # A release may introduce optional provider credentials. Empty files let
     # Compose start while the channel remains explicitly unconfigured.
     # Install without overwriting any existing operator-supplied credential.
-    for _optional_name in smtp_password tencent_sms_secret_id tencent_sms_secret_key; do
+    for _optional_name in smtp_password; do
         _optional_path="$COMPOSE_PROJECT_DIR/secrets/${_optional_name}.txt"
         if [ -e "$_optional_path" ] || [ -L "$_optional_path" ]; then
             [ -f "$_optional_path" ] || return 1
