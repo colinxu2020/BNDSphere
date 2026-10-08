@@ -70,4 +70,6 @@ class VerificationCode(Base):
         # Per-target send budget: one address cannot be bombed through a
         # series of throwaway accounts.
         Index("ix_verification_codes_target_created_at", "target", "created_at"),
+        # The retention sweep deletes by created_at alone.
+        Index("ix_verification_codes_created_at", "created_at"),
     )

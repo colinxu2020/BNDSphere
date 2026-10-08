@@ -59,9 +59,23 @@ def upgrade() -> None:
         unique=False,
         schema="app",
     )
+    # prune_before() deletes by created_at alone; the dropped channel-prefixed
+    # index was its only usable access path.
+    op.create_index(
+        "ix_verification_codes_created_at",
+        "verification_codes",
+        ["created_at"],
+        unique=False,
+        schema="app",
+    )
 
 
 def downgrade() -> None:
+    op.drop_index(
+        "ix_verification_codes_created_at",
+        table_name="verification_codes",
+        schema="app",
+    )
     op.drop_index(
         "ix_verification_codes_user_id_created_at",
         table_name="verification_codes",
