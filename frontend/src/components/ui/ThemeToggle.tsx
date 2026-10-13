@@ -1,21 +1,26 @@
 import { useEffect, useState } from "react";
-import { Moon, Sun } from "@/src/components/ui/Icons";
+import { Monitor, Moon, Sun } from "@/src/components/ui/Icons";
 
-type Theme = "light" | "dark";
+type Theme = "light" | "dark" | "auto";
 
 const STORAGE_KEY = "bnd_theme";
-const labels: Record<Theme, string> = { light: "浅色", dark: "深色" };
-const icons = { light: Sun, dark: Moon };
+
+const labels: Record<Theme, string> = { light: "浅色", dark: "深色", auto: "自动" };
+const icons = { light: Sun, dark: Moon, auto: Monitor };
+const order: Theme[] = ["light", "dark", "auto"];
+
+const media = () => window.matchMedia("(prefers-color-scheme: dark)");
 
 function readTheme(): Theme {
   const stored = localStorage.getItem(STORAGE_KEY);
-  if (stored === "light" || stored === "dark") return stored;
-  return document.documentElement.classList.contains("dark") ? "dark" : "light";
+  if (stored === "light" || stored === "dark" || stored === "auto") return stored;
+  return "auto";
 }
 
 /** Keep in sync with the pre-paint bootstrap in index.html. */
 function applyTheme(theme: Theme = readTheme()) {
-  document.documentElement.classList.toggle("dark", theme === "dark");
+  const dark = theme === "auto" ? media().matches : theme === "dark";
+  document.documentElement.classList.toggle("dark", dark);
 }
 
 export function ThemeToggle() {
@@ -23,10 +28,15 @@ export function ThemeToggle() {
 
   useEffect(() => {
     applyTheme(theme);
+    if (theme !== "auto") return;
+    const mql = media();
+    const onChange = () => applyTheme("auto");
+    mql.addEventListener("change", onChange);
+    return () => mql.removeEventListener("change", onChange);
   }, [theme]);
 
   const cycle = () => {
-    const next = theme === "light" ? "dark" : "light";
+    const next = order[(order.indexOf(theme) + 1) % order.length];
     localStorage.setItem(STORAGE_KEY, next);
     setTheme(next);
   };

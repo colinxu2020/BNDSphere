@@ -12,6 +12,13 @@
       if (t === "dark" || (t !== "light" && matchMedia("(prefers-color-scheme: dark)").matches))
         document.documentElement.classList.add("dark");
     </script>
+    <script>
+      // Follow OS theme changes while in auto mode. Mirrors ThemeToggle.tsx.
+      matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
+        if (localStorage.getItem("bnd_theme") === "auto")
+          document.documentElement.classList.toggle("dark", e.matches);
+      });
+    </script>
   </head>
   <body>
     <div id="root"></div>
