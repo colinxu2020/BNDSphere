@@ -30,6 +30,7 @@ import {
 } from "../lib/format";
 import {
   Badge,
+  DangerButton,
   Field,
   PageHeader,
   PrimaryButton,
@@ -344,6 +345,7 @@ function ClubsAdmin() {
   const { search, setSearch, appliedSearch, handleSearchKeyDown } = useAppliedSearch();
   const [selected, setSelected] = useState<ClubSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
+  const [isChangingPresident, setIsChangingPresident] = useState(false);
   const [form, setForm] = useState({
     selectionKey: 0,
     isLogoUploading: false,
@@ -400,7 +402,7 @@ function ClubsAdmin() {
 
   const saveClub = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selected || form.isLogoUploading) return;
+    if (!selected || form.isLogoUploading || isChangingPresident) return;
     const lengthError = markdownLengthError(form.description, 4000);
     if (lengthError) {
       setResult(lengthError, null);
@@ -433,6 +435,44 @@ function ClubsAdmin() {
       setResult(error, null);
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const dismissPresident = async (remove: boolean) => {
+    if (!selected?.president || isChangingPresident || isSaving || form.isLogoUploading) return;
+    const club = selected;
+    const president = selected.president;
+    const action = remove ? "移除社长" : "取消社长权限";
+    const consequence = remove ? "该用户将退出社团" : "该用户将成为普通成员";
+    if (
+      !window.confirm(
+        `确认对「${club.name}」的社长 ${president.username} 执行「${action}」？${consequence}，社团将恢复为未认领状态。`,
+      )
+    )
+      return;
+
+    setIsChangingPresident(true);
+    try {
+      const params = { path: { club_id: club.id, user_id: president.id } };
+      const { error } = remove
+        ? await client.DELETE("/api/v1/clubs/{club_id}/members/{user_id}", { params })
+        : await client.PATCH("/api/v1/clubs/{club_id}/members/{user_id}", {
+            params,
+            body: { membership: "member" },
+          });
+      setResult(error, error ? null : `${action}成功，社团已恢复为未认领状态`);
+      if (!error) {
+        setSelected((current) =>
+          current?.id === club.id && current.president?.id === president.id
+            ? { ...current, president: null }
+            : current,
+        );
+        await loadClubs();
+      }
+    } catch (error) {
+      setResult(error, null);
+    } finally {
+      setIsChangingPresident(false);
     }
   };
 
@@ -481,7 +521,27 @@ function ClubsAdmin() {
       {selected ? (
         <form onSubmit={saveClub} className="grid gap-4">
           <FormHeader title={selected.name} subtitle={`社团 #${selected.id}`} />
-          <ClubPresident president={selected.president} />
+          <div className="flex flex-wrap items-center gap-3">
+            <ClubPresident president={selected.president} />
+            {selected.president && (
+              <>
+                <SecondaryButton
+                  type="button"
+                  disabled={isChangingPresident || isSaving || form.isLogoUploading}
+                  onClick={() => dismissPresident(false)}
+                >
+                  取消社长权限
+                </SecondaryButton>
+                <DangerButton
+                  type="button"
+                  disabled={isChangingPresident || isSaving || form.isLogoUploading}
+                  onClick={() => dismissPresident(true)}
+                >
+                  移除社长
+                </DangerButton>
+              </>
+            )}
+          </div>
           <Field label="简介">
             <input
               className={inputClassName}
@@ -550,7 +610,11 @@ function ClubsAdmin() {
               </select>
             </Field>
           </div>
-          <PrimaryButton type="submit" loading={isSaving} disabled={form.isLogoUploading}>
+          <PrimaryButton
+            type="submit"
+            loading={isSaving}
+            disabled={form.isLogoUploading || isChangingPresident}
+          >
             <Save size={16} /> 保存社团
           </PrimaryButton>
         </form>

@@ -23,7 +23,9 @@ def _service(
     target = ClubMember(
         id=2, club_id=1, user_id=2, membership=ClubMembershipEnum.member
     )
-    club = Club(id=1, status=ClubStatusEnum.normal, members=[president, target])
+    club = Club(
+        id=1, status=ClubStatusEnum.normal, claimed=True, members=[president, target]
+    )
     actor = User(id=1 if role == RoleEnum.user else 9, role=role)
     repository = Mock(spec=ClubRepository)
     repository.db = Mock(spec=AsyncSession)
@@ -60,6 +62,7 @@ async def test_member_role_changes_and_removal(role: RoleEnum) -> None:
     assert target.membership == ClubMembershipEnum.left
     assert president.membership == ClubMembershipEnum.president
     assert members.set_membership.await_count == 3
+    assert service.repository.get_with_lock.return_value.claimed is True
 
 
 @pytest.mark.parametrize("role", [RoleEnum.admin, RoleEnum.dev, RoleEnum.user])
@@ -73,17 +76,15 @@ async def test_transfer_demotes_the_clubs_president(role: RoleEnum) -> None:
     )
     assert president.membership == ClubMembershipEnum.member
     assert target.membership == ClubMembershipEnum.president
+    assert service.repository.get_with_lock.return_value.claimed is True
     assert members.set_membership.await_args_list == [
         call(president, ClubMembershipEnum.member),
         call(target, ClubMembershipEnum.president),
     ]
 
 
-@pytest.mark.parametrize("role", [RoleEnum.admin, RoleEnum.dev])
-async def test_bypass_cannot_demote_or_remove_the_current_president(
-    role: RoleEnum,
-) -> None:
-    service, actor, president, _, members = _service(role)
+async def test_president_cannot_demote_or_remove_themselves() -> None:
+    service, actor, president, _, members = _service(RoleEnum.user)
     members.get_by_club_user_id.return_value = president
     with pytest.raises(ResourceForbiddenError, match="CANNOT_CHANGE_PRESIDENT_ROLE"):
         await service.update_member_role(
@@ -95,6 +96,53 @@ async def test_bypass_cannot_demote_or_remove_the_current_president(
     with pytest.raises(ResourceForbiddenError, match="CANNOT_REMOVE_PRESIDENT"):
         await service.remove_member(1, president.user_id, actor)
     members.set_membership.assert_not_awaited()
+    assert service.repository.get_with_lock.return_value.claimed is True
+
+
+@pytest.mark.parametrize("role", [RoleEnum.admin, RoleEnum.dev])
+@pytest.mark.parametrize("remove", [False, True])
+async def test_bypass_can_dismiss_president_and_unclaim_club(
+    role: RoleEnum, *, remove: bool
+) -> None:
+    service, actor, president, target, members = _service(role)
+    members.get_by_club_user_id.return_value = president
+    if remove:
+        await service.remove_member(1, president.user_id, actor)
+    else:
+        await service.update_member_role(
+            1,
+            president.user_id,
+            ClubMemberRoleUpdate.model_validate({"membership": "member"}),
+            actor,
+        )
+    assert president.membership == (
+        ClubMembershipEnum.left if remove else ClubMembershipEnum.member
+    )
+    assert target.membership == ClubMembershipEnum.member
+    assert service.repository.get_with_lock.return_value.claimed is False
+    members.set_membership.assert_awaited_once()
+
+    members.get_by_club_user_id.return_value = target
+    await service.update_member_role(
+        1,
+        target.user_id,
+        ClubMemberRoleUpdate.model_validate({"membership": "president"}),
+        actor,
+    )
+    assert target.membership == ClubMembershipEnum.president
+    assert service.repository.get_with_lock.return_value.claimed is True
+
+
+@pytest.mark.parametrize("status", [ClubStatusEnum.unreviewed, ClubStatusEnum.archived])
+async def test_admin_can_dismiss_president_of_inactive_club(
+    status: ClubStatusEnum,
+) -> None:
+    service, actor, president, _, members = _service(RoleEnum.admin)
+    service.repository.get_with_lock.return_value.status = status
+    members.get_by_club_user_id.return_value = president
+    await service.remove_member(1, president.user_id, actor)
+    assert president.membership == ClubMembershipEnum.left
+    assert service.repository.get_with_lock.return_value.claimed is False
 
 
 @pytest.mark.parametrize(
