@@ -45,6 +45,7 @@ export {
   IconShield as Shield,
   IconShieldCheck as ShieldCheck,
   IconSparkles as Sparkles,
+  IconStar as Star,
   IconSun as Sun,
   IconTrash as Trash2,
   IconUser as User,

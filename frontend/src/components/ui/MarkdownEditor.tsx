@@ -41,8 +41,22 @@ export function MarkdownEditor({
           commands.code,
         ]}
         extraCommands={[
-          { ...commands.codeEdit, buttonProps: { "aria-label": "编辑", title: "编辑" } },
-          { ...commands.codePreview, buttonProps: { "aria-label": "预览", title: "预览" } },
+          {
+            ...commands.codeEdit,
+            icon: (
+              <span className="inline-flex items-center gap-1">{commands.codeEdit.icon} 编辑</span>
+            ),
+            buttonProps: { "aria-label": "编辑", title: "编辑" },
+          },
+          {
+            ...commands.codePreview,
+            icon: (
+              <span className="inline-flex items-center gap-1">
+                {commands.codePreview.icon} 预览
+              </span>
+            ),
+            buttonProps: { "aria-label": "预览", title: "预览" },
+          },
         ]}
         textareaProps={{
           id,

@@ -494,13 +494,13 @@ function ClubsAdmin() {
               onChange={(description) => setForm({ ...form, description })}
             />
           </Field>
-          <Field label="Logo URL">
-            <input
-              className={inputClassName}
-              value={form.logo_uri}
-              onChange={(event) => setForm({ ...form, logo_uri: event.target.value })}
-            />
-          </Field>
+          <FileUploadField
+            label="Logo"
+            scene="club_logo"
+            value={form.logo_uri}
+            onChange={(logo_uri) => setForm((current) => ({ ...current, logo_uri }))}
+            accept="image/*"
+          />
           <div className="grid gap-4 md:grid-cols-2">
             <Field label="星级">
               <select

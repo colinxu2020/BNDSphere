@@ -139,19 +139,19 @@ export function Moderation() {
     return getPageResult(response.data, response.error, page);
   }, []);
 
-  const userRequests = useInfiniteList<UserRequest>(loadUserRequestsPage, activeQueue === "users");
-  const clubRequests = useInfiniteList<ClubUpdateRequest>(
-    loadClubRequestsPage,
-    activeQueue === "clubUpdate",
-  );
+  const userRequests = useInfiniteList<UserRequest>(loadUserRequestsPage);
+  const clubRequests = useInfiniteList<ClubUpdateRequest>(loadClubRequestsPage);
   const activityCreateRequests = useInfiniteList<ActivityCreateRequest>(
     loadActivityCreateRequestsPage,
-    activeQueue === "activities",
   );
   const activityUpdateRequests = useInfiniteList<ActivityUpdateRequest>(
     loadActivityUpdateRequestsPage,
-    activeQueue === "activities",
   );
+  const pendingQueues: Record<QueueKey, boolean> = {
+    users: userRequests.total > 0,
+    clubUpdate: clubRequests.total > 0,
+    activities: activityCreateRequests.total > 0 || activityUpdateRequests.total > 0,
+  };
   const activeList = activeQueue === "users" ? userRequests : clubRequests;
   const items: ModerationItem[] = activeList.items;
   const isLoading =
@@ -160,11 +160,12 @@ export function Moderation() {
       : activeList.isInitialLoading;
   const loadRequests = async () => {
     setIsForbidden(false);
-    if (activeQueue === "activities") {
-      await Promise.all([activityCreateRequests.reload(), activityUpdateRequests.reload()]);
-    } else {
-      await activeList.reload();
-    }
+    await Promise.all([
+      userRequests.reload(),
+      clubRequests.reload(),
+      activityCreateRequests.reload(),
+      activityUpdateRequests.reload(),
+    ]);
   };
 
   useEffect(() => {
@@ -272,7 +273,7 @@ export function Moderation() {
       {message && <StatusMessage value={message} tone={messageTone} />}
 
       <PageTabs<QueueKey>
-        tabs={QUEUES}
+        tabs={QUEUES.map((queue) => ({ ...queue, hasPending: pendingQueues[queue.key] }))}
         activeTab={activeQueue}
         onChange={setActiveQueue}
         ariaLabel="审核类型"
