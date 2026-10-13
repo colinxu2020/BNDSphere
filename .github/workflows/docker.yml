@@ -124,13 +124,17 @@ jobs:
         with:
           sarif_file: trivy-config-results.sarif
 
-      - name: Build Docker Compose images
+      # Grant host networking explicitly; load images for tests and scans.
+      # Compose 2.x's Bake invocation omits the required network.host approval.
+      - name: Build production images with Bake
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull postgres backend caddy
+          docker buildx bake -f docker-compose.yml -f docker-compose.build.yml \
+            --allow=network.host --pull --load postgres backend caddy
 
       - name: Build backend dev image
         run: |
-          docker compose -f docker-compose.yml -f docker-compose.build.yml build --pull backend-dev
+          docker buildx bake -f docker-compose.yml -f docker-compose.build.yml \
+            --allow=network.host --pull --load backend-dev
 
       - name: Run backend test suite (smoke)
         run: |
