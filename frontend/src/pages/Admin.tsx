@@ -345,6 +345,7 @@ function ClubsAdmin() {
   const [selected, setSelected] = useState<ClubSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
+    clubId: null as number | null,
     summary: "",
     description: "",
     logo_uri: "",
@@ -386,6 +387,7 @@ function ClubsAdmin() {
   const selectClub = (club: ClubSummary) => {
     setSelected(club);
     setForm({
+      clubId: club.id,
       summary: club.summary || "",
       description: club.description || "",
       logo_uri: club.logo_uri || "",
@@ -495,10 +497,15 @@ function ClubsAdmin() {
             />
           </Field>
           <FileUploadField
+            key={selected.id}
             label="Logo"
             scene="club_logo"
             value={form.logo_uri}
-            onChange={(logo_uri) => setForm((current) => ({ ...current, logo_uri }))}
+            onChange={(logo_uri) =>
+              setForm((current) =>
+                current.clubId === selected.id ? { ...current, logo_uri } : current,
+              )
+            }
             accept="image/*"
           />
           <div className="grid gap-4 md:grid-cols-2">
