@@ -345,7 +345,8 @@ function ClubsAdmin() {
   const [selected, setSelected] = useState<ClubSummary | null>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [form, setForm] = useState({
-    clubId: null as number | null,
+    selectionKey: 0,
+    isLogoUploading: false,
     summary: "",
     description: "",
     logo_uri: "",
@@ -386,19 +387,20 @@ function ClubsAdmin() {
 
   const selectClub = (club: ClubSummary) => {
     setSelected(club);
-    setForm({
-      clubId: club.id,
+    setForm((current) => ({
+      selectionKey: current.selectionKey + 1,
+      isLogoUploading: false,
       summary: club.summary || "",
       description: club.description || "",
       logo_uri: club.logo_uri || "",
       star_level: club.star_level,
       status: club.status,
-    });
+    }));
   };
 
   const saveClub = async (event: React.FormEvent) => {
     event.preventDefault();
-    if (!selected) return;
+    if (!selected || form.isLogoUploading) return;
     const lengthError = markdownLengthError(form.description, 4000);
     if (lengthError) {
       setResult(lengthError, null);
@@ -497,13 +499,20 @@ function ClubsAdmin() {
             />
           </Field>
           <FileUploadField
-            key={selected.id}
+            key={form.selectionKey}
             label="Logo"
             scene="club_logo"
             value={form.logo_uri}
             onChange={(logo_uri) =>
               setForm((current) =>
-                current.clubId === selected.id ? { ...current, logo_uri } : current,
+                current.selectionKey === form.selectionKey ? { ...current, logo_uri } : current,
+              )
+            }
+            onUploadingChange={(isLogoUploading) =>
+              setForm((current) =>
+                current.selectionKey === form.selectionKey
+                  ? { ...current, isLogoUploading }
+                  : current,
               )
             }
             accept="image/*"
@@ -541,7 +550,7 @@ function ClubsAdmin() {
               </select>
             </Field>
           </div>
-          <PrimaryButton type="submit" loading={isSaving}>
+          <PrimaryButton type="submit" loading={isSaving} disabled={form.isLogoUploading}>
             <Save size={16} /> 保存社团
           </PrimaryButton>
         </form>
