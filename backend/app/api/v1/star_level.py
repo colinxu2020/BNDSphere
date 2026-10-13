@@ -15,7 +15,8 @@ from app.api.dependencies import (
     get_current_user,
 )
 from app.models.clubmember import ClubMembershipEnum
-from app.models.user import AuditStatusEnum, User
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.star_level import (
     StarLevelApplicationInfo,
     StarLevelApplicationPublicInfo,
@@ -95,7 +96,7 @@ async def update_application(
         membership,
         [ClubMembershipEnum.president],
     )
-    if star_level.audit_status == AuditStatusEnum.approved:
+    if star_level.verification_status == VerificationStatusEnum.approved:
         raise StarLevelApplicationUpdateDeniedError(star_level_id) from None
     return StarLevelApplicationInfo.model_validate(
         await service.update(star_level, update),

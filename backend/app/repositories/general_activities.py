@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import UTC, datetime
 from typing import cast
 
 from fastapi_pagination import Page
@@ -12,7 +12,7 @@ from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
 )
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.base import RepositoryBase
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
@@ -26,7 +26,8 @@ from app.schemas.general_activities import (
 # pending/rejected 记录的 proof_files 等内容未经社联审核, 匿名访客不应看到.
 _PUBLIC_RECORDS_OPTION = selectinload(
     GeneralActivity.club_records.and_(
-        ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
+        ClubGeneralActivityRecord.verification_status
+        == VerificationStatusEnum.approved,
         ClubGeneralActivityRecord.club.has(Club.status == ClubStatusEnum.normal),
     ),
 )
@@ -130,12 +131,13 @@ class ClubGeneralActivityRepository(
         self,
         db_obj: ClubGeneralActivityRecord,
         obj_in: FederationRecordUpdate,
-        auditor: User,
+        verifier: User,
     ) -> ClubGeneralActivityRecord:
         for field, value in obj_in.model_dump(exclude_unset=True).items():
             setattr(db_obj, field, value)
-        db_obj.auditor = auditor
-        db_obj.auditor_id = auditor.id
+        db_obj.verifier = verifier
+        db_obj.verifier_id = verifier.id
+        db_obj.verify_at = datetime.now(UTC)
 
         self.db.add(db_obj)
         await self.db.flush()

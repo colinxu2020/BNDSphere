@@ -3,7 +3,8 @@ from typing import cast
 import pytest
 
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum, User
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.club import ClubRepository
 from app.repositories.star_level import StarLevelRepository
 from app.schemas.star_level import StarLevelApplicationReview
@@ -43,13 +44,13 @@ class ReachedUpdateError(Exception):
 
 
 def _service_for(
-    existing_status: AuditStatusEnum,
+    existing_status: VerificationStatusEnum,
 ) -> tuple[StarLevelService, StarLevelApplication]:
     application = StarLevelApplication(
         id=7,
         club_id=3,
         academic_term_id=1,
-        audit_status=existing_status,
+        verification_status=existing_status,
     )
     repository = ExistingApplicationRepository(application)
     service = StarLevelService(
@@ -60,27 +61,27 @@ def _service_for(
     return service, application
 
 
-REVIEW = StarLevelApplicationReview(audit_status=AuditStatusEnum.approved)
-AUDITOR = User(id=11, username="reviewer", hashed_password="unused")  # noqa: S106
+REVIEW = StarLevelApplicationReview(verification_status=VerificationStatusEnum.approved)
+VERIFIER = User(id=11, username="reviewer", hashed_password="unused")  # noqa: S106
 
 
 async def test_an_approved_application_cannot_be_reviewed_again() -> None:
     # The approval already set the club's star level; a second review would
     # silently rewrite it.
-    service, application = _service_for(AuditStatusEnum.approved)
+    service, application = _service_for(VerificationStatusEnum.approved)
     with pytest.raises(StarLevelApplicationUpdateDeniedError):
-        await service.review(application.id, REVIEW, AUDITOR)
+        await service.review(application.id, REVIEW, VERIFIER)
 
 
 @pytest.mark.parametrize(
     "existing_status",
-    [AuditStatusEnum.pending, AuditStatusEnum.rejected],
+    [VerificationStatusEnum.pending, VerificationStatusEnum.rejected],
 )
 async def test_pending_and_rejected_applications_stay_reviewable(
-    existing_status: AuditStatusEnum,
+    existing_status: VerificationStatusEnum,
 ) -> None:
     # Rejected is how a resubmission arrives: the president edits it in place,
     # because the per-term uniqueness constraint forbids a second application.
     service, application = _service_for(existing_status)
     with pytest.raises(ReachedUpdateError):
-        await service.review(application.id, REVIEW, AUDITOR)
+        await service.review(application.id, REVIEW, VERIFIER)

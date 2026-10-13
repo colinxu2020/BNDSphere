@@ -1,3 +1,4 @@
+from datetime import UTC, datetime
 from typing import override
 
 from fastapi_pagination import Page
@@ -5,7 +6,8 @@ from sqlalchemy.exc import IntegrityError
 
 from app.models import Club
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum, User
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.club import ClubRepository
 from app.repositories.star_level import StarLevelRepository
 from app.repositories.star_rating import StarRatingRepository
@@ -71,7 +73,7 @@ class StarLevelService(
         self,
         application_id: int,
         review: StarLevelApplicationReview,
-        auditor: User,
+        verifier: User,
     ) -> StarLevelApplication:
         async with self.transaction():
             application = await self._get_with_lock(application_id)
@@ -82,18 +84,19 @@ class StarLevelService(
             # application (``update_application`` refuses approved ones only),
             # and the term's uniqueness constraint means that edit is the only
             # way to resubmit, so it has to stay reviewable.
-            if application.audit_status == AuditStatusEnum.approved:
+            if application.verification_status == VerificationStatusEnum.approved:
                 raise StarLevelApplicationUpdateDeniedError(application_id) from None
 
             application = await self.repository.update_review(
                 application,
                 review,
             )
-            application.auditor_id = auditor.id
-            application.auditor = auditor
+            application.verifier_id = verifier.id
+            application.verifier = verifier
+            application.verify_at = datetime.now(UTC)
             self.repository.db.add(application)
 
-            if review.audit_status == AuditStatusEnum.approved:
+            if review.verification_status == VerificationStatusEnum.approved:
                 rating = (
                     await self.star_rating_service.calculate_application_review_score(
                         application,
@@ -125,7 +128,7 @@ class StarLevelService(
         if application is None:
             raise StarLevelNotFoundError(application_id) from None
 
-        if review.audit_status != AuditStatusEnum.approved:
+        if review.verification_status != VerificationStatusEnum.approved:
             return StarLevelApplicationReviewPreview(
                 approved_score=None,
                 approved_level=None,

@@ -21,7 +21,7 @@ import { client } from "../api/client";
 import type { components } from "../api/schema";
 import { changedRequiredText } from "../lib/clubActivityUpdate";
 import {
-  AUDIT_STATUS_MAP,
+  VERIFICATION_STATUS_MAP,
   CATEGORY_MAP,
   CLUB_STATUS_MAP,
   MEMBERSHIP_MAP,
@@ -1487,8 +1487,8 @@ export function ClubWorkspace() {
                             <div className="flex flex-wrap items-center gap-2">
                               {record ? (
                                 <>
-                                  <Badge tone={getAuditTone(record.audit_status)}>
-                                    {AUDIT_STATUS_MAP[record.audit_status]}
+                                  <Badge tone={getVerificationTone(record.verification_status)}>
+                                    {VERIFICATION_STATUS_MAP[record.verification_status]}
                                   </Badge>
                                   <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
                                 </>
@@ -1572,7 +1572,7 @@ export function ClubWorkspace() {
                           onValuesChange={setProofFileUrls}
                           multiple
                         />
-                        {selectedGeneralRecord?.audit_status !== "pending" &&
+                        {selectedGeneralRecord?.verification_status !== "pending" &&
                           selectedGeneralRecord && (
                             <StatusMessage value="已审核的综评记录不能在这里更新。" tone="info" />
                           )}
@@ -1581,7 +1581,7 @@ export function ClubWorkspace() {
                           type="submit"
                           loading={isRecordSubmitting}
                           disabled={
-                            selectedGeneralRecord?.audit_status !== "pending" &&
+                            selectedGeneralRecord?.verification_status !== "pending" &&
                             Boolean(selectedGeneralRecord)
                           }
                         >
@@ -1627,15 +1627,15 @@ export function ClubWorkspace() {
                           <div className="flex flex-wrap gap-2">
                             <Badge
                               tone={
-                                application.audit_status === "approved"
+                                application.verification_status === "approved"
                                   ? "green"
-                                  : application.audit_status === "rejected"
+                                  : application.verification_status === "rejected"
                                     ? "red"
                                     : "yellow"
                               }
                             >
-                              {application.audit_status
-                                ? AUDIT_STATUS_MAP[application.audit_status]
+                              {application.verification_status
+                                ? VERIFICATION_STATUS_MAP[application.verification_status]
                                 : "未审核"}
                             </Badge>
                             {application.approved_level && (
@@ -1803,7 +1803,7 @@ function membershipOrder(membership: components["schemas"]["ClubMembershipEnum"]
   }[membership];
 }
 
-function getAuditTone(status: components["schemas"]["AuditStatusEnum"]) {
+function getVerificationTone(status: components["schemas"]["VerificationStatusEnum"]) {
   if (status === "approved") return "green";
   if (status === "rejected") return "red";
   return "yellow";

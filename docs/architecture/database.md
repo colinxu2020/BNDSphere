@@ -87,18 +87,19 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 
 > 源码位置：[academic_term.py](file:///e:/projects/bndsphere/backend/app/models/academic_term.py#L73-L88)
 
-#### AuditMixin
+#### VerificationMixin
 
 为需要审核流程的表（如 `club_general_activity_records`、`star_level_applications`）提供：
 
 | 列名           | 类型              | 说明                            |
 | -------------- | ----------------- | ------------------------------- |
-| `audit_status` | `AuditStatusEnum` | 审核状态，默认 `pending`          |
-| `auditor_id`   | `int \| None`     | 外键 → `users.id`，审核人        |
+| `verification_status` | `VerificationStatusEnum` | 审核状态，默认 `pending`          |
+| `verifier_id`   | `int \| None`     | 外键 → `users.id`，审核人        |
+| `verify_at` | `DateTime(tz) \| None` | 审核时间，旧记录为空 |
 
-同时附带 `auditor` relationship 指向 `User`。
+同时附带 `verifier` relationship 指向 `User`，以及可空的 `verify_at` 审核时间。
 
-> 源码位置：[user.py](file:///e:/projects/bndsphere/backend/app/models/user.py#L66-L86)
+> 源码位置：`backend/app/models/verifications/verification_common.py`
 
 ---
 
@@ -317,8 +318,9 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | `final_score`        | `int`                    | 默认 `0`                                    | 最终分数         |
 | `proof_files`        | `JSON`                   | 默认 `[]`                                   | 证明文件 URL 列表|
 | `created_at`         | `DateTime(tz)`           | `server_default=now()`                      | 创建时间         |
-| `audit_status`       | `AuditStatusEnum`        | 默认 `pending`                              | 来自 `AuditMixin`|
-| `auditor_id`         | `int \| None`            | FK → `users.id`                             | 来自 `AuditMixin`|
+| `verification_status`       | `VerificationStatusEnum`        | 默认 `pending`                              | 来自 `VerificationMixin`|
+| `verifier_id`         | `int \| None`            | FK → `users.id`                             | 来自 `VerificationMixin`|
+| `verify_at` | `DateTime(tz) \| None` | 默认 `NULL` | 审核时间 |
 
 **约束**：
 
@@ -329,7 +331,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 **关系**：
 - `club` → `Club`
 - `activity` → `GeneralActivity`
-- `auditor` → `User`（来自 `AuditMixin`）
+- `verifier` → `User`（来自 `VerificationMixin`）
 - `met_conditions` → `RecordConditionDetail`（一对多，`cascade="all, delete-orphan"`）
 
 ---
@@ -382,8 +384,9 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | `approved_level`         | `ClubStarLevelEnum \| None` |                    | 审批星级               |
 | `created_at`             | `DateTime(tz)`          | `server_default=now()` | 创建时间               |
 | `academic_term_id`       | `int`                   | FK → `academic_term.id`| 来自 `AcademicTermMixin` |
-| `audit_status`           | `AuditStatusEnum`       | 默认 `pending`          | 来自 `AuditMixin`      |
-| `auditor_id`             | `int \| None`           | FK → `users.id`        | 来自 `AuditMixin`      |
+| `verification_status`           | `VerificationStatusEnum`       | 默认 `pending`          | 来自 `VerificationMixin`      |
+| `verifier_id`             | `int \| None`           | FK → `users.id`        | 来自 `VerificationMixin`      |
+| `verify_at` | `DateTime(tz) \| None` | 默认 `NULL` | 审核时间 |
 
 **约束**：
 
@@ -393,7 +396,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 
 **关系**：
 - `club` → `Club`
-- `auditor` → `User`（来自 `AuditMixin`）
+- `verifier` → `User`（来自 `VerificationMixin`）
 - `academic_term` → `AcademicTerm`（来自 `AcademicTermMixin`）
 
 ---
@@ -403,7 +406,7 @@ BNDSphere 的数据库围绕**学校社团管理**这一核心业务设计，涵
 | 枚举类型                     | 定义位置            | 可选值                                                                                     | 说明             |
 | ---------------------------- | ------------------- | ------------------------------------------------------------------------------------------ | ---------------- |
 | `RoleEnum`                   | `user.py`           | `ban`, `user`, `union of associations`, `admin`, `dev`                                     | 用户角色         |
-| `AuditStatusEnum`            | `user.py`           | `pending`, `approved`, `rejected`                                                          | 审核状态         |
+| `VerificationStatusEnum`            | `verifications/verification_common.py`           | `pending`, `approved`, `rejected`                                                          | 审核状态         |
 | `ClubStatusEnum`             | `club.py`           | `unreviewed`, `normal`, `archived`                                                         | 社团状态         |
 | `ClubStarLevelEnum`          | `club.py`           | `none`, `one_star`, `two_star`, `three_star`, `four_star`, `five_star`, `honorary`         | 社团星级         |
 | `ClubCategoryEnum`           | `club.py`           | `stage_design`, `information_technology`, `charity`, `performing_arts`, `social_science`, `handicraft`, `literature_publishing`, `business`, `art_design`, `campus_management`, `natural_science`, `language_learning`, `sports`, `anime`, `film_news_media` | 社团分类         |
@@ -507,8 +510,9 @@ erDiagram
         int final_score
         json proof_files
         datetime created_at
-        enum audit_status
-        int auditor_id FK
+        enum verification_status
+        int verifier_id FK
+        datetime verify_at
     }
 
     activity_conditions {
@@ -536,8 +540,9 @@ erDiagram
         enum approved_level
         datetime created_at
         int academic_term_id FK
-        enum audit_status
-        int auditor_id FK
+        enum verification_status
+        int verifier_id FK
+        datetime verify_at
     }
 
     users ||--o{ club_members : "has memberships"
@@ -550,12 +555,12 @@ erDiagram
     academic_term ||--o{ general_activities : "contains"
     general_activities ||--o{ club_general_activity_records : "has records"
     clubs ||--o{ club_general_activity_records : "participates in"
-    users ||--o{ club_general_activity_records : "audits"
+    users ||--o{ club_general_activity_records : "verifies"
     club_general_activity_records ||--o{ record_condition_details : "has conditions"
     activity_conditions ||--o{ record_condition_details : "referenced by"
     clubs ||--o{ star_level_applications : "applies for"
     academic_term ||--o{ star_level_applications : "within term"
-    users ||--o{ star_level_applications : "audits"
+    users ||--o{ star_level_applications : "verifies"
 ```
 
 ---

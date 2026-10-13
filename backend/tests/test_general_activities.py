@@ -28,7 +28,8 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
     ParticipationTypeEnum,
 )
-from app.models.user import AuditStatusEnum, RoleEnum
+from app.models.user import RoleEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 
 
 class ConfiguredUser(TypedDict):
@@ -304,7 +305,7 @@ class TestPublicClubRecordsEcho:
             participation_type=ParticipationTypeEnum.participate_only,
             requested_score=1,
             proof_files=[_oss_file_url("approved.pdf")],
-            audit_status=AuditStatusEnum.approved,
+            verification_status=VerificationStatusEnum.approved,
         )
         # Simulates a legacy dirty row persisted before the write-path
         # validation existed (ORM insert bypasses the API schema).
@@ -314,7 +315,7 @@ class TestPublicClubRecordsEcho:
             participation_type=ParticipationTypeEnum.organize,
             requested_score=1,
             proof_files=["javascript:alert(document.domain)"],
-            audit_status=AuditStatusEnum.pending,
+            verification_status=VerificationStatusEnum.pending,
         )
         unreviewed_club_record = ClubGeneralActivityRecord(
             club_id=unreviewed_club.id,
@@ -322,7 +323,7 @@ class TestPublicClubRecordsEcho:
             participation_type=ParticipationTypeEnum.participate_only,
             requested_score=1,
             proof_files=[],
-            audit_status=AuditStatusEnum.approved,
+            verification_status=VerificationStatusEnum.approved,
         )
         db_session.add_all([approved, pending_dirty, unreviewed_club_record])
         await db_session.flush()

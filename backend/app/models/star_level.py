@@ -15,14 +15,15 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
 from app.models.club import ClubStarLevelEnum
-from app.models.user import AuditMixin, UserGradeEnum
+from app.models.user import UserGradeEnum
+from app.models.verifications.verification_common import VerificationMixin
 from app.utils.custom_types import HttpUrlType
 
 if TYPE_CHECKING:
     from app.models import Club
 
 
-class StarLevelApplication(Base, AcademicTermMixin, AuditMixin):
+class StarLevelApplication(Base, AcademicTermMixin, VerificationMixin):
     __tablename__ = "star_level_applications"
 
     club_id: Mapped[int] = mapped_column(ForeignKey("clubs.id"))

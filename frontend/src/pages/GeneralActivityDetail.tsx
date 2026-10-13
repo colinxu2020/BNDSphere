@@ -4,7 +4,7 @@ import { ArrowLeft, CheckCircle2 } from "@/src/components/ui/Icons";
 import { Link, useParams } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { ACTIVITY_LEVEL_MAP, AUDIT_STATUS_MAP, PARTICIPATION_MAP } from "../lib/labels";
+import { ACTIVITY_LEVEL_MAP, VERIFICATION_STATUS_MAP, PARTICIPATION_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import {
   Badge,
@@ -97,14 +97,14 @@ export function GeneralActivityDetail() {
                         <div className="flex flex-wrap items-center gap-2">
                           <Badge
                             tone={
-                              record.audit_status === "approved"
+                              record.verification_status === "approved"
                                 ? "green"
-                                : record.audit_status === "rejected"
+                                : record.verification_status === "rejected"
                                   ? "red"
                                   : "yellow"
                             }
                           >
-                            {AUDIT_STATUS_MAP[record.audit_status]}
+                            {VERIFICATION_STATUS_MAP[record.verification_status]}
                           </Badge>
                           <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
                         </div>

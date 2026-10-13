@@ -3,7 +3,8 @@ from datetime import datetime
 from pydantic import BaseModel, ConfigDict, Field, HttpUrl
 
 from app.models.club import ClubStarLevelEnum
-from app.models.user import AuditStatusEnum, UserGradeEnum
+from app.models.user import UserGradeEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.club import ClubSummary
 from app.schemas.generic import IdMixin
@@ -34,7 +35,7 @@ class StarLevelApplicationUpdate(BaseModel):
 
 
 class StarLevelApplicationReview(BaseModel):
-    audit_status: AuditStatusEnum = Field(...)
+    verification_status: VerificationStatusEnum = Field(...)
     final_contest_score: int | None = Field(None)
     uniqueness_approved: bool | None = Field(None)
     growth_story_approved: bool | None = Field(None)
@@ -49,8 +50,9 @@ class StarLevelApplicationInfo(StarLevelApplicationBase, IdMixin):
     model_config = ConfigDict(from_attributes=True)
 
     club_id: int
-    auditor_id: int | None
-    audit_status: AuditStatusEnum | None
+    verifier_id: int | None
+    verify_at: datetime | None
+    verification_status: VerificationStatusEnum | None
     final_contest_score: int | None
     uniqueness_approved: bool | None
     growth_story_approved: bool | None
@@ -64,7 +66,8 @@ class StarLevelApplicationPublicInfo(StarLevelApplicationBase, IdMixin):
     club_id: int
     club: ClubSummary
     academic_term: AcademicTermInfo
-    audit_status: AuditStatusEnum | None
+    verify_at: datetime | None
+    verification_status: VerificationStatusEnum | None
     final_contest_score: int | None
     uniqueness_approved: bool | None
     growth_story_approved: bool | None

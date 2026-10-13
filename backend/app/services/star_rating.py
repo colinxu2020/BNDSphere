@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from app.models.academic_term import AcademicTerm
 from app.models.club import Club, ClubStarLevelEnum
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.star_rating import StarRatingRepository
 from app.schemas.star_level import StarLevelApplicationReview
 from app.schemas.star_rating import StarRatingBreakdown, StarRatingResponse
@@ -160,8 +160,10 @@ class StarRatingService:
         """竞赛得分从已审核的 StarLevelApplication 中获取."""
         if application is None:
             return 0
-        audit_status = review.audit_status if review else application.audit_status
-        if audit_status != AuditStatusEnum.approved:
+        verification_status = (
+            review.verification_status if review else application.verification_status
+        )
+        if verification_status != VerificationStatusEnum.approved:
             return 0
         if review is not None:
             return review.final_contest_score or 0
@@ -174,13 +176,18 @@ class StarRatingService:
     ) -> int:
         if application is None:
             return 0
-        audit_status = review.audit_status if review else application.audit_status
+        verification_status = (
+            review.verification_status if review else application.verification_status
+        )
         growth_story_approved = (
             review.growth_story_approved
             if review
             else application.growth_story_approved
         )
-        if audit_status != AuditStatusEnum.approved or not growth_story_approved:
+        if (
+            verification_status != VerificationStatusEnum.approved
+            or not growth_story_approved
+        ):
             return 0
         return _GROWTH_STORY_SCORE
 
@@ -198,13 +205,16 @@ class StarRatingService:
         """
         grade_counts = await self.repository.count_members_by_grade_level(club_id)
 
-        audit_status = (
-            review.audit_status
+        verification_status = (
+            review.verification_status
             if review
-            else (application.audit_status if application is not None else None)
+            else (application.verification_status if application is not None else None)
         )
 
-        if application is not None and audit_status == AuditStatusEnum.approved:
+        if (
+            application is not None
+            and verification_status == VerificationStatusEnum.approved
+        ):
             target_grades = {
                 grade
                 for grade in (

@@ -281,7 +281,7 @@ const FIELD_LABELS: Record<string, string> = {
   activity_id: "活动",
   altcha: "人机验证",
   article_url: "文章链接",
-  audit_status: "审核状态",
+  verification_status: "审核状态",
   avatar_uri: "头像",
   body: "正文",
   category: "社团类别",

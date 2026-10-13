@@ -21,7 +21,7 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
 )
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 
 SUMMARY_FIELDS = {
     "id",
@@ -110,7 +110,7 @@ class TestClubSummaryLists:
                 ClubGeneralActivityRecord(
                     club_id=normal_id,
                     activity_id=activity.id,
-                    audit_status=AuditStatusEnum.approved,
+                    verification_status=VerificationStatusEnum.approved,
                     participation_type="participate_only",
                 ),
                 StarLevelApplication(club_id=normal_id, academic_term_id=term.id),

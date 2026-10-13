@@ -27,8 +27,8 @@ async def review_star_level_application(
     star_level_id: int,
     review: StarLevelApplicationReview,
     service: StarLevelServiceDep,
-    auditor: Annotated[User, Depends(get_current_user)],
+    verifier: Annotated[User, Depends(get_current_user)],
 ) -> StarLevelApplicationInfo:
     return StarLevelApplicationInfo.model_validate(
-        await service.review(star_level_id, review, auditor),
+        await service.review(star_level_id, review, verifier),
     )

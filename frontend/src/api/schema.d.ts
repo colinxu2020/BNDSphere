@@ -1837,11 +1837,6 @@ export interface components {
             /** Is Active */
             is_active?: boolean | null;
         };
-        /**
-         * AuditStatusEnum
-         * @enum {string}
-         */
-        AuditStatusEnum: "pending" | "approved" | "rejected";
         /** Body_login_api_v1_auth_login_post */
         Body_login_api_v1_auth_login_post: {
             /** Altcha */
@@ -2160,14 +2155,16 @@ export interface components {
              * Format: date-time
              */
             created_at: string;
-            audit_status: components["schemas"]["AuditStatusEnum"];
+            verification_status: components["schemas"]["VerificationStatusEnum"];
             /** Requested Score */
             requested_score: number;
             participation_type: components["schemas"]["ParticipationTypeEnum"];
             /** Met Conditions */
             met_conditions: components["schemas"]["RecordConditionDetail"][];
-            /** Auditor Id */
-            auditor_id: number | null;
+            /** Verifier Id */
+            verifier_id: number | null;
+            /** Verify At */
+            verify_at: string | null;
             /** Club Id */
             club_id: number;
             /** Activity Id */
@@ -2450,7 +2447,7 @@ export interface components {
         };
         /** FederationRecordUpdate */
         FederationRecordUpdate: {
-            audit_status: components["schemas"]["AuditStatusEnum"];
+            verification_status: components["schemas"]["VerificationStatusEnum"];
             /** Final Score */
             final_score?: number | null;
         };
@@ -3092,9 +3089,11 @@ export interface components {
             target_grade_2?: components["schemas"]["UserGradeEnum"] | null;
             /** Club Id */
             club_id: number;
-            /** Auditor Id */
-            auditor_id: number | null;
-            audit_status: components["schemas"]["AuditStatusEnum"] | null;
+            /** Verifier Id */
+            verifier_id: number | null;
+            /** Verify At */
+            verify_at: string | null;
+            verification_status: components["schemas"]["VerificationStatusEnum"] | null;
             /** Final Contest Score */
             final_contest_score: number | null;
             /** Uniqueness Approved */
@@ -3123,7 +3122,9 @@ export interface components {
             club_id: number;
             club: components["schemas"]["ClubSummary"];
             academic_term: components["schemas"]["AcademicTermInfo"];
-            audit_status: components["schemas"]["AuditStatusEnum"] | null;
+            /** Verify At */
+            verify_at: string | null;
+            verification_status: components["schemas"]["VerificationStatusEnum"] | null;
             /** Final Contest Score */
             final_contest_score: number | null;
             /** Uniqueness Approved */
@@ -3141,7 +3142,7 @@ export interface components {
         };
         /** StarLevelApplicationReview */
         StarLevelApplicationReview: {
-            audit_status: components["schemas"]["AuditStatusEnum"];
+            verification_status: components["schemas"]["VerificationStatusEnum"];
             /** Final Contest Score */
             final_contest_score?: number | null;
             /** Uniqueness Approved */
