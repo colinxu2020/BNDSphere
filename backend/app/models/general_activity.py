@@ -17,7 +17,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core import constants
 from app.core.database import Base
 from app.models.academic_term import AcademicTermMixin
-from app.models.user import AuditMixin
+from app.models.verifications.verification_common import VerificationMixin
 
 if TYPE_CHECKING:
     from app.models import Club
@@ -68,7 +68,7 @@ class GeneralActivity(Base, AcademicTermMixin):
     )
 
 
-class ClubGeneralActivityRecord(Base, AuditMixin):
+class ClubGeneralActivityRecord(Base, VerificationMixin):
     __tablename__ = "club_general_activity_records"
 
     club_id: Mapped[int] = mapped_column(

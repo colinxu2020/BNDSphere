@@ -8,7 +8,7 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
     ParticipationTypeEnum,
 )
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.academic_terms import AcademicTermInfo
 from app.schemas.generic import IdMixin
 from app.schemas.upload import ActivityPosterUri, ApplicationFileUriStr
@@ -81,11 +81,12 @@ class GeneralActivityUpdate(BaseModel):
 class ClubGeneralActivityBase(BaseModel):
     proof_files: list[str]
     created_at: datetime
-    audit_status: AuditStatusEnum
+    verification_status: VerificationStatusEnum
     requested_score: int
     participation_type: ParticipationTypeEnum
     met_conditions: list[RecordConditionDetail]
-    auditor_id: int | None
+    verifier_id: int | None
+    verify_at: datetime | None
 
 
 class ClubGeneralActivityInfo(ClubGeneralActivityBase, IdMixin):
@@ -124,7 +125,7 @@ class ClubGeneralActivityUpdate(BaseModel):
 class FederationRecordUpdate(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
-    audit_status: AuditStatusEnum = Field(...)
+    verification_status: VerificationStatusEnum = Field(...)
     final_score: int | None = Field(None)
 
 

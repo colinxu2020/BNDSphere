@@ -9436,15 +9436,6 @@
         "type": "object",
         "title": "AnnouncementUpdate"
       },
-      "AuditStatusEnum": {
-        "type": "string",
-        "enum": [
-          "pending",
-          "approved",
-          "rejected"
-        ],
-        "title": "AuditStatusEnum"
-      },
       "Body_login_api_v1_auth_login_post": {
         "properties": {
           "altcha": {
@@ -10337,8 +10328,8 @@
             "format": "date-time",
             "title": "Created At"
           },
-          "audit_status": {
-            "$ref": "#/components/schemas/AuditStatusEnum"
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatusEnum"
           },
           "requested_score": {
             "type": "integer",
@@ -10354,7 +10345,7 @@
             "type": "array",
             "title": "Met Conditions"
           },
-          "auditor_id": {
+          "verifier_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -10363,7 +10354,19 @@
                 "type": "null"
               }
             ],
-            "title": "Auditor Id"
+            "title": "Verifier Id"
+          },
+          "verify_at": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verify At"
           },
           "club_id": {
             "type": "integer",
@@ -10379,11 +10382,12 @@
           "id",
           "proof_files",
           "created_at",
-          "audit_status",
+          "verification_status",
           "requested_score",
           "participation_type",
           "met_conditions",
-          "auditor_id",
+          "verifier_id",
+          "verify_at",
           "club_id",
           "activity_id"
         ],
@@ -11152,8 +11156,8 @@
       },
       "FederationRecordUpdate": {
         "properties": {
-          "audit_status": {
-            "$ref": "#/components/schemas/AuditStatusEnum"
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatusEnum"
           },
           "final_score": {
             "anyOf": [
@@ -11169,7 +11173,7 @@
         },
         "type": "object",
         "required": [
-          "audit_status"
+          "verification_status"
         ],
         "title": "FederationRecordUpdate"
       },
@@ -13209,7 +13213,7 @@
             "type": "integer",
             "title": "Club Id"
           },
-          "auditor_id": {
+          "verifier_id": {
             "anyOf": [
               {
                 "type": "integer"
@@ -13218,12 +13222,24 @@
                 "type": "null"
               }
             ],
-            "title": "Auditor Id"
+            "title": "Verifier Id"
           },
-          "audit_status": {
+          "verify_at": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuditStatusEnum"
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verify At"
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationStatusEnum"
               },
               {
                 "type": "null"
@@ -13289,8 +13305,9 @@
         "required": [
           "id",
           "club_id",
-          "auditor_id",
-          "audit_status",
+          "verifier_id",
+          "verify_at",
+          "verification_status",
           "final_contest_score",
           "uniqueness_approved",
           "growth_story_approved",
@@ -13385,10 +13402,22 @@
           "academic_term": {
             "$ref": "#/components/schemas/AcademicTermInfo"
           },
-          "audit_status": {
+          "verify_at": {
             "anyOf": [
               {
-                "$ref": "#/components/schemas/AuditStatusEnum"
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Verify At"
+          },
+          "verification_status": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/VerificationStatusEnum"
               },
               {
                 "type": "null"
@@ -13461,7 +13490,8 @@
           "club_id",
           "club",
           "academic_term",
-          "audit_status",
+          "verify_at",
+          "verification_status",
           "final_contest_score",
           "uniqueness_approved",
           "growth_story_approved",
@@ -13473,8 +13503,8 @@
       },
       "StarLevelApplicationReview": {
         "properties": {
-          "audit_status": {
-            "$ref": "#/components/schemas/AuditStatusEnum"
+          "verification_status": {
+            "$ref": "#/components/schemas/VerificationStatusEnum"
           },
           "final_contest_score": {
             "anyOf": [
@@ -13512,7 +13542,7 @@
         },
         "type": "object",
         "required": [
-          "audit_status"
+          "verification_status"
         ],
         "title": "StarLevelApplicationReview"
       },

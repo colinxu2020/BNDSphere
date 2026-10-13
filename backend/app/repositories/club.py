@@ -13,7 +13,7 @@ from app.models.clubmember import ClubMember, ClubMembershipEnum
 from app.models.general_activity import ClubGeneralActivityRecord
 from app.models.moderations.club import ClubUpdateRequest
 from app.models.moderations.moderation_common import ModerationStatusEnum
-from app.models.user import AuditStatusEnum, User
+from app.models.user import User
 from app.models.verifications.club_claim import ClubClaimRequest
 from app.models.verifications.club_membership import ClubMembershipRequest
 from app.models.verifications.verification_common import VerificationStatusEnum
@@ -29,7 +29,8 @@ from app.schemas.verifications.verification_common import RequestVerify
 # pending/rejected 记录的 proof_files 等内容未经社联审核, 匿名访客不应看到.
 _PUBLIC_RECORDS_OPTION = selectinload(
     Club.general_activity_records.and_(
-        ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
+        ClubGeneralActivityRecord.verification_status
+        == VerificationStatusEnum.approved,
     ),
 )
 _PUBLIC_MEMBERS_OPTION = selectinload(

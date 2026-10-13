@@ -136,20 +136,14 @@ export const PARTICIPATION_MAP: Record<components["schemas"]["ParticipationTypeE
   organize: "组织",
 };
 
-export const AUDIT_STATUS_OPTIONS: {
+export const VERIFICATION_STATUS_OPTIONS: {
   label: string;
-  value: components["schemas"]["AuditStatusEnum"];
+  value: components["schemas"]["VerificationStatusEnum"];
 }[] = [
   { label: "待审核", value: "pending" },
   { label: "已通过", value: "approved" },
   { label: "已驳回", value: "rejected" },
 ];
-
-export const AUDIT_STATUS_MAP: Record<components["schemas"]["AuditStatusEnum"], string> = {
-  pending: "待审核",
-  approved: "已通过",
-  rejected: "已驳回",
-};
 
 export const MODERATION_STATUS_MAP: Record<components["schemas"]["ModerationStatusEnum"], string> =
   {

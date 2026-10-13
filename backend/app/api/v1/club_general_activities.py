@@ -13,7 +13,7 @@ from app.api.dependencies import (
     GeneralActivityServiceDep,
 )
 from app.models.clubmember import ClubMembershipEnum
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.schemas.general_activities import (
     ClubGeneralActivityCreate,
     ClubGeneralActivityInfo,
@@ -119,7 +119,7 @@ async def update_club_general_activities(
         club,
         activity,
     )
-    if record.audit_status != AuditStatusEnum.pending:
+    if record.verification_status != VerificationStatusEnum.pending:
         raise ResourceForbiddenError(
             message_key="error.general_activity.record_reviewed",
             error_code="RECORD_REVIEWED",

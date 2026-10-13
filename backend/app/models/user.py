@@ -3,8 +3,8 @@ from enum import StrEnum
 from typing import TYPE_CHECKING
 
 from pydantic import HttpUrl
-from sqlalchemy import DateTime, ForeignKey, Index, String, Text, func
-from sqlalchemy.orm import Mapped, declared_attr, mapped_column, relationship
+from sqlalchemy import DateTime, Index, String, Text, func
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.core.database import Base
 from app.utils.custom_types import HttpUrlType
@@ -54,12 +54,6 @@ class UserGradeEnum(StrEnum):
         return _GRADE_LEVEL_MAP[self.value]
 
 
-class AuditStatusEnum(StrEnum):
-    pending = "pending"
-    approved = "approved"
-    rejected = "rejected"
-
-
 class User(Base):
     __tablename__ = "users"
 
@@ -103,25 +97,3 @@ class User(Base):
     )
 
     __table_args__ = (Index("uq_users_email_lower", func.lower(email), unique=True),)
-
-
-class AuditMixin:
-    @declared_attr
-    @classmethod
-    def audit_status(cls) -> Mapped[AuditStatusEnum]:
-        return mapped_column(
-            default=AuditStatusEnum.pending,
-        )
-
-    @declared_attr
-    @classmethod
-    def auditor_id(cls) -> Mapped[int | None]:
-        return mapped_column(
-            ForeignKey("users.id"),
-            default=None,
-        )
-
-    @declared_attr
-    @classmethod
-    def auditor(cls) -> Mapped[User | None]:
-        return relationship("User", foreign_keys=[cls.auditor_id])

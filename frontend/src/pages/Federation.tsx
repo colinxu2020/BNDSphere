@@ -17,8 +17,8 @@ import type { components } from "../api/schema";
 import {
   ACTIVITY_LEVEL_MAP,
   ACTIVITY_LEVEL_OPTIONS,
-  AUDIT_STATUS_MAP,
-  AUDIT_STATUS_OPTIONS,
+  VERIFICATION_STATUS_MAP,
+  VERIFICATION_STATUS_OPTIONS,
   PARTICIPATION_MAP,
   STAR_LEVEL_MAP,
 } from "../lib/labels";
@@ -48,7 +48,7 @@ import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useI
 type GeneralActivity = components["schemas"]["GeneralActivityInfo"];
 type ClubGeneralActivity = components["schemas"]["ClubGeneralActivityInfo"];
 type ActivityLevel = components["schemas"]["GeneralActivityLevelEnum"];
-type AuditStatus = components["schemas"]["AuditStatusEnum"];
+type VerificationStatus = components["schemas"]["VerificationStatusEnum"];
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
 type StarReviewPreview = components["schemas"]["StarLevelApplicationReviewPreview"];
 type ReviewRecord = ClubGeneralActivity & { activity: GeneralActivity };
@@ -85,12 +85,12 @@ export function Federation() {
   const [isEditing, setIsEditing] = useState(false);
 
   const [selectedRecordId, setSelectedRecordId] = useState<number | null>(null);
-  const [recordStatus, setRecordStatus] = useState<AuditStatus>("pending");
+  const [recordStatus, setRecordStatus] = useState<VerificationStatus>("pending");
   const [recordScore, setRecordScore] = useState("");
   const [isRecordUpdating, setIsRecordUpdating] = useState(false);
 
   const [selectedStarId, setSelectedStarId] = useState<number | null>(null);
-  const [starStatus, setStarStatus] = useState<AuditStatus>("pending");
+  const [starStatus, setStarStatus] = useState<VerificationStatus>("pending");
   const [finalContestScore, setFinalContestScore] = useState("");
   const [uniquenessApproved, setUniquenessApproved] = useState("");
   const [growthStoryApproved, setGrowthStoryApproved] = useState("");
@@ -120,7 +120,7 @@ export function Federation() {
       starList.items
         .filter(
           (application) =>
-            application.academic_term.is_current && application.audit_status !== "approved",
+            application.academic_term.is_current && application.verification_status !== "approved",
         )
         .sort(sortStarApplications),
     [starList.items],
@@ -143,9 +143,9 @@ export function Federation() {
           })),
         )
         .sort((left, right) => {
-          if (left.audit_status !== right.audit_status) {
-            if (left.audit_status === "pending") return -1;
-            if (right.audit_status === "pending") return 1;
+          if (left.verification_status !== right.verification_status) {
+            if (left.verification_status === "pending") return -1;
+            if (right.verification_status === "pending") return 1;
           }
           return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
         }),
@@ -333,13 +333,13 @@ export function Federation() {
 
   const loadRecordForReview = (record: ReviewRecord) => {
     setSelectedRecordId(record.id);
-    setRecordStatus(record.audit_status);
+    setRecordStatus(record.verification_status);
     setRecordScore(String(record.requested_score));
   };
 
   const loadStarApplicationForReview = (application: StarApplication) => {
     setSelectedStarId(application.id);
-    setStarStatus(application.audit_status || "pending");
+    setStarStatus(application.verification_status || "pending");
     setFinalContestScore(
       application.final_contest_score == null
         ? application.requested_contest_score == null
@@ -366,7 +366,7 @@ export function Federation() {
         {
           params: { path: { record_id: selectedRecordId } },
           body: {
-            audit_status: recordStatus,
+            verification_status: recordStatus,
             final_score: nullableNumber(recordScore),
           },
         },
@@ -489,8 +489,8 @@ export function Federation() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={getAuditTone(record.audit_status)}>
-                      {AUDIT_STATUS_MAP[record.audit_status]}
+                    <Badge tone={getVerificationTone(record.verification_status)}>
+                      {VERIFICATION_STATUS_MAP[record.verification_status]}
                     </Badge>
                     <Badge>{PARTICIPATION_MAP[record.participation_type]}</Badge>
                     <span className="text-xs font-medium text-slate-400">记录 #{record.id}</span>
@@ -543,16 +543,18 @@ export function Federation() {
                 {/* A reviewed record is final — the server refuses a second
                     review — so it is shown for reference, not as a form. */}
                 <fieldset
-                  disabled={selectedRecord.audit_status !== "pending"}
+                  disabled={selectedRecord.verification_status !== "pending"}
                   className="grid gap-4 disabled:opacity-60"
                 >
                   <Field label="审核状态">
                     <select
                       className={selectClassName}
                       value={recordStatus}
-                      onChange={(event) => setRecordStatus(event.target.value as AuditStatus)}
+                      onChange={(event) =>
+                        setRecordStatus(event.target.value as VerificationStatus)
+                      }
                     >
-                      {AUDIT_STATUS_OPTIONS.map((option) => (
+                      {VERIFICATION_STATUS_OPTIONS.map((option) => (
                         <option key={option.value} value={option.value}>
                           {option.label}
                         </option>
@@ -586,7 +588,7 @@ export function Federation() {
                     </div>
                   )}
                 </fieldset>
-                {selectedRecord.audit_status === "pending" ? (
+                {selectedRecord.verification_status === "pending" ? (
                   <PrimaryButton type="submit" loading={isRecordUpdating}>
                     <Save size={18} /> 更新记录
                   </PrimaryButton>
@@ -617,9 +619,9 @@ export function Federation() {
                   )}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <Badge tone={getAuditTone(application.audit_status || "pending")}>
-                      {application.audit_status
-                        ? AUDIT_STATUS_MAP[application.audit_status]
+                    <Badge tone={getVerificationTone(application.verification_status || "pending")}>
+                      {application.verification_status
+                        ? VERIFICATION_STATUS_MAP[application.verification_status]
                         : "待审核"}
                     </Badge>
                     <Badge>
@@ -680,9 +682,9 @@ export function Federation() {
                   <select
                     className={selectClassName}
                     value={starStatus}
-                    onChange={(event) => setStarStatus(event.target.value as AuditStatus)}
+                    onChange={(event) => setStarStatus(event.target.value as VerificationStatus)}
                   >
-                    {AUDIT_STATUS_OPTIONS.map((option) => (
+                    {VERIFICATION_STATUS_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>
                         {option.label}
                       </option>
@@ -977,13 +979,13 @@ function ExternalLink({ href, children }: { href?: string | null; children: Reac
 }
 
 function buildStarReviewBody(
-  auditStatus: AuditStatus,
+  verificationStatus: VerificationStatus,
   finalContestScore: string,
   uniquenessApproved: string,
   growthStoryApproved: string,
 ): components["schemas"]["StarLevelApplicationReview"] {
   return {
-    audit_status: auditStatus,
+    verification_status: verificationStatus,
     final_contest_score: nullableNumber(finalContestScore),
     uniqueness_approved: selectValueToBoolean(uniquenessApproved),
     growth_story_approved: selectValueToBoolean(growthStoryApproved),
@@ -1002,34 +1004,34 @@ function selectValueToBoolean(value: string) {
 }
 
 function sortStarApplications(left: StarApplication, right: StarApplication) {
-  if (left.audit_status !== right.audit_status) {
-    if (!left.audit_status || left.audit_status === "pending") return -1;
-    if (!right.audit_status || right.audit_status === "pending") return 1;
+  if (left.verification_status !== right.verification_status) {
+    if (!left.verification_status || left.verification_status === "pending") return -1;
+    if (!right.verification_status || right.verification_status === "pending") return 1;
   }
   return new Date(right.created_at).getTime() - new Date(left.created_at).getTime();
 }
 
 function getStarPreviewScoreText(
-  auditStatus: AuditStatus,
+  verificationStatus: VerificationStatus,
   isLoading: boolean,
   preview: StarReviewPreview | null,
 ) {
-  if (auditStatus !== "approved") return "审核通过后计算";
+  if (verificationStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
   return preview?.approved_score == null ? "待计算" : `${preview.approved_score} 分`;
 }
 
 function getStarPreviewLevelText(
-  auditStatus: AuditStatus,
+  verificationStatus: VerificationStatus,
   isLoading: boolean,
   preview: StarReviewPreview | null,
 ) {
-  if (auditStatus !== "approved") return "审核通过后计算";
+  if (verificationStatus !== "approved") return "审核通过后计算";
   if (isLoading) return "计算中";
   return preview?.approved_level == null ? "待计算" : STAR_LEVEL_MAP[preview.approved_level];
 }
 
-function getAuditTone(status: AuditStatus) {
+function getVerificationTone(status: VerificationStatus) {
   if (status === "approved") return "green";
   if (status === "rejected") return "red";
   return "yellow";

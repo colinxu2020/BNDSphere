@@ -12,7 +12,7 @@ from app.models.general_activity import (
 )
 from app.models.joint_activity import JointActivity, JointActivityParticipation
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum, User, UserGradeEnum
+from app.models.user import User, UserGradeEnum
 from app.models.verifications.verification_common import VerificationStatusEnum
 
 _MAX_SCORED_JOINT_ACTIVITIES = 2
@@ -115,7 +115,8 @@ class StarRatingRepository:
             )
             .where(
                 ClubGeneralActivityRecord.club_id == club_id,
-                ClubGeneralActivityRecord.audit_status == AuditStatusEnum.approved,
+                ClubGeneralActivityRecord.verification_status
+                == VerificationStatusEnum.approved,
                 GeneralActivity.level.in_(
                     [
                         GeneralActivityLevelEnum.school,

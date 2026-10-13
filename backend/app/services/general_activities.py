@@ -8,7 +8,7 @@ from app.models.general_activity import (
     ClubGeneralActivityRecord,
     GeneralActivityLevelEnum,
 )
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.general_activities import (
     ClubGeneralActivityRepository,
     GeneralActivityRepository,
@@ -123,7 +123,7 @@ class ClubGeneralActivityService(
         self,
         record_id: int,
         obj_in: FederationRecordUpdate,
-        auditor: User,
+        verifier: User,
     ) -> ClubGeneralActivityRecord:
         async with self.transaction():
             db_obj = await self._get_with_lock(record_id)
@@ -133,11 +133,11 @@ class ClubGeneralActivityService(
                     "CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND",
                     {"record_id": record_id},
                 )
-            if db_obj.audit_status != AuditStatusEnum.pending:
+            if db_obj.verification_status != VerificationStatusEnum.pending:
                 raise ResourceForbiddenError(
                     "error.general_activity.record_reviewed",
                     "RECORD_REVIEWED",
                     {"record_id": record_id},
                 )
 
-            return await self.repository.review_record(db_obj, obj_in, auditor)
+            return await self.repository.review_record(db_obj, obj_in, verifier)

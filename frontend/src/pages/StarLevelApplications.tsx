@@ -4,16 +4,16 @@ import { Award, Building2, CalendarDays, ExternalLink, FileText } from "@/src/co
 import { Link } from "react-router-dom";
 import { client } from "../api/client";
 import type { components } from "../api/schema";
-import { AUDIT_STATUS_MAP, CATEGORY_MAP, GRADE_MAP, STAR_LEVEL_MAP } from "../lib/labels";
+import { VERIFICATION_STATUS_MAP, CATEGORY_MAP, GRADE_MAP, STAR_LEVEL_MAP } from "../lib/labels";
 import { formatDateTime } from "../lib/format";
 import { Badge, EmptyState, PageHeader, Surface } from "../components/ui/AppPrimitives";
 import { InfiniteScrollTrigger } from "../components/ui/InfiniteScroll";
 import { DEFAULT_PAGE_SIZE, getPageResult, useInfiniteList } from "../hooks/useInfiniteList";
 
 type StarApplication = components["schemas"]["StarLevelApplicationPublicInfo"];
-type AuditStatus = components["schemas"]["AuditStatusEnum"];
+type VerificationStatus = components["schemas"]["VerificationStatusEnum"];
 
-const AUDIT_TONE: Record<AuditStatus, "yellow" | "green" | "red"> = {
+const VERIFICATION_TONE: Record<VerificationStatus, "yellow" | "green" | "red"> = {
   pending: "yellow",
   approved: "green",
   rejected: "red",
@@ -71,7 +71,7 @@ export function StarLevelApplications() {
 }
 
 function StarApplicationCard({ application }: { key?: Key; application: StarApplication }) {
-  const auditStatus = application.audit_status;
+  const verificationStatus = application.verification_status;
   const targetGrades = [
     application.target_grade_1 ? GRADE_MAP[application.target_grade_1] : null,
     application.target_grade_2 ? GRADE_MAP[application.target_grade_2] : null,
@@ -101,8 +101,10 @@ function StarApplicationCard({ application }: { key?: Key; application: StarAppl
                 {application.club.name}
               </Link>
               <Badge tone="slate">{CATEGORY_MAP[application.club.category]}</Badge>
-              {auditStatus && (
-                <Badge tone={AUDIT_TONE[auditStatus]}>{AUDIT_STATUS_MAP[auditStatus]}</Badge>
+              {verificationStatus && (
+                <Badge tone={VERIFICATION_TONE[verificationStatus]}>
+                  {VERIFICATION_STATUS_MAP[verificationStatus]}
+                </Badge>
               )}
             </div>
             <div className="mt-2 flex flex-wrap items-center gap-3 text-sm text-slate-500">

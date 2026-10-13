@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models.academic_term import AcademicTerm
 from app.models.club import Club, ClubCategoryEnum
 from app.models.star_level import StarLevelApplication
-from app.models.user import AuditStatusEnum
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.star_rating import StarRatingRepository
 from app.services.star_rating import StarRatingService
 
@@ -98,7 +98,7 @@ async def test_latest_section_caps_allow_a_100_point_rating() -> None:
     application = StarLevelApplication(
         club_id=1,
         academic_term_id=1,
-        audit_status=AuditStatusEnum.approved,
+        verification_status=VerificationStatusEnum.approved,
         final_contest_score=20,
         growth_story_approved=True,
         target_grade_1=None,

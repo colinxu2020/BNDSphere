@@ -13,7 +13,8 @@ from app.models.general_activity import (
     GeneralActivityLevelEnum,
     ParticipationTypeEnum,
 )
-from app.models.user import AuditStatusEnum, User
+from app.models.user import User
+from app.models.verifications.verification_common import VerificationStatusEnum
 from app.repositories.general_activities import ClubGeneralActivityRepository
 from app.schemas.general_activities import FederationRecordUpdate
 from app.services.errors import ResourceForbiddenError, ResourceNotFoundError
@@ -46,17 +47,17 @@ class ExistingRecordRepository:
         self,
         record: ClubGeneralActivityRecord,
         update: FederationRecordUpdate,
-        auditor: User,
+        verifier: User,
     ) -> ClubGeneralActivityRecord:
         raise AssertionError("an already-reviewed record must not be updated")
 
 
 @pytest.mark.parametrize(
     "existing_status",
-    [AuditStatusEnum.approved, AuditStatusEnum.rejected],
+    [VerificationStatusEnum.approved, VerificationStatusEnum.rejected],
 )
 async def test_review_rejects_a_record_that_was_already_reviewed(
-    existing_status: AuditStatusEnum,
+    existing_status: VerificationStatusEnum,
 ) -> None:
     record = ClubGeneralActivityRecord(
         id=13,
@@ -65,24 +66,24 @@ async def test_review_rejects_a_record_that_was_already_reviewed(
         participation_type=ParticipationTypeEnum.participate_only,
         requested_score=1,
         proof_files=[],
-        audit_status=existing_status,
+        verification_status=existing_status,
     )
     repository = ExistingRecordRepository(record)
     service = ClubGeneralActivityService(
         cast("ClubGeneralActivityRepository", repository),
     )
     update = FederationRecordUpdate(
-        audit_status=AuditStatusEnum.approved,
+        verification_status=VerificationStatusEnum.approved,
         final_score=1,
     )
-    auditor = User(
+    verifier = User(
         id=11,
         username="reviewer",
         hashed_password="unused",  # noqa: S106
     )
 
     with pytest.raises(ResourceForbiddenError) as exc_info:
-        await service.review_record(record.id, update, auditor)
+        await service.review_record(record.id, update, verifier)
 
     assert exc_info.value.error_code == "RECORD_REVIEWED"
 
@@ -95,24 +96,24 @@ async def test_review_preserves_the_public_not_found_error_code() -> None:
         participation_type=ParticipationTypeEnum.participate_only,
         requested_score=1,
         proof_files=[],
-        audit_status=AuditStatusEnum.pending,
+        verification_status=VerificationStatusEnum.pending,
     )
     repository = ExistingRecordRepository(record)
     service = ClubGeneralActivityService(
         cast("ClubGeneralActivityRepository", repository),
     )
     update = FederationRecordUpdate(
-        audit_status=AuditStatusEnum.approved,
+        verification_status=VerificationStatusEnum.approved,
         final_score=1,
     )
-    auditor = User(
+    verifier = User(
         id=11,
         username="reviewer",
         hashed_password="unused",  # noqa: S106
     )
 
     with pytest.raises(ResourceNotFoundError) as exc_info:
-        await service.review_record(99, update, auditor)
+        await service.review_record(99, update, verifier)
 
     assert exc_info.value.error_code == "CLUB_GENERAL_ACTIVITY_RECORD_NOT_FOUND"
 
@@ -153,7 +154,7 @@ async def test_review_reloads_status_after_a_prior_session_read(
             activity_id=activity.id,
             participation_type=ParticipationTypeEnum.participate_only,
             requested_score=1,
-            audit_status=AuditStatusEnum.pending,
+            verification_status=VerificationStatusEnum.pending,
             proof_files=[],
         )
         seed.add(record)
@@ -167,30 +168,30 @@ async def test_review_reloads_status_after_a_prior_session_read(
             ),
         )
         assert earlier is not None
-        assert earlier.audit_status == AuditStatusEnum.pending
+        assert earlier.verification_status == VerificationStatusEnum.pending
         await concurrent_session.execute(
             update(ClubGeneralActivityRecord)
             .where(ClubGeneralActivityRecord.id == record_id)
-            .values(audit_status=AuditStatusEnum.rejected),
+            .values(verification_status=VerificationStatusEnum.rejected),
         )
         await concurrent_session.commit()
 
         service = ClubGeneralActivityService(
             ClubGeneralActivityRepository(stale_session),
         )
-        auditor = await stale_session.get(User, reviewer_id)
-        assert auditor is not None
+        verifier = await stale_session.get(User, reviewer_id)
+        assert verifier is not None
         with pytest.raises(ResourceForbiddenError) as exc_info:
             await service.review_record(
                 record_id,
                 FederationRecordUpdate(
-                    audit_status=AuditStatusEnum.approved,
+                    verification_status=VerificationStatusEnum.approved,
                     final_score=1,
                 ),
-                auditor,
+                verifier,
             )
         assert exc_info.value.error_code == "RECORD_REVIEWED"
         async with sessions() as verify:
             saved = await verify.get(ClubGeneralActivityRecord, record_id)
             assert saved is not None
-            assert saved.audit_status == AuditStatusEnum.rejected
+            assert saved.verification_status == VerificationStatusEnum.rejected
