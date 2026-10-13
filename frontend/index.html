@@ -15,7 +15,8 @@
     <script>
       // Follow OS theme changes while in auto mode. Mirrors ThemeToggle.tsx.
       matchMedia("(prefers-color-scheme: dark)").addEventListener("change", function (e) {
-        if (localStorage.getItem("bnd_theme") === "auto")
+        var t = localStorage.getItem("bnd_theme");
+        if (t === "auto" || t === null)
           document.documentElement.classList.toggle("dark", e.matches);
       });
     </script>

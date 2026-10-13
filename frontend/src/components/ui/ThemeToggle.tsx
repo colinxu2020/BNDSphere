@@ -35,6 +35,17 @@ export function ThemeToggle() {
     return () => mql.removeEventListener("change", onChange);
   }, [theme]);
 
+  // Keep React state in sync when another tab changes the stored preference.
+  useEffect(() => {
+    const onStorage = (event: StorageEvent) => {
+      if (event.key !== STORAGE_KEY) return;
+      const value = event.newValue;
+      if (value === "light" || value === "dark" || value === "auto") setTheme(value);
+    };
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+  }, []);
+
   const cycle = () => {
     const next = order[(order.indexOf(theme) + 1) % order.length];
     localStorage.setItem(STORAGE_KEY, next);
