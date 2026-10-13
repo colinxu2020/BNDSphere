@@ -422,9 +422,11 @@ export function ClubWorkspace() {
   const currentMembership = club?.members.find(
     (member) => member.user_id === currentUser?.id,
   )?.membership;
-  const isPresident = currentMembership === "president";
-  const canVerifyMemberships =
-    currentMembership === "president" || currentMembership === "vice_president";
+  const canManageMembers =
+    currentUser?.role === "admin" ||
+    currentUser?.role === "dev" ||
+    currentMembership === "president";
+  const canVerifyMemberships = canManageMembers || currentMembership === "vice_president";
   const activeMembers = (club?.members || [])
     .filter((member) => ["member", "president", "vice_president"].includes(member.membership))
     .sort((left, right) => membershipOrder(left.membership) - membershipOrder(right.membership));
@@ -1089,7 +1091,7 @@ export function ClubWorkspace() {
                       </div>
                     </section>
 
-                    {isPresident && (
+                    {canManageMembers && (
                       <section className="border-t border-slate-100 pt-7">
                         <div className="mb-3 flex items-center justify-between gap-3">
                           <h3 className="font-semibold text-slate-900">社团成员</h3>

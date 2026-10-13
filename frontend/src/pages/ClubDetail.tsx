@@ -192,7 +192,10 @@ export function ClubDetail() {
   );
   const canJoin = !currentMembership && !hasSubmittedJoinRequest;
   const canLeave = currentMembership === "member" || currentMembership === "pending";
-  const canManage = currentMembership ? MANAGER_ROLES.has(currentMembership) : false;
+  const canManage =
+    user?.role === "admin" ||
+    user?.role === "dev" ||
+    (currentMembership ? MANAGER_ROLES.has(currentMembership) : false);
   const hasPresident = club?.members.some((member) => member.membership === "president") ?? false;
   const canClaim = !hasPresident && !hasSubmittedClaimRequest;
   const activeMembers = useMemo(

@@ -47,7 +47,7 @@ export function PageTabs<T extends string>({
   onChange,
   ariaLabel,
 }: {
-  tabs: readonly { key: T; label: string }[];
+  tabs: readonly { key: T; label: string; hasPending?: boolean }[];
   activeTab: T;
   onChange: (tab: T) => void;
   ariaLabel: string;
@@ -70,6 +70,11 @@ export function PageTabs<T extends string>({
             )}
           >
             {tab.label}
+            {tab.hasPending && (
+              <span className="ml-2 inline-block h-2 w-2 rounded-full bg-red-500">
+                <span className="sr-only">有待审核项目</span>
+              </span>
+            )}
           </button>
         ))}
       </div>

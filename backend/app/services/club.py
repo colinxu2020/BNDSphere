@@ -65,6 +65,7 @@ from app.services.moderation_payload import (
     build_update_payload,
     requested_update_fields,
 )
+from app.services.policies import ROLE_CAPABILITIES, AccessPolicy
 
 
 class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
@@ -292,19 +293,23 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         president: User,
     ) -> ClubMember:
         async with self.transaction():
-            club = await self._get_locked_active_club(club_id)
-            president_membership = await self._ensure_president(club, president)
+            club = await self._get_locked_active_club(
+                club_id,
+                allow_inactive=ROLE_CAPABILITIES[president.role].bypass_role_checks,
+            )
+            await self._ensure_president(club, president)
             target = await self._get_active_member(club, target_user_id)
             desired_membership = ClubMembershipEnum(obj_in.membership.value)
 
-            if target.user_id == president.id:
+            if target.membership == ClubMembershipEnum.president:
                 if desired_membership == ClubMembershipEnum.president:
                     return target
-                raise ResourceForbiddenError(
-                    "error.club.cannot_change_president_role",
-                    "CANNOT_CHANGE_PRESIDENT_ROLE",
-                    {"club_id": club_id},
-                ) from None
+                if not ROLE_CAPABILITIES[president.role].bypass_role_checks:
+                    raise ResourceForbiddenError(
+                        "error.club.cannot_change_president_role",
+                        "CANNOT_CHANGE_PRESIDENT_ROLE",
+                        {"club_id": club_id},
+                    ) from None
 
             if (
                 desired_membership == ClubMembershipEnum.vice_president
@@ -314,11 +319,16 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             ):
                 raise VicePresidentLimitReachedError(club_id)
 
+            if target.membership == ClubMembershipEnum.president:
+                club.claimed = False
             if desired_membership == ClubMembershipEnum.president:
-                await self.member_repository.set_membership(
-                    president_membership,
-                    ClubMembershipEnum.member,
-                )
+                for member in club.members:
+                    if member.membership == ClubMembershipEnum.president:
+                        await self.member_repository.set_membership(
+                            member,
+                            ClubMembershipEnum.member,
+                        )
+                club.claimed = True
 
             return await self.member_repository.set_membership(
                 target,
@@ -332,25 +342,35 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
         president: User,
     ) -> None:
         async with self.transaction():
-            club = await self._get_locked_active_club(club_id)
+            club = await self._get_locked_active_club(
+                club_id,
+                allow_inactive=ROLE_CAPABILITIES[president.role].bypass_role_checks,
+            )
             await self._ensure_president(club, president)
             target = await self._get_active_member(club, target_user_id)
             if target.membership == ClubMembershipEnum.president:
-                raise ResourceForbiddenError(
-                    "error.club.cannot_remove_president",
-                    "CANNOT_REMOVE_PRESIDENT",
-                    {"club_id": club_id},
-                ) from None
+                if not ROLE_CAPABILITIES[president.role].bypass_role_checks:
+                    raise ResourceForbiddenError(
+                        "error.club.cannot_remove_president",
+                        "CANNOT_REMOVE_PRESIDENT",
+                        {"club_id": club_id},
+                    ) from None
+                club.claimed = False
             await self.member_repository.set_membership(
                 target,
                 ClubMembershipEnum.left,
             )
 
-    async def _get_locked_active_club(self, club_id: int) -> Club:
+    async def _get_locked_active_club(
+        self,
+        club_id: int,
+        *,
+        allow_inactive: bool = False,
+    ) -> Club:
         club = await self.repository.get_with_lock(club_id)
         if club is None:
             raise ClubNotFoundError(club_id) from None
-        if club.status != ClubStatusEnum.normal:
+        if club.status != ClubStatusEnum.normal and not allow_inactive:
             raise ResourceForbiddenError(
                 "error.club.not_active",
                 "CLUB_NOT_ACTIVE",
@@ -358,7 +378,10 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
             ) from None
         return club
 
-    async def _ensure_president(self, club: Club, user: User) -> ClubMember:
+    async def _ensure_president(self, club: Club, user: User) -> None:
+        AccessPolicy.ensure_user_active(user)
+        if ROLE_CAPABILITIES[user.role].bypass_role_checks:
+            return
         membership = await self.member_repository.get_by_club_user(club, user)
         if membership is None or membership.membership != ClubMembershipEnum.president:
             raise ResourceForbiddenError(
@@ -366,7 +389,6 @@ class ClubService(ServiceBase[Club, ClubCreate, AdminClubUpdate]):
                 "CLUB_PRESIDENT_REQUIRED",
                 {"club_id": club.id},
             ) from None
-        return membership
 
     async def _get_active_member(self, club: Club, user_id: int) -> ClubMember:
         membership = await self.member_repository.get_by_club_user_id(

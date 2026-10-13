@@ -1,11 +1,11 @@
 import { useCallback, useState } from "react";
 import { motion } from "motion/react";
-import { Plus, Search, Filter, Hash, Sparkles } from "@/src/components/ui/Icons";
+import { Plus, Search, Filter, Hash, Sparkles, Star } from "@/src/components/ui/Icons";
 import { client } from "../api/client";
 import { Link } from "react-router-dom";
 import { cn } from "../lib/utils";
 import type { components } from "../api/schema";
-import { CATEGORY_MAP, CATEGORY_OPTIONS } from "../lib/labels";
+import { CATEGORY_MAP, CATEGORY_OPTIONS, STAR_LEVEL_MAP } from "../lib/labels";
 import { ClubPresident } from "../components/ui/ClubPresident";
 import { PageHeader } from "../components/ui/AppPrimitives";
 import { PageLoading } from "../components/ui/PageStates";
@@ -19,6 +19,16 @@ const CATEGORIES: { label: string; value: Category | "all" }[] = [
   { label: "全部", value: "all" },
   ...CATEGORY_OPTIONS,
 ];
+
+const STAR_COUNTS: Record<components["schemas"]["ClubStarLevelEnum"], number> = {
+  none: 0,
+  one_star: 1,
+  two_star: 2,
+  three_star: 3,
+  four_star: 4,
+  five_star: 5,
+  honorary: 0,
+};
 
 export function ExploreClubs() {
   const [search, setSearch] = useState("");
@@ -135,8 +145,22 @@ export function ExploreClubs() {
                       {CATEGORY_MAP[club.category] || club.category}
                     </span>
                     {club.star_level !== "none" && (
-                      <span className="flex text-yellow-400 bg-yellow-50 p-0.5 rounded-md">
-                        <Sparkles size={12} className="fill-yellow-400" />
+                      <span
+                        className="flex text-yellow-400 bg-yellow-50 p-0.5 rounded-md"
+                        aria-label={STAR_LEVEL_MAP[club.star_level]}
+                      >
+                        {club.star_level === "honorary" ? (
+                          <Sparkles size={12} className="fill-yellow-400" aria-hidden="true" />
+                        ) : (
+                          Array.from({ length: STAR_COUNTS[club.star_level] }, (_, index) => (
+                            <Star
+                              key={index}
+                              size={12}
+                              className="fill-yellow-400"
+                              aria-hidden="true"
+                            />
+                          ))
+                        )}
                       </span>
                     )}
                   </div>

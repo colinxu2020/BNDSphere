@@ -12,6 +12,7 @@ type FileUploadFieldProps = {
   values?: string[];
   onChange?: (value: string) => void;
   onValuesChange?: (values: string[]) => void;
+  onUploadingChange?: (isUploading: boolean) => void;
   multiple?: boolean;
   accept?: string;
   hint?: string;
@@ -28,6 +29,7 @@ export function FileUploadField({
   values,
   onChange,
   onValuesChange,
+  onUploadingChange,
   multiple,
   accept,
   hint,
@@ -45,6 +47,7 @@ export function FileUploadField({
   const uploadSelectedFiles = async (files: FileList | null) => {
     if (!files?.length) return;
     setIsUploading(true);
+    onUploadingChange?.(true);
     setMessage(null);
 
     try {
@@ -69,6 +72,7 @@ export function FileUploadField({
       setMessage(error);
     } finally {
       setIsUploading(false);
+      onUploadingChange?.(false);
       if (inputRef.current) inputRef.current.value = "";
     }
   };
