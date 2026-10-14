@@ -8,6 +8,7 @@ from sqlalchemy import select
 from app.models.announcement import Announcement
 from app.repositories.base import RepositoryBase
 from app.schemas.announcements import AnnouncementCreate, AnnouncementUpdate
+from app.utils.like import escape_like
 
 
 class AnnouncementRepository(
@@ -27,7 +28,8 @@ class AnnouncementRepository(
             Announcement.id.desc(),
         )
         if search is not None:
-            stmt = stmt.where(self.model.title.ilike(f"%{search}%"))
+            pattern = f"%{escape_like(search)}%"
+            stmt = stmt.where(self.model.title.ilike(pattern, escape="\\"))
         if active_only:
             stmt = stmt.where(self.model.is_active.is_(True))
         if at_time is not None:
